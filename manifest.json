@@ -1,0 +1,9 @@
+{
+  "name": "PSCPP Tracker",
+  "short_name": "PSCPP",
+  "description": "Acompanhamento de estudos para o PSCPP",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111"
+}
