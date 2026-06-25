@@ -9,6 +9,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#111;min-height:100vh}
+
+/* MOBILE */
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;padding-bottom:64px}
 .topbar{padding:16px 16px 12px;border-bottom:0.5px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;background:#fff;position:sticky;top:0;z-index:10}
 .appname{font-size:15px;font-weight:500}
@@ -18,33 +20,120 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.tabs{display:flex;border-bottom:0.5px solid #e0e0e0;background:#fff;position:sticky;top:53px;z-index:9}
-.tab{flex:1;padding:10px 0;font-size:12px;text-align:center;color:#888;cursor:pointer;border-bottom:2px solid transparent}
-.tab.active{color:#111;font-weight:500;border-bottom:2px solid #111}
 .content{padding:16px}
-.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:13px}
-.error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:13px;line-height:1.6}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
+.nav-item{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border-radius:0}
+.nav-item.active{background:#f0f0ee}
+.nav-icon{font-size:20px;color:#888}
+.nav-item.active .nav-icon{color:#111}
+.nav-label{font-size:9px;color:#888}
+.nav-item.active .nav-label{color:#111;font-weight:500}
+
+/* DESKTOP */
+@media(min-width:768px){
+  body{display:flex;background:#f5f5f3}
+  .app{max-width:100%;width:100%;display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;padding-bottom:0}
+  .topbar{grid-column:1/3;position:sticky;top:0;z-index:10;padding:14px 24px}
+  .bottom-nav{position:static;transform:none;width:220px;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:16px 8px;gap:4px;align-self:start;position:sticky;top:53px;height:calc(100vh - 53px);max-width:220px}
+  .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 12px;border-radius:8px;width:100%}
+  .nav-item.active{background:#f0f0ee}
+  .nav-icon{font-size:18px}
+  .nav-label{font-size:13px}
+  .content{grid-column:2;padding:24px;max-width:800px}
+}
+
 .section-title{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;margin-top:20px}
 .section-title:first-child{margin-top:0}
-.sim-card{background:#f5f5f3;border-radius:12px;padding:14px;margin-bottom:10px}
-.sim-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.sim-title{font-size:13px;font-weight:500}
-.sim-date{font-size:11px;color:#888}
-.sim-badges{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
-.sim-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
-.sim-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.sim-metric{text-align:center;background:#fff;border-radius:8px;padding:8px 4px}
-.sim-metric-val{font-size:16px;font-weight:500}
-.sim-metric-lbl{font-size:10px;color:#888;margin-top:2px}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:13px}
+.error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:13px;line-height:1.6}
+.empty{text-align:center;padding:40px 20px;color:#888;font-size:13px}
+
+/* STATS */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
 .stat-card{background:#f5f5f3;border-radius:10px;padding:12px}
 .stat-val{font-size:22px;font-weight:500}
 .stat-lbl{font-size:11px;color:#888;margin-top:2px}
+
+/* FILTROS */
+.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filter-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
+.filter-btn.active{background:#111;color:#fff;border-color:#111}
+.filter-select{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
+
+/* CARDS DE ATIVIDADE */
+.ativ-card{background:#f5f5f3;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer}
+.ativ-card:active{opacity:0.8}
+.ativ-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ativ-title{font-size:13px;font-weight:500}
+.ativ-date{font-size:11px;color:#888}
+.ativ-badges{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.ativ-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+.ativ-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ativ-metric{text-align:center;background:#fff;border-radius:8px;padding:8px 4px}
+.ativ-metric-val{font-size:16px;font-weight:500}
+.ativ-metric-lbl{font-size:10px;color:#888;margin-top:2px}
+
+/* MOD BARS */
 .mod-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.mod-name{font-size:12px;color:#111;width:120px;flex-shrink:0}
+.mod-name{font-size:12px;color:#111;width:130px;flex-shrink:0}
 .mod-bar-bg{flex:1;background:#f0f0ee;border-radius:4px;height:5px;overflow:hidden}
 .mod-bar-fill{height:5px;border-radius:4px}
 .mod-pct{font-size:11px;font-weight:500;width:32px;text-align:right;flex-shrink:0}
+
+/* DETALHE ATIVIDADE */
+.detail-back{display:flex;align-items:center;gap:6px;margin-bottom:16px;cursor:pointer;color:#888;font-size:13px}
+.mtr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.mtr-card{background:#f5f5f3;border-radius:8px;padding:10px 12px}
+.mtr-label{font-size:11px;color:#888;margin-bottom:3px}
+.mtr-val{font-size:20px;font-weight:500}
+
+/* MODULOS EXPANDIVEIS */
+.mod-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:8px}
+.mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
+.mod-top{display:flex;justify-content:space-between;align-items:center}
+.mod-nm{font-size:13px;font-weight:400}
+.mod-right{display:flex;align-items:center;gap:6px}
+.mod-p{font-size:12px;font-weight:500}
+.chev{font-size:12px;color:#888;transition:transform 0.2s}
+.chev.open{transform:rotate(180deg)}
+.bbg{background:#f0f0ee;border-radius:6px;height:6px;overflow:hidden}
+.bf{height:6px;border-radius:6px}
+.mac{font-size:11px;color:#888}
+.mod-detail{border-top:0.5px solid #e0e0e0;padding:10px 14px;display:none;flex-direction:column;gap:10px}
+.mod-detail.open{display:flex}
+.pub-block{display:flex;flex-direction:column;gap:5px}
+.pub-top{display:flex;justify-content:space-between;align-items:center}
+.pub-nm{font-size:11px;font-weight:500;flex:1;padding-right:8px}
+.pub-stats{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pub-ac{font-size:11px;color:#888}
+.pub-pp{font-size:11px;font-weight:500;min-width:28px;text-align:right}
+.pub-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden}
+.pub-bar-fill{height:4px;border-radius:4px}
+.caps{display:flex;flex-direction:column;gap:3px;margin-top:3px;padding-left:8px;border-left:2px solid #e0e0e0}
+.cap-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.cap-ref{display:flex;flex-direction:column;gap:1px}
+.cap-loc{font-size:10px;font-weight:500}
+.cap-tit{font-size:10px;color:#888}
+.cap-res{font-size:10px;font-weight:500;flex-shrink:0;margin-top:1px}
+
+/* QUESTOES ERRADAS */
+.ec{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
+.er{display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.eq{font-size:12px;font-weight:500}
+.ep{font-size:11px;color:#888}
+.em{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
+.ed{display:none;padding:10px 14px 12px;border-top:0.5px solid #e0e0e0;flex-direction:column;gap:8px}
+.ed.open{display:flex}
+.dr{font-size:11px;color:#888}
+.rs{display:flex;align-items:center;gap:8px}
+.rl{font-size:11px;color:#888}
+.rv{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px}
+.re{background:#FCEBEB;color:#A32D2D}
+.rc{background:#EAF3DE;color:#3B6D11}
+.tr{display:flex;flex-wrap:wrap;gap:4px}
+.tg{font-size:11px;padding:2px 7px;border-radius:4px;background:#EDF4F0;color:#2D6A53;border:0.5px solid #B8D9CC}
+
+/* QUESTOES BANCO */
 .q-card{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
 .q-row{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
 .q-num{font-size:12px;font-weight:500}
@@ -52,21 +141,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .q-mod{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
 .q-detail{display:none;padding:10px 14px 12px;border-top:0.5px solid #e0e0e0;flex-direction:column;gap:8px}
 .q-detail.open{display:flex}
-.q-ref{font-size:11px;color:#888}
-.q-resps{display:flex;align-items:center;gap:8px}
-.q-rl{font-size:11px;color:#888}
-.q-rv{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px}
-.q-re{background:#FCEBEB;color:#A32D2D}
-.q-rc{background:#EAF3DE;color:#3B6D11}
-.q-tags{display:flex;flex-wrap:wrap;gap:4px}
-.q-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:#EDF4F0;color:#2D6A53;border:0.5px solid #B8D9CC}
-.q-motivo{font-size:11px;color:#888;font-style:italic}
-.empty{text-align:center;padding:40px 20px;color:#888;font-size:13px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
-.nav-item{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
-.nav-icon{font-size:20px}
-.nav-label{font-size:9px;color:#888}
-.nav-item.active .nav-label{color:#111;font-weight:500}
+.q-status-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+
+/* CRITICOS */
+.crit{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem}
+.ci{display:flex;gap:10px;padding:10px 0;border-bottom:0.5px solid #e0e0e0}
+.ci:last-child{border-bottom:none;padding-bottom:0}
+.ci:first-child{padding-top:0}
+.cn{width:22px;height:22px;border-radius:50%;background:#f0f0ee;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#888;flex-shrink:0;margin-top:1px}
+.ctit{font-size:13px;font-weight:500;margin-bottom:2px}
+.cdesc{font-size:12px;color:#888;line-height:1.5}
 </style>
 </head>
 <body>
@@ -78,20 +162,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span id="sync-text">Conectando...</span>
     </span>
   </div>
-  <div class="tabs">
-    <div class="tab active" onclick="showTab('inicio')">Início</div>
-    <div class="tab" onclick="showTab('simulados')">Simulados</div>
-    <div class="tab" onclick="showTab('questoes')">Questões</div>
-    <div class="tab" onclick="showTab('revisao')">Revisão</div>
-  </div>
+
   <div class="content" id="content">
     <div class="loading-screen"><span>Carregando dados do Notion...</span></div>
   </div>
+
   <div class="bottom-nav">
-    <div class="nav-item active" onclick="showTab('inicio')"><span class="nav-icon">🏠</span><span class="nav-label">Início</span></div>
-    <div class="nav-item" onclick="showTab('simulados')"><span class="nav-icon">📋</span><span class="nav-label">Simulados</span></div>
-    <div class="nav-item" onclick="showTab('questoes')"><span class="nav-icon">📚</span><span class="nav-label">Questões</span></div>
-    <div class="nav-item" onclick="showTab('revisao')"><span class="nav-icon">🔁</span><span class="nav-label">Revisão</span></div>
+    <div class="nav-item active" id="nav-inicio" onclick="showTab('inicio')">
+      <span class="nav-icon">🏠</span><span class="nav-label">Início</span>
+    </div>
+    <div class="nav-item" id="nav-atividades" onclick="showTab('atividades')">
+      <span class="nav-icon">📋</span><span class="nav-label">Atividades</span>
+    </div>
+    <div class="nav-item" id="nav-questoes" onclick="showTab('questoes')">
+      <span class="nav-icon">📚</span><span class="nav-label">Questões</span>
+    </div>
+    <div class="nav-item" id="nav-revisao" onclick="showTab('revisao')">
+      <span class="nav-icon">🔁</span><span class="nav-label">Revisão</span>
+    </div>
   </div>
 </div>
 
@@ -107,8 +195,19 @@ const modCores={
   'Comunicações':{bg:'#F1EFE8',tx:'#444441'},
   'Conhecimentos Gerais':{bg:'#FAECE7',tx:'#4A1B0C'},
 };
+const cursoCores={
+  'Curso H':{bg:'#E1F5EE',tx:'#085041'},
+  'Catavento':{bg:'#EEEDFE',tx:'#3C3489'},
+  'MPX':{bg:'#FAEEDA',tx:'#633806'},
+  'Simulados Práticos':{bg:'#E6F1FB',tx:'#0C447C'},
+};
+const tipoCores={
+  'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
+  'Banco de questões':{bg:'#EAF3DE',tx:'#27500A'},
+};
 const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
-let atividades=[],questoes=[],tabAtual='inicio';
+let atividades=[],questoes=[],tabAtual='inicio',atividadeAtual=null;
+let filtPeriodo='tudo',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
 
 async function notionQuery(dbId){
   const res=await fetch('/api/notion',{
@@ -117,7 +216,7 @@ async function notionQuery(dbId){
     body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body:{page_size:100}})
   });
   if(!res.ok) throw new Error('Erro '+res.status);
-  return (await res.json()).results;
+  return (await res.json()).results||[];
 }
 
 function getProp(page,key){
@@ -130,6 +229,7 @@ function getProp(page,key){
   if(p.type==='select') return p.select?.name||null;
   if(p.type==='multi_select') return p.multi_select.map(s=>s.name);
   if(p.type==='formula') return p.formula?.number||p.formula?.string||null;
+  if(p.type==='checkbox') return p.checkbox;
   return null;
 }
 
@@ -180,15 +280,18 @@ async function loadData(){
 
 function showTab(tab){
   tabAtual=tab;
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['inicio','simulados','questoes','revisao'][i]===tab));
-  document.querySelectorAll('.nav-item').forEach((t,i)=>t.classList.toggle('active',['inicio','simulados','questoes','revisao'][i]===tab));
+  atividadeAtual=null;
+  ['inicio','atividades','questoes','revisao'].forEach(t=>{
+    document.getElementById('nav-'+t).classList.toggle('active',t===tab);
+  });
   renderTab(tab);
 }
 
 function renderTab(tab){
   const c=document.getElementById('content');
+  if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);return;}
   if(tab==='inicio') c.innerHTML=renderInicio();
-  else if(tab==='simulados') c.innerHTML=renderSimulados();
+  else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
   else if(tab==='revisao') c.innerHTML=renderRevisao();
 }
@@ -199,87 +302,300 @@ function fmtData(d){
   return `${day}/${m}/${y}`;
 }
 
-function simCard(a){
-  return `<div class="sim-card">
-    <div class="sim-top"><span class="sim-title">${a.nome}</span><span class="sim-date">${fmtData(a.data)}</span></div>
-    <div class="sim-badges">
-      ${a.curso?`<span class="sim-badge" style="background:#E1F5EE;color:#085041">${a.curso}</span>`:''}
-      ${a.tipo?`<span class="sim-badge" style="background:#E6F1FB;color:#0C447C">${a.tipo}</span>`:''}
-    </div>
-    <div class="sim-metrics">
-      <div class="sim-metric"><div class="sim-metric-val">${a.pontuacao||'—'}</div><div class="sim-metric-lbl">pontos</div></div>
-      <div class="sim-metric"><div class="sim-metric-val" style="color:#854F0B">${a.aproveitamento?Math.round(a.aproveitamento)+'%':'—'}</div><div class="sim-metric-lbl">aproveit.</div></div>
-      <div class="sim-metric"><div class="sim-metric-val" style="color:#A32D2D">${a.erros??'—'}</div><div class="sim-metric-lbl">erros</div></div>
+function filtrarPorPeriodo(lista){
+  if(filtPeriodo==='tudo') return lista;
+  const hoje=new Date();
+  const dias={'30d':30,'90d':90,'180d':180}[filtPeriodo]||9999;
+  return lista.filter(a=>{
+    if(!a.data) return false;
+    const diff=(hoje-new Date(a.data))/(1000*60*60*24);
+    return diff<=dias;
+  });
+}
+
+function atividadesFiltradas(){
+  let lista=atividades;
+  lista=filtrarPorPeriodo(lista);
+  if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
+  if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
+  return lista;
+}
+
+function badgesCursoTipo(a){
+  const cc=cursoCores[a.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+  const tc=tipoCores[a.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+  return `
+    ${a.curso?`<span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${a.curso}</span>`:''}
+    ${a.tipo?`<span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${a.tipo}</span>`:''}
+    ${a.data?`<span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(a.data)}</span>`:''}
+  `;
+}
+
+function ativCard(a,clicavel=true){
+  const onclick=clicavel?`onclick="abrirDetalhe('${a.id}')" `:'';
+  return `<div class="ativ-card" ${onclick}>
+    <div class="ativ-top"><span class="ativ-title">${a.nome}</span></div>
+    <div class="ativ-badges">${badgesCursoTipo(a)}</div>
+    <div class="ativ-metrics">
+      <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'—'}</div><div class="ativ-metric-lbl">pontos</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?Math.round(a.aproveitamento)+'%':'—'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'—'}</div><div class="ativ-metric-lbl">erros</div></div>
     </div>
   </div>`;
 }
 
 function renderInicio(){
-  if(!atividades.length) return '<div class="empty">Nenhuma atividade registrada ainda.</div>';
-  const totalSims=atividades.filter(a=>a.tipo==='Simulado').length;
-  const totalQ=questoes.length;
-  const comAprv=atividades.filter(a=>a.aproveitamento);
+  const lista=atividadesFiltradas();
+  const comAprv=lista.filter(a=>a.aproveitamento);
   const mediaAprv=comAprv.length?Math.round(comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length):0;
+  const totalQ=questoes.length;
+  const paraRevisar=questoes.filter(q=>q.status==='Errei'||q.status==='Acertei com dúvida').length;
+  const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
+  const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
+
   return `
-    <div class="section-title">Visão geral</div>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-val">${totalSims}</div><div class="stat-lbl">Simulados realizados</div></div>
-      <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
-      <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Questões no banco</div></div>
-      <div class="stat-card"><div class="stat-val">${atividades.length}</div><div class="stat-lbl">Atividades totais</div></div>
+    <div class="section-title">Período</div>
+    <div class="filter-row">
+      ${['tudo','30d','90d','180d'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses'}[p]}</button>`).join('')}
     </div>
-    <div class="section-title">Última atividade</div>
-    ${simCard(atividades[0])}`;
+    <div class="filter-row">
+      <button class="filter-btn${filtCurso==='todos'?' active':''}" onclick="setFiltCurso('todos')">Todos os cursos</button>
+      ${cursos.map(c=>`<button class="filter-btn${filtCurso===c?' active':''}" onclick="setFiltCurso('${c}')">${c}</button>`).join('')}
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn${filtTipo==='todos'?' active':''}" onclick="setFiltTipo('todos')">Todos os tipos</button>
+      ${tipos.map(t=>`<button class="filter-btn${filtTipo===t?' active':''}" onclick="setFiltTipo('${t}')">${t}</button>`).join('')}
+    </div>
+    <div class="section-title">Resumo</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
+      <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveit. médio</div></div>
+      <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Questões no banco</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:#A32D2D">${paraRevisar}</div><div class="stat-lbl">Para revisar</div></div>
+    </div>
+    ${lista.length?`
+    <div class="section-title">Desempenho por módulo</div>
+    ${renderModsBars()}
+    `:''}
+    ${!lista.length?'<div class="empty">Nenhuma atividade no período selecionado.</div>':''}
+  `;
 }
 
-function renderSimulados(){
-  if(!atividades.length) return '<div class="empty">Nenhuma atividade ainda.</div>';
-  return atividades.map(a=>simCard(a)).join('');
+function renderModsBars(){
+  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const lista=atividadesFiltradas();
+  if(!lista.length) return '';
+  return mods.map(m=>{
+    const qs=questoes.filter(q=>q.modulo===m);
+    if(!qs.length) return '';
+    const acertos=qs.filter(q=>q.status==='Acertei').length;
+    const pct=Math.round(acertos/qs.length*100);
+    const c=fc(pct);
+    return `<div class="mod-row">
+      <span class="mod-name">${m}</span>
+      <div class="mod-bar-bg"><div class="mod-bar-fill" style="width:${pct}%;background:${c}"></div></div>
+      <span class="mod-pct" style="color:${c}">${pct}%</span>
+    </div>`;
+  }).join('');
 }
 
-function renderQuestoes(){
-  if(!questoes.length) return '<div class="empty">Nenhuma questão no banco ainda.</div>';
-  return questoes.map((q,i)=>{
-    const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
-    const tags=(q.tags||[]).map(t=>`<span class="q-tag">${t}</span>`).join('');
-    return `<div class="q-card">
-      <div class="q-row" onclick="document.getElementById('qd${i}').classList.toggle('open')">
-        <span class="q-num">${q.questao||'—'}</span>
-        <span class="q-pub">${q.publicacao||'—'}</span>
-        <span class="q-mod" style="background:${cor.bg};color:${cor.tx}">${q.modulo||'—'}</span>
+function renderAtividades(){
+  const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
+  const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
+  let lista=atividades;
+  if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
+  if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
+
+  return `
+    <div class="filter-row">
+      <select class="filter-select" onchange="setFiltCurso(this.value)">
+        <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
+        ${cursos.map(c=>`<option value="${c}"${filtCurso===c?' selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn${filtTipo==='todos'?' active':''}" onclick="setFiltTipo('todos')">Todos</button>
+      ${tipos.map(t=>`<button class="filter-btn${filtTipo===t?' active':''}" onclick="setFiltTipo('${t}')">${t}</button>`).join('')}
+    </div>
+    ${lista.length?lista.map(a=>ativCard(a)).join(''):'<div class="empty">Nenhuma atividade encontrada.</div>'}
+  `;
+}
+
+function abrirDetalhe(id){
+  atividadeAtual=atividades.find(a=>a.id===id);
+  renderTab(tabAtual);
+  document.getElementById('content').scrollTop=0;
+}
+
+function voltarLista(){
+  atividadeAtual=null;
+  renderTab(tabAtual);
+}
+
+function renderDetalhe(a){
+  const qs=questoes.filter(q=>q.idAtividade===a.id);
+  const erradas=qs.filter(q=>q.status==='Errei');
+
+  const modsHtml=renderModsCards(qs);
+  const erradasHtml=erradas.map((e,i)=>{
+    const cor=modCores[e.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+    const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
+    return `<div class="ec">
+      <div class="er" onclick="document.getElementById('ed${i}').classList.toggle('open')">
+        <span class="eq">${e.questao||'—'}</span>
+        <span class="ep">${e.publicacao||'—'}</span>
+        <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'—'}</span>
+        <span style="font-size:12px;color:#888">›</span>
       </div>
-      <div class="q-detail" id="qd${i}">
-        <div class="q-resps">
-          <span class="q-rl">Sua resposta</span><span class="q-rv q-re">${q.suaResposta||'—'}</span>
-          <span class="q-rl">→ Gabarito</span><span class="q-rv q-rc">${q.gabarito||'—'}</span>
+      <div class="ed" id="ed${i}">
+        <div class="dr">${e.questao||''}</div>
+        <div class="rs">
+          <span class="rl">Sua resposta</span><span class="rv re">${e.suaResposta||'—'}</span>
+          <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'—'}</span>
         </div>
-        ${tags?`<div class="q-tags">${tags}</div>`:''}
-        ${q.motivo?`<div class="q-motivo">"${q.motivo}"</div>`:''}
+        ${tags?`<div class="tr">${tags}</div>`:''}
+        ${e.motivo?`<div class="dr" style="font-style:italic">"${e.motivo}"</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="detail-back" onclick="voltarLista()">← Atividades</div>
+    <div class="ativ-badges">${badgesCursoTipo(a)}</div>
+    <div class="mtr-grid" style="margin-top:12px">
+      <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'—'}<span style="font-size:13px;color:#888"> / ${a.pontuacaoTotal||'—'}</span></div></div>
+      <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?Math.round(a.aproveitamento)+'%':'—'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
+    </div>
+    ${modsHtml?`<div class="section-title">Desempenho por módulo</div>${modsHtml}`:''}
+    ${erradasHtml?`<div class="section-title">Questões erradas</div>${erradasHtml}`:''}
+  `;
+}
+
+function renderModsCards(qs){
+  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  return mods.map((m,i)=>{
+    const mqs=qs.filter(q=>q.modulo===m);
+    if(!mqs.length) return '';
+    const ac=mqs.filter(q=>q.status==='Acertei').length;
+    const pct=Math.round(ac/mqs.length*100);
+    const c=fc(pct);
+    return `<div class="mod-card">
+      <div class="mod-header" onclick="toggleMod(${i})">
+        <div class="mod-top">
+          <span class="mod-nm">${m}</span>
+          <div class="mod-right"><span class="mod-p" style="color:${c}">${pct}%</span><span class="chev" id="mchev${i}">›</span></div>
+        </div>
+        <div class="bbg"><div class="bf" style="width:${pct}%;background:${c}"></div></div>
+        <span class="mac">${ac}/${mqs.length} acertos</span>
+      </div>
+      <div class="mod-detail" id="mdet${i}">
+        ${renderPubsCards(mqs)}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderRevisao(){
-  const paraRevisar=questoes.filter(q=>q.status==='Errei');
-  if(!paraRevisar.length) return '<div class="empty">Nenhuma questão marcada para revisão.</div>';
-  return `<div class="section-title">${paraRevisar.length} questões para revisar</div>`+
-    paraRevisar.map((q,i)=>{
+function renderPubsCards(qs){
+  const pubs=[...new Set(qs.map(q=>q.publicacao).filter(Boolean))];
+  return pubs.map(pub=>{
+    const pqs=qs.filter(q=>q.publicacao===pub);
+    const ac=pqs.filter(q=>q.status==='Acertei').length;
+    const pp=Math.round(ac/pqs.length*100);
+    const pc=fc(pp);
+    const caps=pqs.map(q=>`<div class="cap-row">
+      <div class="cap-ref">
+        <span class="cap-loc">${q.questao||'—'}</span>
+        <span class="cap-tit">${q.modulo||''}</span>
+      </div>
+      <span class="cap-res" style="color:${q.status==='Acertei'?'#3B6D11':'#A32D2D'}">${q.status==='Acertei'?'acerto':'erro'}</span>
+    </div>`).join('');
+    return `<div class="pub-block">
+      <div class="pub-top">
+        <span class="pub-nm">${pub}</span>
+        <div class="pub-stats"><span class="pub-ac">${ac}/${pqs.length}</span><span class="pub-pp" style="color:${pc}">${pp}%</span></div>
+      </div>
+      <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${pp}%;background:${pc}"></div></div>
+      <div class="caps">${caps}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderQuestoes(){
+  const mods=['Todos',...new Set(questoes.map(q=>q.modulo).filter(Boolean))];
+  let lista=questoes;
+  if(filtStatus!=='todos') lista=lista.filter(q=>q.status===filtStatus);
+  if(filtModulo!=='todos') lista=lista.filter(q=>q.modulo===filtModulo);
+
+  return `
+    <div class="filter-row">
+      ${[['todos','Todos'],['Errei','Errei'],['Acertei com dúvida','Dúvida'],['Acertei','Acertei']].map(([v,l])=>`<button class="filter-btn${filtStatus===v?' active':''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
+    </div>
+    <select class="filter-select" onchange="setFiltModulo(this.value)">
+      <option value="todos">Todos os módulos</option>
+      ${mods.slice(1).map(m=>`<option value="${m}"${filtModulo===m?' selected':''}>${m}</option>`).join('')}
+    </select>
+    ${lista.length?lista.map((q,i)=>{
       const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
-      const tags=(q.tags||[]).map(t=>`<span class="q-tag">${t}</span>`).join('');
+      const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
+      const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:{bg:'#EAF3DE',tx:'#3B6D11'};
+      return `<div class="q-card">
+        <div class="q-row" onclick="document.getElementById('qd${i}').classList.toggle('open')">
+          <span class="q-num">${q.questao||'—'}</span>
+          <span class="q-pub">${q.publicacao||'—'}</span>
+          <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status||'—'}</span>
+        </div>
+        <div class="q-detail" id="qd${i}">
+          <span class="q-mod" style="background:${cor.bg};color:${cor.tx};display:inline-block;margin-bottom:4px">${q.modulo||'—'}</span>
+          <div class="rs">
+            <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'—'}</span>
+            <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'—'}</span>
+          </div>
+          ${tags?`<div class="tr">${tags}</div>`:''}
+          ${q.motivo?`<div class="dr" style="font-style:italic">"${q.motivo}"</div>`:''}
+        </div>
+      </div>`;
+    }).join(''):'<div class="empty">Nenhuma questão encontrada.</div>'}
+  `;
+}
+
+function renderRevisao(){
+  const lista=questoes.filter(q=>q.status==='Errei'||q.status==='Acertei com dúvida');
+  if(!lista.length) return '<div class="empty">Nenhuma questão para revisar.</div>';
+  return `<div class="section-title">${lista.length} questões para revisar</div>`+
+    lista.map((q,i)=>{
+      const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+      const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
+      const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:{bg:'#FAEEDA',tx:'#633806'};
       return `<div class="q-card">
         <div class="q-row" onclick="document.getElementById('rd${i}').classList.toggle('open')">
           <span class="q-num">${q.questao||'—'}</span>
           <span class="q-pub">${q.publicacao||'—'}</span>
-          <span class="q-mod" style="background:${cor.bg};color:${cor.tx}">${q.modulo||'—'}</span>
+          <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status}</span>
         </div>
         <div class="q-detail" id="rd${i}">
-          ${tags?`<div class="q-tags">${tags}</div>`:''}
-          ${q.motivo?`<div class="q-motivo">"${q.motivo}"</div>`:''}
+          <span class="q-mod" style="background:${cor.bg};color:${cor.tx};display:inline-block;margin-bottom:4px">${q.modulo||'—'}</span>
+          ${tags?`<div class="tr">${tags}</div>`:''}
+          ${q.motivo?`<div class="dr" style="font-style:italic">"${q.motivo}"</div>`:''}
         </div>
       </div>`;
     }).join('');
 }
+
+function toggleMod(i){
+  const d=document.getElementById('mdet'+i);
+  const c=document.getElementById('mchev'+i);
+  const open=d.classList.contains('open');
+  d.classList.toggle('open',!open);
+  c.style.transform=open?'':'rotate(90deg)';
+}
+
+function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
+function setFiltCurso(v){filtCurso=v;renderTab(tabAtual);}
+function setFiltTipo(v){filtTipo=v;renderTab(tabAtual);}
+function setFiltStatus(v){filtStatus=v;renderTab(tabAtual);}
+function setFiltModulo(v){filtModulo=v;renderTab(tabAtual);}
 
 loadData();
 </script>
