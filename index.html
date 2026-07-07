@@ -21,8 +21,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .content{padding:16px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding-top:8px}
-.nav-item{flex:1;padding:8px 0 calc(8px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding-top:10px}
+.nav-item{flex:1;padding:8px 0 calc(12px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-item.active{background:#f0f0ee}
 .nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:100%;height:100%}
@@ -246,6 +246,10 @@ const tipoCores={
   'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
 const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
+function fmtPct(v){
+  if(v===null||v===undefined||isNaN(v)) return null;
+  return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
+}
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],tabAtual='inicio',atividadeAtual=null;
 let filtPeriodo='tudo',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
@@ -413,7 +417,7 @@ function ativCard(a,clicavel=true){
     <div class="ativ-badges">${badgesCursoTipo(a)}</div>
     <div class="ativ-metrics">
       <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'—'}</div><div class="ativ-metric-lbl">pontos</div></div>
-      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?Math.round(a.aproveitamento)+'%':'—'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'—'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'—'}</div><div class="ativ-metric-lbl">erros</div></div>
     </div>
   </div>`;
@@ -554,7 +558,8 @@ function renderModsBars(){
 function renderAtividades(){
   const lista=atividadesFiltradas();
   const comAprv=lista.filter(a=>a.aproveitamento);
-  const mediaAprv=comAprv.length?Math.round(comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length):0;
+  const mediaAprvNum=comAprv.length?comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length:0;
+  const mediaAprv=comAprv.length?fmtPct(mediaAprvNum):'0,00';
   const totalQ=questoes.length;
   const paraRevisar=questoes.filter(q=>q.status==='Errei'||q.status==='Acertei com dúvida').length;
   const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
@@ -638,7 +643,7 @@ function renderDetalhe(a){
     <div class="ativ-badges">${badgesCursoTipo(a)}</div>
     <div class="mtr-grid" style="margin-top:12px">
       <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'—'}<span style="font-size:13px;color:#888"> / ${a.pontuacaoTotal||'—'}</span></div></div>
-      <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?Math.round(a.aproveitamento)+'%':'—'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
