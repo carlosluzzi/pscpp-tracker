@@ -11,7 +11,7 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#111;min-height:100vh}
 
 /* MOBILE */
-.app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;padding-bottom:64px}
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px))}
 .topbar{padding:16px 16px 12px;border-bottom:0.5px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;background:#fff;position:sticky;top:0;z-index:10}
 .appname{font-size:15px;font-weight:500}
 .sync-status{font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
@@ -21,10 +21,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .content{padding:16px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom, 0px)}
-.nav-item{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border-radius:0}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding:10px 0 calc(14px + env(safe-area-inset-bottom, 0px))}
+.nav-item{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-item.active{background:#f0f0ee}
-.nav-icon{font-size:20px;color:#888}
+.nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
+.nav-icon svg{width:100%;height:100%}
 .nav-item.active .nav-icon{color:#111}
 .nav-label{font-size:9px;color:#888}
 .nav-item.active .nav-label{color:#111;font-weight:500}
@@ -38,7 +39,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .bottom-nav{position:static;transform:none;width:250px;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;position:sticky;top:57px;height:calc(100vh - 57px);max-width:250px;padding-bottom:20px}
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:9px;width:100%}
   .nav-item.active{background:#f0f0ee}
-  .nav-icon{font-size:18px}
+  .nav-icon{width:18px;height:18px}
   .nav-label{font-size:13.5px}
   .content{grid-column:2;padding:32px 40px;max-width:960px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
@@ -162,7 +163,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-status{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 .status-afazer{background:#FAEEDA;color:#633806}
 .status-feito{background:#EAF3DE;color:#3B6D11}
-.prox-due .status-afazer{background:#E24B4A;color:#fff}
+.status-atrasado{background:#E24B4A;color:#fff}
+.prox-confirm-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;font-family:inherit;font-weight:500}
+.prox-confirm-btn:active{opacity:0.8}
 
 /* NOTAS DE ESTUDO */
 .notas-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
@@ -202,16 +205,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="bottom-nav">
     <div class="nav-item active" id="nav-inicio" onclick="showTab('inicio')">
-      <span class="nav-icon">🏠</span><span class="nav-label">Início</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3.5v-6.5h5V21H18a1 1 0 0 0 1-1V9.5"/></svg></span><span class="nav-label">Início</span>
     </div>
     <div class="nav-item" id="nav-atividades" onclick="showTab('atividades')">
-      <span class="nav-icon">📋</span><span class="nav-label">Atividades</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 10.5h6M9 13.5h6M9 16.5h4"/></svg></span><span class="nav-label">Atividades</span>
     </div>
     <div class="nav-item" id="nav-questoes" onclick="showTab('questoes')">
-      <span class="nav-icon">📚</span><span class="nav-label">Questões</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c2-1.3 5.2-1.6 7.5 0v14c-2.3-1.6-5.5-1.3-7.5 0V5.2Z"/><path d="M21.5 5.2c-2-1.3-5.2-1.6-7.5 0v14c2.3-1.6 5.5-1.3 7.5 0V5.2Z"/></svg></span><span class="nav-label">Questões</span>
     </div>
     <div class="nav-item" id="nav-revisao" onclick="showTab('revisao')">
-      <span class="nav-icon">🔁</span><span class="nav-label">Revisão</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20.5 6 17 9.5"/><path d="M3.5 12V10a4 4 0 0 1 4-4h13"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 12v2a4 4 0 0 1-4 4h-13"/></svg></span><span class="nav-label">Revisão</span>
     </div>
   </div>
 </div>
@@ -219,6 +222,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const DB_ATIVIDADES='94d1585ce5fc4eff8d783649d4bf9404';
 const DB_QUESTOES='d444bd126bf2472abd5c62529d7c752d';
+const DB_CALENDARIO='7f1d05795f4f4fdbb3038f977d21a09e';
+const DB_NOTAS='5792fba68a9a4bbfbda33a582d7bba65';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#0C447C'},
@@ -237,17 +242,11 @@ const cursoCores={
 const tipoCores={
   'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
   'Banco de questões':{bg:'#EAF3DE',tx:'#27500A'},
+  'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
 const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
 
-// PRÓXIMAS ATIVIDADES — hardcoded por enquanto, futuramente virá do Notion
-const proximasAtividades=[
-  {nome:'Simulado Julho/2026',data:'2026-07-20',curso:'Curso H',tipo:'Simulado',status:'a_fazer'},
-  {nome:'Exercício — Legislação',data:'2026-07-12',curso:'Curso H',tipo:'Banco de questões',status:'a_fazer'},
-  {nome:'Simulado Junho/2026',data:'2026-06-20',curso:'Curso H',tipo:'Simulado',status:'feito'},
-];
-
-let atividades=[],questoes=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],tabAtual='inicio',atividadeAtual=null;
 let filtPeriodo='tudo',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
 
 async function notionQuery(dbId){
@@ -258,6 +257,16 @@ async function notionQuery(dbId){
   });
   if(!res.ok) throw new Error('Erro '+res.status);
   return (await res.json()).results||[];
+}
+
+async function notionCall(endpoint,body,method){
+  const res=await fetch('/api/notion',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({endpoint,body,method})
+  });
+  if(!res.ok) throw new Error('Erro '+res.status);
+  return res.json();
 }
 
 function getProp(page,key){
@@ -284,7 +293,7 @@ function setSyncStatus(state,text){
 async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
-    const [a,q]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES)]);
+    const [a,q,cal,notas]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS)]);
     atividades=a.map(p=>({
       id:p.id,
       nome:getProp(p,'Nome')||getProp(p,'Atividade')||'Sem título',
@@ -311,6 +320,20 @@ async function loadData(){
       gabarito:getProp(p,'Gabarito')||null,
       motivo:getProp(p,'Questão Completa')||null,
     }));
+    calendarioRegras=cal.map(p=>({
+      id:p.id,
+      curso:getProp(p,'Curso')||null,
+      tipo:getProp(p,'Tipo')||null,
+      intervaloDias:getProp(p,'Intervalo Dias')||null,
+      padrao:getProp(p,'Padrão Numeração')||null,
+      ultimaNumeracao:getProp(p,'Última Numeração Confirmada')||null,
+      ultimaData:getProp(p,'Última Data Confirmada')||null,
+    })).filter(r=>r.curso&&r.intervaloDias&&r.ultimaData&&r.ultimaNumeracao);
+    notasEstudo=notas.map(p=>({
+      id:p.id,
+      texto:getProp(p,'Texto')||'',
+      criadoEm:p.created_time||null,
+    })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     setSyncStatus('ok','Notion sincronizado');
     renderTab(tabAtual);
   }catch(e){
@@ -386,6 +409,138 @@ function ativCard(a,clicavel=true){
 }
 
 function renderInicio(){
+  return `${renderProximas()}${renderNotas()}`;
+}
+
+// CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
+function calcularProxima(regra){
+  const ultimaData=new Date(regra.ultimaData+'T00:00:00');
+  const proximaData=new Date(ultimaData.getTime()+regra.intervaloDias*24*60*60*1000);
+  let proximaNumeracao;
+  if(regra.padrao==='Reinicia Mensal'){
+    const partes=regra.ultimaNumeracao.trim().split(' ');
+    const num=parseInt(partes[0],10)||0;
+    const meses=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    const mesmoMes=proximaData.getMonth()===ultimaData.getMonth()&&proximaData.getFullYear()===ultimaData.getFullYear();
+    const novoNum=mesmoMes?num+1:1;
+    proximaNumeracao=String(novoNum).padStart(2,'0')+' '+meses[proximaData.getMonth()];
+  }else{
+    const digitos=regra.ultimaNumeracao.trim().length;
+    const num=parseInt(regra.ultimaNumeracao,10)||0;
+    proximaNumeracao=String(num+1).padStart(digitos,'0');
+  }
+  return {data:proximaData,numeracao:proximaNumeracao};
+}
+
+function renderProximas(){
+  if(!calendarioRegras.length) return `<div class="section-title">Próximas atividades</div><div class="empty">Nenhuma regra de calendário configurada.</div>`;
+  const hoje=new Date();
+  hoje.setHours(0,0,0,0);
+  const items=calendarioRegras.map(r=>{
+    const prox=calcularProxima(r);
+    return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
+  }).sort((a,b)=>a.proxData-b.proxData);
+  return `
+    <div class="section-title">Próximas atividades</div>
+    <div class="prox-list">
+      ${items.map(it=>{
+        const vencida=it.proxData<=hoje;
+        const cc=cursoCores[it.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+        const tc=tipoCores[it.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+        const dataIso=it.proxData.toISOString().slice(0,10);
+        return `<div class="prox-item${vencida?' prox-due':''}">
+          <div class="prox-left">
+            <span class="prox-nome">${it.proxNumeracao} — ${it.curso}</span>
+            <div class="prox-badges">
+              <span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${it.curso}</span>
+              <span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${it.tipo}</span>
+              <span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(dataIso)}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="prox-status ${vencida?'status-atrasado':'status-afazer'}">${vencida?'atrasado':'a fazer'}</span>
+            <button class="prox-confirm-btn" onclick="marcarFeito('${it.id}')">feito</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function marcarFeito(regraId){
+  const regra=calendarioRegras.find(r=>r.id===regraId);
+  if(!regra) return;
+  const prox=calcularProxima(regra);
+  const isoData=prox.data.toISOString().slice(0,10);
+  try{
+    await notionCall(`/pages/${regraId}`,{
+      properties:{
+        'Última Numeração Confirmada':{rich_text:[{text:{content:prox.numeracao}}]},
+        'Última Data Confirmada':{date:{start:isoData}}
+      }
+    },'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao confirmar atividade: '+e.message);
+  }
+}
+
+// NOTAS DE ESTUDO — armazenadas no Notion (sincroniza entre dispositivos)
+function renderNotas(){
+  return `
+    <div class="section-title">Notas de estudo</div>
+    <div class="notas-list">
+      ${notasEstudo.map(n=>`<div class="nota-card">
+        <span class="nota-texto">${n.texto}</span>
+        <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
+      </div>`).join('')}
+      <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
+    </div>
+  `;
+}
+
+async function adicionarNota(){
+  const texto=prompt('Nova nota de estudo:');
+  if(!texto||!texto.trim()) return;
+  try{
+    await notionCall('/pages',{
+      parent:{database_id:DB_NOTAS},
+      properties:{'Texto':{title:[{text:{content:texto.trim()}}]}}
+    },'POST');
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar nota: '+e.message);
+  }
+}
+
+async function removerNota(id){
+  try{
+    await notionCall(`/pages/${id}`,{archived:true},'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao remover nota: '+e.message);
+  }
+}
+
+function renderModsBars(){
+  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const lista=atividadesFiltradas();
+  if(!lista.length) return '';
+  return mods.map(m=>{
+    const qs=questoes.filter(q=>q.modulo===m);
+    if(!qs.length) return '';
+    const acertos=qs.filter(q=>q.status==='Acertei').length;
+    const pct=Math.round(acertos/qs.length*100);
+    const c=fc(pct);
+    return `<div class="mod-row">
+      <span class="mod-name">${m}</span>
+      <div class="mod-bar-bg"><div class="mod-bar-fill" style="width:${pct}%;background:${c}"></div></div>
+      <span class="mod-pct" style="color:${c}">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAtividades(){
   const lista=atividadesFiltradas();
   const comAprv=lista.filter(a=>a.aproveitamento);
   const mediaAprv=comAprv.length?Math.round(comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length):0;
@@ -414,117 +569,9 @@ function renderInicio(){
       <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Questões no banco</div></div>
       <div class="stat-card"><div class="stat-val" style="color:#A32D2D">${paraRevisar}</div><div class="stat-lbl">Para revisar</div></div>
     </div>
-    ${renderProximas()}
-    ${renderNotas()}
-    ${lista.length?`
-    <div class="section-title">Desempenho por módulo</div>
-    ${renderModsBars()}
-    `:''}
-    ${!lista.length?'<div class="empty">Nenhuma atividade no período selecionado.</div>':''}
-  `;
-}
-
-function renderProximas(){
-  if(!proximasAtividades.length) return '';
-  const hoje=new Date();
-  const items=[...proximasAtividades].sort((a,b)=>a.data.localeCompare(b.data));
-  return `
-    <div class="section-title">Próximas atividades</div>
-    <div class="prox-list">
-      ${items.map(p=>{
-        const dueDate=new Date(p.data+'T00:00:00');
-        const vencida=p.status==='a_fazer'&&dueDate<=hoje;
-        const cc=cursoCores[p.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-        const tc=tipoCores[p.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-        const statusLabel=p.status==='feito'?'feito':(vencida?'atrasado':'a fazer');
-        const statusClass=p.status==='feito'?'status-feito':'status-afazer';
-        return `<div class="prox-item${vencida?' prox-due':''}">
-          <div class="prox-left">
-            <span class="prox-nome">${p.nome}</span>
-            <div class="prox-badges">
-              <span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${p.curso}</span>
-              <span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${p.tipo}</span>
-              <span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(p.data)}</span>
-            </div>
-          </div>
-          <span class="prox-status ${statusClass}">${statusLabel}</span>
-        </div>`;
-      }).join('')}
-    </div>
-  `;
-}
-
-// NOTAS DE ESTUDO — armazenadas em localStorage por enquanto, futuramente virão do Notion
-function getNotas(){
-  try{ return JSON.parse(localStorage.getItem('pscpp_notas')||'[]'); }
-  catch(e){ return []; }
-}
-function setNotas(list){
-  localStorage.setItem('pscpp_notas',JSON.stringify(list));
-}
-function renderNotas(){
-  const notas=getNotas();
-  return `
-    <div class="section-title">Notas de estudo</div>
-    <div class="notas-list">
-      ${notas.map(n=>`<div class="nota-card">
-        <span class="nota-texto">${n.texto}</span>
-        <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
-      </div>`).join('')}
-      <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
-    </div>
-  `;
-}
-function removerNota(id){
-  setNotas(getNotas().filter(n=>n.id!==id));
-  renderTab(tabAtual);
-}
-function adicionarNota(){
-  const texto=prompt('Nova nota de estudo:');
-  if(!texto||!texto.trim()) return;
-  const notas=getNotas();
-  notas.push({id:Date.now().toString(),texto:texto.trim()});
-  setNotas(notas);
-  renderTab(tabAtual);
-}
-
-function renderModsBars(){
-  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  const lista=atividadesFiltradas();
-  if(!lista.length) return '';
-  return mods.map(m=>{
-    const qs=questoes.filter(q=>q.modulo===m);
-    if(!qs.length) return '';
-    const acertos=qs.filter(q=>q.status==='Acertei').length;
-    const pct=Math.round(acertos/qs.length*100);
-    const c=fc(pct);
-    return `<div class="mod-row">
-      <span class="mod-name">${m}</span>
-      <div class="mod-bar-bg"><div class="mod-bar-fill" style="width:${pct}%;background:${c}"></div></div>
-      <span class="mod-pct" style="color:${c}">${pct}%</span>
-    </div>`;
-  }).join('');
-}
-
-function renderAtividades(){
-  const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
-  const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
-  let lista=atividades;
-  if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
-  if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
-
-  return `
-    <div class="filter-row">
-      <select class="filter-select" onchange="setFiltCurso(this.value)">
-        <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
-        ${cursos.map(c=>`<option value="${c}"${filtCurso===c?' selected':''}>${c}</option>`).join('')}
-      </select>
-    </div>
-    <div class="filter-row">
-      <button class="filter-btn${filtTipo==='todos'?' active':''}" onclick="setFiltTipo('todos')">Todos</button>
-      ${tipos.map(t=>`<button class="filter-btn${filtTipo===t?' active':''}" onclick="setFiltTipo('${t}')">${t}</button>`).join('')}
-    </div>
-    ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade encontrada.</div>'}
+    ${lista.length?`<div class="section-title">Desempenho por módulo</div>${renderModsBars()}`:''}
+    <div class="section-title">Atividades</div>
+    ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
 
