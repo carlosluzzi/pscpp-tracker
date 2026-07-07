@@ -21,8 +21,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .content{padding:16px}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding:10px 0 calc(14px + env(safe-area-inset-bottom, 0px))}
-.nav-item{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10;padding-top:8px}
+.nav-item{flex:1;padding:8px 0 calc(8px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-item.active{background:#f0f0ee}
 .nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:100%;height:100%}
@@ -69,6 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filter-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
+.filter-date{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;flex:1}
 
 /* CARDS DE ATIVIDADE */
 .ativ-card{background:#f5f5f3;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer}
@@ -211,7 +212,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 10.5h6M9 13.5h6M9 16.5h4"/></svg></span><span class="nav-label">Atividades</span>
     </div>
     <div class="nav-item" id="nav-questoes" onclick="showTab('questoes')">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c2-1.3 5.2-1.6 7.5 0v14c-2.3-1.6-5.5-1.3-7.5 0V5.2Z"/><path d="M21.5 5.2c-2-1.3-5.2-1.6-7.5 0v14c2.3-1.6 5.5-1.3 7.5 0V5.2Z"/></svg></span><span class="nav-label">Questões</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7l-9 4.5L3 7l9-4.5Z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 17l9 4.5 9-4.5"/></svg></span><span class="nav-label">Questões</span>
     </div>
     <div class="nav-item" id="nav-revisao" onclick="showTab('revisao')">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 20.5 6 17 9.5"/><path d="M3.5 12V10a4 4 0 0 1 4-4h13"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 12v2a4 4 0 0 1-4 4h-13"/></svg></span><span class="nav-label">Revisão</span>
@@ -237,7 +238,7 @@ const cursoCores={
   'Curso H':{bg:'#E1F5EE',tx:'#085041'},
   'Catavento':{bg:'#EEEDFE',tx:'#3C3489'},
   'MPX':{bg:'#FAEEDA',tx:'#633806'},
-  'Simulados Práticos':{bg:'#E6F1FB',tx:'#0C447C'},
+  'Curso Prático':{bg:'#E6F1FB',tx:'#0C447C'},
 };
 const tipoCores={
   'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
@@ -248,6 +249,7 @@ const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],tabAtual='inicio',atividadeAtual=null;
 let filtPeriodo='tudo',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
+let filtDataInicio='',filtDataFim='';
 
 async function notionQuery(dbId){
   const res=await fetch('/api/notion',{
@@ -296,13 +298,13 @@ async function loadData(){
     const [a,q,cal,notas]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS)]);
     atividades=a.map(p=>({
       id:p.id,
-      nome:getProp(p,'Nome')||getProp(p,'Atividade')||'Sem título',
+      nome:getProp(p,'ID da Atividade')||'Sem título',
       data:getProp(p,'Data')||null,
       tipo:getProp(p,'Tipo')||null,
       curso:getProp(p,'Curso')||null,
       pontuacao:getProp(p,'Pontuação Obtida')||null,
       pontuacaoTotal:getProp(p,'Pontuação Total')||null,
-      aproveitamento:getProp(p,'Aproveitamento')||null,
+      aproveitamento:getProp(p,'Aproveitamento %')||null,
       acertos:getProp(p,'Acertos Efetivos')||null,
       erros:getProp(p,'Erros Efetivos')||null,
       anuladas:getProp(p,'Anuladas')||null,
@@ -368,6 +370,15 @@ function fmtData(d){
 
 function filtrarPorPeriodo(lista){
   if(filtPeriodo==='tudo') return lista;
+  if(filtPeriodo==='personalizado'){
+    if(!filtDataInicio&&!filtDataFim) return lista;
+    return lista.filter(a=>{
+      if(!a.data) return false;
+      if(filtDataInicio&&a.data<filtDataInicio) return false;
+      if(filtDataFim&&a.data>filtDataFim) return false;
+      return true;
+    });
+  }
   const hoje=new Date();
   const dias={'30d':30,'90d':90,'180d':180}[filtPeriodo]||9999;
   return lista.filter(a=>{
@@ -379,9 +390,9 @@ function filtrarPorPeriodo(lista){
 
 function atividadesFiltradas(){
   let lista=atividades;
-  lista=filtrarPorPeriodo(lista);
   if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
   if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
+  lista=filtrarPorPeriodo(lista);
   return lista;
 }
 
@@ -550,18 +561,27 @@ function renderAtividades(){
   const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
 
   return `
-    <div class="section-title">Período</div>
+    <div class="section-title">Filtros</div>
     <div class="filter-row">
-      ${['tudo','30d','90d','180d'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses'}[p]}</button>`).join('')}
+      <select class="filter-select" onchange="setFiltCurso(this.value)" style="flex:1;margin-bottom:0">
+        <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
+        ${cursos.map(c=>`<option value="${c}"${filtCurso===c?' selected':''}>${c}</option>`).join('')}
+      </select>
+      <select class="filter-select" onchange="setFiltTipo(this.value)" style="flex:1;margin-bottom:0">
+        <option value="todos"${filtTipo==='todos'?' selected':''}>Todos os tipos</option>
+        ${tipos.map(t=>`<option value="${t}"${filtTipo===t?' selected':''}>${t}</option>`).join('')}
+      </select>
     </div>
     <div class="filter-row">
-      <button class="filter-btn${filtCurso==='todos'?' active':''}" onclick="setFiltCurso('todos')">Todos os cursos</button>
-      ${cursos.map(c=>`<button class="filter-btn${filtCurso===c?' active':''}" onclick="setFiltCurso('${c}')">${c}</button>`).join('')}
+      ${['tudo','30d','90d','180d','personalizado'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses',personalizado:'Personalizado'}[p]}</button>`).join('')}
     </div>
-    <div class="filter-row">
-      <button class="filter-btn${filtTipo==='todos'?' active':''}" onclick="setFiltTipo('todos')">Todos os tipos</button>
-      ${tipos.map(t=>`<button class="filter-btn${filtTipo===t?' active':''}" onclick="setFiltTipo('${t}')">${t}</button>`).join('')}
+    ${filtPeriodo==='personalizado'?`
+    <div class="filter-row" style="align-items:center">
+      <input type="date" class="filter-date" value="${filtDataInicio}" onchange="setFiltDataInicio(this.value)">
+      <span style="font-size:12px;color:#888">até</span>
+      <input type="date" class="filter-date" value="${filtDataFim}" onchange="setFiltDataFim(this.value)">
     </div>
+    `:''}
     <div class="section-title">Resumo</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
@@ -746,6 +766,8 @@ function toggleMod(i){
 }
 
 function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
+function setFiltDataInicio(v){filtDataInicio=v;renderTab(tabAtual);}
+function setFiltDataFim(v){filtDataFim=v;renderTab(tabAtual);}
 function setFiltCurso(v){filtCurso=v;renderTab(tabAtual);}
 function setFiltTipo(v){filtTipo=v;renderTab(tabAtual);}
 function setFiltStatus(v){filtStatus=v;renderTab(tabAtual);}
