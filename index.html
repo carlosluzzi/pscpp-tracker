@@ -8,11 +8,12 @@
 <link rel="manifest" href="manifest.json">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+:root{--header-h:57px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#111;min-height:100vh}
 
 /* MOBILE */
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px))}
-.topbar{padding:16px 16px 12px;border-bottom:0.5px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;background:#fff;position:sticky;top:0;z-index:10}
+.topbar{position:fixed;top:0;left:0;right:0;max-width:480px;margin:0 auto;height:var(--header-h);padding:0 16px;border-bottom:0.5px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;background:#fff;z-index:20;box-sizing:border-box}
 .appname{font-size:15px;font-weight:500}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .gear-btn{color:#888;display:flex;align-items:center;cursor:pointer}
@@ -23,7 +24,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.content{padding:16px}
+.content{padding:16px;padding-top:calc(var(--header-h) + 16px)}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
 .nav-item{flex:1;padding:18px 0 calc(20px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-item.active{background:#f0f0ee}
@@ -35,9 +36,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* TABLET (iPad na vertical e telas médias — mantém o menu embaixo, mas aproveita melhor o espaço) */
 @media(min-width:768px) and (max-width:1099px){
-  .app{max-width:700px}
-  .bottom-nav{max-width:700px}
-  .content{padding:24px}
+  .app{max-width:100%}
+  .topbar{max-width:100%}
+  .bottom-nav{max-width:100%}
+  .content{padding:24px;padding-top:calc(var(--header-h) + 24px)}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -49,14 +51,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* DESKTOP (telas largas — sidebar lateral) */
 @media(min-width:1100px){
   body{display:flex;background:#f5f5f3}
-  .app{max-width:100%;width:100%;margin:0;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto 1fr;padding-bottom:0}
-  .topbar{grid-column:1/3;grid-row:1;position:sticky;top:0;z-index:10;padding:16px 32px}
-  .bottom-nav{grid-column:1;grid-row:2;position:sticky;left:auto;bottom:auto;transform:none;width:100%;max-width:none;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;top:57px;height:calc(100vh - 57px);padding-bottom:20px}
+  .app{max-width:100%;width:100%;margin:0;display:grid;grid-template-columns:250px 1fr;grid-template-rows:1fr;padding-bottom:0}
+  .topbar{max-width:100%;margin:0;padding:0 32px;z-index:20}
+  .bottom-nav{grid-column:1;grid-row:1;position:sticky;left:auto;bottom:auto;transform:none;width:100%;max-width:none;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;top:var(--header-h);height:calc(100vh - var(--header-h));padding-bottom:20px}
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:9px;width:100%}
   .nav-item.active{background:#f0f0ee}
   .nav-icon{width:18px;height:18px}
   .nav-label{font-size:13.5px}
-  .content{grid-column:2;grid-row:2;padding:32px 40px;max-width:960px;width:100%}
+  .content{grid-column:2;grid-row:1;padding:32px 40px;padding-top:calc(var(--header-h) + 32px);max-width:960px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -83,13 +85,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filter-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
-.status-segment{display:flex;width:100%;border-radius:8px;overflow:hidden;border:0.5px solid #ddd;margin-bottom:12px}
-.status-segment button{flex:1;padding:8px 0;border:none;background:#fff;color:#888;font-size:11px;font-family:inherit;cursor:pointer;border-right:0.5px solid #ddd}
-.status-segment button:last-child{border-right:none}
-.status-segment button.active-errei{background:#A32D2D;color:#fff}
-.status-segment button.active-duvida{background:#EF9F27;color:#fff}
-.status-segment button.active-acertei{background:#3B6D11;color:#fff}
-.status-segment button.active-todos{background:#111;color:#fff}
+.filter-btn.active.status-errei{background:#A32D2D;border-color:#A32D2D;color:#fff}
+.filter-btn.active.status-duvida{background:#EF9F27;border-color:#EF9F27;color:#fff}
+.filter-btn.active.status-acertei{background:#3B6D11;border-color:#3B6D11;color:#fff}
+.filter-btn.active.status-todos{background:#111;border-color:#111;color:#fff}
 .filter-date{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;flex:1}
 
 /* CARDS DE ATIVIDADE */
@@ -100,6 +99,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ativ-date{font-size:11px;color:#888}
 .ativ-badges{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
 .ativ-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.ativ-badge .tx{margin-left:5px;cursor:pointer;opacity:0.6}
+.ativ-badge .tx:hover{opacity:1}
 .ativ-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ativ-metric{text-align:center;background:#fff;border-radius:8px;padding:8px 4px}
 .ativ-metric-val{font-size:16px;font-weight:500}
@@ -176,7 +177,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .q-pub{font-size:11px;color:#888}
 .q-mod{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
 .q-badges{display:flex;gap:5px;flex-wrap:wrap}
-.enunciado-box{font-size:12px;color:#111;line-height:1.7}
+.enunciado-box{font-size:12px;color:#111;line-height:1.6;margin-top:10px}
+.enunciado-linha{margin-top:6px}
 .banco-note{font-size:12px;color:#888;background:#f5f5f3;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5}
 .banco-tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .banco-combine-toggle{font-size:10px;font-weight:500;color:#888;border:0.5px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:8px}
@@ -192,12 +194,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-ring{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .foco-ring-inner{width:25px;height:25px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
 .foco-nome{font-size:13px;font-weight:400;color:#111}
-.foco-tag{cursor:pointer}
-.foco-tag:hover{opacity:0.7}
 .foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.foco-detail{display:none;flex-direction:column;gap:10px;padding:0 14px 14px}
+.foco-detail{display:none;flex-direction:column;padding:0 14px 8px}
 .foco-detail.open{display:flex}
-.foco-pub{display:flex;flex-direction:column;gap:5px}
+.foco-materia-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:0.5px solid #f0f0ee}
+.foco-materia-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.foco-materia-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.foco-materia-nome{font-size:12px;font-weight:500;color:#111}
+.foco-materia-stats{font-size:10px;color:#888;flex-shrink:0}
+.foco-materia-ref{font-size:11px;color:#888}
+.foco-materia-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden}
+.foco-materia-bar-fill{height:4px;border-radius:4px}
+.foco-materia-feito{flex-shrink:0;font-size:10px;padding:7px 11px;border-radius:7px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.foco-materia-feito:hover{background:#111;color:#fff;border-color:#111}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-radius:10px;padding:12px 14px}
 .prox-item.prox-due{background:#FCEBEB}
@@ -244,6 +253,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #font-value{font-weight:400;color:#888;font-size:11px}
 .config-reset-btn{font-size:11px;color:#888;text-align:right;margin-top:6px;cursor:pointer;text-decoration:underline}
 .config-reset-btn:hover{color:#111}
+.comp-btn-row{display:flex;gap:6px;flex-wrap:wrap}
+.comp-opt-btn{flex:1;min-width:56px;padding:8px 4px;font-size:11px;border-radius:7px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.comp-opt-btn.active{background:#111;color:#fff;border-color:#111}
 
 /* CRITICOS */
 .crit{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem}
@@ -342,6 +354,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="comp-modal" style="display:none" onclick="if(event.target===this)fecharComplementarModal()">
+  <div class="modal-box">
+    <div class="config-title">Nova atividade complementar</div>
+    <div class="config-item">
+      <div class="config-label">Nome</div>
+      <input type="text" id="comp-nome" class="filter-select" style="margin-bottom:0" placeholder="Ex: Revisar Miguens Cap.13">
+    </div>
+    <div class="config-item">
+      <div class="config-label">Prioridade</div>
+      <div class="comp-btn-row" id="comp-prioridade-row">
+        <button class="comp-opt-btn" data-val="Alta" onclick="selecionarCompPrioridade('Alta')">Alta</button>
+        <button class="comp-opt-btn active" data-val="Média" onclick="selecionarCompPrioridade('Média')">Média</button>
+        <button class="comp-opt-btn" data-val="Baixa" onclick="selecionarCompPrioridade('Baixa')">Baixa</button>
+      </div>
+    </div>
+    <div class="config-item">
+      <div class="config-label">Repetir a cada</div>
+      <div class="comp-btn-row" id="comp-recorrencia-row">
+        <button class="comp-opt-btn active" data-val="0" onclick="selecionarCompRecorrencia(0)">Único</button>
+        <button class="comp-opt-btn" data-val="1" onclick="selecionarCompRecorrencia(1)">Todo dia</button>
+        <button class="comp-opt-btn" data-val="7" onclick="selecionarCompRecorrencia(7)">7 dias</button>
+        <button class="comp-opt-btn" data-val="14" onclick="selecionarCompRecorrencia(14)">14 dias</button>
+        <button class="comp-opt-btn" data-val="28" onclick="selecionarCompRecorrencia(28)">28 dias</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharComplementarModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarComplementar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const DB_ATIVIDADES='94d1585ce5fc4eff8d783649d4bf9404';
 const DB_QUESTOES='d444bd126bf2472abd5c62529d7c752d';
@@ -368,7 +412,6 @@ const cursoCores={
 };
 const tipoCores={
   'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
-  'Banco de questões':{bg:'#EAF3DE',tx:'#27500A'},
   'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
 const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
@@ -387,7 +430,7 @@ function fmtPct(v){
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},tabAtual='inicio',atividadeAtual=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
-let filtQCurso='todos',filtQAtividade='todos',filtQQuestao='todos';
+let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
 let filtDataInicio='',filtDataFim='';
 
 async function notionQuery(dbId){
@@ -633,21 +676,42 @@ function renderFocoItem(m,i){
   const c=fc(m.pct);
   const deg=Math.round(m.pct*3.6);
   const errosDoModulo=questoes.filter(q=>q.modulo===m.nome&&q.status==='Errei');
-  const porPublicacao={};
+
+  // agrupa por matéria: tag quando existe, senão o nome da publicação como fallback
+  const materiaInfo={};
   errosDoModulo.forEach(q=>{
     const pub=q.publicacao||'—';
-    if(!porPublicacao[pub]) porPublicacao[pub]={};
-    const materias=(q.tags&&q.tags.length)?q.tags:[pub]; // sem tag ainda: usa o nome da publicação como matéria
-    materias.forEach(nome=>{
-      if(!porPublicacao[pub][nome]) porPublicacao[pub][nome]=[];
-      porPublicacao[pub][nome].push(q);
-    });
+    if(q.tags&&q.tags.length){
+      q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
+    }else{
+      materiaInfo['pub::'+pub]={isTag:false,label:pub,pubFallback:pub};
+    }
   });
-  // uma matéria só fica escondida se NENHUM erro novo aconteceu depois da data em que foi marcada "estudei"
-  const pubEntries=Object.entries(porPublicacao).map(([pub,materias])=>{
-    const pendentes=Object.entries(materias).filter(([nome,qs])=>!isDismissed(`${m.nome}|${nome}`,qs)).map(([nome])=>nome);
-    return [pub,pendentes];
-  });
+
+  const linhas=Object.values(materiaInfo).map(info=>{
+    const chave=`${m.nome}|${info.label}`;
+    let qsDaMateria,refEstudo;
+    if(info.isTag){
+      qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(info.label));
+      const contagem={};
+      qsDaMateria.forEach(q=>{
+        const k=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+        contagem[k]=(contagem[k]||0)+1;
+      });
+      const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
+      const [pubOrig,cap]=chaveTop.split('|||');
+      refEstudo=cap?`${nomePub(pubOrig)}, ${cap}`:nomePub(pubOrig);
+    }else{
+      qsDaMateria=questoes.filter(q=>q.modulo===m.nome&&q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
+      refEstudo=nomePub(info.pubFallback);
+    }
+    const ac=qsDaMateria.filter(isAcerto).length;
+    const er=qsDaMateria.filter(q=>q.status==='Errei').length;
+    const total=ac+er;
+    const pct=total?Math.round(ac/total*100):0;
+    return {label:info.label,refEstudo,ac,er,total,pct,chave,qsDaMateria};
+  }).filter(l=>!isDismissed(l.chave,l.qsDaMateria));
+
   return `<div class="foco-item">
     <div class="foco-header" onclick="toggleFoco(${i})">
       <div class="foco-header-left">
@@ -657,9 +721,16 @@ function renderFocoItem(m,i){
       <span class="chev" id="fchev${i}">▾</span>
     </div>
     <div class="foco-detail" id="fdet${i}">
-      ${pubEntries.length?pubEntries.map(([pub,tags])=>`<div class="foco-pub">
-        <span class="pub-nm pub-nm-edit" onclick="event.stopPropagation();editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
-        <div class="tr">${tags.length?tags.map(t=>`<span class="tg foco-tag" onclick="abrirConfirmacao('${m.nome}|${t}','${t}','focoAssunto','Marcar &quot;${t}&quot; como estudado?')">${t}<span class="tx">✕</span></span>`).join(''):'<span class="dr">tudo em dia por aqui</span>'}</div>
+      ${linhas.length?linhas.map(l=>`<div class="foco-materia-row">
+        <div class="foco-materia-info">
+          <div class="foco-materia-top">
+            <span class="foco-materia-nome">${l.label}</span>
+            <span class="foco-materia-stats">${l.ac}/${l.total}</span>
+          </div>
+          <span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>
+          <div class="foco-materia-bar-bg"><div class="foco-materia-bar-fill" style="width:${l.pct}%;background:${fc(l.pct)}"></div></div>
+        </div>
+        <button class="foco-materia-feito" onclick="abrirConfirmacao('${l.chave.replace(/'/g,"\\'")}','${l.label.replace(/'/g,"\\'")}','focoAssunto','Marcar &quot;${l.label}&quot; como estudado?')">feito</button>
       </div>`).join(''):'<div class="empty">Nenhum erro registrado nesse módulo ainda.</div>'}
     </div>
   </div>`;
@@ -802,8 +873,19 @@ async function marcarBancoPraticoFeito(id){
 }
 
 // ATIVIDADES COMPLEMENTARES
+function complementaresPendentes(){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  return complementares.filter(c=>{
+    if(c.status!=='Pendente') return false;
+    if(c.recorrenciaDias&&c.dataLimite){
+      const dl=new Date(c.dataLimite+'T00:00:00');
+      return dl<=hoje;
+    }
+    return true;
+  });
+}
 function renderComplementares(){
-  const pendentes=complementares.filter(c=>c.status==='Pendente').sort((a,b)=>{
+  const pendentes=complementaresPendentes().sort((a,b)=>{
     const ordem={Alta:0,Média:1,Baixa:2};
     return (ordem[a.prioridade]??1)-(ordem[b.prioridade]??1);
   });
@@ -818,33 +900,46 @@ function renderComplementares(){
             <span class="prox-nome">${c.nome}</span>
             <div class="prox-badges">
               <span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>
-              ${c.dataLimite?`<span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(c.dataLimite)}</span>`:''}
-              ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d</span>`:''}
+              ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
             </div>
           </div>
           <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
         </div>`;
       }).join('')}
-      <div class="nota-add" onclick="adicionarComplementar()">+ nova atividade complementar</div>
+      <div class="nota-add" onclick="abrirComplementarModal()">+ nova atividade complementar</div>
     </div>
   `;
 }
-async function adicionarComplementar(){
-  const nome=prompt('Nome da atividade:');
-  if(!nome||!nome.trim()) return;
-  let prioridade=(prompt('Prioridade — Alta, Média ou Baixa:','Média')||'Média').trim();
-  if(!['Alta','Média','Baixa'].includes(prioridade)) prioridade='Média';
-  const dataLimite=(prompt('Data limite (AAAA-MM-DD) — deixe vazio se não tiver:','')||'').trim();
-  const recorrencia=(prompt('Repetir a cada quantos dias? — deixe vazio se não for recorrente:','')||'').trim();
+let compPrioridadeSel='Média',compRecorrenciaSel=0;
+function abrirComplementarModal(){
+  compPrioridadeSel='Média';
+  compRecorrenciaSel=0;
+  const nomeInput=document.getElementById('comp-nome');
+  if(nomeInput) nomeInput.value='';
+  atualizarCompBotoes();
+  document.getElementById('comp-modal').style.display='flex';
+}
+function fecharComplementarModal(){
+  document.getElementById('comp-modal').style.display='none';
+}
+function selecionarCompPrioridade(v){compPrioridadeSel=v;atualizarCompBotoes();}
+function selecionarCompRecorrencia(v){compRecorrenciaSel=v;atualizarCompBotoes();}
+function atualizarCompBotoes(){
+  document.querySelectorAll('#comp-prioridade-row .comp-opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===compPrioridadeSel));
+  document.querySelectorAll('#comp-recorrencia-row .comp-opt-btn').forEach(b=>b.classList.toggle('active',Number(b.dataset.val)===compRecorrenciaSel));
+}
+async function salvarComplementar(){
+  const nome=(document.getElementById('comp-nome').value||'').trim();
+  if(!nome){alert('Digite o nome da atividade.');return;}
   try{
     const props={
-      'Nome':{title:[{text:{content:nome.trim()}}]},
-      'Prioridade':{select:{name:prioridade}},
+      'Nome':{title:[{text:{content:nome}}]},
+      'Prioridade':{select:{name:compPrioridadeSel}},
       'Status':{select:{name:'Pendente'}}
     };
-    if(dataLimite) props['Data Limite']={date:{start:dataLimite}};
-    if(recorrencia&&parseInt(recorrencia,10)>0) props['Recorrência Dias']={number:parseInt(recorrencia,10)};
+    if(compRecorrenciaSel>0) props['Recorrência Dias']={number:compRecorrenciaSel};
     await notionCall('/pages',{parent:{database_id:DB_COMPLEMENTARES},properties:props},'POST');
+    fecharComplementarModal();
     await loadData();
   }catch(e){
     alert('Erro ao salvar: '+e.message);
@@ -864,6 +959,14 @@ async function marcarComplementarFeito(id){
     await loadData();
   }catch(e){
     alert('Erro ao confirmar: '+e.message);
+  }
+}
+async function pararRecorrencia(id){
+  try{
+    await notionCall(`/pages/${id}`,{properties:{'Recorrência Dias':{number:null}}},'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao parar recorrência: '+e.message);
   }
 }
 
@@ -887,6 +990,7 @@ function confirmarFeitoSim(){
   if(tipo==='complementar') marcarComplementarFeito(id);
   else if(tipo==='banco') marcarBancoPraticoFeito(id);
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
+  else if(tipo==='pararRecorrencia') pararRecorrencia(id);
   else marcarFeito(id);
 }
 
@@ -979,6 +1083,7 @@ function renderAtividades(){
       <span style="font-size:12px;color:#888">até</span>
       <input type="date" class="filter-date" value="${filtDataFim}" onchange="setFiltDataFim(this.value)">
     </div>
+    <div class="config-reset-btn" onclick="limparFiltroData()">Redefinir</div>
     `:''}
     <div class="section-title">Resumo</div>
     <div class="stat-grid">
@@ -1148,7 +1253,24 @@ async function editarApelidoPublicacao(original){
 
 function formatQuestaoCompleta(texto){
   if(!texto) return '';
-  return escapeHtml(texto).replace(/\s+(\(?[a-eA-E]\))/g,'<br><br>$1');
+  const escaped=escapeHtml(texto);
+  // acha onde começam as alternativas de resposta (a)-(e) — tudo antes é enunciado/assertivas, tudo depois são as alternativas
+  const altMatch=escaped.match(/\s\([a-eA-E]\)/);
+  const idxAlt=altMatch?altMatch.index:-1;
+  const zonaEnunciado=idxAlt===-1?escaped:escaped.slice(0,idxAlt);
+  const zonaAlternativas=idxAlt===-1?'':escaped.slice(idxAlt).trim();
+
+  // no enunciado: quebra em cada assertiva romana (I) II) III)... até onde for necessário)
+  const partesEnun=zonaEnunciado.split(/(?=\s\(?[IVXLCDM]{1,6}\))/).map(p=>p.trim()).filter(Boolean);
+  // nas alternativas: quebra só nas letras (a)-(e) — nunca nos romanos, mesmo que a alternativa cite "situação III"
+  const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-eA-E]\))/).map(p=>p.trim()).filter(Boolean):[];
+
+  const linhas=[
+    partesEnun[0]||'',
+    ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`),
+    ...partesAlt.map(p=>`<div class="enunciado-linha">${p}</div>`)
+  ];
+  return linhas.join('');
 }
 function badgesQuestao(q){
   const ativ=atividades.find(a=>a.nome===q.idAtividade);
@@ -1165,7 +1287,7 @@ function badgesQuestao(q){
 function questoesComCurso(){
   return questoes.map(q=>{
     const ativ=atividades.find(a=>a.nome===q.idAtividade);
-    return {...q,_curso:ativ?ativ.curso:null};
+    return {...q,_curso:ativ?ativ.curso:null,_tipo:ativ?ativ.tipo:null};
   });
 }
 
@@ -1175,45 +1297,56 @@ function renderQuestoes(){
 
   const cursosDisp=[...new Set(todas.map(q=>q._curso).filter(Boolean))];
 
+  const tiposBase=['Simulado','Caderno de Exercícios'];
+  const tiposExtras=[...new Set(todas.map(q=>q._tipo).filter(Boolean))].filter(t=>!tiposBase.includes(t));
+  const tiposDisp=[...tiposBase,...tiposExtras];
+
   let poolAtiv=todas;
   if(filtQCurso!=='todos') poolAtiv=poolAtiv.filter(q=>q._curso===filtQCurso);
+  if(filtQTipo!=='todos') poolAtiv=poolAtiv.filter(q=>q._tipo===filtQTipo);
   const ativsDisp=[...new Set(poolAtiv.map(q=>q.idAtividade).filter(Boolean))];
 
   let poolQnum=poolAtiv;
   if(filtQAtividade!=='todos') poolQnum=poolQnum.filter(q=>q.idAtividade===filtQAtividade);
+  if(filtModulo!=='todos') poolQnum=poolQnum.filter(q=>q.modulo===filtModulo);
   const qnumsDisp=[...new Set(poolQnum.map(q=>q.questao).filter(Boolean))].sort((a,b)=>(parseInt(a,10)||0)-(parseInt(b,10)||0));
 
   let lista=todas;
   if(filtStatus&&filtStatus!=='todos') lista=lista.filter(q=>q.status===filtStatus);
   if(filtQCurso!=='todos') lista=lista.filter(q=>q._curso===filtQCurso);
+  if(filtQTipo!=='todos') lista=lista.filter(q=>q._tipo===filtQTipo);
   if(filtQAtividade!=='todos') lista=lista.filter(q=>q.idAtividade===filtQAtividade);
-  if(filtQQuestao!=='todos') lista=lista.filter(q=>q.questao===filtQQuestao);
   if(filtModulo!=='todos') lista=lista.filter(q=>q.modulo===filtModulo);
+  if(filtQQuestao!=='todos') lista=lista.filter(q=>q.questao===filtQQuestao);
   lista=[...lista].sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
-  const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
+  const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
     </select>
+    <select class="filter-select" onchange="setFiltQTipo(this.value)">
+      <option value="todos">Todos os tipos</option>
+      ${tiposDisp.map(t=>`<option value="${t}"${filtQTipo===t?' selected':''}>${t}</option>`).join('')}
+    </select>
     <select class="filter-select" onchange="setFiltQAtividade(this.value)">
       <option value="todos">Todas as atividades</option>
       ${ativsDisp.map(a=>`<option value="${a}"${filtQAtividade===a?' selected':''}>${a}</option>`).join('')}
-    </select>
-    <select class="filter-select" onchange="setFiltQQuestao(this.value)">
-      <option value="todos">Todas as questões</option>
-      ${qnumsDisp.map(qn=>`<option value="${qn}"${filtQQuestao===qn?' selected':''}>Questão ${qn}</option>`).join('')}
     </select>
     <select class="filter-select" onchange="setFiltModulo(this.value)">
       <option value="todos">Todos os módulos</option>
       ${mods.slice(1).map(m=>`<option value="${m}"${filtModulo===m?' selected':''}>${m}</option>`).join('')}
     </select>
-    <div class="status-segment">
-      ${[['Errei','Errei','active-errei'],['Acertei com dúvida','Acertei com dúvida','active-duvida'],['Acertei','Acertei','active-acertei'],['todos','Todos','active-todos']].map(([v,l,cls])=>`<button class="${filtStatus===v?cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
+    <select class="filter-select" onchange="setFiltQQuestao(this.value)">
+      <option value="todos">Todas as questões</option>
+      ${qnumsDisp.map(qn=>`<option value="${qn}"${filtQQuestao===qn?' selected':''}>Questão ${qn}</option>`).join('')}
+    </select>
+    <div class="filter-row">
+      ${[['todos','Todos','status-todos'],['Errei','Errei','status-errei'],['Acertei com dúvida','Acertei com dúvida','status-duvida'],['Acertei','Acertei','status-acertei']].map(([v,l,cls])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
     </div>
-    ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões (Status, Curso, Atividade, Questão ou Módulo).</div>':lista.length?lista.map((q,i)=>{
+    ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões.</div>':lista.length?lista.map((q,i)=>{
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:q.status==='Anulada'?{bg:'#FAEEDA',tx:'#854F0B'}:{bg:'#EAF3DE',tx:'#3B6D11'};
       return `<div class="q-card">
@@ -1326,12 +1459,14 @@ function toggleErrada(i){
 
 function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
 function setFiltDataInicio(v){filtDataInicio=v;renderTab(tabAtual);}
+function limparFiltroData(){filtDataInicio='';filtDataFim='';renderTab(tabAtual);}
 function setFiltDataFim(v){filtDataFim=v;renderTab(tabAtual);}
 function setFiltCurso(v){filtCurso=v;renderTab(tabAtual);}
 function setFiltTipo(v){filtTipo=v;renderTab(tabAtual);}
 function setFiltStatus(v){filtStatus=v;renderTab(tabAtual);}
-function setFiltModulo(v){filtModulo=v;renderTab(tabAtual);}
+function setFiltModulo(v){filtModulo=v;filtQQuestao='todos';renderTab(tabAtual);}
 function setFiltQCurso(v){filtQCurso=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual);}
+function setFiltQTipo(v){filtQTipo=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual);}
 function setFiltQAtividade(v){filtQAtividade=v;filtQQuestao='todos';renderTab(tabAtual);}
 function setFiltQQuestao(v){filtQQuestao=v;renderTab(tabAtual);}
 
