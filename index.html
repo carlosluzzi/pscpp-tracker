@@ -214,6 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0}
 .prox-nome{font-size:13px;font-weight:500}
+.prox-sugestao{font-size:11px;color:#888;display:block;margin-top:3px}
 .prox-badges{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .prox-badges::-webkit-scrollbar{display:none}
 .prox-status{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
@@ -847,16 +848,13 @@ function renderBancoPratico(){
   const vencida=proxData<=hoje;
   const mods=calcularModsPct();
   const pior=mods.length?[...mods].sort((a,b)=>a.pct-b.pct)[0]:null;
-  const corPior=pior?(modCores[pior.nome]||{bg:'#F1EFE8',tx:'#5F5E5A'}):null;
   const sugestao=pior?calcularFocoSugerido(pior.nome):null;
   return `
     <div class="section-title">Banco prático</div>
     <div class="prox-item${vencida?' prox-due':''}">
       <div class="prox-left">
         <span class="prox-nome">Pratique hoje</span>
-        <div class="prox-badges">
-          ${sugestao?`<span class="ativ-badge" style="background:${corPior.bg};color:${corPior.tx}">foco sugerido: ${sugestao}</span>`:''}
-        </div>
+        ${sugestao?`<span class="prox-sugestao">${sugestao}</span>`:''}
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:1px solid #ccc;text-decoration:none">abrir ↗</a>`:''}
