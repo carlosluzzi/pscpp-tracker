@@ -215,6 +215,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0}
 .prox-nome{font-size:13px;font-weight:500}
 .prox-sugestao{font-size:11px;color:#888;display:block;margin-top:3px}
+.banco-pratico-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:12px 14px;margin-bottom:20px}
+.banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
+.fila-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:0.5px solid #f0f0ee}
+.fila-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fila-modulo{font-size:11px;font-weight:500;color:#111}
+.fila-ref{font-size:11px;color:#888}
+.fila-foco{font-size:11px;color:#3C3489;font-weight:500}
 .prox-badges{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .prox-badges::-webkit-scrollbar{display:none}
 .prox-status{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
@@ -397,6 +404,7 @@ const DB_NOTAS='5792fba68a9a4bbfbda33a582d7bba65';
 const DB_COMPLEMENTARES='c8ec85bc67014833b27dcf6c33cd2ae3';
 const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
 const DB_FOCO_ESTUDADO='1d409ca929444beca2b0a8d06dd9a2a8';
+const DB_FILA_BANCO='c5777a8f0b9649a78b25e0797eff2415';
 const DB_APELIDOS='87c01cc3408441608fb1c5a3acc837ed';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
@@ -431,7 +439,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],tabAtual='inicio',atividadeAtual=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
 let filtDataInicio='',filtDataFim='';
@@ -480,7 +488,7 @@ function setSyncStatus(state,text){
 async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
-    const [a,q,cal,notas,comp,banco,foco,apelidosRes]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO),notionQuery(DB_FOCO_ESTUDADO),notionQuery(DB_APELIDOS)]);
+    const [a,q,cal,notas,comp,banco,foco,apelidosRes,filaRes]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO),notionQuery(DB_FOCO_ESTUDADO),notionQuery(DB_APELIDOS),notionQuery(DB_FILA_BANCO)]);
     atividades=a.map(p=>({
       id:p.id,
       nome:getProp(p,'ID da Atividade')||'Sem título',
@@ -545,6 +553,16 @@ async function loadData(){
       const custom=getProp(p,'Nome Personalizado');
       if(orig&&custom) apelidos[orig]=custom;
     });
+    filaBancoPratico=filaRes.map(p=>({
+      id:p.id,
+      materia:getProp(p,'Materia')||'',
+      publicacao:getProp(p,'Publicacao')||'',
+      capitulo:getProp(p,'Capitulo')||'',
+      modulo:getProp(p,'Modulo')||'',
+      dataEntrada:getProp(p,'Data Entrada')||null,
+      status:getProp(p,'Status')||'Pendente',
+    }));
+    await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual);
   }catch(e){
@@ -840,26 +858,107 @@ function calcularFocoSugerido(moduloNome){
   return `${moduloNome} → ${nomePub(pubTop)}`;
 }
 
+function calcularMateriasGlobais(){
+  const materiaSet=new Set();
+  questoes.forEach(q=>{
+    if(q.status==='Errei'&&q.tags&&q.tags.length) q.tags.forEach(t=>materiaSet.add(t));
+  });
+  return [...materiaSet].map(nome=>{
+    const qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(nome));
+    const ac=qsDaMateria.filter(isAcerto).length;
+    const er=qsDaMateria.filter(q=>q.status==='Errei').length;
+    const total=ac+er;
+    const peso=total?Math.round((er/total)*100):50;
+    const modulo=qsDaMateria[0]?qsDaMateria[0].modulo:'';
+    const contagem={};
+    qsDaMateria.forEach(q=>{
+      const k=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+      contagem[k]=(contagem[k]||0)+1;
+    });
+    const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
+    const [pubOrig,cap]=chaveTop.split('|||');
+    return {nome,modulo,peso,publicacao:pubOrig,capitulo:cap};
+  });
+}
+
+async function verificarFilaBancoPratico(){
+  const hojeStr=new Date().toISOString().slice(0,10);
+  const jaTemHoje=filaBancoPratico.some(f=>f.dataEntrada===hojeStr);
+  if(jaTemHoje) return;
+  const materias=calcularMateriasGlobais();
+  if(!materias.length) return;
+  const pendentesNomes=new Set(filaBancoPratico.filter(f=>f.status==='Pendente').map(f=>f.materia));
+  const candidatas=materias.filter(m=>!pendentesNomes.has(m.nome));
+  if(!candidatas.length) return;
+  // crédito = peso (taxa de erro) × dias desde a última vez que essa matéria esteve na fila
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const comCredito=candidatas.map(m=>{
+    const entradas=filaBancoPratico.filter(f=>f.materia===m.nome).map(f=>f.dataEntrada).filter(Boolean).sort();
+    let dias;
+    if(entradas.length){
+      const ultima=new Date(entradas[entradas.length-1]+'T00:00:00');
+      dias=Math.max(1,Math.round((hoje-ultima)/(1000*60*60*24)));
+    }else{
+      dias=999; // nunca sugerida ainda — prioridade máxima
+    }
+    return {...m,credito:m.peso*dias};
+  });
+  comCredito.sort((a,b)=>b.credito-a.credito);
+  const escolhida=comCredito[0];
+  try{
+    await notionCall('/pages',{
+      parent:{database_id:DB_FILA_BANCO},
+      properties:{
+        'Materia':{title:[{text:{content:escolhida.nome}}]},
+        'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
+        'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
+        'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
+        'Data Entrada':{date:{start:hojeStr}},
+        'Status':{select:{name:'Pendente'}}
+      }
+    },'POST');
+    const filaRes=await notionQuery(DB_FILA_BANCO);
+    filaBancoPratico=filaRes.map(p=>({
+      id:p.id,
+      materia:getProp(p,'Materia')||'',
+      publicacao:getProp(p,'Publicacao')||'',
+      capitulo:getProp(p,'Capitulo')||'',
+      modulo:getProp(p,'Modulo')||'',
+      dataEntrada:getProp(p,'Data Entrada')||null,
+      status:getProp(p,'Status')||'Pendente',
+    }));
+  }catch(e){
+    console.error('Erro ao atualizar fila do banco prático:',e);
+  }
+}
+
+async function marcarFilaBancoFeito(id){
+  try{
+    await notionCall(`/pages/${id}`,{properties:{'Status':{select:{name:'Feito'}}}},'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao confirmar: '+e.message);
+  }
+}
+
 function renderBancoPratico(){
   if(!bancoPratico) return '';
-  const proxData=new Date((bancoPratico.ultimaConfirmada||new Date().toISOString().slice(0,10))+'T00:00:00');
-  proxData.setDate(proxData.getDate()+(bancoPratico.intervaloDias||1));
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const vencida=proxData<=hoje;
-  const mods=calcularModsPct();
-  const pior=mods.length?[...mods].sort((a,b)=>a.pct-b.pct)[0]:null;
-  const sugestao=pior?calcularFocoSugerido(pior.nome):null;
+  const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
   return `
     <div class="section-title">Banco prático</div>
-    <div class="prox-item${vencida?' prox-due':''}">
-      <div class="prox-left">
-        <span class="prox-nome">Pratique hoje</span>
-        ${sugestao?`<span class="prox-sugestao">${sugestao}</span>`:''}
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
+    <div class="banco-pratico-card">
+      <div class="banco-pratico-top">
+        <span class="prox-nome">Foco sugerido pra hoje</span>
         ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:1px solid #ccc;text-decoration:none">abrir ↗</a>`:''}
-        <button class="prox-confirm-btn" onclick="abrirConfirmacao('${bancoPratico.id}','Banco Prático','banco')">feito</button>
       </div>
+      ${fila.length?fila.map(f=>`<div class="fila-item">
+        <div class="fila-info">
+          <span class="fila-modulo">${f.modulo||'—'}</span>
+          <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
+          <span class="fila-foco">Foco em ${f.materia}</span>
+        </div>
+        <button class="prox-confirm-btn" onclick="marcarFilaBancoFeito('${f.id}')">feito</button>
+      </div>`).join(''):'<div class="empty">Nenhuma sugestão ainda — processe um simulado com erros pra começar.</div>'}
     </div>
   `;
 }
