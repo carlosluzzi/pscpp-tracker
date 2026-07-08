@@ -218,6 +218,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-ring-inner{width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);font-weight:600}
 .foco-nome{font-size:var(--fs-e);font-weight:400;color:#111}
 .foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.foco-header-right{display:flex;align-items:center;gap:8px}
+.foco-pct{font-size:var(--fs-e);font-weight:700}
 .foco-detail{display:none;flex-direction:column;padding:0 14px 8px}
 .foco-detail.open{display:flex}
 .foco-materia-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:0.5px solid #f0f0ee}
@@ -237,11 +239,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
-.trilha-secao{position:relative;padding-left:22px;margin-bottom:28px}
+.trilha-secao{position:relative;padding-left:14px;margin-bottom:28px}
 .trilha-secao:last-child{margin-bottom:0}
-.trilha-linha{position:absolute;left:8px;top:5px;bottom:-14px;width:3px;border-radius:3px;z-index:1}
+.trilha-linha{position:absolute;left:2px;top:4px;bottom:-14px;width:2.5px;border-radius:3px;z-index:1;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%)}
 .trilha-secao:last-child .trilha-linha{bottom:5px}
-.trilha-dot{position:absolute;left:2px;top:3px;width:15px;height:15px;border-radius:50%;border:3px solid #FBFBFA;z-index:2}
+.trilha-dot{position:absolute;left:-3px;top:2px;width:11px;height:11px;border-radius:50%;border:2px solid #FBFBFA;z-index:2}
 .trilha-blob{position:absolute;width:130px;height:130px;border-radius:50%;opacity:0.08;filter:blur(28px);top:-20px;left:-25px;z-index:0;pointer-events:none}
 .trilha-conteudo{position:relative;z-index:1}
 .trilha-secao .section-title{margin-top:0}
@@ -252,7 +254,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
 .fila-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:0.5px solid #f0f0ee}
-.fila-check{width:18px;height:18px;border-radius:5px;border:2px solid #ccc;flex-shrink:0}
 .fila-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .fila-modulo{font-size:var(--fs-d);font-weight:600;color:#111}
 .fila-ref{font-size:var(--fs-c);color:#999}
@@ -814,10 +815,13 @@ function renderFocoItem(m,i){
   return `<div class="foco-item">
     <div class="foco-header" onclick="toggleFoco(${i})">
       <div class="foco-header-left">
-        <div class="foco-ring" style="background:conic-gradient(${c} ${deg}deg,#f0f0ee ${deg}deg)"><div class="foco-ring-inner" style="color:${c}">${m.pct}%</div></div>
+        <div class="foco-ring" style="background:conic-gradient(${c} ${deg}deg,#f0f0ee ${deg}deg)"><div class="foco-ring-inner"></div></div>
         <span class="foco-nome">${m.nome}</span>
       </div>
-      <span class="chev" id="fchev${i}">▾</span>
+      <div class="foco-header-right">
+        <span class="foco-pct" style="color:${c}">${m.pct}%</span>
+        <span class="chev" id="fchev${i}">▾</span>
+      </div>
     </div>
     <div class="foco-detail" id="fdet${i}">
       ${linhas.length?linhas.map(l=>{
@@ -1109,7 +1113,6 @@ function renderBancoPratico(){
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
       ${fila.length?fila.map(f=>{
         const qtd=f.quantidade||1;
-        const mc=modCores[f.modulo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
         let statusLabel,statusCor;
         if(f.dataEntrada===hojeStr){
           statusLabel='hoje';statusCor='#888';
@@ -1119,7 +1122,6 @@ function renderBancoPratico(){
           statusLabel=`atrasada há ${dias} dia${dias!==1?'s':''}`;statusCor='#A32D2D';
         }
         return `<div class="fila-item">
-        <div class="fila-check" style="border-color:${mc.tx}"></div>
         <div class="fila-info">
           <span class="fila-modulo">${f.modulo||'—'}</span>
           <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
