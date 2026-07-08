@@ -82,15 +82,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .section-title:first-child{margin-top:0}
 }
 
-.section-title{font-size:var(--fs-c);font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;margin-top:20px}
+.section-title{font-size:var(--fs-c);font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;margin-top:24px;padding-left:9px;border-left:3px solid #ddd}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 .error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:var(--fs-e);line-height:1.6}
-.empty{text-align:center;padding:40px 20px;color:#888;font-size:var(--fs-e)}
+.empty{text-align:center;padding:40px 20px;color:#aaa;font-size:var(--fs-e)}
+.empty::before{content:'○';display:block;font-size:22px;color:#ddd;margin-bottom:8px}
 
 /* STATS */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.stat-card{background:#f5f5f3;border-radius:10px;padding:12px}
+.stat-card{background:#f5f5f3;border-radius:12px;padding:14px 12px}
 .stat-val{font-size:var(--fs-h);font-weight:500}
 .stat-lbl{font-size:var(--fs-c);color:#888;margin-top:2px}
 
@@ -137,12 +138,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mtr-val{font-size:var(--fs-h);font-weight:500}
 
 /* MODULOS EXPANDIVEIS */
-.mod-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:8px}
+.mod-card{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px}
 .mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
 .mod-top{display:flex;justify-content:space-between;align-items:center}
 .mod-nm{font-size:var(--fs-e);font-weight:400}
 .mod-right{display:flex;align-items:center;gap:6px}
-.mod-p{font-size:var(--fs-d);font-weight:500}
+.mod-p{font-size:var(--fs-c);font-weight:600;padding:3px 9px;border-radius:20px}
 .chev{font-size:var(--fs-d);color:#888;transition:transform 0.2s}
 .chev.open{transform:rotate(180deg)}
 .bbg{background:#f0f0ee;border-radius:6px;height:6px;overflow:hidden}
@@ -170,7 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cap-res{font-size:var(--fs-c);font-weight:500;flex-shrink:0;margin-top:1px}
 
 /* QUESTOES ERRADAS */
-.ec{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
+.ec{border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:10px;overflow:hidden;margin-bottom:8px;background:#fff}
 .er{display:grid;grid-template-columns:44px 1fr auto auto;align-items:start;gap:10px;padding:12px 14px;cursor:pointer}
 .er .eq,.er .em,.er .chev{margin-top:1px}
 .eq{font-size:var(--fs-d);font-weight:500}
@@ -188,7 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tg{font-size:var(--fs-c);padding:2px 7px;border-radius:4px;background:#EDF4F0;color:#2D6A53;border:0.5px solid #B8D9CC}
 
 /* QUESTOES BANCO */
-.q-card{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
+.q-card{border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:10px;overflow:hidden;margin-bottom:8px;background:#fff}
 .q-row{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
 .q-num{font-size:var(--fs-e);font-weight:500}
 .q-pub{font-size:var(--fs-c);color:#888}
@@ -206,7 +207,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* PROXIMAS ATIVIDADES */
 .foco-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.foco-item{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;overflow:hidden}
+.foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:2px}
 .foco-header-left{display:flex;align-items:center;gap:10px}
 .foco-ring{width:41px;height:41px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .foco-ring-inner{width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);font-weight:600}
@@ -227,7 +228,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-materia-feito:active{background:#f0f0ee}
 .foco-materia-feito:hover{background:#111;color:#fff;border-color:#111}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-radius:10px;padding:12px 14px}
+.prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-left:3px solid #B4B2A9;border-radius:10px;padding:12px 14px}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0}
 .prox-nome{font-size:var(--fs-e);font-weight:500}
@@ -295,7 +296,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .comp-opt-btn.active{background:#111;color:#fff;border-color:#111}
 
 /* CRITICOS */
-.crit{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem}
+.crit{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;padding:1rem 1.25rem}
 .ci{display:flex;gap:10px;padding:10px 0;border-bottom:0.5px solid #e0e0e0}
 .ci:last-child{border-bottom:none;padding-bottom:0}
 .ci:first-child{padding-top:0}
@@ -457,6 +458,7 @@ const tipoCores={
   'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
 const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
+const fcBg=p=>p===100?'#EAF3DE':p>=80?'#E1F5EE':p>=60?'#FAEEDA':'#FCEBEB';
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
@@ -1390,7 +1392,7 @@ function renderModsCards(qs){
       <div class="mod-header" onclick="toggleMod(${i})">
         <div class="mod-top">
           <span class="mod-nm">${m}</span>
-          <div class="mod-right"><span class="mod-p" style="color:${c}">${pct}%</span><span class="chev" id="mchev${i}">▾</span></div>
+          <div class="mod-right"><span class="mod-p" style="color:${c};background:${fcBg(pct)}">${pct}%</span><span class="chev" id="mchev${i}">▾</span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${pct}%;background:${c}"></div></div>
         <span class="mac">${ac}/${mqs.length} acertos</span>
