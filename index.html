@@ -84,9 +84,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .section-title:first-child{margin-top:0}
 }
 
-.section-title{font-size:var(--fs-c);font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:8px}
-.section-icon{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.section-icon svg{width:13px;height:13px}
+.section-title{font-size:var(--fs-e);font-weight:700;color:#555;text-transform:none;letter-spacing:0;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:10px}
+.section-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-icon svg{width:17px;height:17px}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 .error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:var(--fs-e);line-height:1.6}
@@ -237,11 +237,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
-.trilha-secao{position:relative;padding-left:14px;margin-bottom:28px}
+.trilha-secao{position:relative;padding-left:18px;margin-bottom:28px}
 .trilha-secao:last-child{margin-bottom:0}
-.trilha-linha{position:absolute;left:2px;top:4px;bottom:-14px;width:2.5px;border-radius:3px;z-index:1;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%)}
+.trilha-linha{position:absolute;left:2px;top:2px;bottom:-14px;width:4px;border-radius:4px;z-index:1;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 70%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 70%,transparent 100%)}
 .trilha-secao:last-child .trilha-linha{bottom:5px}
-.trilha-dot{position:absolute;left:-3px;top:2px;width:11px;height:11px;border-radius:50%;border:2px solid #FBFBFA;z-index:2}
 .trilha-conteudo{position:relative;z-index:1}
 .trilha-secao .section-title{margin-top:0}
 .prox-item.prox-due{background:#FCEBEB}
@@ -720,7 +719,6 @@ function renderInicio(){
   return conteudos.map((html,i)=>`
     <div class="trilha-secao">
       <div class="trilha-linha" style="background:${cores[i].c}"></div>
-      <div class="trilha-dot" style="background:${cores[i].c}"></div>
       <div class="trilha-conteudo">${html}</div>
     </div>
   `).join('');
