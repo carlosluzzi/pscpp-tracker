@@ -1532,15 +1532,16 @@ function formatQuestaoCompleta(texto){
   if(!texto) return '';
   const escaped=escapeHtml(texto);
   // acha onde começam as alternativas de resposta (a)-(e) — tudo antes é enunciado/assertivas, tudo depois são as alternativas
-  const altMatch=escaped.match(/\s\([a-eA-E]\)/);
+  const altMatch=escaped.match(/\s\([a-e]\)/);
   const idxAlt=altMatch?altMatch.index:-1;
   const zonaEnunciado=idxAlt===-1?escaped:escaped.slice(0,idxAlt);
   const zonaAlternativas=idxAlt===-1?'':escaped.slice(idxAlt).trim();
 
   // no enunciado: quebra em cada assertiva romana (I) II) III)... até onde for necessário)
   const partesEnun=zonaEnunciado.split(/(?=\s\(?[IVXLCDM]{1,6}\))/).map(p=>p.trim()).filter(Boolean);
-  // nas alternativas: quebra só nas letras (a)-(e) — nunca nos romanos, mesmo que a alternativa cite "situação III"
-  const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-eA-E]\))/).map(p=>p.trim()).filter(Boolean):[];
+  // nas alternativas: quebra só nas letras minúsculas (a)-(e) — as alternativas são sempre salvas em minúscula,
+  // então nunca confunde com um "(C)" ou "(E)" de conteúdo (ex: questões de marcação Certo/Errado)
+  const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean):[];
 
   const linhas=[
     partesEnun[0]||'',
