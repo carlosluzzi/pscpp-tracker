@@ -520,7 +520,7 @@ function ativCard(a,clicavel=true){
 }
 
 function renderInicio(){
-  return `${renderFoco()}${renderProximas()}${renderBancoPratico()}${renderComplementares()}${renderNotas()}`;
+  return `${renderProximas()}${renderBancoPratico()}${renderFoco()}${renderComplementares()}${renderNotas()}`;
 }
 
 // CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
@@ -786,24 +786,6 @@ async function removerNota(id){
   }
 }
 
-function renderModsBars(){
-  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  const lista=atividadesFiltradas();
-  if(!lista.length) return '';
-  return mods.map(m=>{
-    const qs=questoes.filter(q=>q.modulo===m);
-    if(!qs.length) return '';
-    const acertos=qs.filter(q=>q.status==='Acertei').length;
-    const pct=Math.round(acertos/qs.length*100);
-    const c=fc(pct);
-    return `<div class="mod-row">
-      <span class="mod-name">${m}</span>
-      <div class="mod-bar-bg"><div class="mod-bar-fill" style="width:${pct}%;background:${c}"></div></div>
-      <span class="mod-pct" style="color:${c}">${pct}%</span>
-    </div>`;
-  }).join('');
-}
-
 function renderAtividades(){
   const lista=atividadesFiltradas();
   const comAprv=lista.filter(a=>a.aproveitamento);
@@ -846,7 +828,7 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`<div class="section-title">Desempenho por módulo</div>${renderModsBars()}`:''}
+    ${lista.length?`<div class="section-title">Desempenho por módulo</div>${renderModsCards(questoesFiltradas)}`:''}
     <div class="section-title">Atividades</div>
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
