@@ -96,8 +96,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* FILTROS */
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.periodo-row{flex-wrap:nowrap;justify-content:space-between}
-.periodo-row .filter-btn{flex-shrink:0;text-align:center;padding:6px 10px;white-space:nowrap}
+.periodo-row{flex-wrap:nowrap;justify-content:space-between;gap:4px}
+.periodo-row .filter-btn{flex-shrink:0;text-align:center;padding:7px 12px;white-space:nowrap}
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
@@ -171,7 +171,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* QUESTOES ERRADAS */
 .ec{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
-.er{display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.er{display:grid;grid-template-columns:44px 1fr auto auto;align-items:start;gap:10px;padding:12px 14px;cursor:pointer}
+.er .eq,.er .em,.er .chev{margin-top:1px}
 .eq{font-size:var(--fs-d);font-weight:500}
 .ep{font-size:var(--fs-c);color:#888}
 .em{font-size:var(--fs-b);padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
@@ -222,7 +223,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-materia-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden;display:flex}
 .foco-materia-bar-ac{height:4px;background:#639922}
 .foco-materia-bar-er{height:4px;background:#E24B4A}
-.foco-materia-feito{flex-shrink:0;font-size:var(--fs-c);padding:5px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.foco-materia-feito{flex-shrink:0;font-size:var(--fs-c);padding:5px 12px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
+.foco-materia-feito:active{background:#f0f0ee}
 .foco-materia-feito:hover{background:#111;color:#fff;border-color:#111}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-radius:10px;padding:12px 14px}
@@ -230,7 +232,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0}
 .prox-nome{font-size:var(--fs-e);font-weight:500}
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
-.banco-pratico-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:12px 14px;margin-bottom:20px}
+.banco-pratico-card{background:#F7F8FC;border:0.5px solid #DDE1F0;border-left:3px solid #3C3489;border-radius:12px;padding:14px 16px;margin-bottom:20px}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
 .fila-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:0.5px solid #f0f0ee}
 .fila-info{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -591,6 +593,7 @@ async function loadData(){
       modulo:getProp(p,'Modulo')||'',
       dataEntrada:getProp(p,'Data Entrada')||null,
       status:getProp(p,'Status')||'Pendente',
+      quantidade:getProp(p,'Quantidade')||1,
     }));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
@@ -782,7 +785,7 @@ function renderFocoItem(m,i){
             <span class="foco-materia-nome">${l.label}</span>
             <span class="foco-materia-stats"><span style="color:#A32D2D">${erPct}%</span> <span style="color:#888">(${l.ac}/${l.total})</span></span>
           </div>
-          <span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>
+          ${l.refEstudo!==l.label?`<span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>`:''}
           <div class="foco-materia-bar-bg"><div class="foco-materia-bar-ac" style="width:${acPct}%"></div><div class="foco-materia-bar-er" style="width:${erPct}%"></div></div>
         </div>
         <button class="foco-materia-feito" onclick="abrirConfirmacao('${l.chave.replace(/'/g,"\\'")}','${l.label.replace(/'/g,"\\'")}','focoAssunto','Marcar &quot;${l.label}&quot; como estudado?')">feito</button>
@@ -937,53 +940,83 @@ function calcularMateriasGlobais(){
 }
 
 async function verificarFilaBancoPratico(){
-  const hojeStr=new Date().toISOString().slice(0,10);
-  const jaTemHoje=filaBancoPratico.some(f=>f.dataEntrada===hojeStr);
-  if(jaTemHoje) return;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const hojeStr=hoje.toISOString().slice(0,10);
+
+  const datasExistentes=filaBancoPratico.map(f=>f.dataEntrada).filter(Boolean).sort();
+  const ultimaData=datasExistentes.length?new Date(datasExistentes[datasExistentes.length-1]+'T00:00:00'):null;
+
+  let diasParaPreencher=[];
+  if(!ultimaData){
+    diasParaPreencher=[hojeStr];
+  }else{
+    const diffDias=Math.round((hoje-ultimaData)/(1000*60*60*24));
+    if(diffDias<=0) return; // já processado hoje, nada a fazer
+    const diasAPreencher=Math.min(diffDias,7); // teto de 7 dias — não compensa além disso
+    for(let i=diasAPreencher-1;i>=0;i--){
+      const d=new Date(hoje);
+      d.setDate(d.getDate()-i);
+      diasParaPreencher.push(d.toISOString().slice(0,10));
+    }
+  }
+
   const materias=calcularMateriasGlobais();
   if(!materias.length) return;
-  const pendentesNomes=new Set(filaBancoPratico.filter(f=>f.status==='Pendente').map(f=>f.materia));
-  const candidatas=materias.filter(m=>!pendentesNomes.has(m.nome));
-  if(!candidatas.length) return;
-  // crédito = peso (taxa de erro) × dias desde a última vez que essa matéria esteve na fila
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const comCredito=candidatas.map(m=>{
-    const entradas=filaBancoPratico.filter(f=>f.materia===m.nome).map(f=>f.dataEntrada).filter(Boolean).sort();
-    let dias;
-    if(entradas.length){
-      const ultima=new Date(entradas[entradas.length-1]+'T00:00:00');
-      dias=Math.max(1,Math.round((hoje-ultima)/(1000*60*60*24)));
-    }else{
-      dias=999; // nunca sugerida ainda — prioridade máxima
-    }
-    return {...m,credito:m.peso*dias};
-  });
-  comCredito.sort((a,b)=>b.credito-a.credito);
-  const escolhidas=comCredito.slice(0,3); // até 3 matérias novas por dia
+
+  let mudou=false;
   try{
-    for(const escolhida of escolhidas){
-      await notionCall('/pages',{
-        parent:{database_id:DB_FILA_BANCO},
-        properties:{
-          'Materia':{title:[{text:{content:escolhida.nome}}]},
-          'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
-          'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
-          'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
-          'Data Entrada':{date:{start:hojeStr}},
-          'Status':{select:{name:'Pendente'}}
+    for(const dataStr of diasParaPreencher){
+      const pendentesNomes=new Set(filaBancoPratico.filter(f=>f.status==='Pendente').map(f=>f.materia));
+      const candidatas=materias.filter(m=>!pendentesNomes.has(m.nome));
+      if(!candidatas.length) break;
+      const dataRef=new Date(dataStr+'T00:00:00');
+      const comCredito=candidatas.map(m=>{
+        const entradas=filaBancoPratico.filter(f=>f.materia===m.nome).map(f=>f.dataEntrada).filter(Boolean).sort();
+        let dias;
+        if(entradas.length){
+          const ultima=new Date(entradas[entradas.length-1]+'T00:00:00');
+          dias=Math.max(1,Math.round((dataRef-ultima)/(1000*60*60*24)));
+        }else{
+          dias=999; // nunca sugerida ainda — prioridade máxima
         }
-      },'POST');
+        return {...m,credito:m.peso*dias};
+      });
+      comCredito.sort((a,b)=>b.credito-a.credito);
+      const escolhidas=comCredito.slice(0,3); // até 3 matérias novas por "safra" de dia
+      const meta=bancoPratico?.metaDiaria||10;
+      const somaPesosLote=escolhidas.reduce((s,e)=>s+e.peso,0)||1;
+      for(const escolhida of escolhidas){
+        const qtd=Math.max(1,Math.round((escolhida.peso/somaPesosLote)*meta));
+        await notionCall('/pages',{
+          parent:{database_id:DB_FILA_BANCO},
+          properties:{
+            'Materia':{title:[{text:{content:escolhida.nome}}]},
+            'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
+            'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
+            'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
+            'Data Entrada':{date:{start:dataStr}},
+            'Status':{select:{name:'Pendente'}},
+            'Quantidade':{number:qtd}
+          }
+        },'POST');
+        // atualiza localmente também, pra a "safra" do dia seguinte já contar com isso no cálculo de crédito
+        filaBancoPratico.push({materia:escolhida.nome,modulo:escolhida.modulo,publicacao:escolhida.publicacao,capitulo:escolhida.capitulo,dataEntrada:dataStr,status:'Pendente',quantidade:qtd});
+        mudou=true;
+      }
     }
-    const filaRes=await notionQuery(DB_FILA_BANCO);
-    filaBancoPratico=filaRes.map(p=>({
-      id:p.id,
-      materia:getProp(p,'Materia')||'',
-      publicacao:getProp(p,'Publicacao')||'',
-      capitulo:getProp(p,'Capitulo')||'',
-      modulo:getProp(p,'Modulo')||'',
-      dataEntrada:getProp(p,'Data Entrada')||null,
-      status:getProp(p,'Status')||'Pendente',
-    }));
+    if(mudou){
+      const filaRes=await notionQuery(DB_FILA_BANCO);
+      filaBancoPratico=filaRes.map(p=>({
+        id:p.id,
+        materia:getProp(p,'Materia')||'',
+        publicacao:getProp(p,'Publicacao')||'',
+        capitulo:getProp(p,'Capitulo')||'',
+        modulo:getProp(p,'Modulo')||'',
+        dataEntrada:getProp(p,'Data Entrada')||null,
+        status:getProp(p,'Status')||'Pendente',
+        quantidade:getProp(p,'Quantidade')||1,
+      }));
+    }
   }catch(e){
     console.error('Erro ao atualizar fila do banco prático:',e);
   }
@@ -1015,10 +1048,6 @@ async function editarMetaDiaria(){
 function renderBancoPratico(){
   if(!bancoPratico) return '';
   const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
-  const materiasGlobais=calcularMateriasGlobais();
-  const pesoPorMateria={};
-  materiasGlobais.forEach(m=>{pesoPorMateria[m.nome]=m.peso;});
-  const somaPesos=fila.reduce((s,f)=>s+(pesoPorMateria[f.materia]||1),0)||1;
   const meta=bancoPratico.metaDiaria||10;
   const hojeStr=new Date().toISOString().slice(0,10);
   const hoje=new Date();hoje.setHours(0,0,0,0);
@@ -1031,8 +1060,7 @@ function renderBancoPratico(){
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
       ${fila.length?fila.map(f=>{
-        const peso=pesoPorMateria[f.materia]||1;
-        const qtd=Math.max(1,Math.round((peso/somaPesos)*meta));
+        const qtd=f.quantidade||1;
         let statusLabel,statusCor;
         if(f.dataEntrada===hojeStr){
           statusLabel='hoje';statusCor='#888';
@@ -1045,13 +1073,13 @@ function renderBancoPratico(){
         <div class="fila-info">
           <span class="fila-modulo">${f.modulo||'—'}</span>
           <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
-          <span class="fila-foco">Foco em ${f.materia}</span>
+          ${f.materia!==f.publicacao?`<span class="fila-foco">Foco em ${f.materia}</span>`:''}
           <div class="fila-bottom">
-            <span class="fila-qtd">${qtd} ${qtd===1?'questão':'questões'} hoje</span>
+            <span class="fila-qtd">${qtd} ${qtd===1?'questão':'questões'}</span>
             <span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span>
           </div>
         </div>
-        <button class="prox-confirm-btn" onclick="marcarFilaBancoFeito('${f.id}')">feito</button>
+        <button class="foco-materia-feito" onclick="abrirConfirmacao('${f.id}','${f.materia.replace(/'/g,"\\'")}','filaBanco')">feito</button>
       </div>`;
       }).join(''):'<div class="empty">Nenhuma sugestão ainda — processe um simulado com erros pra começar.</div>'}
     </div>
@@ -1189,6 +1217,7 @@ function confirmarFeitoSim(){
   if(!id) return;
   if(tipo==='complementar') marcarComplementarFeito(id);
   else if(tipo==='banco') marcarBancoPraticoFeito(id);
+  else if(tipo==='filaBanco') marcarFilaBancoFeito(id);
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
   else marcarFeito(id);
