@@ -166,6 +166,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* PROXIMAS ATIVIDADES */
 .foco-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .foco-item{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;overflow:hidden}
+.foco-header-left{display:flex;align-items:center;gap:10px}
+.foco-ring{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.foco-ring-inner{width:25px;height:25px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
+.foco-nome{font-size:13px;font-weight:400;color:#111}
+.foco-tag{cursor:pointer}
+.foco-tag:hover{opacity:0.7}
 .foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .foco-detail{display:none;flex-direction:column;gap:10px;padding:0 14px 14px}
 .foco-detail.open{display:flex}
@@ -582,7 +588,8 @@ function calcularModsPct(){
   }).filter(Boolean);
 }
 function renderFocoItem(m,i){
-  const cor=modCores[m.nome]||{bg:'#F1EFE8',tx:'#444441'};
+  const c=fc(m.pct);
+  const deg=Math.round(m.pct*3.6);
   const errosDoModulo=questoes.filter(q=>q.modulo===m.nome&&q.status==='Errei');
   const porPublicacao={};
   errosDoModulo.forEach(q=>{
@@ -590,24 +597,30 @@ function renderFocoItem(m,i){
     if(!porPublicacao[pub]) porPublicacao[pub]=new Set();
     (q.tags||[]).forEach(t=>porPublicacao[pub].add(t));
   });
-  const pubEntries=Object.entries(porPublicacao);
+  // remove assuntos já marcados como estudados (chave "Módulo|assunto")
+  const pubEntries=Object.entries(porPublicacao).map(([pub,tagsSet])=>{
+    const pendentes=[...tagsSet].filter(t=>!focoEstudado.includes(`${m.nome}|${t}`));
+    return [pub,pendentes];
+  }).filter(([,pendentes])=>pendentes.length);
   return `<div class="foco-item">
     <div class="foco-header" onclick="toggleFoco(${i})">
-      <span class="ativ-badge" style="background:${cor.bg};color:${cor.tx}">${m.nome} — ${m.pct}%</span>
+      <div class="foco-header-left">
+        <div class="foco-ring" style="background:conic-gradient(${c} ${deg}deg,#f0f0ee ${deg}deg)"><div class="foco-ring-inner" style="color:${c}">${m.pct}%</div></div>
+        <span class="foco-nome">${m.nome}</span>
+      </div>
       <span class="chev" id="fchev${i}">▾</span>
     </div>
     <div class="foco-detail" id="fdet${i}">
-      ${pubEntries.length?pubEntries.map(([pub,tagsSet])=>`<div class="foco-pub">
+      ${pubEntries.length?pubEntries.map(([pub,tags])=>`<div class="foco-pub">
         <span class="pub-nm">${pub}</span>
-        <div class="tr">${[...tagsSet].map(t=>`<span class="tg">${t}</span>`).join('')||'<span class="dr">sem tags ainda</span>'}</div>
-      </div>`).join(''):'<div class="empty">Nenhum erro registrado nesse módulo ainda.</div>'}
-      <button class="prox-confirm-btn" onclick="abrirConfirmacao('${m.nome}','${m.nome}','foco','Marcar &quot;${m.nome}&quot; como estudado? Ele sai da lista e o próximo módulo mais fraco assume o lugar.')">estudei</button>
+        <div class="tr">${tags.map(t=>`<span class="tg foco-tag" onclick="abrirConfirmacao('${m.nome}|${t}','${t}','focoAssunto','Marcar &quot;${t}&quot; como estudado?')">${t}<span class="tx">✕</span></span>`).join('')}</div>
+      </div>`).join(''):'<div class="empty">Nenhuma matéria pendente aqui — bom trabalho, ou ainda sem erros registrados.</div>'}
     </div>
   </div>`;
 }
 
 function renderFoco(){
-  const mods=calcularModsPct().filter(m=>!focoEstudado.includes(m.nome));
+  const mods=calcularModsPct();
   if(!mods.length) return '';
   const piores=[...mods].sort((a,b)=>a.pct-b.pct).slice(0,3);
   return `
@@ -626,12 +639,12 @@ function toggleFoco(i){
   if(c) c.classList.toggle('open',!open);
 }
 
-async function marcarFocoEstudado(modulo){
+async function marcarFocoEstudado(chave){
   try{
     await notionCall('/pages',{
       parent:{database_id:DB_FOCO_ESTUDADO},
       properties:{
-        'Módulo':{title:[{text:{content:modulo}}]},
+        'Módulo':{title:[{text:{content:chave}}]},
         'Data Confirmada':{date:{start:new Date().toISOString().slice(0,10)}}
       }
     },'POST');
@@ -799,7 +812,7 @@ function confirmarFeitoSim(){
   if(!id) return;
   if(tipo==='complementar') marcarComplementarFeito(id);
   else if(tipo==='banco') marcarBancoPraticoFeito(id);
-  else if(tipo==='foco') marcarFocoEstudado(id);
+  else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else marcarFeito(id);
 }
 
@@ -919,7 +932,7 @@ function voltarLista(){
 
 function renderDetalhe(a){
   const qs=questoes.filter(q=>q.idAtividade===a.nome);
-  const erradas=qs.filter(q=>q.status==='Errei');
+  const erradas=qs.filter(q=>q.status==='Errei').sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
   const modsHtml=renderModsCards(qs);
   const erradasHtml=erradas.map((e,i)=>{
@@ -933,13 +946,12 @@ function renderDetalhe(a){
         <span class="chev" id="echev${i}">▾</span>
       </div>
       <div class="ed" id="ed${i}">
-        <div class="dr">${e.questao||''}</div>
         <div class="rs">
           <span class="rl">Sua resposta</span><span class="rv re">${e.suaResposta||'—'}</span>
           <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'—'}</span>
         </div>
         ${tags?`<div class="tr">${tags}</div>`:''}
-        ${e.motivo?`<div class="dr" style="font-style:italic">"${e.motivo}"</div>`:''}
+        ${e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo)}</div>`:''}
       </div>
     </div>`;
   }).join('');
