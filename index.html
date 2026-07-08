@@ -101,8 +101,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* FILTROS */
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.periodo-row{flex-wrap:nowrap;justify-content:space-between;gap:4px}
-.periodo-row .filter-btn{flex-shrink:0;text-align:center;padding:7px 12px;white-space:nowrap}
+.periodo-row{flex-wrap:nowrap;justify-content:flex-start;gap:5px}
+.periodo-row .filter-btn{flex-shrink:0;text-align:center;padding:8px 13px;white-space:nowrap}
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
@@ -214,8 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;transition:transform 0.15s ease}
 .foco-item:active{transform:scale(0.98)}
 .foco-header-left{display:flex;align-items:center;gap:10px}
-.foco-ring{width:41px;height:41px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.foco-ring-inner{width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);font-weight:600}
+.foco-ring{width:41px;height:41px;flex-shrink:0}
 .foco-nome{font-size:var(--fs-e);font-weight:400;color:#111}
 .foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .foco-header-right{display:flex;align-items:center;gap:8px}
@@ -231,8 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-materia-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden;display:flex}
 .foco-materia-bar-ac{height:4px;background:#639922}
 .foco-materia-bar-er{height:4px;background:#E24B4A}
-.foco-materia-feito{flex-shrink:0;font-size:var(--fs-c);padding:5px 12px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
-.foco-materia-feito:active{background:#f0f0ee}
+.foco-materia-feito{flex-shrink:0;font-size:var(--fs-c);padding:5px 12px;border-radius:6px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;font-family:inherit;font-weight:500}
 .foco-materia-feito:hover{background:#111;color:#fff;border-color:#111}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:13px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
@@ -244,7 +242,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .trilha-linha{position:absolute;left:2px;top:4px;bottom:-14px;width:2.5px;border-radius:3px;z-index:1;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 75%,transparent 100%)}
 .trilha-secao:last-child .trilha-linha{bottom:5px}
 .trilha-dot{position:absolute;left:-3px;top:2px;width:11px;height:11px;border-radius:50%;border:2px solid #FBFBFA;z-index:2}
-.trilha-blob{position:absolute;width:130px;height:130px;border-radius:50%;opacity:0.08;filter:blur(28px);top:-20px;left:-25px;z-index:0;pointer-events:none}
+.trilha-blob{position:absolute;width:280px;height:160px;border-radius:50%;opacity:0.07;filter:blur(40px);top:-30px;left:-30px;z-index:0;pointer-events:none}
 .trilha-conteudo{position:relative;z-index:1}
 .trilha-secao .section-title{margin-top:0}
 .prox-item.prox-due{background:#FCEBEB}
@@ -483,9 +481,11 @@ const secIcons={
   alerta:'<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
   lista:'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/>',
   nota:'<path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/>',
+  filtro:'<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/>',
+  grafico:'<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3" height="8"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="3" width="3" height="17"/>',
 };
 function sectionTitle(texto,icone,bg,tx){
-  return `<div class="section-title"><span class="section-icon" style="background:${bg};color:${tx}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg></span>${texto}</div>`;
+  return `<div class="section-title"><span class="section-icon" style="background:${bg};color:${tx}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg></span><span style="color:${tx}">${texto}</span></div>`;
 }
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
@@ -712,7 +712,7 @@ function ativCard(a,clicavel=true){
 function renderInicio(){
   const cores=[
     {c:'#0C447C'},//simulados
-    {c:'#3C3489'},//banco
+    {c:'#0F6E56'},//banco
     {c:'#A32D2D'},//foco
     {c:'#3B6D11'},//complementares
     {c:'#854F0B'},//notas
@@ -815,7 +815,7 @@ function renderFocoItem(m,i){
   return `<div class="foco-item">
     <div class="foco-header" onclick="toggleFoco(${i})">
       <div class="foco-header-left">
-        <div class="foco-ring" style="background:conic-gradient(${c} ${deg}deg,#f0f0ee ${deg}deg)"><div class="foco-ring-inner"></div></div>
+        <svg class="foco-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16.5" fill="none" stroke="#f0f0ee" stroke-width="5"/><circle cx="20" cy="20" r="16.5" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${Math.round(103.7*m.pct/100)} 103.7" transform="rotate(-90 20 20)"/></svg>
         <span class="foco-nome">${m.nome}</span>
       </div>
       <div class="foco-header-right">
@@ -1104,7 +1104,7 @@ function renderBancoPratico(){
   const hojeStr=new Date().toISOString().slice(0,10);
   const hoje=new Date();hoje.setHours(0,0,0,0);
   return `
-    ${sectionTitle('Banco prático','alvo','#EEEDFE','#3C3489')}
+    ${sectionTitle('Banco prático','alvo','#E1F5EE','#0F6E56')}
     <div class="banco-pratico-card">
       <div class="banco-pratico-top">
         <span class="prox-nome">Foco sugerido pra hoje</span>
@@ -1344,7 +1344,7 @@ function renderAtividades(){
   const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
 
   return `
-    <div class="section-title">Filtros</div>
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
     <div class="filter-row">
       <select class="filter-select" onchange="setFiltCurso(this.value)" style="flex:1;margin-bottom:0">
         <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
@@ -1366,15 +1366,15 @@ function renderAtividades(){
     </div>
     <div class="config-reset-btn" onclick="limparFiltroData()">Redefinir</div>
     `:''}
-    <div class="section-title">Resumo</div>
+    ${sectionTitle('Resumo','grafico','#E6F1FB','#0C447C')}
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
       <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Número de questões</div></div>
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`<div class="section-title">Desempenho por módulo</div>${renderModsCards(questoesFiltradas)}`:''}
-    <div class="section-title">Atividades</div>
+    ${lista.length?`${sectionTitle('Desempenho por módulo','grafico','#EEEDFE','#3C3489')}${renderModsCards(questoesFiltradas)}`:''}
+    ${sectionTitle('Atividades','lista','#E6F1FB','#0C447C')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -1425,8 +1425,8 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
-    ${modsHtml?`<div class="section-title">Desempenho por módulo</div>${modsHtml}`:''}
-    ${erradasHtml?`<div class="section-title">Questões erradas</div>${erradasHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','grafico','#EEEDFE','#3C3489')}${modsHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D')}${erradasHtml}`:''}
   `;
 }
 
@@ -1661,10 +1661,10 @@ function renderBanco(){
   const publicacoes=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))];
   const tagsDisp=[...new Set(questoes.flatMap(q=>q.tags||[]))].slice(0,20);
   return `
-    <div class="section-title">Banco</div>
+    ${sectionTitle('Banco','grafico','#EEEDFE','#3C3489')}
     <div class="banco-note">Em construção — vai ser a aba pra montar cadernos e resolver questões em tempo real. Por enquanto, só o esqueleto dos filtros.</div>
 
-    <div class="section-title">Filtros planejados</div>
+    ${sectionTitle('Filtros planejados','filtro','#F1EFE8','#5F5E5A')}
     <select class="filter-select" disabled>
       <option>Curso/fonte: Todos</option>
       <option>Curso H</option><option>MPX</option><option>Curso Prático</option><option>Catavento</option><option>Claude</option><option>Carlos</option>
