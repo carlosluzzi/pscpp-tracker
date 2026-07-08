@@ -222,7 +222,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-materia-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden;display:flex}
 .foco-materia-bar-ac{height:4px;background:#639922}
 .foco-materia-bar-er{height:4px;background:#E24B4A}
-.foco-materia-feito{flex-shrink:0;font-size:var(--fs-b);padding:7px 11px;border-radius:7px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.foco-materia-feito{flex-shrink:0;font-size:var(--fs-c);padding:5px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
 .foco-materia-feito:hover{background:#111;color:#fff;border-color:#111}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-radius:10px;padding:12px 14px}
@@ -237,6 +237,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fila-modulo{font-size:var(--fs-c);font-weight:500;color:#111}
 .fila-ref{font-size:var(--fs-c);color:#888}
 .fila-foco{font-size:var(--fs-c);color:#3C3489;font-weight:500}
+.banco-meta{font-size:var(--fs-b);color:#888;cursor:pointer}
+.banco-meta:hover{color:#111}
+.fila-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.fila-qtd{font-size:var(--fs-b);font-weight:500;color:#111}
+.fila-status-label{font-size:var(--fs-a)}
 .prox-badges{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .prox-badges::-webkit-scrollbar{display:none}
 .prox-status{font-size:var(--fs-c);font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
@@ -278,8 +283,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #font-value{font-weight:400;color:#888;font-size:var(--fs-c)}
 .config-reset-btn{font-size:var(--fs-c);color:#888;text-align:right;margin-top:6px;cursor:pointer;text-decoration:underline}
 .config-reset-btn:hover{color:#111}
-.comp-btn-row{display:flex;gap:6px;flex-wrap:wrap}
-.comp-opt-btn{flex:1;min-width:56px;padding:8px 4px;font-size:var(--fs-c);border-radius:7px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.comp-btn-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.comp-btn-row-2{grid-template-columns:repeat(2,1fr)}
+.comp-opt-btn{padding:8px 4px;font-size:var(--fs-c);border-radius:7px;border:0.5px solid #ccc;background:#fff;color:#888;cursor:pointer;font-family:inherit}
+.comp-opt-btn.active.prio-alta{background:#FCEBEB;border-color:#A32D2D;color:#A32D2D}
+.comp-opt-btn.active.prio-media{background:#FAEEDA;border-color:#854F0B;color:#854F0B}
+.comp-opt-btn.active.prio-baixa{background:#EAF3DE;border-color:#3B6D11;color:#3B6D11}
 .comp-opt-btn.active{background:#111;color:#fff;border-color:#111}
 
 /* CRITICOS */
@@ -390,18 +399,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="config-label">Prioridade</div>
       <div class="comp-btn-row" id="comp-prioridade-row">
         <button class="comp-opt-btn" data-val="Alta" onclick="selecionarCompPrioridade('Alta')">Alta</button>
-        <button class="comp-opt-btn active" data-val="Média" onclick="selecionarCompPrioridade('Média')">Média</button>
+        <button class="comp-opt-btn" data-val="Média" onclick="selecionarCompPrioridade('Média')">Média</button>
         <button class="comp-opt-btn" data-val="Baixa" onclick="selecionarCompPrioridade('Baixa')">Baixa</button>
       </div>
     </div>
     <div class="config-item">
       <div class="config-label">Repetir a cada</div>
-      <div class="comp-btn-row" id="comp-recorrencia-row">
-        <button class="comp-opt-btn active" data-val="0" onclick="selecionarCompRecorrencia(0)">Único</button>
-        <button class="comp-opt-btn" data-val="1" onclick="selecionarCompRecorrencia(1)">Todo dia</button>
-        <button class="comp-opt-btn" data-val="7" onclick="selecionarCompRecorrencia(7)">7 dias</button>
-        <button class="comp-opt-btn" data-val="14" onclick="selecionarCompRecorrencia(14)">14 dias</button>
-        <button class="comp-opt-btn" data-val="28" onclick="selecionarCompRecorrencia(28)">28 dias</button>
+      <div id="comp-recorrencia-row">
+        <div class="comp-btn-row comp-btn-row-2">
+          <button class="comp-opt-btn active" data-val="0" onclick="selecionarCompRecorrencia(0)">Único</button>
+          <button class="comp-opt-btn" data-val="1" onclick="selecionarCompRecorrencia(1)">Todo dia</button>
+        </div>
+        <div class="comp-btn-row" style="margin-top:6px">
+          <button class="comp-opt-btn" data-val="7" onclick="selecionarCompRecorrencia(7)">7 dias</button>
+          <button class="comp-opt-btn" data-val="14" onclick="selecionarCompRecorrencia(14)">14 dias</button>
+          <button class="comp-opt-btn" data-val="28" onclick="selecionarCompRecorrencia(28)">28 dias</button>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -560,6 +573,7 @@ async function loadData(){
       url:getProp(p,'URL')||'',
       intervaloDias:getProp(p,'Intervalo Dias')||1,
       ultimaConfirmada:getProp(p,'Última Confirmada')||null,
+      metaDiaria:getProp(p,'Meta Diaria')||10,
     }))[0]||null;
     focoEstudado=foco.map(p=>({chave:getProp(p,'Módulo')||'',data:getProp(p,'Data Confirmada')||null})).filter(f=>f.chave);
     apelidos={};
@@ -765,7 +779,7 @@ function renderFocoItem(m,i){
         <div class="foco-materia-info">
           <div class="foco-materia-top">
             <span class="foco-materia-nome">${l.label}</span>
-            <span class="foco-materia-stats"><span style="color:#3B6D11">${l.ac} acertos</span> · <span style="color:#A32D2D">${l.er} erros</span></span>
+            <span class="foco-materia-stats"><span style="color:#A32D2D">${erPct}% de erro</span> <span style="color:#888">(${l.ac}/${l.total})</span></span>
           </div>
           <span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>
           <div class="foco-materia-bar-bg"><div class="foco-materia-bar-ac" style="width:${acPct}%"></div><div class="foco-materia-bar-er" style="width:${erPct}%"></div></div>
@@ -981,24 +995,62 @@ async function marcarFilaBancoFeito(id){
   }
 }
 
+async function editarMetaDiaria(){
+  const atual=bancoPratico.metaDiaria||10;
+  const texto=prompt('Quantas questões por dia você quer como meta?',String(atual));
+  if(texto===null) return;
+  const novaMeta=parseInt(texto,10);
+  if(isNaN(novaMeta)||novaMeta<1){alert('Digite um número válido.');return;}
+  try{
+    await notionCall(`/pages/${bancoPratico.id}`,{properties:{'Meta Diaria':{number:novaMeta}}},'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar meta: '+e.message);
+  }
+}
+
 function renderBancoPratico(){
   if(!bancoPratico) return '';
   const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
+  const materiasGlobais=calcularMateriasGlobais();
+  const pesoPorMateria={};
+  materiasGlobais.forEach(m=>{pesoPorMateria[m.nome]=m.peso;});
+  const somaPesos=fila.reduce((s,f)=>s+(pesoPorMateria[f.materia]||1),0)||1;
+  const meta=bancoPratico.metaDiaria||10;
+  const hojeStr=new Date().toISOString().slice(0,10);
+  const hoje=new Date();hoje.setHours(0,0,0,0);
   return `
     <div class="section-title">Banco prático</div>
     <div class="banco-pratico-card">
       <div class="banco-pratico-top">
         <span class="prox-nome">Foco sugerido pra hoje</span>
-        ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:1px solid #ccc;text-decoration:none">abrir ↗</a>`:''}
+        <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia ✏️</span>
       </div>
-      ${fila.length?fila.map(f=>`<div class="fila-item">
+      ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
+      ${fila.length?fila.map(f=>{
+        const peso=pesoPorMateria[f.materia]||1;
+        const qtd=Math.max(1,Math.round((peso/somaPesos)*meta));
+        let statusLabel,statusCor;
+        if(f.dataEntrada===hojeStr){
+          statusLabel='hoje';statusCor='#888';
+        }else{
+          const entrada=new Date((f.dataEntrada||hojeStr)+'T00:00:00');
+          const dias=Math.max(1,Math.round((hoje-entrada)/(1000*60*60*24)));
+          statusLabel=`atrasada há ${dias} dia${dias!==1?'s':''}`;statusCor='#A32D2D';
+        }
+        return `<div class="fila-item">
         <div class="fila-info">
           <span class="fila-modulo">${f.modulo||'—'}</span>
           <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
           <span class="fila-foco">Foco em ${f.materia}</span>
+          <div class="fila-bottom">
+            <span class="fila-qtd">${qtd} questão${qtd!==1?'ões':''} hoje</span>
+            <span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span>
+          </div>
         </div>
         <button class="prox-confirm-btn" onclick="marcarFilaBancoFeito('${f.id}')">feito</button>
-      </div>`).join(''):'<div class="empty">Nenhuma sugestão ainda — processe um simulado com erros pra começar.</div>'}
+      </div>`;
+      }).join(''):'<div class="empty">Nenhuma sugestão ainda — processe um simulado com erros pra começar.</div>'}
     </div>
   `;
 }
@@ -1026,19 +1078,19 @@ function complementaresPendentes(){
 function renderComplementares(){
   const pendentes=complementaresPendentes().sort((a,b)=>{
     const ordem={Alta:0,Média:1,Baixa:2};
-    return (ordem[a.prioridade]??1)-(ordem[b.prioridade]??1);
+    return (ordem[a.prioridade]??3)-(ordem[b.prioridade]??3);
   });
   const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#F1EFE8',tx:'#5F5E5A'}};
   return `
     <div class="section-title">Atividades complementares</div>
     <div class="prox-list">
       ${pendentes.map(c=>{
-        const pc=prioCor[c.prioridade]||prioCor['Média'];
+        const pc=prioCor[c.prioridade];
         return `<div class="prox-item">
           <div class="prox-left">
             <span class="prox-nome">${c.nome}</span>
             <div class="prox-badges">
-              <span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>
+              ${pc?`<span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>`:''}
               ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
             </div>
           </div>
@@ -1049,9 +1101,9 @@ function renderComplementares(){
     </div>
   `;
 }
-let compPrioridadeSel='Média',compRecorrenciaSel=0;
+let compPrioridadeSel=null,compRecorrenciaSel=0;
 function abrirComplementarModal(){
-  compPrioridadeSel='Média';
+  compPrioridadeSel=null;
   compRecorrenciaSel=0;
   const nomeInput=document.getElementById('comp-nome');
   if(nomeInput) nomeInput.value='';
@@ -1061,10 +1113,16 @@ function abrirComplementarModal(){
 function fecharComplementarModal(){
   document.getElementById('comp-modal').style.display='none';
 }
-function selecionarCompPrioridade(v){compPrioridadeSel=v;atualizarCompBotoes();}
+function selecionarCompPrioridade(v){compPrioridadeSel=(compPrioridadeSel===v)?null:v;atualizarCompBotoes();}
 function selecionarCompRecorrencia(v){compRecorrenciaSel=v;atualizarCompBotoes();}
 function atualizarCompBotoes(){
-  document.querySelectorAll('#comp-prioridade-row .comp-opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===compPrioridadeSel));
+  const classesPrio={Alta:'prio-alta',Média:'prio-media',Baixa:'prio-baixa'};
+  document.querySelectorAll('#comp-prioridade-row .comp-opt-btn').forEach(b=>{
+    const ativo=b.dataset.val===compPrioridadeSel;
+    b.classList.toggle('active',ativo);
+    Object.values(classesPrio).forEach(c=>b.classList.remove(c));
+    if(ativo) b.classList.add(classesPrio[b.dataset.val]);
+  });
   document.querySelectorAll('#comp-recorrencia-row .comp-opt-btn').forEach(b=>b.classList.toggle('active',Number(b.dataset.val)===compRecorrenciaSel));
 }
 async function salvarComplementar(){
@@ -1073,9 +1131,9 @@ async function salvarComplementar(){
   try{
     const props={
       'Nome':{title:[{text:{content:nome}}]},
-      'Prioridade':{select:{name:compPrioridadeSel}},
       'Status':{select:{name:'Pendente'}}
     };
+    if(compPrioridadeSel) props['Prioridade']={select:{name:compPrioridadeSel}};
     if(compRecorrenciaSel>0) props['Recorrência Dias']={number:compRecorrenciaSel};
     await notionCall('/pages',{parent:{database_id:DB_COMPLEMENTARES},properties:props},'POST');
     fecharComplementarModal();
