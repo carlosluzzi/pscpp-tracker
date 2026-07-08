@@ -207,7 +207,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* PROXIMAS ATIVIDADES */
 .foco-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:2px}
+.foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden}
 .foco-header-left{display:flex;align-items:center;gap:10px}
 .foco-ring{width:41px;height:41px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .foco-ring-inner{width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);font-weight:600}
@@ -457,8 +457,8 @@ const tipoCores={
   'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
   'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
-const fc=p=>p===100?'#639922':p>=80?'#1D9E75':p>=60?'#EF9F27':'#E24B4A';
-const fcBg=p=>p===100?'#EAF3DE':p>=80?'#E1F5EE':p>=60?'#FAEEDA':'#FCEBEB';
+const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
+const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
@@ -769,7 +769,7 @@ function renderFocoItem(m,i){
   }).filter(l=>!isDismissed(l.chave,l.qsDaMateria))
     .sort((a,b)=>b.er-a.er);
 
-  return `<div class="foco-item">
+  return `<div class="foco-item" style="border-left:3px solid ${c}">
     <div class="foco-header" onclick="toggleFoco(${i})">
       <div class="foco-header-left">
         <div class="foco-ring" style="background:conic-gradient(${c} ${deg}deg,#f0f0ee ${deg}deg)"><div class="foco-ring-inner" style="color:${c}">${m.pct}%</div></div>
