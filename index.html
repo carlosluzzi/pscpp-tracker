@@ -96,6 +96,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* FILTROS */
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.periodo-row{flex-wrap:nowrap}
+.periodo-row .filter-btn{flex-grow:1;flex-shrink:1;flex-basis:0;text-align:center;padding:6px 2px;white-space:nowrap}
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
@@ -876,17 +878,37 @@ function calcularFocoSugerido(moduloNome){
   return `${moduloNome} → ${nomePub(pubTop)}`;
 }
 
+function wilsonScoreLowerBound(k,n){
+  if(n===0) return 50;
+  const z=1.96;
+  const p=k/n;
+  const denom=1+(z*z)/n;
+  const centro=p+(z*z)/(2*n);
+  const margem=z*Math.sqrt((p*(1-p))/n+(z*z)/(4*n*n));
+  return Math.max(0,Math.round(((centro-margem)/denom)*100));
+}
 function calcularMateriasGlobais(){
-  const materiaSet=new Set();
+  const materiaInfo={};
   questoes.forEach(q=>{
-    if(q.status==='Errei'&&q.tags&&q.tags.length) q.tags.forEach(t=>materiaSet.add(t));
+    if(q.status!=='Errei') return;
+    if(q.tags&&q.tags.length){
+      q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
+    }else{
+      const pub=q.publicacao||'—';
+      materiaInfo['pub::'+pub]={isTag:false,label:pub,pubFallback:pub};
+    }
   });
-  return [...materiaSet].map(nome=>{
-    const qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(nome));
+  return Object.values(materiaInfo).map(info=>{
+    let qsDaMateria;
+    if(info.isTag){
+      qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(info.label));
+    }else{
+      qsDaMateria=questoes.filter(q=>q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
+    }
     const ac=qsDaMateria.filter(isAcerto).length;
     const er=qsDaMateria.filter(q=>q.status==='Errei').length;
     const total=ac+er;
-    const peso=total?Math.round((er/total)*100):50;
+    const peso=wilsonScoreLowerBound(er,total);
     const modulo=qsDaMateria[0]?qsDaMateria[0].modulo:'';
     const contagem={};
     qsDaMateria.forEach(q=>{
@@ -895,7 +917,7 @@ function calcularMateriasGlobais(){
     });
     const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
     const [pubOrig,cap]=chaveTop.split('|||');
-    return {nome,modulo,peso,publicacao:pubOrig,capitulo:cap};
+    return {nome:info.label,modulo,peso,publicacao:pubOrig,capitulo:cap};
   });
 }
 
@@ -1191,8 +1213,8 @@ function renderAtividades(){
         ${tipos.map(t=>`<option value="${t}"${filtTipo===t?' selected':''}>${t}</option>`).join('')}
       </select>
     </div>
-    <div class="filter-row">
-      ${['30d','90d','180d','tudo','personalizado'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses',personalizado:'Personalizado'}[p]}</button>`).join('')}
+    <div class="filter-row periodo-row">
+      ${[['30d','30 dias',7],['90d','3 meses',7],['180d','6 meses',7],['tudo','Tudo',4],['personalizado','📅',3]].map(([p,l,peso])=>`<button class="filter-btn${filtPeriodo===p?' active':''}" style="flex-grow:${peso}" onclick="setFiltPeriodo('${p}')">${l}</button>`).join('')}
     </div>
     ${filtPeriodo==='personalizado'?`
     <div class="filter-row" style="align-items:center">
@@ -1460,8 +1482,8 @@ function renderQuestoes(){
       <option value="todos">Todas as questões</option>
       ${qnumsDisp.map(qn=>`<option value="${qn}"${filtQQuestao===qn?' selected':''}>Questão ${qn}</option>`).join('')}
     </select>
-    <div class="filter-row">
-      ${[['todos','Todos','status-todos'],['Errei','Errei','status-errei'],['Acertei com dúvida','Acertei com dúvida','status-duvida'],['Acertei','Acertei','status-acertei']].map(([v,l,cls])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
+    <div class="filter-row periodo-row">
+      ${[['todos','Todos','status-todos',5],['Errei','Errei','status-errei',5],['Acertei com dúvida','Acertei com dúvida','status-duvida',19],['Acertei','Acertei','status-acertei',7]].map(([v,l,cls,peso])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" style="flex-grow:${peso}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
     </div>
     ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões.</div>':lista.length?lista.map((q,i)=>{
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
