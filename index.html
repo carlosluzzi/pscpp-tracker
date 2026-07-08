@@ -10,6 +10,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+button{transition:transform 0.12s ease,opacity 0.12s ease}
+button:active{transform:scale(0.96)}
 :root{
   --header-h:57px;
   --fs-a:11px; --fs-b:12px; --fs-c:13px; --fs-d:14px;
@@ -82,7 +84,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .section-title:first-child{margin-top:0}
 }
 
-.section-title{font-size:var(--fs-c);font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;margin-top:32px;padding-left:9px;border-left:3px solid #ddd}
+.section-title{font-size:var(--fs-c);font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:8px}
+.section-icon{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-icon svg{width:13px;height:13px}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 .error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:var(--fs-e);line-height:1.6}
@@ -207,7 +211,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* PROXIMAS ATIVIDADES */
 .foco-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden}
+.foco-item{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;transition:transform 0.15s ease}
+.foco-item:active{transform:scale(0.98)}
 .foco-header-left{display:flex;align-items:center;gap:10px}
 .foco-ring{width:41px;height:41px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .foco-ring-inner{width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);font-weight:600}
@@ -464,6 +469,16 @@ const tipoCores={
 };
 const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
 const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
+const secIcons={
+  calendario:'<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  alerta:'<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  lista:'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/>',
+  nota:'<path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/>',
+};
+function sectionTitle(texto,icone,bg,tx){
+  return `<div class="section-title"><span class="section-icon" style="background:${bg};color:${tx}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg></span>${texto}</div>`;
+}
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
@@ -807,7 +822,7 @@ function renderFoco(){
   if(!mods.length) return '';
   const piores=[...mods].sort((a,b)=>a.pct-b.pct).slice(0,3);
   return `
-    <div class="section-title">Foco recomendado</div>
+    ${sectionTitle('Foco recomendado','alerta','#FCEBEB','#A32D2D')}
     <div class="foco-list">
       ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
     </div>
@@ -858,7 +873,7 @@ function renderProxItem(it){
 }
 
 function renderProximas(){
-  if(!calendarioRegras.length) return `<div class="section-title">Próximos simulados</div><div class="empty">Nenhuma regra de calendário configurada.</div>`;
+  if(!calendarioRegras.length) return `${sectionTitle('Próximos simulados','calendario','#E6F1FB','#0C447C')}<div class="empty">Nenhuma regra de calendário configurada.</div>`;
   const items=calendarioRegras.map(r=>{
     const prox=calcularProxima(r);
     return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
@@ -866,12 +881,12 @@ function renderProximas(){
   const simulados=items.filter(it=>it.tipo==='Simulado');
   const exercicios=items.filter(it=>it.tipo!=='Simulado');
   return `
-    <div class="section-title">Próximos simulados</div>
+    ${sectionTitle('Próximos simulados','calendario','#E6F1FB','#0C447C')}
     <div class="prox-list">
       ${simulados.length?simulados.map(renderProxItem).join(''):'<div class="empty">Nenhum simulado programado.</div>'}
     </div>
     <div class="secao-divisora">
-      <div class="section-title">Próximos exercícios</div>
+      ${sectionTitle('Próximos exercícios','calendario','#EEEDFE','#3C3489')}
       <div class="prox-list">
         ${exercicios.length?exercicios.map(renderProxItem).join(''):'<div class="empty">Nenhum exercício programado.</div>'}
       </div>
@@ -1063,7 +1078,7 @@ function renderBancoPratico(){
   const hojeStr=new Date().toISOString().slice(0,10);
   const hoje=new Date();hoje.setHours(0,0,0,0);
   return `
-    <div class="section-title">Banco prático</div>
+    ${sectionTitle('Banco prático','alvo','#EEEDFE','#3C3489')}
     <div class="banco-pratico-card">
       <div class="banco-pratico-top">
         <span class="prox-nome">Foco sugerido pra hoje</span>
@@ -1126,7 +1141,7 @@ function renderComplementares(){
   });
   const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#F1EFE8',tx:'#5F5E5A'}};
   return `
-    <div class="section-title">Atividades complementares</div>
+    ${sectionTitle('Atividades complementares','lista','#EAF3DE','#3B6D11')}
     <div class="prox-list">
       ${pendentes.map(c=>{
         const pc=prioCor[c.prioridade];
@@ -1257,7 +1272,7 @@ async function marcarFeito(regraId){
 // NOTAS DE ESTUDO — armazenadas no Notion (sincroniza entre dispositivos)
 function renderNotas(){
   return `
-    <div class="section-title">Notas de estudo</div>
+    ${sectionTitle('Notas de estudo','nota','#FAEEDA','#633806')}
     <div class="notas-list">
       ${notasEstudo.map(n=>`<div class="nota-card">
         <span class="nota-texto">${n.texto}</span>
