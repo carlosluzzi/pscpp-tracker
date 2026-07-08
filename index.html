@@ -1538,7 +1538,9 @@ function formatQuestaoCompleta(texto){
   const zonaAlternativas=idxAlt===-1?'':escaped.slice(idxAlt).trim();
 
   // no enunciado: quebra em cada assertiva romana (I) II) III)... até onde for necessário)
-  const partesEnun=zonaEnunciado.split(/(?=\s\(?[IVXLCDM]{1,6}\))/).map(p=>p.trim()).filter(Boolean);
+  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
+  const padraoQuebra=temRomanos?/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/:/(?=\s(?:\(\s*\)|[A-F]\.\s))/;
+  const partesEnun=zonaEnunciado.split(padraoQuebra).map(p=>p.trim()).filter(Boolean);
   // nas alternativas: quebra só nas letras minúsculas (a)-(e) — as alternativas são sempre salvas em minúscula,
   // então nunca confunde com um "(C)" ou "(E)" de conteúdo (ex: questões de marcação Certo/Errado)
   const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean):[];
