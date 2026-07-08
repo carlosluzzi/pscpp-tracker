@@ -36,6 +36,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* TABLET (iPad na vertical e telas médias — mantém o menu embaixo, mas aproveita melhor o espaço) */
 @media(min-width:768px) and (max-width:1099px){
   .app{max-width:700px}
+  .bottom-nav{max-width:700px}
   .content{padding:24px}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
@@ -48,14 +49,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* DESKTOP (telas largas — sidebar lateral) */
 @media(min-width:1100px){
   body{display:flex;background:#f5f5f3}
-  .app{max-width:100%;width:100%;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto 1fr;padding-bottom:0}
-  .topbar{grid-column:1/3;position:sticky;top:0;z-index:10;padding:16px 32px}
-  .bottom-nav{position:static;transform:none;width:250px;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;position:sticky;top:57px;height:calc(100vh - 57px);max-width:250px;padding-bottom:20px}
+  .app{max-width:100%;width:100%;margin:0;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto 1fr;padding-bottom:0}
+  .topbar{grid-column:1/3;grid-row:1;position:sticky;top:0;z-index:10;padding:16px 32px}
+  .bottom-nav{grid-column:1;grid-row:2;position:sticky;left:auto;bottom:auto;transform:none;width:100%;max-width:none;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;top:57px;height:calc(100vh - 57px);padding-bottom:20px}
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:9px;width:100%}
   .nav-item.active{background:#f0f0ee}
   .nav-icon{width:18px;height:18px}
   .nav-label{font-size:13.5px}
-  .content{grid-column:2;padding:32px 40px;max-width:960px;width:100%}
+  .content{grid-column:2;grid-row:2;padding:32px 40px;max-width:960px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -82,6 +83,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filter-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
+.status-segment{display:flex;width:100%;border-radius:8px;overflow:hidden;border:0.5px solid #ddd;margin-bottom:12px}
+.status-segment button{flex:1;padding:8px 0;border:none;background:#fff;color:#888;font-size:11px;font-family:inherit;cursor:pointer;border-right:0.5px solid #ddd}
+.status-segment button:last-child{border-right:none}
+.status-segment button.active-errei{background:#A32D2D;color:#fff}
+.status-segment button.active-duvida{background:#EF9F27;color:#fff}
+.status-segment button.active-acertei{background:#3B6D11;color:#fff}
+.status-segment button.active-todos{background:#111;color:#fff}
 .filter-date{font-size:12px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;flex:1}
 
 /* CARDS DE ATIVIDADE */
@@ -128,6 +136,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pub-block{display:flex;flex-direction:column;gap:5px}
 .pub-top{display:flex;justify-content:space-between;align-items:center}
 .pub-nm{font-size:12px;font-weight:500;flex:1;padding-right:8px}
+.pub-nm-edit{cursor:pointer;border-bottom:0.5px dashed #ccc}
+.pub-nm-edit:hover{color:#0C447C;border-color:#0C447C}
 .pub-stats{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .pub-ac{font-size:11px;color:#888}
 .pub-pp{font-size:11px;font-weight:500;min-width:28px;text-align:right}
@@ -340,6 +350,7 @@ const DB_NOTAS='5792fba68a9a4bbfbda33a582d7bba65';
 const DB_COMPLEMENTARES='c8ec85bc67014833b27dcf6c33cd2ae3';
 const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
 const DB_FOCO_ESTUDADO='1d409ca929444beca2b0a8d06dd9a2a8';
+const DB_APELIDOS='87c01cc3408441608fb1c5a3acc837ed';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#0C447C'},
@@ -374,8 +385,8 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],tabAtual='inicio',atividadeAtual=null;
-let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
+let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},tabAtual='inicio',atividadeAtual=null;
+let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQAtividade='todos',filtQQuestao='todos';
 let filtDataInicio='',filtDataFim='';
 
@@ -423,7 +434,7 @@ function setSyncStatus(state,text){
 async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
-    const [a,q,cal,notas,comp,banco,foco]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO),notionQuery(DB_FOCO_ESTUDADO)]);
+    const [a,q,cal,notas,comp,banco,foco,apelidosRes]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO),notionQuery(DB_FOCO_ESTUDADO),notionQuery(DB_APELIDOS)]);
     atividades=a.map(p=>({
       id:p.id,
       nome:getProp(p,'ID da Atividade')||'Sem título',
@@ -481,7 +492,13 @@ async function loadData(){
       intervaloDias:getProp(p,'Intervalo Dias')||1,
       ultimaConfirmada:getProp(p,'Última Confirmada')||null,
     }))[0]||null;
-    focoEstudado=foco.map(p=>getProp(p,'Módulo')).filter(Boolean);
+    focoEstudado=foco.map(p=>({chave:getProp(p,'Módulo')||'',data:getProp(p,'Data Confirmada')||null})).filter(f=>f.chave);
+    apelidos={};
+    apelidosRes.forEach(p=>{
+      const orig=getProp(p,'Nome Original');
+      const custom=getProp(p,'Nome Personalizado');
+      if(orig&&custom) apelidos[orig]=custom;
+    });
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual);
   }catch(e){
@@ -599,6 +616,19 @@ function calcularModsPct(){
     return {nome:m,pct:Math.round(ac/qs.length*100),total:qs.length};
   }).filter(Boolean);
 }
+function isDismissed(chave,questoesRelevantes){
+  const entry=focoEstudado.find(f=>f.chave===chave);
+  if(!entry) return false;
+  if(!entry.data) return true;
+  const datas=questoesRelevantes.map(q=>{
+    const ativ=atividades.find(a=>a.nome===q.idAtividade);
+    return ativ?ativ.data:null;
+  }).filter(Boolean).sort();
+  if(!datas.length) return true;
+  const maisRecente=datas[datas.length-1];
+  return maisRecente<=entry.data;
+}
+
 function renderFocoItem(m,i){
   const c=fc(m.pct);
   const deg=Math.round(m.pct*3.6);
@@ -606,12 +636,16 @@ function renderFocoItem(m,i){
   const porPublicacao={};
   errosDoModulo.forEach(q=>{
     const pub=q.publicacao||'—';
-    if(!porPublicacao[pub]) porPublicacao[pub]=new Set();
-    (q.tags||[]).forEach(t=>porPublicacao[pub].add(t));
+    if(!porPublicacao[pub]) porPublicacao[pub]={};
+    const materias=(q.tags&&q.tags.length)?q.tags:[pub]; // sem tag ainda: usa o nome da publicação como matéria
+    materias.forEach(nome=>{
+      if(!porPublicacao[pub][nome]) porPublicacao[pub][nome]=[];
+      porPublicacao[pub][nome].push(q);
+    });
   });
-  // remove só os assuntos já marcados como estudados (chave "Módulo|assunto") — publicação continua aparecendo mesmo sem tags
-  const pubEntries=Object.entries(porPublicacao).map(([pub,tagsSet])=>{
-    const pendentes=[...tagsSet].filter(t=>!focoEstudado.includes(`${m.nome}|${t}`));
+  // uma matéria só fica escondida se NENHUM erro novo aconteceu depois da data em que foi marcada "estudei"
+  const pubEntries=Object.entries(porPublicacao).map(([pub,materias])=>{
+    const pendentes=Object.entries(materias).filter(([nome,qs])=>!isDismissed(`${m.nome}|${nome}`,qs)).map(([nome])=>nome);
     return [pub,pendentes];
   });
   return `<div class="foco-item">
@@ -624,8 +658,8 @@ function renderFocoItem(m,i){
     </div>
     <div class="foco-detail" id="fdet${i}">
       ${pubEntries.length?pubEntries.map(([pub,tags])=>`<div class="foco-pub">
-        <span class="pub-nm">${pub}</span>
-        <div class="tr">${tags.length?tags.map(t=>`<span class="tg foco-tag" onclick="abrirConfirmacao('${m.nome}|${t}','${t}','focoAssunto','Marcar &quot;${t}&quot; como estudado?')">${t}<span class="tx">✕</span></span>`).join(''):'<span class="dr">sem tags ainda</span>'}</div>
+        <span class="pub-nm pub-nm-edit" onclick="event.stopPropagation();editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
+        <div class="tr">${tags.length?tags.map(t=>`<span class="tg foco-tag" onclick="abrirConfirmacao('${m.nome}|${t}','${t}','focoAssunto','Marcar &quot;${t}&quot; como estudado?')">${t}<span class="tx">✕</span></span>`).join(''):'<span class="dr">tudo em dia por aqui</span>'}</div>
       </div>`).join(''):'<div class="empty">Nenhum erro registrado nesse módulo ainda.</div>'}
     </div>
   </div>`;
@@ -705,6 +739,33 @@ function renderProximas(){
 }
 
 // BANCO PRÁTICO
+function calcularFocoSugerido(moduloNome){
+  const erros=questoes.filter(q=>q.modulo===moduloNome&&q.status==='Errei');
+  if(!erros.length) return moduloNome;
+  const contagemTags={};
+  erros.forEach(q=>(q.tags||[]).forEach(t=>{contagemTags[t]=(contagemTags[t]||0)+1;}));
+  const tagsOrdenadas=Object.entries(contagemTags).sort((a,b)=>b[1]-a[1]);
+  if(tagsOrdenadas.length){
+    const tagTop=tagsOrdenadas[0][0];
+    const qsComTag=erros.filter(q=>(q.tags||[]).includes(tagTop));
+    const contagemPub={};
+    qsComTag.forEach(q=>{
+      const chave=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+      contagemPub[chave]=(contagemPub[chave]||0)+1;
+    });
+    const [chaveTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
+    const [pubOrig,cap]=chaveTop.split('|||');
+    return cap?`${moduloNome} → ${nomePub(pubOrig)}, ${cap}`:`${moduloNome} → ${nomePub(pubOrig)}`;
+  }
+  const contagemPub={};
+  erros.forEach(q=>{
+    const pub=q.publicacao||'—';
+    contagemPub[pub]=(contagemPub[pub]||0)+1;
+  });
+  const [pubTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
+  return `${moduloNome} → ${nomePub(pubTop)}`;
+}
+
 function renderBancoPratico(){
   if(!bancoPratico) return '';
   const proxData=new Date((bancoPratico.ultimaConfirmada||new Date().toISOString().slice(0,10))+'T00:00:00');
@@ -714,13 +775,14 @@ function renderBancoPratico(){
   const mods=calcularModsPct();
   const pior=mods.length?[...mods].sort((a,b)=>a.pct-b.pct)[0]:null;
   const corPior=pior?(modCores[pior.nome]||{bg:'#F1EFE8',tx:'#5F5E5A'}):null;
+  const sugestao=pior?calcularFocoSugerido(pior.nome):null;
   return `
     <div class="section-title">Banco prático</div>
     <div class="prox-item${vencida?' prox-due':''}">
       <div class="prox-left">
         <span class="prox-nome">Pratique hoje</span>
         <div class="prox-badges">
-          ${pior?`<span class="ativ-badge" style="background:${corPior.bg};color:${corPior.tx}">foco sugerido: ${pior.nome}</span>`:''}
+          ${sugestao?`<span class="ativ-badge" style="background:${corPior.bg};color:${corPior.tx}">foco sugerido: ${sugestao}</span>`:''}
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
@@ -953,7 +1015,7 @@ function renderDetalhe(a){
     return `<div class="ec">
       <div class="er" onclick="toggleErrada(${i})">
         <span class="eq">${e.questao||'—'}</span>
-        <span class="ep">${e.publicacao||'—'}</span>
+        <span class="ep">${e.publicacao?nomePub(e.publicacao):"—"}</span>
         <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'—'}</span>
         <span class="chev" id="echev${i}">▾</span>
       </div>
@@ -1029,7 +1091,7 @@ function renderPubsCards(qs){
     }).join('');
     return `<div class="pub-block">
       <div class="pub-top">
-        <span class="pub-nm">${pub}</span>
+        <span class="pub-nm pub-nm-edit" onclick="editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
         <div class="pub-stats"><span class="pub-ac">${ac}/${pqs.length}</span><span class="pub-pp" style="color:${pc}">${pp}%</span></div>
       </div>
       <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${pp}%;background:${pc}"></div></div>
@@ -1054,6 +1116,36 @@ async function adicionarAssuntoPrincipal(questaoId){
 function escapeHtml(str){
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+function nomePub(original){
+  return apelidos[original]||original;
+}
+async function editarApelidoPublicacao(original){
+  const atual=apelidos[original]||original;
+  const texto=prompt(`Como você quer chamar "${original}"?`,atual);
+  if(!texto||!texto.trim()||texto.trim()===original) return;
+  try{
+    const existing=await notionCall(`/databases/${DB_APELIDOS}/query`,{page_size:100},'POST');
+    const pageExistente=(existing.results||[]).find(p=>{
+      const t=p.properties&&p.properties['Nome Original']&&p.properties['Nome Original'].title;
+      return t&&t.map(x=>x.plain_text).join('')===original;
+    });
+    if(pageExistente){
+      await notionCall(`/pages/${pageExistente.id}`,{properties:{'Nome Personalizado':{rich_text:[{text:{content:texto.trim()}}]}}},'PATCH');
+    }else{
+      await notionCall('/pages',{
+        parent:{database_id:DB_APELIDOS},
+        properties:{
+          'Nome Original':{title:[{text:{content:original}}]},
+          'Nome Personalizado':{rich_text:[{text:{content:texto.trim()}}]}
+        }
+      },'POST');
+    }
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar apelido: '+e.message);
+  }
+}
+
 function formatQuestaoCompleta(texto){
   if(!texto) return '';
   return escapeHtml(texto).replace(/\s+(\(?[a-eA-E]\))/g,'<br><br>$1');
@@ -1092,19 +1184,16 @@ function renderQuestoes(){
   const qnumsDisp=[...new Set(poolQnum.map(q=>q.questao).filter(Boolean))].sort((a,b)=>(parseInt(a,10)||0)-(parseInt(b,10)||0));
 
   let lista=todas;
-  if(filtStatus!=='todos') lista=lista.filter(q=>q.status===filtStatus);
+  if(filtStatus&&filtStatus!=='todos') lista=lista.filter(q=>q.status===filtStatus);
   if(filtQCurso!=='todos') lista=lista.filter(q=>q._curso===filtQCurso);
   if(filtQAtividade!=='todos') lista=lista.filter(q=>q.idAtividade===filtQAtividade);
   if(filtQQuestao!=='todos') lista=lista.filter(q=>q.questao===filtQQuestao);
   if(filtModulo!=='todos') lista=lista.filter(q=>q.modulo===filtModulo);
   lista=[...lista].sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
-  const algumFiltroAtivo=filtStatus!=='todos'||filtQCurso!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
+  const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
-    <div class="filter-row">
-      ${[['todos','Todos'],['Errei','Errei'],['Acertei com dúvida','Dúvida'],['Acertei','Acertei']].map(([v,l])=>`<button class="filter-btn${filtStatus===v?' active':''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
-    </div>
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
@@ -1121,13 +1210,16 @@ function renderQuestoes(){
       <option value="todos">Todos os módulos</option>
       ${mods.slice(1).map(m=>`<option value="${m}"${filtModulo===m?' selected':''}>${m}</option>`).join('')}
     </select>
+    <div class="status-segment">
+      ${[['Errei','Errei','active-errei'],['Acertei com dúvida','Acertei com dúvida','active-duvida'],['Acertei','Acertei','active-acertei'],['todos','Todos','active-todos']].map(([v,l,cls])=>`<button class="${filtStatus===v?cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
+    </div>
     ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões (Status, Curso, Atividade, Questão ou Módulo).</div>':lista.length?lista.map((q,i)=>{
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:q.status==='Anulada'?{bg:'#FAEEDA',tx:'#854F0B'}:{bg:'#EAF3DE',tx:'#3B6D11'};
       return `<div class="q-card">
         <div class="q-row" onclick="document.getElementById('qd${i}').classList.toggle('open')">
           <span class="q-num">${q.questao||'—'}</span>
-          <span class="q-pub">${q.publicacao||'—'}</span>
+          <span class="q-pub">${q.publicacao?nomePub(q.publicacao):"—"}</span>
           <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status||'—'}</span>
         </div>
         <div class="q-detail" id="qd${i}">
@@ -1203,7 +1295,7 @@ function renderRevisao(){
       return `<div class="q-card">
         <div class="q-row" onclick="document.getElementById('rd${i}').classList.toggle('open')">
           <span class="q-num">${q.questao||'—'}</span>
-          <span class="q-pub">${q.publicacao||'—'}</span>
+          <span class="q-pub">${q.publicacao?nomePub(q.publicacao):"—"}</span>
           <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status}</span>
         </div>
         <div class="q-detail" id="rd${i}">
