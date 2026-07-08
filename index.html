@@ -207,7 +207,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:10px 14px 12px;border-top:0.5px solid #e0e0e0;flex-direction:column;gap:8px}
 .q-detail.open{display:flex}
-.q-status-badge{font-size:var(--fs-c);padding:2px 8px;border-radius:4px;font-weight:500}
+.q-status-badge{font-size:var(--fs-b);padding:4px 12px;border-radius:20px;font-weight:600}
 
 /* PROXIMAS ATIVIDADES */
 .foco-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
@@ -1369,7 +1369,7 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Desempenho por módulo','grafico','#EEEDFE','#3C3489')}${renderModsCards(questoesFiltradas)}`:''}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','alvo','#EEEDFE','#3C3489')}${renderModsCards(questoesFiltradas)}`:''}
     ${sectionTitle('Atividades','lista','#E6F1FB','#0C447C')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
@@ -1421,7 +1421,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','grafico','#EEEDFE','#3C3489')}${modsHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','alvo','#EEEDFE','#3C3489')}${modsHtml}`:''}
     ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D')}${erradasHtml}`:''}
   `;
 }
@@ -1600,6 +1600,7 @@ function renderQuestoes(){
   const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
@@ -1623,7 +1624,7 @@ function renderQuestoes(){
     <div class="filter-row periodo-row">
       ${[['todos','Todos','status-todos'],['Errei','Errei','status-errei'],['Acertei com dúvida','Acertei com dúvida','status-duvida'],['Acertei','Acertei','status-acertei']].map(([v,l,cls])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
     </div>
-    ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões.</div>':lista.length?lista.map((q,i)=>{
+    ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões.</div>':lista.length?`<div class="section-title" style="margin-top:20px;font-size:var(--fs-c);font-weight:600;color:#888">${lista.length} questão${lista.length!==1?'ões':''} encontrada${lista.length!==1?'s':''}</div>${lista.map((q,i)=>{
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:q.status==='Anulada'?{bg:'#FAEEDA',tx:'#854F0B'}:{bg:'#EAF3DE',tx:'#3B6D11'};
       return `<div class="q-card">
@@ -1642,7 +1643,7 @@ function renderQuestoes(){
           ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo)}</div>`:''}
         </div>
       </div>`;
-    }).join(''):'<div class="empty">Nenhuma questão encontrada.</div>'}
+    }).join('')}`:'<div class="empty">Nenhuma questão encontrada.</div>'}
   `;
 }
 
