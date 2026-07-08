@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#ffffff">
-<title>PSCPP 2028</title>
+<title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -14,6 +14,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px))}
 .topbar{padding:16px 16px 12px;border-bottom:0.5px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;background:#fff;position:sticky;top:0;z-index:10}
 .appname{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.gear-btn{color:#888;display:flex;align-items:center;cursor:pointer}
+.gear-btn:active{opacity:0.6}
 .sync-status{font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc}
 .sync-dot.ok{background:#1D9E75}
@@ -35,7 +38,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   body{display:flex;background:#f5f5f3}
   .app{max-width:100%;width:100%;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto 1fr;padding-bottom:0}
   .topbar{grid-column:1/3;position:sticky;top:0;z-index:10;padding:16px 32px}
-  .appname{font-size:16px}
   .bottom-nav{position:static;transform:none;width:250px;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;position:sticky;top:57px;height:calc(100vh - 57px);max-width:250px;padding-bottom:20px}
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:9px;width:100%}
   .nav-item.active{background:#f0f0ee}
@@ -44,7 +46,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .content{grid-column:2;padding:32px 40px;max-width:960px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
-  .stat-val{font-size:26px}
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .ativ-card{margin-bottom:0}
   .prox-list,.notas-list{gap:10px}
@@ -78,7 +79,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ativ-title{font-size:13px;font-weight:500}
 .ativ-date{font-size:11px;color:#888}
 .ativ-badges{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
-.ativ-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+.ativ-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
 .ativ-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ativ-metric{text-align:center;background:#fff;border-radius:8px;padding:8px 4px}
 .ativ-metric-val{font-size:16px;font-weight:500}
@@ -96,7 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mtr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
 .mtr-card{background:#f5f5f3;border-radius:8px;padding:10px 12px}
 .mtr-label{font-size:11px;color:#888;margin-bottom:3px}
-.mtr-val{font-size:20px;font-weight:500}
+.mtr-val{font-size:22px;font-weight:500}
 
 /* MODULOS EXPANDIVEIS */
 .mod-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:8px}
@@ -114,7 +115,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mod-detail.open{display:flex}
 .pub-block{display:flex;flex-direction:column;gap:5px}
 .pub-top{display:flex;justify-content:space-between;align-items:center}
-.pub-nm{font-size:11px;font-weight:500;flex:1;padding-right:8px}
+.pub-nm{font-size:12px;font-weight:500;flex:1;padding-right:8px}
 .pub-stats{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .pub-ac{font-size:11px;color:#888}
 .pub-pp{font-size:11px;font-weight:500;min-width:28px;text-align:right}
@@ -123,9 +124,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .caps{display:flex;flex-direction:column;gap:3px;margin-top:3px;padding-left:8px;border-left:2px solid #e0e0e0}
 .cap-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .cap-ref{display:flex;flex-direction:column;gap:1px}
-.cap-loc{font-size:10px;font-weight:500}
-.cap-tit{font-size:10px;color:#888}
-.cap-res{font-size:10px;font-weight:500;flex-shrink:0;margin-top:1px}
+.cap-loc{font-size:11px;font-weight:500}
+.cap-tit{font-size:11px;color:#888}
+.cap-res{font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px}
 
 /* QUESTOES ERRADAS */
 .ec{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
@@ -147,20 +148,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* QUESTOES BANCO */
 .q-card{border:0.5px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#fff}
 .q-row{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
-.q-num{font-size:12px;font-weight:500}
+.q-num{font-size:13px;font-weight:500}
 .q-pub{font-size:11px;color:#888}
-.q-mod{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
+.q-mod{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
+.q-badges{display:flex;gap:5px;flex-wrap:wrap}
+.enunciado-box{font-size:12px;color:#111;line-height:1.7}
 .q-detail{display:none;padding:10px 14px 12px;border-top:0.5px solid #e0e0e0;flex-direction:column;gap:8px}
 .q-detail.open{display:flex}
-.q-status-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+.q-status-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
 
 /* PROXIMAS ATIVIDADES */
+.foco-card{display:flex;flex-wrap:wrap;gap:6px;background:#f5f5f3;border-radius:10px;padding:14px;margin-bottom:20px}
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f5f5f3;border-radius:10px;padding:12px 14px}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0}
 .prox-nome{font-size:13px;font-weight:500}
-.prox-badges{display:flex;gap:5px;flex-wrap:wrap}
+.prox-badges{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.prox-badges::-webkit-scrollbar{display:none}
 .prox-status{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 .status-afazer{background:#FAEEDA;color:#633806}
 .status-feito{background:#EAF3DE;color:#3B6D11}
@@ -180,6 +185,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* GRID ATIVIDADES (desktop) */
 .ativ-list-grid{display:flex;flex-direction:column}
 
+/* MODAL DE CONFIRMAÇÃO */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-box{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:320px}
+.modal-text{font-size:13px;color:#111;line-height:1.5;margin-bottom:18px;text-align:center}
+.modal-actions{display:flex;gap:8px}
+.modal-btn{flex:1;padding:10px;font-size:13px;font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
+.modal-btn-nao{background:#f0f0ee;color:#111}
+.modal-btn-sim{background:#111;color:#fff}
+.config-box{max-width:340px;text-align:left}
+.config-title{font-size:15px;font-weight:500;margin-bottom:16px}
+.config-item{margin-bottom:16px}
+.config-label{font-size:12px;font-weight:500;color:#111;margin-bottom:6px}
+.config-desc{font-size:11px;color:#888}
+.config-slider-row{display:flex;align-items:center;gap:10px}
+.config-slider-a{font-size:11px;color:#888;flex-shrink:0}
+.config-slider-a-big{font-size:16px}
+.config-slider-row input[type=range]{flex:1}
+
 /* CRITICOS */
 .crit{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem}
 .ci{display:flex;gap:10px;padding:10px 0;border-bottom:0.5px solid #e0e0e0}
@@ -194,9 +217,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="app">
   <div class="topbar">
     <span class="appname">PSCPP Tracker</span>
-    <span class="sync-status">
-      <span class="sync-dot loading" id="sync-dot"></span>
-      <span id="sync-text">Conectando...</span>
+    <span class="topbar-right">
+      <span class="gear-btn" onclick="abrirConfig()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </span>
+      <span class="sync-status">
+        <span class="sync-dot loading" id="sync-dot"></span>
+        <span id="sync-text">Conectando...</span>
+      </span>
     </span>
   </div>
 
@@ -220,11 +248,64 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="confirm-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-text" id="confirm-modal-text"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharConfirmacaoFeito()">Não</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarFeitoSim()">Sim</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="config-modal" style="display:none" onclick="if(event.target===this)fecharConfig()">
+  <div class="modal-box config-box">
+    <div class="config-title">Configurações</div>
+
+    <div class="config-item">
+      <div class="config-label">Tamanho da fonte</div>
+      <div class="config-slider-row">
+        <span class="config-slider-a">A</span>
+        <input type="range" id="font-slider" min="85" max="130" value="100" oninput="aplicarFontScale(this.value)">
+        <span class="config-slider-a config-slider-a-big">A</span>
+      </div>
+    </div>
+
+    <div class="config-item">
+      <div class="config-label">Tema</div>
+      <select class="filter-select" id="theme-select" style="margin-bottom:0" onchange="localStorage.setItem('pscpp_theme',this.value)">
+        <option value="claro">Claro</option>
+        <option value="escuro">Escuro (em breve)</option>
+        <option value="auto">Automático (em breve)</option>
+      </select>
+    </div>
+
+    <div class="config-item">
+      <div class="config-label">Notificações</div>
+      <div class="config-desc">Lembretes de estudo — em breve</div>
+    </div>
+
+    <div class="config-item">
+      <div class="config-label">Exportar dados</div>
+      <div class="config-desc">Baixar tudo em CSV/JSON — em breve</div>
+    </div>
+
+    <div class="config-item">
+      <div class="config-label">Sobre</div>
+      <div class="config-desc">PSCPP Tracker · Curso H</div>
+    </div>
+
+    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:8px" onclick="fecharConfig()">Fechar</button>
+  </div>
+</div>
+
 <script>
 const DB_ATIVIDADES='94d1585ce5fc4eff8d783649d4bf9404';
 const DB_QUESTOES='d444bd126bf2472abd5c62529d7c752d';
 const DB_CALENDARIO='7f1d05795f4f4fdbb3038f977d21a09e';
 const DB_NOTAS='5792fba68a9a4bbfbda33a582d7bba65';
+const DB_COMPLEMENTARES='c8ec85bc67014833b27dcf6c33cd2ae3';
+const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#0C447C'},
@@ -251,8 +332,8 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],tabAtual='inicio',atividadeAtual=null;
-let filtPeriodo='tudo',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
+let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,tabAtual='inicio',atividadeAtual=null;
+let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus='todos',filtModulo='todos';
 let filtDataInicio='',filtDataFim='';
 
 async function notionQuery(dbId){
@@ -299,7 +380,7 @@ function setSyncStatus(state,text){
 async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
-    const [a,q,cal,notas]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS)]);
+    const [a,q,cal,notas,comp,banco]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO)]);
     atividades=a.map(p=>({
       id:p.id,
       nome:getProp(p,'ID da Atividade')||'Sem título',
@@ -317,7 +398,7 @@ async function loadData(){
     questoes=q.map(p=>({
       id:p.id,
       questao:getProp(p,'Questão')||null,
-      idAtividade:getProp(p,'ID Atividade')||null,
+      idAtividade:getProp(p,'ID da Atividade')||null,
       status:getProp(p,'Status')||null,
       modulo:getProp(p,'Módulo PSCPP')||null,
       publicacao:getProp(p,'Publicação')||null,
@@ -340,7 +421,22 @@ async function loadData(){
       texto:getProp(p,'Texto')||'',
       criadoEm:p.created_time||null,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
-    setSyncStatus('ok','Notion sincronizado');
+    complementares=comp.map(p=>({
+      id:p.id,
+      nome:getProp(p,'Nome')||'Sem título',
+      dataLimite:getProp(p,'Data Limite')||null,
+      prioridade:getProp(p,'Prioridade')||'Média',
+      recorrenciaDias:getProp(p,'Recorrência Dias')||null,
+      status:getProp(p,'Status')||'Pendente',
+    }));
+    bancoPratico=banco.map(p=>({
+      id:p.id,
+      nome:getProp(p,'Nome')||'Banco Prático',
+      url:getProp(p,'URL')||'',
+      intervaloDias:getProp(p,'Intervalo Dias')||1,
+      ultimaConfirmada:getProp(p,'Última Confirmada')||null,
+    }))[0]||null;
+    setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual);
   }catch(e){
     setSyncStatus('error','Erro de conexão');
@@ -424,7 +520,7 @@ function ativCard(a,clicavel=true){
 }
 
 function renderInicio(){
-  return `${renderProximas()}${renderNotas()}`;
+  return `${renderFoco()}${renderProximas()}${renderBancoPratico()}${renderComplementares()}${renderNotas()}`;
 }
 
 // CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
@@ -447,39 +543,192 @@ function calcularProxima(regra){
   return {data:proximaData,numeracao:proximaNumeracao};
 }
 
+// FOCO RECOMENDADO — módulos com pior aproveitamento, calculado sozinho
+function calcularModsPct(){
+  const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  return mods.map(m=>{
+    const qs=questoes.filter(q=>q.modulo===m);
+    if(!qs.length) return null;
+    const ac=qs.filter(q=>q.status==='Acertei').length;
+    return {nome:m,pct:Math.round(ac/qs.length*100),total:qs.length};
+  }).filter(Boolean);
+}
+function renderFoco(){
+  const mods=calcularModsPct();
+  if(!mods.length) return '';
+  const piores=[...mods].sort((a,b)=>a.pct-b.pct).slice(0,3);
+  return `
+    <div class="section-title">Foco recomendado</div>
+    <div class="foco-card">
+      ${piores.map(m=>{
+        const cor=modCores[m.nome]||{bg:'#F1EFE8',tx:'#444441'};
+        return `<span class="ativ-badge" style="background:${cor.bg};color:${cor.tx}">${m.nome} — ${m.pct}%</span>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// PRÓXIMOS SIMULADOS / EXERCÍCIOS
+function renderProxItem(it){
+  const vencida=it.proxData<=(new Date().setHours(0,0,0,0));
+  const cc=cursoCores[it.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+  const tc=tipoCores[it.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+  const dataIso=it.proxData.toISOString().slice(0,10);
+  const label=`${it.proxNumeracao} | ${it.curso}`;
+  return `<div class="prox-item${vencida?' prox-due':''}">
+    <div class="prox-left">
+      <span class="prox-nome">${label}</span>
+      <div class="prox-badges">
+        <span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${it.curso}</span>
+        <span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${it.tipo}</span>
+        <span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(dataIso)}</span>
+      </div>
+    </div>
+    <button class="prox-confirm-btn" onclick="abrirConfirmacao('${it.id}','${label.replace(/'/g,"\\'")}','calendario')">feito</button>
+  </div>`;
+}
+
 function renderProximas(){
-  if(!calendarioRegras.length) return `<div class="section-title">Próximas atividades</div><div class="empty">Nenhuma regra de calendário configurada.</div>`;
-  const hoje=new Date();
-  hoje.setHours(0,0,0,0);
+  if(!calendarioRegras.length) return `<div class="section-title">Próximos simulados</div><div class="empty">Nenhuma regra de calendário configurada.</div>`;
   const items=calendarioRegras.map(r=>{
     const prox=calcularProxima(r);
     return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
   }).sort((a,b)=>a.proxData-b.proxData);
+  const simulados=items.filter(it=>it.tipo==='Simulado');
+  const exercicios=items.filter(it=>it.tipo!=='Simulado');
   return `
-    <div class="section-title">Próximas atividades</div>
+    <div class="section-title">Próximos simulados</div>
     <div class="prox-list">
-      ${items.map(it=>{
-        const vencida=it.proxData<=hoje;
-        const cc=cursoCores[it.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-        const tc=tipoCores[it.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-        const dataIso=it.proxData.toISOString().slice(0,10);
-        return `<div class="prox-item${vencida?' prox-due':''}">
-          <div class="prox-left">
-            <span class="prox-nome">${it.proxNumeracao} | ${it.curso}</span>
-            <div class="prox-badges">
-              <span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${it.curso}</span>
-              <span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${it.tipo}</span>
-              <span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(dataIso)}</span>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span class="prox-status ${vencida?'status-atrasado':'status-afazer'}">${vencida?'atrasado':'a fazer'}</span>
-            <button class="prox-confirm-btn" onclick="marcarFeito('${it.id}')">feito</button>
-          </div>
-        </div>`;
-      }).join('')}
+      ${simulados.length?simulados.map(renderProxItem).join(''):'<div class="empty">Nenhum simulado programado.</div>'}
+    </div>
+    <div class="section-title">Próximos exercícios</div>
+    <div class="prox-list">
+      ${exercicios.length?exercicios.map(renderProxItem).join(''):'<div class="empty">Nenhum exercício programado.</div>'}
     </div>
   `;
+}
+
+// BANCO PRÁTICO
+function renderBancoPratico(){
+  if(!bancoPratico) return '';
+  const proxData=new Date((bancoPratico.ultimaConfirmada||new Date().toISOString().slice(0,10))+'T00:00:00');
+  proxData.setDate(proxData.getDate()+(bancoPratico.intervaloDias||1));
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const vencida=proxData<=hoje;
+  const mods=calcularModsPct();
+  const pior=mods.length?[...mods].sort((a,b)=>a.pct-b.pct)[0]:null;
+  const corPior=pior?(modCores[pior.nome]||{bg:'#F1EFE8',tx:'#5F5E5A'}):null;
+  return `
+    <div class="section-title">Banco prático</div>
+    <div class="prox-item${vencida?' prox-due':''}">
+      <div class="prox-left">
+        <span class="prox-nome">Pratique hoje</span>
+        <div class="prox-badges">
+          ${pior?`<span class="ativ-badge" style="background:${corPior.bg};color:${corPior.tx}">foco sugerido: ${pior.nome}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:1px solid #ccc;text-decoration:none">abrir ↗</a>`:''}
+        <button class="prox-confirm-btn" onclick="abrirConfirmacao('${bancoPratico.id}','Banco Prático','banco')">feito</button>
+      </div>
+    </div>
+  `;
+}
+async function marcarBancoPraticoFeito(id){
+  try{
+    await notionCall(`/pages/${id}`,{properties:{'Última Confirmada':{date:{start:new Date().toISOString().slice(0,10)}}}},'PATCH');
+    await loadData();
+  }catch(e){
+    alert('Erro ao confirmar: '+e.message);
+  }
+}
+
+// ATIVIDADES COMPLEMENTARES
+function renderComplementares(){
+  const pendentes=complementares.filter(c=>c.status==='Pendente').sort((a,b)=>{
+    const ordem={Alta:0,Média:1,Baixa:2};
+    return (ordem[a.prioridade]??1)-(ordem[b.prioridade]??1);
+  });
+  const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#F1EFE8',tx:'#5F5E5A'}};
+  return `
+    <div class="section-title">Atividades complementares</div>
+    <div class="prox-list">
+      ${pendentes.map(c=>{
+        const pc=prioCor[c.prioridade]||prioCor['Média'];
+        return `<div class="prox-item">
+          <div class="prox-left">
+            <span class="prox-nome">${c.nome}</span>
+            <div class="prox-badges">
+              <span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>
+              ${c.dataLimite?`<span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(c.dataLimite)}</span>`:''}
+              ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d</span>`:''}
+            </div>
+          </div>
+          <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
+        </div>`;
+      }).join('')}
+      <div class="nota-add" onclick="adicionarComplementar()">+ nova atividade complementar</div>
+    </div>
+  `;
+}
+async function adicionarComplementar(){
+  const nome=prompt('Nome da atividade:');
+  if(!nome||!nome.trim()) return;
+  let prioridade=(prompt('Prioridade — Alta, Média ou Baixa:','Média')||'Média').trim();
+  if(!['Alta','Média','Baixa'].includes(prioridade)) prioridade='Média';
+  const dataLimite=(prompt('Data limite (AAAA-MM-DD) — deixe vazio se não tiver:','')||'').trim();
+  const recorrencia=(prompt('Repetir a cada quantos dias? — deixe vazio se não for recorrente:','')||'').trim();
+  try{
+    const props={
+      'Nome':{title:[{text:{content:nome.trim()}}]},
+      'Prioridade':{select:{name:prioridade}},
+      'Status':{select:{name:'Pendente'}}
+    };
+    if(dataLimite) props['Data Limite']={date:{start:dataLimite}};
+    if(recorrencia&&parseInt(recorrencia,10)>0) props['Recorrência Dias']={number:parseInt(recorrencia,10)};
+    await notionCall('/pages',{parent:{database_id:DB_COMPLEMENTARES},properties:props},'POST');
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar: '+e.message);
+  }
+}
+async function marcarComplementarFeito(id){
+  const item=complementares.find(c=>c.id===id);
+  if(!item) return;
+  try{
+    if(item.recorrenciaDias){
+      const novaData=new Date();
+      novaData.setDate(novaData.getDate()+item.recorrenciaDias);
+      await notionCall(`/pages/${id}`,{properties:{'Data Limite':{date:{start:novaData.toISOString().slice(0,10)}}}},'PATCH');
+    }else{
+      await notionCall(`/pages/${id}`,{properties:{'Status':{select:{name:'Feito'}}}},'PATCH');
+    }
+    await loadData();
+  }catch(e){
+    alert('Erro ao confirmar: '+e.message);
+  }
+}
+
+// MODAL DE CONFIRMAÇÃO GENÉRICO
+let pendingConfirmId=null,pendingConfirmType=null;
+function abrirConfirmacao(id,label,tipo){
+  pendingConfirmId=id;
+  pendingConfirmType=tipo;
+  document.getElementById('confirm-modal-text').textContent=`Confirmar que "${label}" foi feita?`;
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function fecharConfirmacaoFeito(){
+  document.getElementById('confirm-modal').style.display='none';
+  pendingConfirmId=null;
+  pendingConfirmType=null;
+}
+function confirmarFeitoSim(){
+  const id=pendingConfirmId,tipo=pendingConfirmType;
+  fecharConfirmacaoFeito();
+  if(!id) return;
+  if(tipo==='complementar') marcarComplementarFeito(id);
+  else if(tipo==='banco') marcarBancoPraticoFeito(id);
+  else marcarFeito(id);
 }
 
 async function marcarFeito(regraId){
@@ -560,8 +809,11 @@ function renderAtividades(){
   const comAprv=lista.filter(a=>a.aproveitamento);
   const mediaAprvNum=comAprv.length?comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length:0;
   const mediaAprv=comAprv.length?fmtPct(mediaAprvNum):'0,00';
-  const totalQ=questoes.length;
-  const paraRevisar=questoes.filter(q=>q.status==='Errei'||q.status==='Acertei com dúvida').length;
+  const nomesFiltrados=new Set(lista.map(a=>a.nome));
+  const questoesFiltradas=questoes.filter(q=>nomesFiltrados.has(q.idAtividade));
+  const totalQ=questoesFiltradas.length;
+  const acertosQ=questoesFiltradas.filter(q=>q.status==='Acertei'||q.status==='Acertei com dúvida').length;
+  const errosQ=questoesFiltradas.filter(q=>q.status==='Errei').length;
   const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
   const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
 
@@ -578,7 +830,7 @@ function renderAtividades(){
       </select>
     </div>
     <div class="filter-row">
-      ${['tudo','30d','90d','180d','personalizado'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses',personalizado:'Personalizado'}[p]}</button>`).join('')}
+      ${['30d','90d','180d','tudo','personalizado'].map(p=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${{tudo:'Tudo','30d':'30 dias','90d':'3 meses','180d':'6 meses',personalizado:'Personalizado'}[p]}</button>`).join('')}
     </div>
     ${filtPeriodo==='personalizado'?`
     <div class="filter-row" style="align-items:center">
@@ -590,9 +842,9 @@ function renderAtividades(){
     <div class="section-title">Resumo</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
-      <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveit. médio</div></div>
-      <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Questões no banco</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:#A32D2D">${paraRevisar}</div><div class="stat-lbl">Para revisar</div></div>
+      <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Número de questões</div></div>
+      <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
+      <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
     ${lista.length?`<div class="section-title">Desempenho por módulo</div>${renderModsBars()}`:''}
     <div class="section-title">Atividades</div>
@@ -612,7 +864,7 @@ function voltarLista(){
 }
 
 function renderDetalhe(a){
-  const qs=questoes.filter(q=>q.idAtividade===a.id);
+  const qs=questoes.filter(q=>q.idAtividade===a.nome);
   const erradas=qs.filter(q=>q.status==='Errei');
 
   const modsHtml=renderModsCards(qs);
@@ -620,11 +872,11 @@ function renderDetalhe(a){
     const cor=modCores[e.modulo]||{bg:'#F1EFE8',tx:'#444441'};
     const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
     return `<div class="ec">
-      <div class="er" onclick="document.getElementById('ed${i}').classList.toggle('open')">
+      <div class="er" onclick="toggleErrada(${i})">
         <span class="eq">${e.questao||'—'}</span>
         <span class="ep">${e.publicacao||'—'}</span>
         <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'—'}</span>
-        <span style="font-size:12px;color:#888">›</span>
+        <span class="chev" id="echev${i}">▾</span>
       </div>
       <div class="ed" id="ed${i}">
         <div class="dr">${e.questao||''}</div>
@@ -664,7 +916,7 @@ function renderModsCards(qs){
       <div class="mod-header" onclick="toggleMod(${i})">
         <div class="mod-top">
           <span class="mod-nm">${m}</span>
-          <div class="mod-right"><span class="mod-p" style="color:${c}">${pct}%</span><span class="chev" id="mchev${i}">›</span></div>
+          <div class="mod-right"><span class="mod-p" style="color:${c}">${pct}%</span><span class="chev" id="mchev${i}">▾</span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${pct}%;background:${c}"></div></div>
         <span class="mac">${ac}/${mqs.length} acertos</span>
@@ -701,6 +953,25 @@ function renderPubsCards(qs){
   }).join('');
 }
 
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatQuestaoCompleta(texto){
+  if(!texto) return '';
+  return escapeHtml(texto).replace(/\s+([a-eA-E]\))/g,'<br><br>$1');
+}
+function badgesQuestao(q){
+  const ativ=atividades.find(a=>a.nome===q.idAtividade);
+  const cc=ativ?cursoCores[ativ.curso]:null;
+  const tc=ativ?tipoCores[ativ.tipo]:null;
+  const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+  return `<div class="q-badges">
+    ${ativ&&cc?`<span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${ativ.curso}</span>`:''}
+    ${ativ&&tc?`<span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${ativ.tipo}</span>`:''}
+    <span class="q-mod" style="background:${cor.bg};color:${cor.tx}">${q.modulo||'—'}</span>
+  </div>`;
+}
+
 function renderQuestoes(){
   const mods=['Todos',...new Set(questoes.map(q=>q.modulo).filter(Boolean))];
   let lista=questoes;
@@ -716,7 +987,6 @@ function renderQuestoes(){
       ${mods.slice(1).map(m=>`<option value="${m}"${filtModulo===m?' selected':''}>${m}</option>`).join('')}
     </select>
     ${lista.length?lista.map((q,i)=>{
-      const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:{bg:'#EAF3DE',tx:'#3B6D11'};
       return `<div class="q-card">
@@ -726,13 +996,13 @@ function renderQuestoes(){
           <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status||'—'}</span>
         </div>
         <div class="q-detail" id="qd${i}">
-          <span class="q-mod" style="background:${cor.bg};color:${cor.tx};display:inline-block;margin-bottom:4px">${q.modulo||'—'}</span>
+          ${badgesQuestao(q)}
           <div class="rs">
             <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'—'}</span>
             <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'—'}</span>
           </div>
           ${tags?`<div class="tr">${tags}</div>`:''}
-          ${q.motivo?`<div class="dr" style="font-style:italic">"${q.motivo}"</div>`:''}
+          ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo)}</div>`:''}
         </div>
       </div>`;
     }).join(''):'<div class="empty">Nenhuma questão encontrada.</div>'}
@@ -744,7 +1014,6 @@ function renderRevisao(){
   if(!lista.length) return '<div class="empty">Nenhuma questão para revisar.</div>';
   return `<div class="section-title">${lista.length} questões para revisar</div>`+
     lista.map((q,i)=>{
-      const cor=modCores[q.modulo]||{bg:'#F1EFE8',tx:'#444441'};
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:{bg:'#FAEEDA',tx:'#633806'};
       return `<div class="q-card">
@@ -754,11 +1023,12 @@ function renderRevisao(){
           <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status}</span>
         </div>
         <div class="q-detail" id="rd${i}">
-          <span class="q-mod" style="background:${cor.bg};color:${cor.tx};display:inline-block;margin-bottom:4px">${q.modulo||'—'}</span>
+          ${badgesQuestao(q)}
           ${tags?`<div class="tr">${tags}</div>`:''}
-          ${q.motivo?`<div class="dr" style="font-style:italic">"${q.motivo}"</div>`:''}
+          ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo)}</div>`:''}
         </div>
       </div>`;
+
     }).join('');
 }
 
@@ -767,7 +1037,15 @@ function toggleMod(i){
   const c=document.getElementById('mchev'+i);
   const open=d.classList.contains('open');
   d.classList.toggle('open',!open);
-  c.style.transform=open?'':'rotate(90deg)';
+  if(c) c.classList.toggle('open',!open);
+}
+
+function toggleErrada(i){
+  const d=document.getElementById('ed'+i);
+  const c=document.getElementById('echev'+i);
+  const open=d.classList.contains('open');
+  d.classList.toggle('open',!open);
+  if(c) c.classList.toggle('open',!open);
 }
 
 function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
@@ -777,6 +1055,30 @@ function setFiltCurso(v){filtCurso=v;renderTab(tabAtual);}
 function setFiltTipo(v){filtTipo=v;renderTab(tabAtual);}
 function setFiltStatus(v){filtStatus=v;renderTab(tabAtual);}
 function setFiltModulo(v){filtModulo=v;renderTab(tabAtual);}
+
+function abrirConfig(){
+  document.getElementById('config-modal').style.display='flex';
+}
+function fecharConfig(){
+  document.getElementById('config-modal').style.display='none';
+}
+function aplicarFontScale(v){
+  document.querySelector('.content').style.zoom=(v/100);
+  localStorage.setItem('pscpp_font_scale',v);
+}
+(function initConfig(){
+  const savedScale=localStorage.getItem('pscpp_font_scale');
+  if(savedScale){
+    const slider=document.getElementById('font-slider');
+    if(slider) slider.value=savedScale;
+    aplicarFontScale(savedScale);
+  }
+  const savedTheme=localStorage.getItem('pscpp_theme');
+  if(savedTheme){
+    const sel=document.getElementById('theme-select');
+    if(sel) sel.value=savedTheme;
+  }
+})();
 
 loadData();
 </script>
