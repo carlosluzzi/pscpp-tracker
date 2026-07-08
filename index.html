@@ -96,8 +96,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* FILTROS */
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.periodo-row{flex-wrap:nowrap}
-.periodo-row .filter-btn{flex-grow:1;flex-shrink:1;flex-basis:0;text-align:center;padding:6px 2px;white-space:nowrap}
+.periodo-row{flex-wrap:nowrap;justify-content:space-between}
+.periodo-row .filter-btn{flex-shrink:0;text-align:center;padding:6px 10px;white-space:nowrap}
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
 .filter-select{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
@@ -237,7 +237,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fila-modulo{font-size:var(--fs-c);font-weight:500;color:#111}
 .fila-ref{font-size:var(--fs-c);color:#888}
 .fila-foco{font-size:var(--fs-c);color:#3C3489;font-weight:500}
-.banco-meta{font-size:var(--fs-b);color:#888;cursor:pointer}
+.banco-meta{font-size:var(--fs-b);color:#888;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.edit-icon{width:11px;height:11px;flex-shrink:0}
 .banco-meta:hover{color:#111}
 .fila-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
 .fila-qtd{font-size:var(--fs-b);font-weight:500;color:#111}
@@ -779,7 +780,7 @@ function renderFocoItem(m,i){
         <div class="foco-materia-info">
           <div class="foco-materia-top">
             <span class="foco-materia-nome">${l.label}</span>
-            <span class="foco-materia-stats"><span style="color:#A32D2D">${erPct}% de erro</span> <span style="color:#888">(${l.ac}/${l.total})</span></span>
+            <span class="foco-materia-stats"><span style="color:#A32D2D">${erPct}%</span> <span style="color:#888">(${l.ac}/${l.total})</span></span>
           </div>
           <span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>
           <div class="foco-materia-bar-bg"><div class="foco-materia-bar-ac" style="width:${acPct}%"></div><div class="foco-materia-bar-er" style="width:${erPct}%"></div></div>
@@ -958,19 +959,21 @@ async function verificarFilaBancoPratico(){
     return {...m,credito:m.peso*dias};
   });
   comCredito.sort((a,b)=>b.credito-a.credito);
-  const escolhida=comCredito[0];
+  const escolhidas=comCredito.slice(0,3); // até 3 matérias novas por dia
   try{
-    await notionCall('/pages',{
-      parent:{database_id:DB_FILA_BANCO},
-      properties:{
-        'Materia':{title:[{text:{content:escolhida.nome}}]},
-        'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
-        'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
-        'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
-        'Data Entrada':{date:{start:hojeStr}},
-        'Status':{select:{name:'Pendente'}}
-      }
-    },'POST');
+    for(const escolhida of escolhidas){
+      await notionCall('/pages',{
+        parent:{database_id:DB_FILA_BANCO},
+        properties:{
+          'Materia':{title:[{text:{content:escolhida.nome}}]},
+          'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
+          'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
+          'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
+          'Data Entrada':{date:{start:hojeStr}},
+          'Status':{select:{name:'Pendente'}}
+        }
+      },'POST');
+    }
     const filaRes=await notionQuery(DB_FILA_BANCO);
     filaBancoPratico=filaRes.map(p=>({
       id:p.id,
@@ -1024,7 +1027,7 @@ function renderBancoPratico(){
     <div class="banco-pratico-card">
       <div class="banco-pratico-top">
         <span class="prox-nome">Foco sugerido pra hoje</span>
-        <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia ✏️</span>
+        <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
       ${fila.length?fila.map(f=>{
@@ -1044,7 +1047,7 @@ function renderBancoPratico(){
           <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
           <span class="fila-foco">Foco em ${f.materia}</span>
           <div class="fila-bottom">
-            <span class="fila-qtd">${qtd} questão${qtd!==1?'ões':''} hoje</span>
+            <span class="fila-qtd">${qtd} ${qtd===1?'questão':'questões'} hoje</span>
             <span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span>
           </div>
         </div>
@@ -1272,7 +1275,7 @@ function renderAtividades(){
       </select>
     </div>
     <div class="filter-row periodo-row">
-      ${[['30d','30 dias',7],['90d','3 meses',7],['180d','6 meses',7],['tudo','Tudo',4],['personalizado','📅',3]].map(([p,l,peso])=>`<button class="filter-btn${filtPeriodo===p?' active':''}" style="flex-grow:${peso}" onclick="setFiltPeriodo('${p}')">${l}</button>`).join('')}
+      ${[['30d','30 dias'],['90d','3 meses'],['180d','6 meses'],['tudo','Tudo'],['personalizado','📅']].map(([p,l])=>`<button class="filter-btn${filtPeriodo===p?' active':''}" onclick="setFiltPeriodo('${p}')">${l}</button>`).join('')}
     </div>
     ${filtPeriodo==='personalizado'?`
     <div class="filter-row" style="align-items:center">
@@ -1541,7 +1544,7 @@ function renderQuestoes(){
       ${qnumsDisp.map(qn=>`<option value="${qn}"${filtQQuestao===qn?' selected':''}>Questão ${qn}</option>`).join('')}
     </select>
     <div class="filter-row periodo-row">
-      ${[['todos','Todos','status-todos',5],['Errei','Errei','status-errei',5],['Acertei com dúvida','Acertei com dúvida','status-duvida',19],['Acertei','Acertei','status-acertei',7]].map(([v,l,cls,peso])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" style="flex-grow:${peso}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
+      ${[['todos','Todos','status-todos'],['Errei','Errei','status-errei'],['Acertei com dúvida','Acertei com dúvida','status-duvida'],['Acertei','Acertei','status-acertei']].map(([v,l,cls])=>`<button class="filter-btn${filtStatus===v?' active '+cls:''}" onclick="setFiltStatus('${v}')">${l}</button>`).join('')}
     </div>
     ${!algumFiltroAtivo?'<div class="empty">Escolha um filtro acima pra ver as questões.</div>':lista.length?lista.map((q,i)=>{
       const tags=(q.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
