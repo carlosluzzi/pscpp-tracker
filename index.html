@@ -271,12 +271,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .resumo-stat svg{width:17px;height:17px;color:#888}
 .resumo-stat-num{font-size:15px;font-weight:700;color:#111}
 .resumo-stat-label{font-size:8px;color:#888;text-align:center;line-height:1.2}
-.trilha-secao{position:relative;padding-left:18px;margin-bottom:28px}
-.trilha-secao:last-child{margin-bottom:0}
-.trilha-linha{position:absolute;left:2px;top:2px;bottom:-14px;width:4px;border-radius:4px;z-index:1;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 70%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 70%,transparent 100%)}
-.trilha-secao:last-child .trilha-linha{bottom:5px}
-.trilha-conteudo{position:relative;z-index:1}
-.trilha-secao .section-title{margin-top:0}
+
+/* Sistema de cards da Início (substitui a trilha) */
+.header-zone{background:linear-gradient(180deg,#EAF2FC 0%,#FBFCFE 100%);border-radius:18px;padding:18px 16px;margin-bottom:16px;position:relative;overflow:hidden}
+.header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
+.card-inicio{background:#fff;border-radius:18px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
+.cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.cards-2col .card-inicio{margin-bottom:0}
+.card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px}
+.card-header-left{display:flex;align-items:center;gap:8px;min-width:0}
+.card-header-left span{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-icone-mini{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icone-mini svg{width:13px;height:13px}
+.card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.card-deco{position:absolute;right:8px;bottom:6px;width:60px;height:60px;opacity:0.08;pointer-events:none}
+.notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0C447C;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.quote-banner{background:linear-gradient(135deg,#0C2D4D 0%,#0C447C 100%);border-radius:18px;padding:20px 18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;color:#fff}
+.quote-banner svg.quote-deco{position:absolute;right:-10px;bottom:-10px;width:100px;height:100px;opacity:0.15}
+.quote-mark{font-size:28px;font-weight:700;color:#5A8FC7;line-height:1;margin-bottom:6px}
+.quote-texto{font-size:14px;font-weight:600;font-style:italic;line-height:1.4;margin-bottom:6px;position:relative}
+.quote-sub{font-size:11px;color:#B8CFE8;position:relative}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
@@ -560,6 +575,9 @@ const secIcons={
 function iconeSvgModulo(nomeModulo,cor){
   const path=modIcones[nomeModulo]||secIcons.alvo;
   return `<svg viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+function iconeSecao(nome){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[nome]}</svg>`;
 }
 function sectionTitle(texto,icone,bg,tx){
   return `<div class="section-title"><span class="section-icon" style="background:${bg};color:${tx}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg></span><span style="color:${tx}">${texto}</span></div>`;
@@ -859,24 +877,43 @@ function renderResumoTopo(){
   </div>`;
 }
 
-function renderInicio(){
-  const cores=[
-    {c:'#0C447C'},//simulados
-    {c:'#0F6E56'},//banco
-    {c:'#A32D2D'},//foco
-    {c:'#3B6D11'},//complementares
-    {c:'#854F0B'},//notas
-  ];
-  const conteudos=[renderProximas(),renderBancoPratico(),renderFoco(),renderComplementares(),renderNotas()];
+const frasesEstudo=[
+  {t:'O mar não recompensa a pressa, mas sim a preparação.',s:'Confie no processo. Você está construindo sua segurança.'},
+  {t:'Cada questão errada hoje é uma manobra evitada amanhã.',s:'Continue registrando, revisando, avançando.'},
+  {t:'Prático bom não é o que nunca erra, é o que nunca repete o erro.',s:'Seus dados de revisão são o seu maior aliado.'},
+  {t:'Rumo certo importa mais que velocidade.',s:'Constância bate intensidade no longo prazo.'},
+];
+function renderQuoteBanner(){
+  const dia=Math.floor(Date.now()/86400000);
+  const f=frasesEstudo[dia%frasesEstudo.length];
   return `
-    <div class="saudacao">${saudacao()}, Carlos! 👋</div>
-    ${renderResumoTopo()}
-    ${conteudos.map((html,i)=>`
-    <div class="trilha-secao">
-      <div class="trilha-linha" style="background:${cores[i].c}"></div>
-      <div class="trilha-conteudo">${html}</div>
+    <div class="quote-banner">
+      <svg class="quote-deco" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="0.8"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#fff" fill-opacity="0.3"/></svg>
+      <div class="quote-mark">"</div>
+      <div class="quote-texto">${f.t}</div>
+      <div class="quote-sub">${f.s}</div>
     </div>
-  `).join('')}
+  `;
+}
+
+function renderInicio(){
+  return `
+    <div class="header-zone">
+      <svg class="header-bussola-deco" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="0.7"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z"/></svg>
+      <div class="saudacao">${saudacao()}, Carlos! 👋</div>
+    </div>
+    ${renderResumoTopo()}
+    <div class="cards-2col">
+      ${renderCardSimulados()}
+      ${renderCardExercicios()}
+    </div>
+    ${renderCardBancoPratico()}
+    <div class="cards-2col">
+      ${renderCardFoco()}
+      ${renderCardComplementares()}
+    </div>
+    ${renderCardNotas()}
+    ${renderQuoteBanner()}
   `;
 }
 
@@ -996,14 +1033,18 @@ function renderFocoItem(m,i){
   </div>`;
 }
 
-function renderFoco(){
+function renderCardFoco(){
   const mods=calcularModsPct();
   if(!mods.length) return '';
   const piores=[...mods].sort((a,b)=>a.pct-b.pct).slice(0,3);
   return `
-    ${sectionTitle('Foco recomendado','alerta','#FCEBEB','#A32D2D')}
-    <div class="foco-list">
-      ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#FCEBEB;color:#A32D2D">${iconeSecao('alerta')}</span><span>Foco recomendado</span></div>
+      </div>
+      <div class="foco-list">
+        ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
+      </div>
     </div>
   `;
 }
@@ -1051,28 +1092,42 @@ function renderProxItem(it){
   </div>`;
 }
 
-function renderProximas(){
-  if(!calendarioRegras.length) return `${sectionTitle('Próximos simulados','calendario','#E6F1FB','#0C447C')}<div class="empty">Nenhuma regra de calendário configurada.</div>`;
+function renderCardSimulados(){
+  if(!calendarioRegras.length) return `<div class="card-inicio"><div class="card-header-row"><div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0C447C">${iconeSecao('calendario')}</span><span>Simulados</span></div></div><div class="empty">Nenhuma regra configurada.</div></div>`;
   const items=calendarioRegras.map(r=>{
     const prox=calcularProxima(r);
     return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
   }).sort((a,b)=>a.proxData-b.proxData);
   const simulados=items.filter(it=>it.tipo==='Simulado');
+  return `
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0C447C">${iconeSecao('calendario')}</span><span>Simulados</span></div>
+      </div>
+      <div class="prox-list prox-list-compact">
+        ${simulados.length?simulados.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
+      </div>
+      <svg class="card-deco" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="1.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/></svg>
+    </div>
+  `;
+}
+
+function renderCardExercicios(){
+  if(!calendarioRegras.length) return '';
+  const items=calendarioRegras.map(r=>{
+    const prox=calcularProxima(r);
+    return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
+  }).sort((a,b)=>a.proxData-b.proxData);
   const exercicios=items.filter(it=>it.tipo!=='Simulado');
   return `
-    <div class="prox-2col">
-      <div>
-        ${sectionTitle('Simulados','calendario','#E6F1FB','#0C447C')}
-        <div class="prox-list prox-list-compact">
-          ${simulados.length?simulados.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
-        </div>
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#EEEDFE;color:#3C3489">${iconeSecao('calendario')}</span><span>Exercícios</span></div>
       </div>
-      <div>
-        ${sectionTitle('Exercícios','calendario','#EEEDFE','#3C3489')}
-        <div class="prox-list prox-list-compact">
-          ${exercicios.length?exercicios.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
-        </div>
+      <div class="prox-list prox-list-compact">
+        ${exercicios.length?exercicios.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
       </div>
+      <svg class="card-deco" viewBox="0 0 24 24" fill="none" stroke="#3C3489" stroke-width="1.2"><path d="M9 22h6"/><path d="M12 2v3"/><path d="M9 22 10 8h4l1 14"/><path d="M8 12h8"/><path d="M7.5 17h9"/></svg>
     </div>
   `;
 }
@@ -1254,18 +1309,20 @@ async function editarMetaDiaria(){
   }
 }
 
-function renderBancoPratico(){
+function renderCardBancoPratico(){
   if(!bancoPratico) return '';
   const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
   const meta=bancoPratico.metaDiaria||10;
   const hojeStr=new Date().toISOString().slice(0,10);
   const hoje=new Date();hoje.setHours(0,0,0,0);
   return `
-    ${sectionTitle('Banco prático','alvo','#E1F5EE','#0F6E56')}
-    <div class="banco-pratico-card">
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#E1F5EE;color:#0F6E56">${iconeSecao('alvo')}</span><span>Banco prático</span></div>
+        <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+      </div>
       <div class="banco-pratico-top">
         <span class="prox-nome">Foco sugerido pra hoje</span>
-        <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
       ${fila.length?fila.map(f=>{
@@ -1316,29 +1373,33 @@ function complementaresPendentes(){
     return true;
   });
 }
-function renderComplementares(){
+function renderCardComplementares(){
   const pendentes=complementaresPendentes().sort((a,b)=>{
     const ordem={Alta:0,Média:1,Baixa:2};
     return (ordem[a.prioridade]??3)-(ordem[b.prioridade]??3);
   });
   const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#F1EFE8',tx:'#5F5E5A'}};
   return `
-    ${sectionTitle('Atividades complementares','lista','#EAF3DE','#3B6D11')}
-    <div class="prox-list">
-      ${pendentes.map(c=>{
-        const pc=prioCor[c.prioridade];
-        return `<div class="prox-item">
-          <div class="prox-left">
-            <span class="prox-nome">${c.nome}</span>
-            <div class="prox-badges">
-              ${pc?`<span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>`:''}
-              ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#EAF3DE;color:#3B6D11">${iconeSecao('lista')}</span><span>Complementares</span></div>
+      </div>
+      <div class="prox-list">
+        ${pendentes.map(c=>{
+          const pc=prioCor[c.prioridade];
+          return `<div class="prox-item">
+            <div class="prox-left">
+              <span class="prox-nome">${c.nome}</span>
+              <div class="prox-badges">
+                ${pc?`<span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>`:''}
+                ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
+              </div>
             </div>
-          </div>
-          <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
-        </div>`;
-      }).join('')}
-      <div class="nota-add" onclick="abrirComplementarModal()">+ nova atividade complementar</div>
+            <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
+          </div>`;
+        }).join('')}
+        <div class="nota-add" onclick="abrirComplementarModal()">+ nova atividade complementar</div>
+      </div>
     </div>
   `;
 }
@@ -1452,15 +1513,20 @@ async function marcarFeito(regraId){
 }
 
 // NOTAS DE ESTUDO — armazenadas no Notion (sincroniza entre dispositivos)
-function renderNotas(){
+function renderCardNotas(){
   return `
-    ${sectionTitle('Notas de estudo','nota','#FAEEDA','#633806')}
-    <div class="notas-list">
-      ${notasEstudo.map(n=>`<div class="nota-card">
-        <span class="nota-texto">${n.texto}</span>
-        <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
-      </div>`).join('')}
-      <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#FAEEDA;color:#633806">${iconeSecao('nota')}</span><span>Notas de estudo</span></div>
+      </div>
+      <div class="notas-list">
+        ${notasEstudo.map(n=>`<div class="notas-postit">
+          <span class="notas-postit-pin"></span>
+          <span class="nota-texto">${n.texto}</span>
+          <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
+        </div>`).join('')}
+        <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
+      </div>
     </div>
   `;
 }
