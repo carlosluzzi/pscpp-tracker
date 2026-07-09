@@ -25,6 +25,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .appname{font-size:var(--fs-f);font-weight:500;display:flex;align-items:center;gap:7px}
 .bussola-icone{width:20px;height:20px;flex-shrink:0}
 .topbar-right{display:flex;align-items:center;gap:14px}
+.topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.appname b{font-weight:700}
 .gear-btn{color:#888;display:flex;align-items:center;cursor:pointer}
 .gear-btn:active{opacity:0.6}
 .sync-status{font-size:var(--fs-c);color:#888;display:flex;align-items:center;gap:5px}
@@ -275,16 +277,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* Sistema de cards da Início (substitui a trilha) */
 .header-zone{background:linear-gradient(180deg,#EAF2FC 0%,#FBFCFE 100%);border-radius:18px;padding:18px 16px;margin-bottom:16px;position:relative;overflow:hidden}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
+.header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
 .card-inicio{background:#fff;border-radius:18px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
 .cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .cards-2col .card-inicio{margin-bottom:0}
-.card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px}
+.card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:0.5px solid #eee}
 .card-header-left{display:flex;align-items:center;gap:8px;min-width:0}
 .card-header-left span{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-icone-mini{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-icone-mini svg{width:13px;height:13px}
 .card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .card-deco{position:absolute;right:8px;bottom:6px;width:60px;height:60px;opacity:0.08;pointer-events:none}
+.regua-escala{margin-top:14px;padding-top:10px}
+.regua-linha{height:1px;background:repeating-linear-gradient(90deg,#ccc,#ccc 1px,transparent 1px,transparent 6px)}
+.regua-marcas{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#aaa}
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0A2882;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
 .quote-banner{background:linear-gradient(135deg,#0C2D4D 0%,#0A2882 100%);border-radius:18px;padding:20px 18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;color:#fff}
@@ -372,8 +378,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="appname"><svg class="bussola-icone" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#0A2882" stroke-width="1.3"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#0A2882"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#A32D2D" fill-opacity="0" /><path d="M13 13 15.5 8.5 11 11z" fill="#A32D2D"/><circle cx="12" cy="12" r="1.2" fill="#111"/></svg>PSCPP Tracker</span>
-    <span class="topbar-right">
+    <span class="appname"><svg class="bussola-icone" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#0A2882" stroke-width="1.3"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#0A2882"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#A32D2D" fill-opacity="0" /><path d="M13 13 15.5 8.5 11 11z" fill="#A32D2D"/><circle cx="12" cy="12" r="1.2" fill="#111"/></svg><b>PSCPP</b>&nbsp;Tracker</span>
+    <span class="topbar-right topbar-pill">
       <span class="gear-btn" onclick="abrirConfig()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
       </span>
@@ -899,6 +905,34 @@ function renderQuoteBanner(){
 function renderInicio(){
   return `
     <div class="header-zone">
+      <svg class="header-carta-deco" viewBox="0 0 300 90" preserveAspectRatio="none">
+        <g stroke="#0A2882" stroke-width="0.5" opacity="0.25" fill="none">
+          <line x1="0" y1="20" x2="300" y2="15"/>
+          <line x1="0" y1="55" x2="300" y2="50"/>
+          <line x1="90" y1="0" x2="80" y2="90"/>
+          <line x1="180" y1="0" x2="175" y2="90"/>
+        </g>
+        <g fill="#0A2882" opacity="0.35" font-size="7" font-family="sans-serif">
+          <text x="95" y="12">12°</text>
+          <text x="185" y="30">14°</text>
+          <text x="250" y="18">16°</text>
+          <text x="140" y="55">23°</text>
+          <text x="240" y="60">27°</text>
+          <text x="270" y="45">13°</text>
+        </g>
+        <g transform="translate(150,35)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke="#A32D2D" stroke-width="1.5"/>
+          <circle cx="0" cy="0" r="3" fill="#A32D2D"/>
+        </g>
+        <g transform="translate(195,28)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke="#3B6D11" stroke-width="1.5"/>
+          <circle cx="0" cy="0" r="3" fill="#3B6D11"/>
+        </g>
+        <g transform="translate(235,22)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke="#666" stroke-width="1.5"/>
+          <circle cx="0" cy="0" r="3" fill="#666"/>
+        </g>
+      </svg>
       <svg class="header-bussola-deco" viewBox="0 0 24 24" fill="none" stroke="#0A2882" stroke-width="0.7"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z"/></svg>
       <div class="saudacao">${saudacao()}, Carlos! 👋</div>
     </div>
@@ -1043,6 +1077,10 @@ function renderCardFoco(){
       <div class="foco-list">
         ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
       </div>
+      <div class="regua-escala">
+        <div class="regua-linha"></div>
+        <div class="regua-marcas"><span>0</span><span>50</span><span>100</span></div>
+      </div>
     </div>
   `;
 }
@@ -1101,6 +1139,7 @@ function renderCardSimulados(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0A2882">${iconeSecao('calendario')}</span><span>Simulados</span></div>
+        <span class="card-ver-todos" onclick="filtTipo='Simulado';showTab('atividades')">Ver todos</span>
       </div>
       <div class="prox-list prox-list-compact">
         ${simulados.length?simulados.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
@@ -1121,6 +1160,7 @@ function renderCardExercicios(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#EEEDFE;color:#3C3489">${iconeSecao('calendario')}</span><span>Exercícios</span></div>
+        <span class="card-ver-todos" onclick="filtTipo='Caderno de Exercícios';showTab('atividades')">Ver todos</span>
       </div>
       <div class="prox-list prox-list-compact">
         ${exercicios.length?exercicios.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
@@ -1317,6 +1357,7 @@ function renderCardBancoPratico(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#E1F5EE;color:#0F6E56">${iconeSecao('alvo')}</span><span>Banco prático</span></div>
+        <span class="card-ver-todos" onclick="showTab('banco')">Ver todos</span>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       <div class="banco-pratico-top">
@@ -1381,6 +1422,7 @@ function renderCardComplementares(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#EAF3DE;color:#3B6D11">${iconeSecao('lista')}</span><span>Complementares</span></div>
+        <span class="card-ver-todos">Ver todos</span>
       </div>
       <div class="prox-list">
         ${pendentes.map(c=>{
@@ -1516,6 +1558,7 @@ function renderCardNotas(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#FAEEDA;color:#633806">${iconeSecao('nota')}</span><span>Notas de estudo</span></div>
+        <span class="card-ver-todos">Ver todas</span>
       </div>
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
@@ -1525,6 +1568,12 @@ function renderCardNotas(){
         </div>`).join('')}
         <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
       </div>
+      <svg class="card-deco" viewBox="0 0 100 100" style="width:70px;height:70px;opacity:0.06">
+        <path id="seloCirculo" d="M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0" fill="none"/>
+        <text font-size="9" letter-spacing="1.5" fill="#633806"><textPath href="#seloCirculo" startOffset="2%">A BORDO EM ESTUDO • A BORDO EM ESTUDO •</textPath></text>
+        <circle cx="50" cy="50" r="10" fill="none" stroke="#633806" stroke-width="1.5"/>
+        <path d="M50 42v16M44 52a6 8 0 0 0 12 0" fill="none" stroke="#633806" stroke-width="1.5"/>
+      </svg>
     </div>
   `;
 }
