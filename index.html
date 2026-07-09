@@ -269,7 +269,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
-.saudacao{font-size:var(--fs-f);font-weight:700;color:#111;margin-bottom:16px}
+.saudacao{font-size:var(--fs-f);font-weight:700;color:#111;margin-bottom:16px;position:relative;z-index:1}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .resumo-anel-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
 .resumo-anel{width:84px;height:84px}
@@ -399,14 +399,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="topbar">
     <span class="appname"><svg class="bussola-icone" viewBox="0 0 40 40" fill="none">
       <circle cx="20" cy="20" r="18" stroke="#0A2882" stroke-width="1"/>
-      <circle cx="20" cy="20" r="14.5" stroke="#0A2882" stroke-width="0.5" opacity="0.5"/>
-      <path d="M20 3 L23 20 L20 37 L17 20 Z" fill="#0A2882"/>
-      <path d="M3 20 L20 17 L37 20 L20 23 Z" fill="#0A2882"/>
-      <path d="M20 3 L23 20 L20 20 Z" fill="#A32D2D"/>
-      <path d="M9 9 L20 18 L20 20 L18 20 Z" fill="#0A2882" opacity="0.55"/>
-      <path d="M31 9 L22 18 L20 20 L20 18 Z" fill="#0A2882" opacity="0.55"/>
-      <path d="M9 31 L18 22 L20 20 L20 22 Z" fill="#0A2882" opacity="0.55"/>
-      <path d="M31 31 L20 22 L20 20 L22 20 Z" fill="#0A2882" opacity="0.55"/>
+      <g transform="translate(20,20) rotate(45) scale(0.6) translate(-20,-20)">
+        <path d="M17 20 L20 3 L23 20 Z" fill="#EF9F27"/>
+        <path d="M20 17 L37 20 L20 23 Z" fill="#EF9F27"/>
+        <path d="M17 20 L20 37 L23 20 Z" fill="#EF9F27"/>
+        <path d="M20 17 L3 20 L20 23 Z" fill="#EF9F27"/>
+      </g>
+      <path d="M17 20 L20 3 L23 20 Z" fill="#0A2882"/>
+      <path d="M20 17 L37 20 L20 23 Z" fill="#0A2882"/>
+      <path d="M17 20 L20 37 L23 20 Z" fill="#0A2882"/>
+      <path d="M20 17 L3 20 L20 23 Z" fill="#0A2882"/>
       <circle cx="20" cy="20" r="2.2" fill="#111"/>
     </svg><span><b>PSCPP</b>&nbsp;Tracker</span></span>
     <span class="topbar-right topbar-pill">
