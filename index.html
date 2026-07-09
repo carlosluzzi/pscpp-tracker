@@ -208,6 +208,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .banco-alt-btn{text-align:left;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;cursor:pointer;font-family:inherit;color:#111;line-height:1.5}
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;text-align:center}
+.nota-questao-textarea{width:100%;min-height:80px;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
 .q-detail.open{display:flex}
@@ -293,6 +294,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-btn{flex:1;padding:10px;font-size:var(--fs-e);font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
 .modal-btn-nao{background:#f0f0ee;color:#111}
 .modal-btn-sim{background:#111;color:#fff}
+.modal-btn-sim:disabled{background:#ddd;color:#999;cursor:not-allowed}
 .config-box{max-width:340px;text-align:left}
 .config-title{font-size:var(--fs-f);font-weight:500;margin-bottom:16px}
 .config-item{margin-bottom:16px}
@@ -506,6 +508,7 @@ function fmtPct(v){
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
 let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTags=[],filtBancoQtd=15;
+let alternativaSelecionada=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
 let filtDataInicio='',filtDataFim='';
@@ -583,6 +586,7 @@ async function loadData(){
       gabarito:getProp(p,'Gabarito')||null,
       motivo:getProp(p,'Questão Completa')||null,
       revisoesRealizadas:getProp(p,'Revisões Realizadas')||0,
+      notasPessoais:getProp(p,'Notas Pessoais')||'',
     }));
     calendarioRegras=cal.map(p=>({
       id:p.id,
@@ -1545,6 +1549,18 @@ async function editarApelidoPublicacao(original){
   }
 }
 
+function formatApenasEnunciado(texto){
+  if(!texto) return '';
+  const escaped=escapeHtml(texto);
+  const altMatch=escaped.match(/\s\([a-e]\)/);
+  const idxAlt=altMatch?altMatch.index:-1;
+  const zonaEnunciado=idxAlt===-1?escaped:escaped.slice(0,idxAlt);
+  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
+  const padraoQuebra=temRomanos?/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/:/(?=\s(?:\(\s*\)|[A-F]\.\s))/;
+  const partesEnun=zonaEnunciado.split(padraoQuebra).map(p=>p.trim()).filter(Boolean);
+  return [partesEnun[0]||'', ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`)].join('');
+}
+
 function formatQuestaoCompleta(texto){
   if(!texto) return '';
   const escaped=escapeHtml(texto);
@@ -1761,6 +1777,7 @@ async function gerarCaderno(){
 }
 
 async function abrirCaderno(nome){
+  alternativaSelecionada=null;
   try{
     const res=await notionQuery(DB_ITENS_CADERNO);
     itensCadernoAtivo=res.map(p=>({
@@ -1790,7 +1807,31 @@ function fecharCaderno(){
   renderTab(tabAtual);
 }
 
-async function responderItemCaderno(letra){
+async function salvarNotaQuestao(){
+  const item=itensCadernoAtivo[itemCadernoAtual];
+  if(!item) return;
+  const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
+  if(!q) return;
+  const campo=document.getElementById('nota-questao-campo');
+  const texto=campo?campo.value.trim():'';
+  try{
+    await notionCall(`/pages/${q.id}`,{properties:{'Notas Pessoais':{rich_text:[{text:{content:texto}}]}}},'PATCH');
+    q.notasPessoais=texto;
+    const status=document.getElementById('nota-questao-status');
+    if(status){status.textContent='Salvo ✓';setTimeout(()=>{if(status)status.textContent='';},2000);}
+  }catch(e){
+    alert('Erro ao salvar nota: '+e.message);
+  }
+}
+
+function selecionarAlternativaCaderno(letra){
+  alternativaSelecionada=letra;
+  renderTab(tabAtual);
+}
+
+async function confirmarRespostaCaderno(){
+  const letra=alternativaSelecionada;
+  if(!letra) return;
   const item=itensCadernoAtivo[itemCadernoAtual];
   if(!item||item.respondida) return;
   const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
@@ -1808,7 +1849,7 @@ async function responderItemCaderno(letra){
       'Sua Resposta':{rich_text:[{text:{content:letra}}]},
       'Revisões Realizadas':{number:(q.revisoesRealizadas||0)+1},
       'Última Revisão':{date:{start:new Date().toISOString().slice(0,10)}},
-      'Acertou na Revisão':{checkbox:acertou}
+      'Acertou na Revisão':{select:{name:acertou?'Sim':'Não'}}
     }},'PATCH');
 
     const novoRespondidas=(cadernoAtivo.respondidas||0)+1;
@@ -1817,6 +1858,7 @@ async function responderItemCaderno(letra){
       'Status':{select:{name:novoRespondidas>=cadernoAtivo.totalQuestoes?'Concluido':'Em Andamento'}}
     }},'PATCH');
 
+    alternativaSelecionada=null;
     await loadData();
     await abrirCaderno(cadernoAtivo?cadernoAtivo.nome:item.caderno);
   }catch(e){
@@ -1826,6 +1868,7 @@ async function responderItemCaderno(letra){
 
 function irParaItemCaderno(i){
   itemCadernoAtual=i;
+  alternativaSelecionada=null;
   renderTab(tabAtual);
 }
 
@@ -1905,35 +1948,44 @@ function renderCadernoResolucao(){
   const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
   const respondidas=itensCadernoAtivo.filter(it=>it.respondida).length;
   const alternativas=q?parseAlternativas(q.motivo):[];
-  const cor=q?(modCores[q.modulo]||{bg:'#F1EFE8',tx:'#5F5E5A'}):{bg:'#F1EFE8',tx:'#5F5E5A'};
 
   return `
     <div class="detail-back" onclick="fecharCaderno()">← Cadernos</div>
     <div class="section-title" style="margin-top:0">${cadernoAtivo?cadernoAtivo.nome:''} — ${respondidas}/${itensCadernoAtivo.length}</div>
     <div class="filter-row" style="margin-bottom:16px">
-      ${itensCadernoAtivo.map((it,i)=>`<button class="filter-btn${i===itemCadernoAtual?' active':''}" style="${it.respondida?(it.acertouCaderno?'background:#EAF3DE;color:#3B6D11;border-color:#C0DD97':'background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1'):''}" onclick="irParaItemCaderno(${i})">${it.numeroQuestao}</button>`).join('')}
+      ${itensCadernoAtivo.map((it,i)=>`<button class="filter-btn${i===itemCadernoAtual?' active':''}" style="${it.respondida?(it.acertouCaderno?'background:#EAF3DE;color:#3B6D11;border-color:#C0DD97':'background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1'):''}" onclick="irParaItemCaderno(${i})">${it.ordem}</button>`).join('')}
     </div>
     ${!q?'<div class="empty">Questão original não encontrada.</div>':`
     <div class="q-card">
       <div style="padding:14px">
-        ${badgesQuestao(q)}
-        <div class="enunciado-box" style="margin-top:16px">${formatQuestaoCompleta(q.motivo)}</div>
+        <div class="section-title" style="margin-top:0;margin-bottom:8px">Questão ${item.ordem} de ${itensCadernoAtivo.length}</div>
+        <div class="enunciado-box">${formatApenasEnunciado(q.motivo)}</div>
       </div>
     </div>
     <div class="banco-alternativas">
       ${alternativas.map(alt=>{
         const jaRespondida=item.respondida;
+        const foiSelecionada=!jaRespondida&&alternativaSelecionada===alt.letra;
         const eEsta=jaRespondida&&item.suaRespostaCaderno===alt.letra;
         const eGabarito=jaRespondida&&q.gabarito&&q.gabarito.toLowerCase()===alt.letra;
         let estilo='';
         if(jaRespondida){
           if(eGabarito) estilo='background:#EAF3DE;border-color:#639922;color:#27500A';
           else if(eEsta) estilo='background:#FCEBEB;border-color:#E24B4A;color:#A32D2D';
+        }else if(foiSelecionada){
+          estilo='background:#111;border-color:#111;color:#fff';
         }
-        return `<button class="banco-alt-btn" style="${estilo}" ${jaRespondida?'disabled':''} onclick="responderItemCaderno('${alt.letra}')"><strong>${alt.letra})</strong> ${alt.texto}</button>`;
+        return `<button class="banco-alt-btn" style="${estilo}" ${jaRespondida?'disabled':''} onclick="selecionarAlternativaCaderno('${alt.letra}')"><strong>${alt.letra})</strong> ${alt.texto}</button>`;
       }).join('')}
     </div>
+    ${!item.respondida?`<button class="modal-btn modal-btn-sim" style="width:100%;margin-top:16px" ${!alternativaSelecionada?'disabled':''} onclick="confirmarRespostaCaderno()">Confirmar resposta</button>`:''}
     ${item.respondida?`<div class="banco-resultado" style="color:${item.acertouCaderno?'#3B6D11':'#A32D2D'}">${item.acertouCaderno?'Acertou!':'Errou.'} Gabarito: ${(q.gabarito||'—').toUpperCase()}</div>`:''}
+    <div class="section-title" style="margin-top:24px;margin-bottom:8px">Sua nota nessa questão</div>
+    <textarea id="nota-questao-campo" class="nota-questao-textarea" placeholder="Por que errei? O que devo lembrar da próxima vez?">${q.notasPessoais||''}</textarea>
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px">
+      <span id="nota-questao-status" style="font-size:var(--fs-b);color:#3B6D11"></span>
+      <button class="prox-confirm-btn" onclick="salvarNotaQuestao()">Salvar nota</button>
+    </div>
     `}
   `;
 }
