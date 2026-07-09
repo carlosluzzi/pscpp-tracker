@@ -45,7 +45,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 #header-slot{flex-shrink:0}
-.content{padding:16px;padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
+.header-transition{flex-shrink:0;width:100%;height:28px;background:url('assets/head-transition.png') center/cover no-repeat;position:relative;z-index:1}
+.content{padding:16px;padding-bottom:calc(118px + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
 .app.tab-inicio .topbar{display:none}
 .hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:0;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
@@ -430,6 +431,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div id="header-slot"></div>
+
+  <div class="header-transition"></div>
 
   <div class="content" id="content">
     <div class="loading-screen"><span>Carregando dados do Notion...</span></div>
@@ -1697,8 +1700,8 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px'})}${renderModsCards(questoesFiltradas)}`:''}
-    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{fontSize:'14px'})}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px',noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
+    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -1749,7 +1752,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px'})}${modsHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px',noBg:true})}${modsHtml}`:''}
     ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D')}${erradasHtml}`:''}
   `;
 }
