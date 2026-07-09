@@ -29,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
+.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 2px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#0B1D45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:28px;height:28px;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
@@ -48,11 +48,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .app.tab-inicio .topbar{display:none}
 .hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:2px;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
-.nav-item{flex:1;padding:8px 0 calc(4px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:0}
-.nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
+.nav-item{flex:1;padding:6px 0 calc(2px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;cursor:pointer;border-radius:0}
+.nav-icon{width:19px;height:19px;color:#888;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:100%;height:100%}
 .nav-item.active .nav-icon{color:#0A2882}
-.nav-label{font-size:var(--fs-a);color:#888}
+.nav-label{font-size:var(--fs-a);color:#888;text-align:center;width:100%}
 .nav-item.active .nav-label{color:#0A2882;font-weight:500}
 
 /* TABLET (iPad na vertical e telas médias — mantém o menu embaixo, mas aproveita melhor o espaço) */
@@ -262,7 +262,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-materia-bar-er{height:4px;background:#E24B4A}
 .foco-materia-feito{flex-shrink:0;font-size:12px;padding:6px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
 .foco-materia-feito:hover{background:#f5f5f3;color:#111;border-color:#999}
-.prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.prox-list{display:flex;flex-direction:column;gap:0;margin-bottom:4px}
 .prox-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prox-list-compact{margin-bottom:0}
 .prox-list-compact{gap:0}
@@ -274,15 +274,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-list-compact .prox-cal-dia{font-size:11px}
 .prox-list-compact .prox-nome{font-size:var(--fs-d)!important;white-space:normal}
 .prox-list-compact .prox-confirm-btn{width:auto;text-align:center;padding:6px 12px;font-size:12px;flex-shrink:0}
-.prox-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:13px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.prox-item{display:flex;align-items:center;gap:12px;background:transparent;border-radius:0;padding:12px 0;box-shadow:none}
+.prox-list .prox-item+.prox-item{border-top:0.5px solid #f0f0ee}
 .prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
 .saudacao{font-size:15px;font-weight:500;color:#0B1D45;margin-bottom:6px;margin-left:33px;position:relative;z-index:1;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.resumo-topo-card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.resumo-topo-card{background:#fff;border-radius:16px;padding:16px 13px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .resumo-stats{display:flex;flex:1;justify-content:space-between}
-.resumo-stat{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;padding:0 4px;position:relative}
+.resumo-stat{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;padding:0;position:relative}
 .resumo-stat+.resumo-stat::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:0.5px;background:#e5e5e5}
 .resumo-stat svg{width:23px;height:23px}
 .resumo-stat-num{font-size:18px;font-weight:700;color:#111}
@@ -297,11 +298,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .cards-2col .card-inicio{margin-bottom:0}
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
-.card-header-left{display:flex;align-items:center;gap:6px;min-width:0}
-.card-header-left span{font-size:16.5px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-icone-mini{width:25px;height:25px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.card-icone-mini svg{width:20px;height:20px}
-.card-icone-mini img{width:18px;height:18px;object-fit:contain}
+.card-header-left{display:flex;align-items:center;gap:6px;min-width:0;line-height:1}
+.card-header-left span{font-size:14px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1;display:flex;align-items:center}
+.card-icone-mini{width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icone-mini svg{width:18px;height:18px;display:block}
+.card-icone-mini img{width:16px;height:16px;object-fit:contain;display:block}
 .card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .cards-2col .card-inicio{padding:14px 12px}
 .cards-2col .card-header-row{flex-wrap:wrap;row-gap:4px}
@@ -310,11 +311,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cards-2col .card-icone-mini svg{width:10px;height:10px}
 .card-deco{position:absolute;right:8px;bottom:6px;width:60px;height:60px;opacity:0.08;pointer-events:none}
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px 16px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:flex-start;gap:8px}
-.nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:10px}
-.nota-estrela{width:16px;height:16px;flex-shrink:0;margin-top:3px}
+.nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:8px}
 .quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;aspect-ratio:2938/704;display:flex;align-items:center}
-.quote-text-wrap{position:absolute;left:28%;right:30%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:4px 0}
-.quote-texto{font-size:15px;font-weight:700;color:#0C2340;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quote-text-wrap{position:absolute;left:27%;right:14%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:4px 0}
+.quote-texto{font-size:13.5px;font-weight:700;color:#0C2340;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
@@ -1120,7 +1120,7 @@ function renderCardFoco(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconFocoSvg}</span><span>Foco recomendado</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconFocoSvg}</span><span style="color:#0A2882">Foco recomendado</span></div>
       </div>
       <div class="foco-list">
         ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
@@ -1186,13 +1186,13 @@ function renderCardProximos(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('calendario2')}</span><span>Próximos simulados</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0C447C">${iconeSecao('calendario2')}</span><span style="color:#0C447C">Próximos simulados</span></div>
       </div>
       <div class="prox-list prox-list-compact">
         ${simulados.length?simulados.map(it=>renderProxItem(it,'#0A2882')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
       </div>
       <div class="card-header-row" style="margin-top:16px">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('calendario2')}</span><span>Próximos exercícios</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0C447C">${iconeSecao('calendario2')}</span><span style="color:#0C447C">Próximos exercícios</span></div>
       </div>
       <div class="prox-list prox-list-compact">
         ${exercicios.length?exercicios.map(it=>renderProxItem(it,'#0A2882')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
@@ -1391,11 +1391,8 @@ function renderCardBancoPratico(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático"></span><span>Banco prático</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático"></span><span style="color:#1D9E75">Banco prático</span></div>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
-      </div>
-      <div class="banco-pratico-top">
-        <span class="prox-nome">Foco sugerido pra hoje</span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
       ${fila.length?fila.map(f=>{
@@ -1456,7 +1453,7 @@ function renderCardComplementares(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3B6D11">${iconComplementaresSvg}</span><span>Atividades complementares</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3B6D11">${iconComplementaresSvg}</span><span style="color:#3B6D11">Atividades complementares</span></div>
       </div>
       <div class="prox-list">
         ${pendentes.map(c=>{
@@ -1591,13 +1588,12 @@ function renderCardNotas(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#633806">${iconNotasSvg}</span><span>Notas de estudo</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#633806">${iconNotasSvg}</span><span style="color:#633806">Notas de estudo</span></div>
       </div>
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
           <span class="nota-quote">&#10077;</span>
           <span class="nota-texto">${n.texto}</span>
-          <span class="nota-estrela"><svg viewBox="0 0 24 24" fill="#EF9F27">${secIcons.estrela}</svg></span>
           <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
         </div>`).join('')}
         <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
