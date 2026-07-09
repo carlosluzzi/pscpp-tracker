@@ -3,9 +3,10 @@
   "short_name": "PSCPP",
   "description": "Acompanhamento de estudos para o PSCPP",
   "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "background_color": "#e4eaf5",
+  "theme_color": "#e4eaf5",
   "icons": [
     {
       "src": "icon-192.png",
