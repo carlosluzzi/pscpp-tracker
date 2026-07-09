@@ -30,7 +30,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
-.appname{font-size:calc(var(--fs-h) + 2px);font-weight:400;display:flex;align-items:center;gap:9px;color:#0B1D45;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.appname{font-size:calc(var(--fs-h) + 2px);font-weight:400;display:flex;align-items:center;gap:6px;color:#0B1D45;letter-spacing:-0.4px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:32px;height:32px;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
@@ -44,7 +44,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 #header-slot{flex-shrink:0}
-.content{padding:16px;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px) + 16px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
+.content{padding:16px;padding-bottom:calc(54px + env(safe-area-inset-bottom, 0px) + 8px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
 .app.tab-inicio .topbar{display:none}
 .hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:2px;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
@@ -305,7 +305,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cards-2col .card-inicio{margin-bottom:0}
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
 .card-header-left{display:flex;align-items:center;gap:6px;min-width:0}
-.card-header-left span{font-size:13px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-header-left span{font-size:15px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-icone-mini{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-icone-mini svg{width:12px;height:12px}
 .card-icone-mini img{width:18px;height:18px;object-fit:contain}
@@ -323,16 +323,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:10px}
 .nota-estrela{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 .quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;aspect-ratio:2938/704;display:flex;align-items:center}
-.quote-text-wrap{margin-left:30%;margin-right:10%;padding:8px 0}
-.quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.quote-sub{font-size:10.5px;color:#3C5A8C;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quote-text-wrap{margin-left:28%;margin-right:8%;padding:8px 0}
+.quote-texto{font-size:15px;font-weight:700;color:#0C2340;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
-.fila-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:0.5px solid #f0f0ee}
+.fila-item{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-top:0.5px solid #f0f0ee}
+.fila-item .foco-icone{margin-top:1px}
+.fila-item .foco-materia-feito{align-self:center}
 .fila-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .fila-modulo{font-size:var(--fs-d);font-weight:600;color:#111}
 .fila-ref{font-size:var(--fs-c);color:#999}
@@ -675,7 +676,9 @@ function getProp(page,key){
   return null;
 }
 
+let syncState='loading';
 function setSyncStatus(state,text){
+  syncState=state;
   const label=state==='error'?'ERRO':'NOTION';
   document.querySelectorAll('.js-sync-dot').forEach(dot=>{
     dot.className='sync-dot js-sync-dot'+(state==='ok'?' ok':state==='loading'?' loading':' error');
@@ -910,7 +913,7 @@ function renderResumoTopo(){
   return `
   <div class="resumo-topo-card">
     <div class="resumo-anel-wrap">
-      <svg class="resumo-anel" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#f0f0ee" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="#0A2882" stroke-width="9" stroke-linecap="round" stroke-dasharray="${Math.round(263.9*aproveitamentoMedio/100)} 263.9" transform="rotate(-90 50 50)"/></svg>
+      <svg class="resumo-anel" viewBox="0 0 100 100"><defs><linearGradient id="anelGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0A2882"/><stop offset="100%" stop-color="#4A7FD6"/></linearGradient></defs><circle cx="50" cy="50" r="42" fill="none" stroke="#f0f0ee" stroke-width="6"/><circle cx="50" cy="50" r="42" fill="none" stroke="url(#anelGrad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${Math.round(263.9*aproveitamentoMedio/100)} 263.9" transform="rotate(-90 50 50)"/></svg>
       <div class="resumo-anel-texto"><span class="resumo-anel-pct">${aproveitamentoMedio}%</span><span class="resumo-anel-label">Progresso geral</span><svg class="resumo-anel-ancora" viewBox="0 0 24 24" fill="none" stroke="#0A2882" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="21"/><path d="M5 12a7 7 0 0 0 7 9 7 7 0 0 0 7-9"/><line x1="5" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="19" y2="12"/></svg></div>
     </div>
     <div class="resumo-stats">
@@ -951,7 +954,6 @@ function renderQuoteBanner(){
     <div class="quote-banner">
       <div class="quote-text-wrap">
         <div class="quote-texto">${f.t}</div>
-        <div class="quote-sub">${f.s}</div>
       </div>
     </div>
   `;
@@ -967,8 +969,8 @@ function renderHeaderZone(){
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
           </span>
           <span class="sync-status">
-            <span class="sync-dot ok js-sync-dot"></span>
-            <span class="js-sync-text">Sincronizado</span>
+            <span class="sync-dot js-sync-dot${syncState==='ok'?' ok':syncState==='loading'?' loading':' error'}"></span>
+            <span class="js-sync-text">${syncState==='error'?'ERRO':'NOTION'}</span>
           </span>
         </span>
       </div>
@@ -2479,6 +2481,8 @@ function restaurarPadraoFonte(){
   }
 })();
 
+document.querySelector('.app').classList.add('tab-inicio');
+document.getElementById('header-slot').innerHTML=renderHeaderZone();
 loadData();
 </script>
 </body>
