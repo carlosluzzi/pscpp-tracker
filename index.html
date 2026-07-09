@@ -30,7 +30,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100svh;height:100dvh;height:var(--vh-real, 100dvh);position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 2px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
+.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#0B1D45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:28px;height:28px;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
@@ -45,9 +45,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 #header-slot{flex-shrink:0}
-.content{padding:16px;padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
+.content{padding:16px;padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
 .app.tab-inicio .topbar{display:none}
-.hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:2px;position:relative;z-index:1}
+.hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:0;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
 .nav-item{flex:1;padding:18px 0 calc(20px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-item.active{background:#f0f0ee}
@@ -287,7 +287,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
 .saudacao{font-size:15px;font-weight:500;color:#0B1D45;margin-bottom:6px;margin-left:33px;position:relative;z-index:1;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.resumo-topo-card{background:#fff;border-radius:16px;padding:16px 13px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.resumo-topo-card{background:#fff;border-radius:16px;padding:16px 4px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .resumo-stats{display:flex;flex:1;justify-content:space-between}
 .resumo-stat{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;padding:0;position:relative}
 .resumo-stat+.resumo-stat::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:0.5px;background:#e5e5e5}
@@ -296,7 +296,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .resumo-stat-label{font-size:8px;color:#888;text-align:center;line-height:1.2}
 
 /* Sistema de cards da Início (substitui a trilha) */
-.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 22px;position:relative;overflow:hidden;box-sizing:border-box}
+.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;position:relative;overflow:hidden;box-sizing:border-box}
 .card-deco-img{position:absolute;right:6px;bottom:4px;opacity:0.3;pointer-events:none}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
 .header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
@@ -608,6 +608,7 @@ const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
 const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
 const secIcons={
   calendario:'<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/>',
+  ativlist:'<line x1="17.73" y1="14.86" x2="10.09" y2="14.86"/><line x1="17.73" y1="18.68" x2="10.09" y2="18.68"/><path d="M12,3.41,10.09,1.5H1.5V20.59A1.9,1.9,0,0,0,3.41,22.5H20.59a1.9,1.9,0,0,0,1.91-1.91V3.41Z"/><line x1="1.5" y1="7.23" x2="22.5" y2="7.23"/><line x1="6.27" y1="14.86" x2="8.18" y2="14.86"/><line x1="17.73" y1="11.05" x2="10.09" y2="11.05"/><line x1="6.27" y1="11.05" x2="8.18" y2="11.05"/><line x1="6.27" y1="18.68" x2="8.18" y2="18.68"/>',
   calendario2:'<path d="M3 9H21M7 3V5M17 3V5M6 13H8M6 17H8M11 13H13M11 17H13M16 13H18M16 17H18M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z"/>',
   alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   alerta:'<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
@@ -642,9 +643,14 @@ function iconeSecao(nome){
 const iconFocoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="m256,202.7c-29.4,0-53.3,23.9-53.3,53.3s23.9,53.3 53.3,53.3 53.3-23.9 53.3-53.3-23.9-53.3-53.3-53.3zm0,85.7c-17.9,0-32.4-14.5-32.4-32.4s14.5-32.4 32.4-32.4 32.4,14.5 32.4,32.4-14.5,32.4-32.4,32.4z"/><path d="m490.6,245.6h-29.6c-5.3-104.9-89.7-189.3-194.6-194.6v-29.6c0-5.8-4.7-10.4-10.4-10.4s-10.4,4.7-10.4,10.4v29.6c-104.9,5.3-189.3,89.7-194.6,194.6h-29.6c-5.8,0-10.4,4.7-10.4,10.4s4.7,10.4 10.4,10.4h29.6c5.3,104.9 89.7,189.3 194.6,194.6v29.6c0,5.8 4.7,10.4 10.4,10.4s10.4-4.7 10.4-10.4v-29.6c104.9-5.3 189.3-89.7 194.6-194.6h29.6c5.8,0 10.4-4.7 10.4-10.4s-4.7-10.4-10.4-10.4zm-50.5,0h-42.7c-5.1-69.9-61.1-125.9-131-131v-42.7c93.4,5.2 168.5,80.3 173.7,173.7zm-184.1,131.4c-66.7,0-121-54.3-121-121s54.3-121 121-121 121,54.3 121,121-54.3,121-121,121zm-10.4-305.1v42.7c-69.9,5.1-125.9,61.1-131,131h-42.7c5.2-93.4 80.3-168.5 173.7-173.7zm-173.7,194.5h42.7c5.1,69.9 61.1,125.9 131,131v42.7c-93.4-5.2-168.5-80.3-173.7-173.7zm194.5,173.7v-42.7c69.9-5.1 125.9-61.1 131-131h42.7c-5.2,93.4-80.3,168.5-173.7,173.7z"/></svg>`;
 const iconComplementaresSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="M512,19.25c0-10.1-8.195-18.279-18.287-18.279H308.866v73.652c4.586-2.558,9.865-4.008,15.481-4.008c17.623,0,31.919,14.287,31.919,31.923c0,17.619-14.288,31.914-31.919,31.914c-5.616,0-10.895-1.458-15.481-3.999v73.644h73.652c-2.549,4.586-4.008,9.864-4.008,15.476c0,17.635,14.288,31.923,31.923,31.923c17.627,0,31.914-14.288,31.914-31.923c0-5.612-1.458-10.89-3.999-15.476H512V19.25z"/><path d="M429.616,275.37h-92.794c-3.25,0-6.256,1.718-7.901,4.504l0.09-0.154l-0.106,0.171c-0.839,1.426-1.263,3.038-1.263,4.643c0,1.531,0.391,3.078,1.157,4.464l5.849,10.532c1.311,2.37,1.954,4.863,1.963,7.583c-0.008,4.203-1.621,8.08-4.586,11.062c-2.981,2.965-6.866,4.578-11.062,4.594c-4.203-0.017-8.088-1.629-11.078-4.594l0.012,0.017c-2.974-2.998-4.582-6.883-4.59-11.078c0.008-2.713,0.651-5.213,1.958-7.591l5.853-10.524c0.77-1.386,1.157-2.924,1.157-4.464c0-1.605-0.424-3.217-1.276-4.66c-1.649-2.793-4.655-4.504-7.9-4.504h-69.432v-37.184c12.548-0.196,24.4-5.14,33.278-14.035c9.09-9.066,14.125-21.227,14.116-34.072c0.008-12.862-5.03-25.023-14.116-34.081c-8.871-8.896-20.726-13.832-33.278-14.027V81.416c-0.004-5.066-4.11-9.172-9.176-9.172H34.548c-9.204-0.007-17.94,3.601-24.432,10.109C3.669,88.805,0.008,97.659,0,106.798v369.686c-0.008,9.196,3.608,17.928,10.116,24.428c6.452,6.443,15.293,10.108,24.432,10.117h369.726c9.115-0.008,17.961-3.674,24.404-10.117c6.509-6.5,10.117-15.224,10.109-24.428V284.542C438.788,279.476,434.682,275.37,429.616,275.37z M28.37,106.798c0-2.118,0.986-3.559,1.792-4.366c0.835-0.831,2.272-1.825,4.386-1.825h172.747v73.603c0,1.776,0.941,3.413,2.468,4.317c0.782,0.456,1.657,0.685,2.537,0.685c0.839,0,1.674-0.204,2.432-0.627l10.528-5.849c2.969-1.646,6.203-2.485,9.608-2.485c5.29,0,10.271,2.061,14.014,5.8c3.747,3.755,5.808,8.74,5.808,14.027c0,5.286-2.061,10.264-5.8,14.01c-3.751,3.747-8.732,5.808-14.022,5.808c-3.409,0-6.639-0.839-9.604-2.485l-10.536-5.849c-0.753-0.423-1.592-0.627-2.427-0.627c-0.88,0-1.756,0.228-2.537,0.693c-1.527,0.896-2.468,2.533-2.468,4.309v73.603h-45.575c0.09-1.133,0.134-2.264,0.134-3.38c0-11.77-4.582-22.824-12.894-31.124c-8.304-8.317-19.358-12.894-31.128-12.894c-11.766,0-22.819,4.578-31.12,12.886c-8.32,8.3-12.902,19.362-12.898,31.124c0,1.124,0.044,2.249,0.134,3.389H28.37V106.798z M207.296,482.666H34.548c-2.114,0-3.551-0.994-4.366-1.8c-0.826-0.831-1.812-2.273-1.812-4.382V303.725h73.599c1.772,0,3.413-0.937,4.313-2.46c0.9-1.532,0.925-3.422,0.062-4.969l-5.844-10.532c-1.65-2.974-2.485-6.207-2.489-9.604c0.004-5.287,2.07-10.271,5.8-14.019c3.758-3.738,8.74-5.808,14.022-5.808c5.282,0,10.264,2.07,14.01,5.8c3.743,3.755,5.808,8.74,5.812,14.018c-0.004,3.413-0.844,6.647-2.477,9.604l-5.857,10.532c-0.864,1.556-0.838,3.446,0.062,4.969c0.9,1.531,2.542,2.468,4.313,2.468h73.599v45.59c-1.133-0.089-2.26-0.13-3.376-0.13c-11.774,0-22.828,4.578-31.12,12.886c-8.324,8.308-12.902,19.362-12.894,31.124c-0.008,11.762,4.57,22.824,12.887,31.124c8.3,8.317,19.354,12.894,31.128,12.894c1.124,0,2.252-0.041,3.376-0.13V482.666z M410.424,476.484c0,2.109-0.993,3.543-1.808,4.366c-0.831,0.823-2.265,1.817-4.374,1.817H231.496v-73.603c0-1.776-0.936-3.413-2.468-4.309c-0.782-0.465-1.658-0.692-2.537-0.692c-0.835,0-1.674,0.204-2.428,0.627l-10.544,5.849c-2.961,1.645-6.191,2.484-9.6,2.484c-5.282,0-10.264-2.068-14.01-5.8c-3.743-3.747-5.808-8.732-5.812-14.019c0.004-5.294,2.07-10.271,5.808-14.018c3.744-3.739,8.724-5.808,14.015-5.816c3.385,0,6.618,0.839,9.6,2.484l10.54,5.857c0.758,0.424,1.592,0.628,2.432,0.628c0.879,0,1.755-0.229,2.537-0.684c1.527-0.904,2.468-2.542,2.468-4.318v-73.611h45.578c-0.089,1.132-0.134,2.265-0.134,3.388c-0.004,11.754,4.574,22.808,12.886,31.116c8.308,8.325,19.366,12.903,31.132,12.903c11.766,0,22.82-4.578,31.129-12.894c8.316-8.3,12.886-19.354,12.886-31.124c0-1.124-0.041-2.248-0.13-3.388h45.582V476.484z"/></svg>`;
 const iconNotasSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="M504.499,171.7l-36.207-36.207c-10.001-10.001-26.206-10.001-36.207,0L232.969,334.618c-2.807,2.807-4.924,6.238-6.187,10.01l-18.099,54.306c-0.887,2.662-1.195,5.393-1.186,8.107H76.8v25.6h153.6c0,0,7.159-0.154,10.667-1.323l54.306-18.099c3.772-1.254,7.194-3.379,10.01-6.187l199.125-199.117C514.5,197.906,514.5,181.701,504.499,171.7z M232.969,407.023l18.099-54.306l36.207,36.207L232.969,407.023z M305.382,370.825l-36.207-36.207l181.018-181.018l36.207,36.207L305.382,370.825z"/><path d="M409.6,121.797v-19.396c0-14.14-11.46-25.6-25.6-25.6h-51.2c0-14.14-11.46-25.6-25.6-25.6h-25.6v-25.6c0-14.14-11.46-25.6-25.6-25.6H153.6c-14.14,0-25.6,11.46-25.6,25.6v25.6h-25.6c-14.14,0-25.6,11.46-25.6,25.6H25.6c-14.14,0-25.6,11.46-25.6,25.6v384c0,14.14,11.46,25.6,25.6,25.6H384c14.14,0,25.6-11.46,25.6-25.6V339.004l-25.6,25.6v121.796H25.6v-384h51.2c0,14.14,11.46,25.6,25.6,25.6h204.8c14.14,0,25.6-11.46,25.6-25.6H384v44.996L409.6,121.797z M307.2,102.401H102.4v-25.6h51.2v-51.2H256v51.2h51.2V102.401z"/><polygon points="76.8,281.601 76.8,307.201 224.196,307.201 249.796,281.601"/><polygon points="76.8,179.201 76.8,204.801 326.596,204.801 352.196,179.201"/><polygon points="76.8,230.401 76.8,256.001 275.396,256.001 300.996,230.401"/></svg>`;
-function sectionTitle(texto,icone,bg,tx){
-  return `<div class="section-title"><span class="section-icon" style="background:${bg};color:${tx}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg></span><span style="color:${tx}">${texto}</span></div>`;
+function sectionTitle(texto,icone,bg,tx,opts){
+  opts=opts||{};
+  const iconBg=opts.noBg?'transparent':bg;
+  const svgHtml=opts.customSvg||`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg>`;
+  const sizeStyle=opts.fontSize?`font-size:${opts.fontSize};`:'';
+  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="color:${tx};${sizeStyle}">${texto}</span></div>`;
 }
+const iconDesempenhoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><rect x="56" y="317.484" width="80" height="146.516"/><rect x="176" y="237.484" width="80" height="226.516"/><rect x="296" y="141.484" width="80" height="322.516"/><rect x="416" y="45.484" width="80" height="418.516"/><polygon points="16,496 16,0 0,0 0,496 0,512 16,512 512,512 512,496"/></svg>`;
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
@@ -1664,7 +1670,6 @@ function renderAtividades(){
   const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
 
   return `
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
     <div class="filter-row">
       <select class="filter-select" onchange="setFiltCurso(this.value)" style="flex:1;margin-bottom:0">
         <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
@@ -1686,15 +1691,14 @@ function renderAtividades(){
     </div>
     <div class="config-reset-btn" onclick="limparFiltroData()">Redefinir</div>
     `:''}
-    ${sectionTitle('Resumo','grafico','#E6F1FB','#0A2882')}
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
       <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Número de questões</div></div>
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Desempenho por módulo','alvo','#EEEDFE','#3C3489')}${renderModsCards(questoesFiltradas)}`:''}
-    ${sectionTitle('Atividades','lista','#E6F1FB','#0A2882')}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px'})}${renderModsCards(questoesFiltradas)}`:''}
+    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{fontSize:'14px'})}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -1745,7 +1749,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','alvo','#EEEDFE','#3C3489')}${modsHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px'})}${modsHtml}`:''}
     ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D')}${erradasHtml}`:''}
   `;
 }
@@ -1939,7 +1943,7 @@ function renderQuestoes(){
   const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{noBg:true})}
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
