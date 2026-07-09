@@ -4,9 +4,9 @@
   "description": "Acompanhamento de estudos para o PSCPP",
   "start_url": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
-  "background_color": "#e4eaf5",
-  "theme_color": "#e4eaf5",
+  "display_override": ["standalone"],
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "icon-192.png",
