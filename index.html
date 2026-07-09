@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#e4eaf5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2497,35 +2497,6 @@ function restaurarPadraoFonte(){
 document.querySelector('.app').classList.add('tab-inicio');
 document.getElementById('header-slot').innerHTML=renderHeaderZone();
 loadData();
-</script>
-
-<!-- DIAG TEMPORARIO - remover depois de resolver o bug do bottom-nav -->
-<div id="diag-box" style="position:fixed;bottom:0;left:0;right:0;background:red;color:#fff;font-size:11px;padding:8px;z-index:99999;font-family:monospace;line-height:1.6"></div>
-<script>
-function mostrarDiagnostico(){
-  const box = document.getElementById('diag-box');
-  if(!box) return;
-  const testeEl = document.createElement('div');
-  testeEl.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,-1px);visibility:hidden';
-  document.body.appendChild(testeEl);
-  const safeAreaBottomReal = testeEl.getBoundingClientRect().height;
-  document.body.removeChild(testeEl);
-  box.innerHTML = [
-    'window.innerHeight: ' + window.innerHeight,
-    'window.outerHeight: ' + window.outerHeight,
-    'screen.height: ' + window.screen.height,
-    'document.documentElement.clientHeight: ' + document.documentElement.clientHeight,
-    'safe-area-inset-bottom real: ' + safeAreaBottomReal + 'px',
-    'devicePixelRatio: ' + window.devicePixelRatio,
-    'display-mode standalone: ' + window.matchMedia('(display-mode: standalone)').matches,
-    'display-mode fullscreen: ' + window.matchMedia('(display-mode: fullscreen)').matches,
-    '.bottom-nav bottom real: ' + (document.querySelector('.bottom-nav') ? document.querySelector('.bottom-nav').getBoundingClientRect().bottom : 'não achou'),
-    '.app height real: ' + (document.querySelector('.app') ? document.querySelector('.app').getBoundingClientRect().height : 'não achou')
-  ].join('<br>');
-}
-mostrarDiagnostico();
-window.addEventListener('resize', mostrarDiagnostico);
-setTimeout(mostrarDiagnostico, 1000);
 </script>
 </body>
 </html>
