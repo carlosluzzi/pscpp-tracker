@@ -208,6 +208,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .banco-alt-btn{text-align:left;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;cursor:pointer;font-family:inherit;color:#111;line-height:1.5}
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;text-align:center}
+.banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -507,7 +508,7 @@ function fmtPct(v){
 }
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
-let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTags=[],filtBancoQtd=15;
+let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
 let alternativaSelecionada=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
@@ -1708,7 +1709,7 @@ function toggleBancoTag(t){
 }
 function setFiltBancoQtd(n){filtBancoQtd=n;renderTab(tabAtual);}
 
-async function gerarCaderno(){
+function calcularPoolBanco(){
   let pool=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade);
   if(filtBancoCurso!=='todos'){
     const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
@@ -1725,6 +1726,11 @@ async function gerarCaderno(){
       return bancoCombinarTags==='E'?filtBancoTags.every(t=>qtags.includes(t)):filtBancoTags.some(t=>qtags.includes(t));
     });
   }
+  return pool;
+}
+
+async function gerarCaderno(){
+  const pool=calcularPoolBanco();
   if(!pool.length){alert('Nenhuma questão encontrada com esses filtros.');return;}
 
   const embaralhado=[...pool].sort(()=>Math.random()-0.5);
@@ -1733,7 +1739,8 @@ async function gerarCaderno(){
 
   const agora=new Date();
   const dataIso=agora.toISOString().slice(0,10);
-  const nomeCaderno=`Caderno ${dataIso} ${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+  const nomeAuto=`Caderno ${dataIso} ${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+  const nomeCaderno=filtBancoNome.trim()||nomeAuto;
   const filtrosTexto=[
     filtBancoCurso!=='todos'?`Curso: ${filtBancoCurso}`:null,
     filtBancoModulo!=='todos'?`Módulo: ${filtBancoModulo}`:null,
@@ -1770,6 +1777,7 @@ async function gerarCaderno(){
       },'POST');
     }
     await loadData();
+    filtBancoNome='';
     await abrirCaderno(nomeCaderno);
   }catch(e){
     alert('Erro ao gerar caderno: '+e.message);
@@ -1878,6 +1886,7 @@ function renderBanco(){
   const cursosDisp=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
   const publicacoes=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))];
   const tagsDisp=[...new Set(questoes.flatMap(q=>q.tags||[]))].sort();
+  const poolAtual=calcularPoolBanco();
 
   const emAndamento=cadernos.filter(c=>c.status==='Em Andamento');
   const concluidos=cadernos.filter(c=>c.status==='Concluido');
@@ -1906,6 +1915,7 @@ function renderBanco(){
     `:''}
 
     ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
+    <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
     <select class="filter-select" onchange="filtBancoCurso=this.value;renderTab(tabAtual)">
       <option value="todos">Curso: Todos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtBancoCurso===c?' selected':''}>${c}</option>`).join('')}
@@ -1935,8 +1945,10 @@ function renderBanco(){
     <div class="filter-row">
       ${[5,10,15,20,'todos'].map(n=>`<button class="filter-btn${filtBancoQtd===n?' active':''}" onclick="setFiltBancoQtd(${n==='todos'?"'todos'":n})">${n==='todos'?'Todas':n}</button>`).join('')}
     </div>
+    <input type="number" min="1" class="filter-select" style="margin-top:8px" placeholder="Ou digite uma quantidade (ex: 35)" value="${(typeof filtBancoQtd==='number'&&![5,10,15,20].includes(filtBancoQtd))?filtBancoQtd:''}" onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):15)">
 
-    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:16px" onclick="gerarCaderno()">Gerar caderno ↗</button>
+    <div class="banco-contador">${poolAtual.length} questão${poolAtual.length!==1?'ões':''} disponível${poolAtual.length!==1?'is':''} com esses filtros</div>
+    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:10px" onclick="gerarCaderno()">Gerar caderno ↗</button>
   `;
 }
 
