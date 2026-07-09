@@ -259,7 +259,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prox-list-compact{margin-bottom:0}
 .prox-list-compact{gap:0}
-.prox-list-compact .prox-item{flex-direction:column;align-items:stretch;gap:8px;padding:10px 8px;border-radius:0;box-shadow:none;background:transparent}
+.prox-list-compact .prox-item{flex-direction:column;align-items:stretch;gap:8px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent}
 .prox-list-compact .prox-item+.prox-item{border-top:1px solid #e5e5e5}
 .prox-row-top{display:flex;align-items:center;gap:8px}
 .prox-list-compact .prox-cal{width:30px;height:30px;border-radius:7px}
@@ -272,7 +272,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
-.saudacao{font-size:var(--fs-f);font-weight:700;color:#0A2882;margin-bottom:16px;margin-left:41px;position:relative;z-index:1}
+.saudacao{font-size:15px;font-weight:700;color:#0A2882;margin-bottom:6px;margin-left:41px;position:relative;z-index:1}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .resumo-anel-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
 .resumo-anel{width:84px;height:84px}
@@ -288,7 +288,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .resumo-stat-label{font-size:8px;color:#888;text-align:center;line-height:1.2}
 
 /* Sistema de cards da Início (substitui a trilha) */
-.header-zone{background:#EAF2FC url('assets/header-bg.jpg') center top/cover no-repeat;border-radius:0;margin:-16px -16px 16px;padding:18px 16px;position:relative;overflow:hidden}
+.header-zone{background:#EAF2FC url('assets/header-bg.jpg') center top/cover no-repeat;border-radius:0;margin:-16px -16px 8px;padding:18px 16px 10px;position:relative;overflow:hidden}
 .header-zone::after{content:'';position:absolute;left:0;right:0;bottom:0;height:70%;background:linear-gradient(180deg,rgba(251,252,254,0) 0%,#FBFBFA 100%);pointer-events:none}
 .card-deco-img{position:absolute;right:6px;bottom:4px;opacity:0.3;pointer-events:none}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
@@ -313,10 +313,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .regua-marcas{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#aaa}
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0A2882;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
-.quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;aspect-ratio:3/1;display:flex;align-items:center}
-.quote-text-wrap{margin-left:38%;margin-right:8%;padding:8px 0}
-.quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px}
-.quote-sub{font-size:10.5px;color:#3C5A8C;line-height:1.3}
+.quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;height:110px;display:flex;align-items:center}
+.quote-text-wrap{margin-left:30%;margin-right:10%;padding:8px 0}
+.quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quote-sub{font-size:10.5px;color:#3C5A8C;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
