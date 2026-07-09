@@ -258,18 +258,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .prox-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prox-list-compact{margin-bottom:0}
-.prox-list-compact .prox-item{align-items:center;gap:8px;padding:10px 8px}
+.prox-list-compact{gap:0}
+.prox-list-compact .prox-item{flex-direction:column;align-items:stretch;gap:8px;padding:10px 8px;border-radius:0;box-shadow:none;background:transparent}
+.prox-list-compact .prox-item+.prox-item{border-top:1px solid #e5e5e5}
+.prox-row-top{display:flex;align-items:center;gap:8px}
 .prox-list-compact .prox-cal{width:30px;height:30px;border-radius:7px}
 .prox-list-compact .prox-cal-mes{font-size:6.5px}
 .prox-list-compact .prox-cal-dia{font-size:11px}
-.prox-list-compact .prox-nome{font-size:var(--fs-c)!important}
-.prox-list-compact .prox-confirm-btn{width:auto;text-align:center;padding:5px 11px;font-size:10px}
+.prox-list-compact .prox-nome{font-size:var(--fs-d)!important;white-space:normal}
+.prox-list-compact .prox-confirm-btn{width:auto;text-align:center;padding:5px 11px;font-size:10px;align-self:flex-end}
 .prox-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:13px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
-.saudacao{font-size:var(--fs-f);font-weight:700;color:#111;margin-bottom:16px;position:relative;z-index:1}
+.saudacao{font-size:var(--fs-f);font-weight:700;color:#0A2882;margin-bottom:16px;margin-left:41px;position:relative;z-index:1}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .resumo-anel-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
 .resumo-anel{width:84px;height:84px}
@@ -293,9 +296,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card-inicio{background:#fff;border-radius:18px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
 .cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .cards-2col .card-inicio{margin-bottom:0}
-.card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:0.5px solid #eee}
+.card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
 .card-header-left{display:flex;align-items:center;gap:6px;min-width:0}
-.card-header-left span{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-header-left span{font-size:11px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-icone-mini{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-icone-mini svg{width:12px;height:12px}
 .card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
@@ -310,11 +313,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .regua-marcas{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#aaa}
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0A2882;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
-.quote-banner{background:linear-gradient(135deg,#0C2D4D 0%,#0A2882 100%);border-radius:18px;padding:20px 18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;color:#fff}
-.quote-banner svg.quote-deco{position:absolute;right:-10px;bottom:-10px;width:100px;height:100px;opacity:0.15}
-.quote-mark{font-size:28px;font-weight:700;color:#5A8FC7;line-height:1;margin-bottom:6px}
-.quote-texto{font-size:14px;font-weight:600;font-style:italic;line-height:1.4;margin-bottom:6px;position:relative}
-.quote-sub{font-size:11px;color:#B8CFE8;position:relative}
+.quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;aspect-ratio:3/1;display:flex;align-items:center}
+.quote-text-wrap{margin-left:38%;margin-right:8%;padding:8px 0}
+.quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px}
+.quote-sub{font-size:10.5px;color:#3C5A8C;line-height:1.3}
 .prox-item.prox-due{background:#FCEBEB}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
@@ -596,7 +598,7 @@ const tipoCores={
 const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
 const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
 const secIcons={
-  calendario:'<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  calendario:'<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/>',
   alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   alerta:'<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
   lista:'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/>',
@@ -944,10 +946,10 @@ function renderQuoteBanner(){
   const f=frasesEstudo[dia%frasesEstudo.length];
   return `
     <div class="quote-banner">
-      <svg class="quote-deco" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="0.8"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#fff" fill-opacity="0.3"/></svg>
-      <div class="quote-mark">"</div>
-      <div class="quote-texto">${f.t}</div>
-      <div class="quote-sub">${f.s}</div>
+      <div class="quote-text-wrap">
+        <div class="quote-texto">${f.t}</div>
+        <div class="quote-sub">${f.s}</div>
+      </div>
     </div>
   `;
 }
@@ -1162,20 +1164,21 @@ function renderProxItem(it,corBotao){
   const dia=it.proxData.getDate();
   const btnStyle=corBotao?`style="background:${corBotao};border-color:${corBotao};color:#fff"`:'';
   return `<div class="prox-item${vencida?' prox-due':''}">
-    <div class="prox-cal" style="background:${cc.tx}">
-      <span class="prox-cal-mes">${mes}</span>
-      <span class="prox-cal-dia">${dia}</span>
-    </div>
-    <div class="prox-left">
-      <span class="prox-nome">${label}</span>
-      <span class="prox-tipo">${it.tipo==='Simulado'?'Simulado':'Exercício'}</span>
+    <div class="prox-row-top">
+      <div class="prox-cal" style="background:${cc.bg};color:${cc.tx}">
+        <span class="prox-cal-mes">${mes}</span>
+        <span class="prox-cal-dia">${dia}</span>
+      </div>
+      <div class="prox-left">
+        <span class="prox-nome">${label}</span>
+      </div>
     </div>
     <button class="prox-confirm-btn" ${btnStyle} onclick="abrirConfirmacao('${it.id}','${label.replace(/'/g,"\\'")}','calendario')">feito</button>
   </div>`;
 }
 
 function renderCardSimulados(){
-  if(!calendarioRegras.length) return `<div class="card-inicio"><div class="card-header-row"><div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0A2882">${iconeSecao('calendario')}</span><span>Simulados</span></div></div><div class="empty">Nenhuma regra configurada.</div></div>`;
+  if(!calendarioRegras.length) return `<div class="card-inicio"><div class="card-header-row"><div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('calendario')}</span><span>Simulados</span></div></div><div class="empty">Nenhuma regra configurada.</div></div>`;
   const items=calendarioRegras.map(r=>{
     const prox=calcularProxima(r);
     return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
@@ -1184,11 +1187,10 @@ function renderCardSimulados(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0A2882">${iconeSecao('calendario')}</span><span>Próximos simulados</span></div>
-        <span class="card-ver-todos" onclick="filtTipo='Simulado';showTab('atividades')">Ver todos</span>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('calendario')}</span><span>Próximos simulados</span></div>
       </div>
       <div class="prox-list prox-list-compact">
-        ${simulados.length?simulados.slice(0,2).map(it=>renderProxItem(it,'#3B6D11')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
+        ${simulados.length?simulados.map(it=>renderProxItem(it,'#0A2882')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
       </div>
       <img class="card-deco-img" src="assets/leme.png" width="65" height="50" alt="">
     </div>
@@ -1205,11 +1207,10 @@ function renderCardExercicios(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:#EEEDFE;color:#3C3489">${iconeSecao('calendario')}</span><span>Próximos exercícios</span></div>
-        <span class="card-ver-todos" onclick="filtTipo='Caderno de Exercícios';showTab('atividades')">Ver todos</span>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('calendario')}</span><span>Próximos exercícios</span></div>
       </div>
       <div class="prox-list prox-list-compact">
-        ${exercicios.length?exercicios.slice(0,2).map(it=>renderProxItem(it,'#3C3489')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
+        ${exercicios.length?exercicios.map(it=>renderProxItem(it,'#0A2882')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
       </div>
       <img class="card-deco-img" src="assets/farol.png" width="70" height="76" alt="">
     </div>
@@ -1405,7 +1406,6 @@ function renderCardBancoPratico(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#0A2882">${iconeSecao('ancora')}</span><span>Banco prático</span></div>
-        <span class="card-ver-todos" onclick="showTab('banco')">Ver todos</span>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       <div class="banco-pratico-top">
@@ -1471,7 +1471,6 @@ function renderCardComplementares(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#EAF3DE;color:#3B6D11">${iconeSecao('lista')}</span><span>Atividades complementares</span></div>
-        <span class="card-ver-todos">Ver todos</span>
       </div>
       <div class="prox-list">
         ${pendentes.map(c=>{
@@ -1607,7 +1606,6 @@ function renderCardNotas(){
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:#FAEEDA;color:#633806">${iconeSecao('nota')}</span><span>Notas de estudo</span></div>
-        <span class="card-ver-todos">Ver todas</span>
       </div>
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
