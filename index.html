@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .app{max-width:480px;margin:0 auto;height:100%;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
 .appname{font-size:calc(var(--fs-h) + 2px);font-weight:400;display:flex;align-items:center;gap:9px;color:#0B1D45;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.bussola-icone{width:32px;height:32px;flex-shrink:0}
+.bussola-icone{width:32px;height:32px;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .appname b{font-weight:700}
@@ -322,7 +322,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px 16px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:flex-start;gap:8px}
 .nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:10px}
 .nota-estrela{width:16px;height:16px;flex-shrink:0;margin-top:3px}
-.quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;height:110px;display:flex;align-items:center}
+.quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;aspect-ratio:2938/704;display:flex;align-items:center}
 .quote-text-wrap{margin-left:30%;margin-right:10%;padding:8px 0}
 .quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .quote-sub{font-size:10.5px;color:#3C5A8C;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -409,20 +409,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="bg-fixed"></div>
 <div class="app">
   <div class="topbar">
-    <span class="appname"><svg class="bussola-icone" viewBox="0 0 40 40" fill="none">
-      <circle cx="20" cy="20" r="18" stroke="#0A2882" stroke-width="1"/>
-      <g transform="translate(20,20) rotate(45) scale(0.6) translate(-20,-20)">
-        <path d="M17 20 L20 3 L23 20 Z" fill="#EF9F27"/>
-        <path d="M20 17 L37 20 L20 23 Z" fill="#EF9F27"/>
-        <path d="M17 20 L20 37 L23 20 Z" fill="#EF9F27"/>
-        <path d="M20 17 L3 20 L20 23 Z" fill="#EF9F27"/>
-      </g>
-      <path d="M17 20 L20 3 L23 20 Z" fill="#0A2882"/>
-      <path d="M20 17 L37 20 L20 23 Z" fill="#0A2882"/>
-      <path d="M17 20 L20 37 L23 20 Z" fill="#0A2882"/>
-      <path d="M20 17 L3 20 L20 23 Z" fill="#0A2882"/>
-      <circle cx="20" cy="20" r="2.2" fill="#111"/>
-    </svg><span><b>PSCPP</b>&nbsp;Tracker</span></span>
+    <span class="appname"><img class="bussola-icone" src="assets/logo.png" alt="PSCPP"><span><b>PSCPP</b>&nbsp;Tracker</span></span>
     <span class="topbar-right topbar-pill">
       <span class="gear-btn" onclick="abrirConfig()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
@@ -974,18 +961,7 @@ function renderHeaderZone(){
   return `
     <div class="header-zone">
       <div class="hero-toprow">
-        <span class="appname"><svg class="bussola-icone" viewBox="0 0 40 40" fill="none">
-          <circle cx="20" cy="20" r="18" stroke="#0A2882" stroke-width="1"/>
-          <circle cx="20" cy="20" r="14.5" stroke="#0A2882" stroke-width="0.5" opacity="0.5"/>
-          <path d="M20 3 L23 20 L20 37 L17 20 Z" fill="#0A2882"/>
-          <path d="M3 20 L20 17 L37 20 L20 23 Z" fill="#0A2882"/>
-          <path d="M20 3 L23 20 L20 20 Z" fill="#A32D2D"/>
-          <path d="M9 9 L20 18 L20 20 L18 20 Z" fill="#0A2882" opacity="0.55"/>
-          <path d="M31 9 L22 18 L20 20 L20 18 Z" fill="#0A2882" opacity="0.55"/>
-          <path d="M9 31 L18 22 L20 20 L20 22 Z" fill="#0A2882" opacity="0.55"/>
-          <path d="M31 31 L20 22 L20 20 L22 20 Z" fill="#0A2882" opacity="0.55"/>
-          <circle cx="20" cy="20" r="2.2" fill="#111"/>
-        </svg><span><b>PSCPP</b>&nbsp;Tracker</span></span>
+        <span class="appname"><img class="bussola-icone" src="assets/logo.png" alt="PSCPP"><span><b>PSCPP</b>&nbsp;Tracker</span></span>
         <span class="topbar-right topbar-pill">
           <span class="gear-btn" onclick="abrirConfig()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
