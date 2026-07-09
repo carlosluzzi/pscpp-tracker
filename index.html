@@ -10,6 +10,9 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 button{transition:transform 0.12s ease,opacity 0.12s ease}
@@ -22,12 +25,12 @@ button:active{transform:scale(0.96)}
 }
 html{height:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#FBFBFA;color:#111;height:100%;position:fixed;inset:0;width:100%;overscroll-behavior:none}
-#bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#FBFBFA;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E"),url('assets/app-bg.jpg');background-repeat:repeat,no-repeat;background-position:0 0,center top;background-size:auto,cover;pointer-events:none}
+#bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#FBFBFA;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E"),url('assets/app-bg.jpg');background-repeat:repeat,no-repeat;background-position:0 0,center top;background-size:auto,cover;pointer-events:none;transform:translateZ(0);will-change:transform}
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;background:transparent;box-sizing:border-box}
-.appname{font-size:var(--fs-h);font-weight:500;display:flex;align-items:center;gap:9px;color:#0A2882}
+.appname{font-size:var(--fs-h);font-weight:500;display:flex;align-items:center;gap:9px;color:#0B1D45;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:32px;height:32px;flex-shrink:0}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
@@ -41,11 +44,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 #header-slot{flex-shrink:0}
-.content{padding:16px;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px) + 16px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.content{padding:16px;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px) + 16px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
 .app.tab-inicio .topbar{display:none}
-.hero-toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:relative;z-index:1}
+.hero-toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
-.nav-item{flex:1;padding:18px 0 calc(20px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
+.nav-item{flex:1;padding:12px 0 calc(10px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:0}
 .nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
 .nav-icon svg{width:100%;height:100%}
 .nav-item.active .nav-icon{color:#0A2882}
@@ -276,7 +279,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
-.saudacao{font-size:15px;font-weight:700;color:#0A2882;margin-bottom:6px;margin-left:41px;position:relative;z-index:1}
+.saudacao{font-size:15px;font-weight:700;color:#0B1D45;margin-bottom:6px;margin-left:41px;position:relative;z-index:1;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .resumo-anel-wrap{position:relative;width:84px;height:84px;flex-shrink:0}
 .resumo-anel{width:84px;height:84px}
@@ -292,7 +295,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .resumo-stat-label{font-size:8px;color:#888;text-align:center;line-height:1.2}
 
 /* Sistema de cards da Início (substitui a trilha) */
-.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 10px;position:relative;overflow:hidden;box-sizing:border-box}
+.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 8px) 16px 10px;position:relative;overflow:hidden;box-sizing:border-box}
 .card-deco-img{position:absolute;right:6px;bottom:4px;opacity:0.3;pointer-events:none}
 .prox-secao-divisor{height:1px;background:#e5e5e5;margin:16px 0 14px}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
