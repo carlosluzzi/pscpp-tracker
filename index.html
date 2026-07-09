@@ -23,14 +23,14 @@ button:active{transform:scale(0.96)}
   --fs-e:16px; --fs-f:18px; --fs-g:19px; --fs-h:24px;
   --sat-test:env(safe-area-inset-top,-1px);
 }
-html{height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#FBFBFA;color:#111;height:100%;position:fixed;inset:0;width:100%;overscroll-behavior:none}
+html{height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#FBFBFA;color:#111;height:100%;position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
 #bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#FBFBFA;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E"),url('assets/app-bg.jpg');background-repeat:repeat,no-repeat;background-position:0 0,center top;background-size:auto,cover;pointer-events:none;transform:translateZ(0);will-change:transform}
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;background:transparent;box-sizing:border-box}
-.appname{font-size:var(--fs-h);font-weight:500;display:flex;align-items:center;gap:9px;color:#0B1D45;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
+.appname{font-size:calc(var(--fs-h) + 2px);font-weight:400;display:flex;align-items:center;gap:9px;color:#0B1D45;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:32px;height:32px;flex-shrink:0}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
@@ -46,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #header-slot{flex-shrink:0}
 .content{padding:16px;padding-bottom:calc(78px + env(safe-area-inset-bottom, 0px) + 16px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA;background-image:linear-gradient(to bottom,transparent 0,transparent 210px,#FBFBFA 320px,#FBFBFA 100%)}
 .app.tab-inicio .topbar{display:none}
-.hero-toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;position:relative;z-index:1}
+.hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:2px;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
 .nav-item{flex:1;padding:8px 0 calc(4px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:0}
 .nav-icon{width:21px;height:21px;color:#888;display:flex;align-items:center;justify-content:center}
@@ -244,7 +244,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-icone{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .foco-icone svg{width:15px;height:15px}
 .foco-nome{font-size:var(--fs-e);font-weight:400;color:#111}
-.foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.foco-header{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .foco-header-right{display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:55%}
 .foco-bar-bg{flex:1;min-width:0;background:#f0f0ee;border-radius:4px;height:6px;overflow:hidden}
 .foco-bar-fill{height:6px;border-radius:4px;background:#0A2882}
@@ -266,14 +266,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prox-list-compact{margin-bottom:0}
 .prox-list-compact{gap:0}
-.prox-list-compact .prox-item{flex-direction:column;align-items:stretch;gap:8px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent}
-.prox-list-compact .prox-item+.prox-item{border-top:1px solid #e5e5e5}
-.prox-row-top{display:flex;align-items:center;gap:8px}
+.prox-list-compact .prox-item{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent}
+.prox-list-compact .prox-item+.prox-item{border-top:1px solid #f0f0ee}
+.prox-row-top{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .prox-list-compact .prox-cal{width:30px;height:30px;border-radius:7px}
 .prox-list-compact .prox-cal-mes{font-size:6.5px}
 .prox-list-compact .prox-cal-dia{font-size:11px}
 .prox-list-compact .prox-nome{font-size:var(--fs-d)!important;white-space:normal}
-.prox-list-compact .prox-confirm-btn{width:auto;text-align:center;padding:5px 11px;font-size:10px;align-self:flex-end}
+.prox-list-compact .prox-confirm-btn{width:auto;text-align:center;padding:5px 11px;font-size:10px;flex-shrink:0}
 .prox-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:13px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
@@ -295,9 +295,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .resumo-stat-label{font-size:8px;color:#888;text-align:center;line-height:1.2}
 
 /* Sistema de cards da Início (substitui a trilha) */
-.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 8px) 16px 10px;position:relative;overflow:hidden;box-sizing:border-box}
+.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 2px) 16px 10px;position:relative;overflow:hidden;box-sizing:border-box}
 .card-deco-img{position:absolute;right:6px;bottom:4px;opacity:0.3;pointer-events:none}
-.prox-secao-divisor{height:1px;background:#e5e5e5;margin:16px 0 14px}
+.prox-secao-divisor{height:1px;background:linear-gradient(90deg,transparent,#d5d5d1 15%,#d5d5d1 85%,transparent);margin:18px 0 14px}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
 .header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
 .card-inicio{background:#fff;border-radius:18px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
@@ -305,8 +305,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cards-2col .card-inicio{margin-bottom:0}
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #e5e5e5}
 .card-header-left{display:flex;align-items:center;gap:6px;min-width:0}
-.card-header-left span{font-size:11px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-icone-mini{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-header-left span{font-size:13px;font-weight:700;color:#0A2882;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-icone-mini{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-icone-mini svg{width:12px;height:12px}
 .card-icone-mini img{width:18px;height:18px;object-fit:contain}
 .card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
@@ -319,8 +319,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .regua-escala{margin-top:14px;padding-top:10px}
 .regua-linha{height:1px;background:repeating-linear-gradient(90deg,#ccc,#ccc 1px,transparent 1px,transparent 6px)}
 .regua-marcas{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#aaa}
-.notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-.notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0A2882;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px 16px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:flex-start;gap:8px}
+.nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:10px}
+.nota-estrela{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 .quote-banner{background:#EEF1F8 url('assets/quote-bg.jpg') center/cover no-repeat;border-radius:18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;height:110px;display:flex;align-items:center}
 .quote-text-wrap{margin-left:30%;margin-right:10%;padding:8px 0}
 .quote-texto{font-size:13px;font-weight:700;color:#0C2340;line-height:1.35;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -354,10 +355,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-confirm-btn:active{opacity:0.8}
 
 /* NOTAS DE ESTUDO */
-.notas-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;align-items:stretch}
+.notas-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
 .nota-card{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:#FEF6E0;border:0.5px solid #F5D98A;border-radius:10px;padding:12px 14px}
 .nota-texto{font-size:var(--fs-d);color:#6B4E00;flex:1;line-height:1.5}
-.nota-close{font-size:var(--fs-d);color:#8A6D1F;cursor:pointer;opacity:0.55;flex-shrink:0;padding:2px}
+.nota-close{position:absolute;top:8px;right:10px;font-size:var(--fs-c);color:#8A6D1F;cursor:pointer;opacity:0.45;flex-shrink:0;padding:2px}
 .nota-close:hover{opacity:1}
 .nota-add{font-size:var(--fs-d);color:#888;text-align:center;padding:10px;border:1px dashed #ddd;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .nota-add:hover{color:#111;border-color:#bbb}
@@ -589,11 +590,11 @@ const modCores={
 };
 const modIcones={
   'Manobrabilidade':'<circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.34 6.34l2.83 2.83M14.83 14.83l2.83 2.83M6.34 17.66l2.83-2.83M14.83 9.17l2.83-2.83"/>',
-  'Arte Naval':'<circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.34 6.34l2.83 2.83M14.83 14.83l2.83 2.83M6.34 17.66l2.83-2.83M14.83 9.17l2.83-2.83"/>',
+  'Arte Naval':'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>',
   'Navegação em Águas Restritas':'<circle cx="12" cy="5" r="2"/><path d="M12 7v13"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M5 12a7 7 0 0 0 14 0"/>',
-  'Legislação':'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  'Legislação':'<path d="M12 21V4"/><path d="M5 21h14"/><path d="M5 7l7-3 7 3"/><path d="M3 7h4"/><path d="M17 7h4"/><path d="M2 7l3 6a3 3 0 0 0 6 0L8 7"/><path d="M14 7l3 6a3 3 0 0 0 6 0l-3-6"/>',
   'Meteorologia e Oceanografia':'<path d="M17.5 19a4.5 4.5 0 1 0-1.44-8.765 5 5 0 1 0-9.12 4.03A4 4 0 0 0 8 19h9.5z"/>',
-  'Comunicações':'<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 16.25a6 6 0 0 1 0-8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>',
+  'Comunicações':'<rect x="7" y="7" width="10" height="14" rx="2"/><line x1="12" y1="2" x2="12" y2="7"/><circle cx="12" cy="2" r="1"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="14" x2="15" y2="14"/><rect x="9.5" y="17" width="5" height="2" rx="0.5"/>',
   'Conhecimentos Gerais':'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
 };
 const cursoCores={
@@ -688,10 +689,11 @@ function getProp(page,key){
 }
 
 function setSyncStatus(state,text){
+  const label=state==='error'?'ERRO':'NOTION';
   document.querySelectorAll('.js-sync-dot').forEach(dot=>{
     dot.className='sync-dot js-sync-dot'+(state==='ok'?' ok':state==='loading'?' loading':' error');
   });
-  document.querySelectorAll('.js-sync-text').forEach(txt=>{txt.textContent=text;});
+  document.querySelectorAll('.js-sync-text').forEach(txt=>{txt.textContent=label;});
 }
 
 async function loadData(){
@@ -1614,8 +1616,9 @@ function renderCardNotas(){
       </div>
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
-          <span class="notas-postit-pin"></span>
+          <span class="nota-quote">&#10077;</span>
           <span class="nota-texto">${n.texto}</span>
+          <span class="nota-estrela"><svg viewBox="0 0 24 24" fill="#EF9F27">${secIcons.estrela}</svg></span>
           <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
         </div>`).join('')}
         <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
