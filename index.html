@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#e4eaf5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
@@ -403,16 +403,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </head>
 <body>
 <div id="bg-fixed"></div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#00ff00;color:#000;font-size:11px;padding:4px;text-align:center;line-height:1.5" id="debug-safe-area"></div>
-<script>
-(function(){
-  var sat = getComputedStyle(document.documentElement).getPropertyValue('--sat-test').trim();
-  var standalone = window.matchMedia('(display-mode: standalone)').matches;
-  var iosStandalone = window.navigator.standalone;
-  document.getElementById('debug-safe-area').textContent =
-    'safe-area-top='+sat+' | display-mode-standalone='+standalone+' | navigator.standalone='+iosStandalone+' | innerH='+window.innerHeight;
-})();
-</script>
 <div class="app">
   <div class="topbar">
     <span class="appname"><svg class="bussola-icone" viewBox="0 0 40 40" fill="none">
