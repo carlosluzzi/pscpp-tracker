@@ -160,7 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pub-top{display:flex;justify-content:space-between;align-items:center}
 .pub-nm{font-size:var(--fs-d);font-weight:500;flex:1;padding-right:8px}
 .pub-nm-edit{cursor:pointer;border-bottom:0.5px dashed #ccc}
-.pub-nm-edit:hover{color:#0C447C;border-color:#0C447C}
+.pub-nm-edit:hover{color:#0A2882;border-color:#0A2882}
 .pub-stats{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .pub-ac{font-size:var(--fs-c);color:#888}
 .pub-pp{font-size:var(--fs-c);font-weight:500;min-width:28px;text-align:right}
@@ -286,8 +286,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card-ver-todos{font-size:10px;color:#888;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .card-deco{position:absolute;right:8px;bottom:6px;width:60px;height:60px;opacity:0.08;pointer-events:none}
 .notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-.notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0C447C;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
-.quote-banner{background:linear-gradient(135deg,#0C2D4D 0%,#0C447C 100%);border-radius:18px;padding:20px 18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;color:#fff}
+.notas-postit-pin{position:absolute;top:-5px;left:16px;width:11px;height:11px;border-radius:50%;background:#0A2882;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.quote-banner{background:linear-gradient(135deg,#0C2D4D 0%,#0A2882 100%);border-radius:18px;padding:20px 18px;margin-top:4px;margin-bottom:14px;position:relative;overflow:hidden;color:#fff}
 .quote-banner svg.quote-deco{position:absolute;right:-10px;bottom:-10px;width:100px;height:100px;opacity:0.15}
 .quote-mark{font-size:28px;font-weight:700;color:#5A8FC7;line-height:1;margin-bottom:6px}
 .quote-texto{font-size:14px;font-weight:600;font-style:italic;line-height:1.4;margin-bottom:6px;position:relative}
@@ -372,7 +372,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body>
 <div class="app">
   <div class="topbar">
-    <span class="appname"><svg class="bussola-icone" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#0C447C" stroke-width="1.3"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#0C447C"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#A32D2D" fill-opacity="0" /><path d="M13 13 15.5 8.5 11 11z" fill="#A32D2D"/><circle cx="12" cy="12" r="1.2" fill="#111"/></svg>PSCPP Tracker</span>
+    <span class="appname"><svg class="bussola-icone" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#0A2882" stroke-width="1.3"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#0A2882"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z" fill="#A32D2D" fill-opacity="0" /><path d="M13 13 15.5 8.5 11 11z" fill="#A32D2D"/><circle cx="12" cy="12" r="1.2" fill="#111"/></svg>PSCPP Tracker</span>
     <span class="topbar-right">
       <span class="gear-btn" onclick="abrirConfig()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
@@ -529,7 +529,7 @@ const DB_CADERNOS='588cc9d8e1c04ce5954a102ea0be9645';
 const DB_ITENS_CADERNO='954f07196a5846c4b00a651aafc86f13';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
-  'Arte Naval':{bg:'#E6F1FB',tx:'#0C447C'},
+  'Arte Naval':{bg:'#E6F1FB',tx:'#0A2882'},
   'Navegação em Águas Restritas':{bg:'#EAF3DE',tx:'#27500A'},
   'Legislação':{bg:'#FAEEDA',tx:'#633806'},
   'Meteorologia e Oceanografia':{bg:'#FCEBEB',tx:'#791F1F'},
@@ -549,10 +549,10 @@ const cursoCores={
   'Curso H':{bg:'#E1F5EE',tx:'#085041'},
   'Catavento':{bg:'#EEEDFE',tx:'#3C3489'},
   'MPX':{bg:'#FAEEDA',tx:'#633806'},
-  'Curso Prático':{bg:'#E6F1FB',tx:'#0C447C'},
+  'Curso Prático':{bg:'#E6F1FB',tx:'#0A2882'},
 };
 const tipoCores={
-  'Simulado':{bg:'#E6F1FB',tx:'#0C447C'},
+  'Simulado':{bg:'#E6F1FB',tx:'#0A2882'},
   'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
 };
 const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
@@ -899,7 +899,7 @@ function renderQuoteBanner(){
 function renderInicio(){
   return `
     <div class="header-zone">
-      <svg class="header-bussola-deco" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="0.7"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z"/></svg>
+      <svg class="header-bussola-deco" viewBox="0 0 24 24" fill="none" stroke="#0A2882" stroke-width="0.7"><circle cx="12" cy="12" r="10"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5z"/></svg>
       <div class="saudacao">${saudacao()}, Carlos! 👋</div>
     </div>
     ${renderResumoTopo()}
@@ -908,10 +908,8 @@ function renderInicio(){
       ${renderCardExercicios()}
     </div>
     ${renderCardBancoPratico()}
-    <div class="cards-2col">
-      ${renderCardFoco()}
-      ${renderCardComplementares()}
-    </div>
+    ${renderCardFoco()}
+    ${renderCardComplementares()}
     ${renderCardNotas()}
     ${renderQuoteBanner()}
   `;
@@ -1093,7 +1091,7 @@ function renderProxItem(it){
 }
 
 function renderCardSimulados(){
-  if(!calendarioRegras.length) return `<div class="card-inicio"><div class="card-header-row"><div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0C447C">${iconeSecao('calendario')}</span><span>Simulados</span></div></div><div class="empty">Nenhuma regra configurada.</div></div>`;
+  if(!calendarioRegras.length) return `<div class="card-inicio"><div class="card-header-row"><div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0A2882">${iconeSecao('calendario')}</span><span>Simulados</span></div></div><div class="empty">Nenhuma regra configurada.</div></div>`;
   const items=calendarioRegras.map(r=>{
     const prox=calcularProxima(r);
     return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
@@ -1102,12 +1100,12 @@ function renderCardSimulados(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0C447C">${iconeSecao('calendario')}</span><span>Simulados</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:#E6F1FB;color:#0A2882">${iconeSecao('calendario')}</span><span>Simulados</span></div>
       </div>
       <div class="prox-list prox-list-compact">
         ${simulados.length?simulados.slice(0,2).map(renderProxItem).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
       </div>
-      <svg class="card-deco" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="1.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/></svg>
+      <svg class="card-deco" viewBox="0 0 24 24" fill="none" stroke="#0A2882" stroke-width="1.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/></svg>
     </div>
   `;
 }
@@ -1590,7 +1588,7 @@ function renderAtividades(){
     </div>
     <div class="config-reset-btn" onclick="limparFiltroData()">Redefinir</div>
     `:''}
-    ${sectionTitle('Resumo','grafico','#E6F1FB','#0C447C')}
+    ${sectionTitle('Resumo','grafico','#E6F1FB','#0A2882')}
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${lista.length}</div><div class="stat-lbl">Atividades</div></div>
       <div class="stat-card"><div class="stat-val">${totalQ}</div><div class="stat-lbl">Número de questões</div></div>
@@ -1598,7 +1596,7 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
     ${lista.length?`${sectionTitle('Desempenho por módulo','alvo','#EEEDFE','#3C3489')}${renderModsCards(questoesFiltradas)}`:''}
-    ${sectionTitle('Atividades','lista','#E6F1FB','#0C447C')}
+    ${sectionTitle('Atividades','lista','#E6F1FB','#0A2882')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -2306,7 +2304,7 @@ function renderCadernoResolucao(){
           if(eGabarito) estilo='background:#EAF3DE;border-color:#639922;color:#27500A';
           else if(eEsta) estilo='background:#FCEBEB;border-color:#E24B4A;color:#A32D2D';
         }else if(foiSelecionada){
-          estilo='background:#E6F1FB;border-color:#0C447C;color:#0C447C';
+          estilo='background:#E6F1FB;border-color:#0A2882;color:#0A2882';
         }
         return `<button class="banco-alt-btn" style="${estilo}" ${jaRespondida?'disabled':''} onclick="selecionarAlternativaCaderno('${alt.letra}')"><strong>${alt.letra})</strong> ${alt.texto}</button>`;
       }).join('')}
