@@ -29,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#FBFBFA;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E"),url('assets/app-bg.jpg');background-repeat:repeat,no-repeat;background-position:0 0,center top;background-size:auto,cover;pointer-events:none;transform:translateZ(0);will-change:transform}
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
-.app{max-width:480px;margin:0 auto;height:100%;height:100svh;height:100dvh;height:var(--vh-real, 100dvh);position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
+.app{max-width:480px;margin:0 auto;height:100%;height:100svh;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 .topbar{position:static;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#0B1D45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .bussola-icone{width:28px;height:28px;flex-shrink:0;object-fit:contain;display:block}
@@ -45,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 #header-slot{flex-shrink:0}
-.content{padding:16px;padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA}
+.content{padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA}
 .app.tab-inicio .topbar{display:none}
 .hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:0;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
@@ -402,16 +402,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ctit{font-size:var(--fs-e);font-weight:500;margin-bottom:2px}
 .cdesc{font-size:var(--fs-d);color:#888;line-height:1.5}
 </style>
-<script>
-(function(){
-  function ajustarAlturaReal(){
-    document.documentElement.style.setProperty('--vh-real', window.innerHeight + 'px');
-  }
-  ajustarAlturaReal();
-  window.addEventListener('resize', ajustarAlturaReal);
-  window.addEventListener('orientationchange', ajustarAlturaReal);
-})();
-</script>
 </head>
 <body>
 <div id="bg-fixed"></div>
@@ -2478,6 +2468,9 @@ function fecharConfig(){
 }
 function aplicarFontScale(v){
   document.querySelector('.content').style.zoom=(v/100);
+  // compensa o zoom pra reserva de espaço do bottom-nav continuar batendo com a altura real da tela,
+  // independente do zoom aplicado (evita o nav cobrir/deixar sobra variável de conteúdo)
+  document.documentElement.style.setProperty('--nav-clear', (76/(v/100))+'px');
   localStorage.setItem('pscpp_font_scale',v);
   const label=document.getElementById('font-value');
   if(label) label.textContent=v+'%';
