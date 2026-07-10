@@ -1470,7 +1470,7 @@ function renderCardComplementares(){
     const ordem={Alta:0,Média:1,Baixa:2};
     return (ordem[a.prioridade]??3)-(ordem[b.prioridade]??3);
   });
-  const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#F1EFE8',tx:'#5F5E5A'}};
+  const prioCor={Alta:{bg:'#FCEBEB',tx:'#A32D2D'},'Média':{bg:'#FAEEDA',tx:'#633806'},Baixa:{bg:'#EAF3DE',tx:'#3B6D11'}};
   return `
     <div class="card-inicio">
       <div class="card-header-row">
@@ -1484,7 +1484,7 @@ function renderCardComplementares(){
               <span class="prox-nome">${c.nome}</span>
               <div class="prox-badges">
                 ${pc?`<span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>`:''}
-                ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">a cada ${c.recorrenciaDias}d<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
+                ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">A cada ${c.recorrenciaDias} ${c.recorrenciaDias===1?'dia':'dias'}<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
               </div>
             </div>
             <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
