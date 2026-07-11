@@ -811,7 +811,7 @@ async function loadData(){
     })).sort((a,b)=>(b.dataCriacao||'').localeCompare(a.dataCriacao||''));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
-    renderTab(tabAtual);
+    renderTab(tabAtual,true);
   }catch(e){
     setSyncStatus('error','Erro de conexão');
     document.getElementById('content').innerHTML=`<div class="error-screen">Erro ao conectar com o Notion.<br><br>${e.message}</div>`;
@@ -827,17 +827,18 @@ function showTab(tab){
   renderTab(tab);
 }
 
-function renderTab(tab){
+function renderTab(tab,preservarScroll){
   const c=document.getElementById('content');
+  const scrollAnterior=preservarScroll?c.scrollTop:0;
   const isInicio=tab==='inicio'&&!atividadeAtual;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
   document.getElementById('header-slot').innerHTML=isInicio?renderHeaderZone():'';
-  c.scrollTop=0;
-  if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);return;}
+  if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio') c.innerHTML=renderInicio();
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
   else if(tab==='banco') c.innerHTML=renderBanco();
+  c.scrollTop=scrollAnterior;
 }
 
 function fmtData(d){
@@ -2136,7 +2137,7 @@ async function excluirQuestaoBanco(){
     await notionCall(`/pages/${q.id}`,{properties:{'Excluida':{checkbox:true}}},'PATCH');
     q.excluida=true;
     alert('Questão excluída do banco.');
-    renderTab(tabAtual);
+    renderTab(tabAtual,true);
   }catch(e){
     alert('Erro ao excluir: '+e.message);
   }
@@ -2149,7 +2150,7 @@ async function toggleFavoritaQuestao(){
   try{
     await notionCall(`/pages/${q.id}`,{properties:{'Favorita':{checkbox:novoValor}}},'PATCH');
     q.favorita=novoValor;
-    renderTab(tabAtual);
+    renderTab(tabAtual,true);
   }catch(e){
     alert('Erro ao favoritar: '+e.message);
   }
@@ -2222,7 +2223,7 @@ async function salvarNotaPopupBanco(){
 
 function selecionarAlternativaCaderno(letra){
   alternativaSelecionada=letra;
-  renderTab(tabAtual);
+  renderTab(tabAtual,true);
 }
 
 async function confirmarRespostaCaderno(){
@@ -2263,7 +2264,7 @@ async function confirmarRespostaCaderno(){
     cadernoAtivo.respondidas=novoRespondidas;
 
     alternativaSelecionada=null;
-    renderTab(tabAtual);
+    renderTab(tabAtual,true);
   }catch(e){
     alert('Erro ao responder: '+e.message);
   }
