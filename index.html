@@ -676,6 +676,7 @@ function fmtPct(v){
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
 let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
+let bancoCadernosAndamentoAberto=false;
 let alternativaSelecionada=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
@@ -1764,7 +1765,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px',noBg:true})}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
   `;
 }
 
@@ -1957,7 +1958,7 @@ function renderQuestoes(){
   const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{noBg:true})}
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
@@ -2348,10 +2349,14 @@ function renderBanco(){
   const concluidos=cadernos.filter(c=>c.status==='Concluido');
 
   return `
-    ${sectionTitle('Banco','grafico','#EEEDFE','#3C3489')}
+    ${sectionTitle('Banco','grafico','#EEEDFE','#3C3489',{fontSize:'14px',noBg:true})}
 
     ${emAndamento.length?`
-    <div class="section-title" style="margin-top:0">Cadernos em andamento</div>
+    <div class="section-title" style="margin-top:0;cursor:pointer" onclick="toggleBancoCadernosAndamento()">
+      <span>Cadernos em andamento (${emAndamento.length})</span>
+      <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto">▾</span>
+    </div>
+    <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
     ${emAndamento.map(c=>`<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="prox-left">
         <span class="prox-nome">${c.nome}</span>
@@ -2359,6 +2364,7 @@ function renderBanco(){
       </div>
       <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
     </div>`).join('')}
+    </div>
     `:''}
 
     ${concluidos.length?`
@@ -2372,34 +2378,34 @@ function renderBanco(){
     </div>`).join('')}
     `:''}
 
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
     <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
     <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
-      <option value="todos">Curso: Todos</option>
+      <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtBancoCurso===c?' selected':''}>${c}</option>`).join('')}
     </select>
     <select class="filter-select" onchange="setFiltBancoModulo(this.value)">
-      <option value="todos">Módulo PSCPP: Todos</option>
+      <option value="todos">Todos os módulos</option>
       ${modulosDisp.map(m=>`<option value="${m}"${filtBancoModulo===m?' selected':''}>${m}</option>`).join('')}
     </select>
     <select class="filter-select" onchange="setFiltBancoPublicacao(this.value)">
-      <option value="todos">Publicação: Todos</option>
+      <option value="todos">Todas as publicações</option>
       ${publicacoesDisp.map(p=>`<option value="${p}"${filtBancoPublicacao===p?' selected':''}>${nomePub(p)}</option>`).join('')}
     </select>
-    <select class="filter-select" onchange="setFiltBancoStatus(this.value)">
-      <option value="todos">Status: Todos</option>
-      <option${filtBancoStatus==='Acertei'?' selected':''}>Acertei</option>
-      <option${filtBancoStatus==='Errei'?' selected':''}>Errei</option>
-      <option${filtBancoStatus==='Acertei com dúvida'?' selected':''}>Acertei com dúvida</option>
-      <option${filtBancoStatus==='Nunca respondida'?' selected':''}>Nunca respondida</option>
-    </select>
     <select class="filter-select" onchange="setFiltBancoTipoQuestao(this.value)">
-      <option value="todos">Tipo de Questão: Todos</option>
+      <option value="todos">Todos os tipos de questão</option>
       <option${filtBancoTipoQuestao==='Conceitual'?' selected':''}>Conceitual</option>
       <option${filtBancoTipoQuestao==='Cálculo'?' selected':''}>Cálculo</option>
       <option${filtBancoTipoQuestao==='Número'?' selected':''}>Número</option>
       <option${filtBancoTipoQuestao==='Lista'?' selected':''}>Lista</option>
       <option${filtBancoTipoQuestao==='Identificação'?' selected':''}>Identificação</option>
+    </select>
+    <select class="filter-select" onchange="setFiltBancoStatus(this.value)">
+      <option value="todos">Todos os status</option>
+      <option${filtBancoStatus==='Acertei'?' selected':''}>Acertei</option>
+      <option${filtBancoStatus==='Errei'?' selected':''}>Errei</option>
+      <option${filtBancoStatus==='Acertei com dúvida'?' selected':''}>Acertei com dúvida</option>
+      <option${filtBancoStatus==='Nunca respondida'?' selected':''}>Nunca respondida</option>
     </select>
 
     <div class="section-title">Tags <span class="banco-combine-toggle" onclick="toggleBancoCombinar()">Combinar: ${bancoCombinarTags}</span></div>
@@ -2484,6 +2490,10 @@ function renderCadernoResolucao(){
   `;
 }
 
+function toggleBancoCadernosAndamento(){
+  bancoCadernosAndamentoAberto=!bancoCadernosAndamentoAberto;
+  renderTab(tabAtual,true);
+}
 function toggleMod(i){
   const d=document.getElementById('mdet'+i);
   const c=document.getElementById('mchev'+i);
