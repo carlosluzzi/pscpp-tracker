@@ -675,7 +675,7 @@ function fmtPct(v){
 }
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
-let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
+let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
 let alternativaSelecionada=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
@@ -758,6 +758,7 @@ async function loadData(){
       motivo:getProp(p,'Questão Completa')||null,
       revisoesRealizadas:getProp(p,'Revisões Realizadas')||0,
       acertouRevisao:getProp(p,'Acertou na Revisão')||null,
+      tipoQuestao:getProp(p,'Tipo de Questão')||null,
       ultimaRevisao:getProp(p,'Última Revisão')||null,
       notasPessoais:getProp(p,'Notas Pessoais')||'',
       favorita:getProp(p,'Favorita')||false,
@@ -2047,6 +2048,9 @@ function calcularPoolBanco(){
   if(filtBancoStatus!=='todos'){
     pool=filtBancoStatus==='Nunca respondida'?pool.filter(q=>!q.status):pool.filter(q=>q.status===filtBancoStatus);
   }
+  if(filtBancoTipoQuestao!=='todos'){
+    pool=pool.filter(q=>q.tipoQuestao===filtBancoTipoQuestao);
+  }
   if(filtBancoTags.length){
     pool=pool.filter(q=>{
       const qtags=q.tags||[];
@@ -2389,6 +2393,14 @@ function renderBanco(){
       <option${filtBancoStatus==='Acertei com dúvida'?' selected':''}>Acertei com dúvida</option>
       <option${filtBancoStatus==='Nunca respondida'?' selected':''}>Nunca respondida</option>
     </select>
+    <select class="filter-select" onchange="setFiltBancoTipoQuestao(this.value)">
+      <option value="todos">Tipo de Questão: Todos</option>
+      <option${filtBancoTipoQuestao==='Conceitual'?' selected':''}>Conceitual</option>
+      <option${filtBancoTipoQuestao==='Cálculo'?' selected':''}>Cálculo</option>
+      <option${filtBancoTipoQuestao==='Número'?' selected':''}>Número</option>
+      <option${filtBancoTipoQuestao==='Lista'?' selected':''}>Lista</option>
+      <option${filtBancoTipoQuestao==='Identificação'?' selected':''}>Identificação</option>
+    </select>
 
     <div class="section-title">Tags <span class="banco-combine-toggle" onclick="toggleBancoCombinar()">Combinar: ${bancoCombinarTags}</span></div>
     <div class="banco-tags-row">
@@ -2524,6 +2536,10 @@ function setFiltBancoPublicacao(v){
 }
 function setFiltBancoStatus(v){
   filtBancoStatus=v;
+  renderTab(tabAtual,true);
+}
+function setFiltBancoTipoQuestao(v){
+  filtBancoTipoQuestao=v;
   renderTab(tabAtual,true);
 }
 
