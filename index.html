@@ -655,6 +655,15 @@ const iconDesempenhoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><rect x=
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
+// Versão "efetiva" pro cálculo de métricas de estudo (Foco Recomendado, Banco Prático):
+// usa a revisão mais recente quando existir, senão cai pro status original do simulado.
+// Diferente de isAcerto() pura, que é usada na aba Atividades pra manter o histórico intacto.
+function isAcertoEfetivo(q){
+  if(q.revisoesRealizadas>0 && q.acertouRevisao){
+    return q.acertouRevisao==='Sim';
+  }
+  return isAcerto(q);
+}
 function statusInfo(q){
   if(q.status==='Anulada') return {label:'anulada',color:'#854F0B'};
   if(isAcerto(q)) return {label:'acerto',color:'#3B6D11'};
@@ -748,6 +757,8 @@ async function loadData(){
       gabarito:getProp(p,'Gabarito')||null,
       motivo:getProp(p,'Questão Completa')||null,
       revisoesRealizadas:getProp(p,'Revisões Realizadas')||0,
+      acertouRevisao:getProp(p,'Acertou na Revisão')||null,
+      ultimaRevisao:getProp(p,'Última Revisão')||null,
       notasPessoais:getProp(p,'Notas Pessoais')||'',
       favorita:getProp(p,'Favorita')||false,
       excluida:getProp(p,'Excluida')||false,
@@ -1050,7 +1061,7 @@ function calcularModsPct(){
   return mods.map(m=>{
     const qs=questoes.filter(q=>q.modulo===m);
     if(!qs.length) return null;
-    const ac=qs.filter(isAcerto).length;
+    const ac=qs.filter(isAcertoEfetivo).length;
     return {nome:m,pct:Math.round(ac/qs.length*100),total:qs.length};
   }).filter(Boolean);
 }
@@ -1070,7 +1081,7 @@ function isDismissed(chave,questoesRelevantes){
 function renderFocoItem(m,i){
   const c=fc(m.pct);
   const deg=Math.round(m.pct*3.6);
-  const errosDoModulo=questoes.filter(q=>q.modulo===m.nome&&q.status==='Errei');
+  const errosDoModulo=questoes.filter(q=>q.modulo===m.nome&&!isAcertoEfetivo(q));
 
   // agrupa por matéria: tag quando existe, senão o nome da publicação como fallback
   const materiaInfo={};
@@ -1100,8 +1111,8 @@ function renderFocoItem(m,i){
       qsDaMateria=questoes.filter(q=>q.modulo===m.nome&&q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
       refEstudo=nomePub(info.pubFallback);
     }
-    const ac=qsDaMateria.filter(isAcerto).length;
-    const er=qsDaMateria.filter(q=>q.status==='Errei').length;
+    const ac=qsDaMateria.filter(isAcertoEfetivo).length;
+    const er=qsDaMateria.filter(q=>!isAcertoEfetivo(q)).length;
     const total=ac+er;
     const pct=total?Math.round(ac/total*100):0;
     return {label:info.label,refEstudo,ac,er,total,pct,chave,qsDaMateria};
@@ -1232,7 +1243,7 @@ function renderCardProximos(){
 
 // BANCO PRÁTICO
 function calcularFocoSugerido(moduloNome){
-  const erros=questoes.filter(q=>q.modulo===moduloNome&&q.status==='Errei');
+  const erros=questoes.filter(q=>q.modulo===moduloNome&&!isAcertoEfetivo(q));
   if(!erros.length) return moduloNome;
   const contagemTags={};
   erros.forEach(q=>(q.tags||[]).forEach(t=>{contagemTags[t]=(contagemTags[t]||0)+1;}));
@@ -1270,7 +1281,7 @@ function wilsonScoreLowerBound(k,n){
 function calcularMateriasGlobais(){
   const materiaInfo={};
   questoes.forEach(q=>{
-    if(q.status!=='Errei') return;
+    if(isAcertoEfetivo(q)) return;
     if(q.tags&&q.tags.length){
       q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
     }else{
@@ -1285,8 +1296,8 @@ function calcularMateriasGlobais(){
     }else{
       qsDaMateria=questoes.filter(q=>q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
     }
-    const ac=qsDaMateria.filter(isAcerto).length;
-    const er=qsDaMateria.filter(q=>q.status==='Errei').length;
+    const ac=qsDaMateria.filter(isAcertoEfetivo).length;
+    const er=qsDaMateria.filter(q=>!isAcertoEfetivo(q)).length;
     const total=ac+er;
     const peso=wilsonScoreLowerBound(er,total);
     const modulo=qsDaMateria[0]?qsDaMateria[0].modulo:'';
@@ -2242,8 +2253,6 @@ async function confirmarRespostaCaderno(){
     }},'PATCH');
 
     await notionCall(`/pages/${q.id}`,{properties:{
-      'Status':{select:{name:acertou?'Acertei':'Errei'}},
-      'Sua Resposta':{rich_text:[{text:{content:letra}}]},
       'Revisões Realizadas':{number:(q.revisoesRealizadas||0)+1},
       'Última Revisão':{date:{start:new Date().toISOString().slice(0,10)}},
       'Acertou na Revisão':{select:{name:acertou?'Sim':'Não'}}
@@ -2258,9 +2267,9 @@ async function confirmarRespostaCaderno(){
     item.respondida=true;
     item.suaRespostaCaderno=letra;
     item.acertouCaderno=acertou;
-    q.status=acertou?'Acertei':'Errei';
-    q.suaResposta=letra;
     q.revisoesRealizadas=(q.revisoesRealizadas||0)+1;
+    q.acertouRevisao=acertou?'Sim':'Não';
+    q.ultimaRevisao=new Date().toISOString().slice(0,10);
     cadernoAtivo.respondidas=novoRespondidas;
 
     alternativaSelecionada=null;
