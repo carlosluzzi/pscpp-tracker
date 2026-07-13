@@ -173,7 +173,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mod-nm{font-size:var(--fs-e);font-weight:400}
 .mod-right{display:flex;align-items:center;gap:6px}
 .mod-p{font-size:var(--fs-c);font-weight:600;padding:3px 9px;border-radius:20px}
-.chev{font-size:var(--fs-d);color:#888;transition:transform 0.2s}
+.chev{font-size:16px;color:#888;transition:transform 0.2s}
 .chev.open{transform:rotate(180deg)}
 .bbg{background:#f0f0ee;border-radius:6px;height:6px;overflow:hidden}
 .bf{height:6px;border-radius:6px}
@@ -679,6 +679,7 @@ let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=
 let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
 let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false;
 let bancoCadernosAndamentoAberto=false;
+let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
 let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtModulo='todos';
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
@@ -2375,6 +2376,11 @@ async function excluirCaderno(nome){
       tarefasFinais.push(notionCall(`/pages/${it.id}`,{archived:true},'PATCH'));
     });
     await Promise.all(tarefasFinais);
+    if(cadernoAtivo&&cadernoAtivo.nome===nome){
+      cadernoAtivo=null;
+      itensCadernoAtivo=[];
+      itemCadernoAtual=0;
+    }
     await loadData();
   }catch(e){
     alert('Erro ao excluir caderno: '+e.message);
@@ -2478,7 +2484,11 @@ function renderBanco(){
     `:''}
 
     ${concluidos.length?`
-    <div class="section-title">Cadernos concluídos</div>
+    <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosConcluidos()">
+      <span>Cadernos concluídos (${concluidos.length})</span>
+      <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto">▾</span>
+    </div>
+    <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
     ${concluidos.map(c=>{
       const itensDoCaderno=itensCadernoTodos.filter(it=>it.caderno===c.nome);
       const respondidasReal=itensDoCaderno.filter(it=>it.respondida).length;
@@ -2492,6 +2502,7 @@ function renderBanco(){
       <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
     </div>`;
     }).join('')}
+    </div>
     `:''}
 
     ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
@@ -2585,13 +2596,14 @@ function renderCadernoResolucao(){
       }).join('')}
     </div>
     ${!item.respondida?`<button class="modal-btn modal-btn-sim" style="width:100%;margin-top:16px" ${!alternativaSelecionada?'disabled':''} onclick="confirmarRespostaCaderno()">Confirmar resposta</button>`:''}
-    ${item.respondida?`<div class="banco-resultado" style="color:${item.acertouCaderno?'#3B6D11':'#A32D2D'}">${item.acertouCaderno?'Acertou!':'Errou.'} Gabarito: ${(q.gabarito||'—').toUpperCase()}</div>
+    ${item.respondida?`<div class="banco-resultado" style="color:${item.acertouCaderno?'#3B6D11':'#A32D2D'}">${item.acertouCaderno?'Acertou!':'Errou.'} Gabarito: ${(q.gabarito||'—').toUpperCase()}</div>`:''}
     <div style="display:flex;gap:8px;margin-top:12px">
-      ${itemCadernoAtual>0?`<button class="prox-confirm-btn" style="flex:1;background:#fff;color:#111;border:0.5px solid #ccc" onclick="irParaItemCaderno(${itemCadernoAtual-1})">← Anterior</button>`:''}
-      ${itemCadernoAtual<itensCadernoAtivo.length-1?`<button class="prox-confirm-btn" style="flex:1" onclick="irParaItemCaderno(${itemCadernoAtual+1})">Próxima →</button>`:''}
+      ${itemCadernoAtual>0?`<button class="prox-confirm-btn" style="flex:1;padding:10px;font-size:var(--fs-e);border-radius:8px;background:#fff;color:#111;border:0.5px solid #ccc" onclick="irParaItemCaderno(${itemCadernoAtual-1})">← Anterior</button>`:''}
+      ${itemCadernoAtual<itensCadernoAtivo.length-1?`<button class="prox-confirm-btn" style="flex:1;padding:10px;font-size:var(--fs-e);border-radius:8px" onclick="irParaItemCaderno(${itemCadernoAtual+1})">Próxima →</button>`:''}
     </div>
-    ${itensCadernoAtivo.every(it=>it.respondida)?`<button class="modal-btn modal-btn-sim" style="width:100%;margin-top:12px" onclick="finalizarCaderno()">Finalizar caderno ✓</button>`:''}
-    `:''}
+    ${itensCadernoAtivo.every(it=>it.respondida)?`<button class="prox-confirm-btn" style="width:100%;margin-top:12px;padding:10px;font-size:var(--fs-e);border-radius:8px;background:#fff;color:#A32D2D;border:0.5px solid #F7C1C1" onclick="excluirCaderno('${cadernoAtivo.nome.replace(/'/g,"\\'")}')">Excluir caderno</button>
+    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:8px" onclick="finalizarCaderno()">Finalizar caderno ✓</button>`:''}
+    
     <div class="banco-acoes">
       <button class="banco-acao-btn" onclick="excluirQuestaoBanco()" title="Excluir">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -2616,6 +2628,10 @@ function renderCadernoResolucao(){
 
 function toggleBancoCadernosAndamento(){
   bancoCadernosAndamentoAberto=!bancoCadernosAndamentoAberto;
+  renderTab(tabAtual,true);
+}
+function toggleBancoCadernosConcluidos(){
+  bancoCadernosConcluidosAberto=!bancoCadernosConcluidosAberto;
   renderTab(tabAtual,true);
 }
 function toggleMod(i){
