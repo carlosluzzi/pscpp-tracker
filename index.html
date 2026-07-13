@@ -2007,7 +2007,7 @@ function renderQuestoes(){
 let bancoCombinarTags='OU';
 function toggleBancoCombinar(){
   bancoCombinarTags=bancoCombinarTags==='OU'?'E':'OU';
-  renderTab(tabAtual);
+  renderTab(tabAtual,true);
 }
 function parseAlternativas(texto){
   if(!texto) return [];
@@ -2024,10 +2024,18 @@ function parseAlternativas(texto){
 function toggleBancoTag(t){
   const idx=filtBancoTags.indexOf(t);
   if(idx===-1) filtBancoTags.push(t); else filtBancoTags.splice(idx,1);
-  renderTab(tabAtual);
+  renderTab(tabAtual,true);
 }
-function setFiltBancoQtd(n){filtBancoQtd=n;renderTab(tabAtual);}
+function setFiltBancoQtd(n){filtBancoQtd=n;renderTab(tabAtual,true);}
 
+function embaralharFisherYates(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 function calcularPoolBanco(){
   let pool=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
   if(filtBancoCurso!=='todos'){
@@ -2052,7 +2060,7 @@ async function gerarCaderno(){
   const pool=calcularPoolBanco();
   if(!pool.length){alert('Nenhuma questão encontrada com esses filtros.');return;}
 
-  const embaralhado=[...pool].sort(()=>Math.random()-0.5);
+  const embaralhado=embaralharFisherYates(pool);
   const qtdFinal=filtBancoQtd==='todos'?embaralhado.length:Math.min(filtBancoQtd,embaralhado.length);
   const selecionadas=embaralhado.slice(0,qtdFinal);
 
@@ -2081,20 +2089,17 @@ async function gerarCaderno(){
       }
     },'POST');
 
-    for(let i=0;i<selecionadas.length;i++){
-      const q=selecionadas[i];
-      await notionCall('/pages',{
-        parent:{database_id:DB_ITENS_CADERNO},
-        properties:{
-          'Titulo':{title:[{text:{content:`${nomeCaderno} — Q${q.questao}`}}]},
-          'Caderno':{rich_text:[{text:{content:nomeCaderno}}]},
-          'Atividade Origem':{rich_text:[{text:{content:q.idAtividade}}]},
-          'Numero Questao':{rich_text:[{text:{content:q.questao}}]},
-          'Ordem':{number:i+1},
-          'Respondida':{checkbox:false}
-        }
-      },'POST');
-    }
+    await Promise.all(selecionadas.map((q,i)=>notionCall('/pages',{
+      parent:{database_id:DB_ITENS_CADERNO},
+      properties:{
+        'Titulo':{title:[{text:{content:`${nomeCaderno} — Q${q.questao}`}}]},
+        'Caderno':{rich_text:[{text:{content:nomeCaderno}}]},
+        'Atividade Origem':{rich_text:[{text:{content:q.idAtividade}}]},
+        'Numero Questao':{rich_text:[{text:{content:q.questao}}]},
+        'Ordem':{number:i+1},
+        'Respondida':{checkbox:false}
+      }
+    },'POST')));
     await loadData();
     filtBancoNome='';
     await abrirCaderno(nomeCaderno);
@@ -2246,22 +2251,22 @@ async function confirmarRespostaCaderno(){
   if(!q){alert('Questão original não encontrada no Banco de Questões.');return;}
   const acertou=letra.toLowerCase()===String(q.gabarito||'').toLowerCase();
   try{
-    await notionCall(`/pages/${item.id}`,{properties:{
-      'Respondida':{checkbox:true},
-      'Sua Resposta Caderno':{rich_text:[{text:{content:letra}}]},
-      'Acertou Caderno':{checkbox:acertou}
-    }},'PATCH');
-
-    await notionCall(`/pages/${q.id}`,{properties:{
-      'Revisões Realizadas':{number:(q.revisoesRealizadas||0)+1},
-      'Última Revisão':{date:{start:new Date().toISOString().slice(0,10)}},
-      'Acertou na Revisão':{select:{name:acertou?'Sim':'Não'}}
-    }},'PATCH');
-
     const novoRespondidas=(cadernoAtivo.respondidas||0)+1;
-    await notionCall(`/pages/${cadernoAtivo.id}`,{properties:{
-      'Respondidas':{number:novoRespondidas}
-    }},'PATCH');
+    await Promise.all([
+      notionCall(`/pages/${item.id}`,{properties:{
+        'Respondida':{checkbox:true},
+        'Sua Resposta Caderno':{rich_text:[{text:{content:letra}}]},
+        'Acertou Caderno':{checkbox:acertou}
+      }},'PATCH'),
+      notionCall(`/pages/${q.id}`,{properties:{
+        'Revisões Realizadas':{number:(q.revisoesRealizadas||0)+1},
+        'Última Revisão':{date:{start:new Date().toISOString().slice(0,10)}},
+        'Acertou na Revisão':{select:{name:acertou?'Sim':'Não'}}
+      }},'PATCH'),
+      notionCall(`/pages/${cadernoAtivo.id}`,{properties:{
+        'Respondidas':{number:novoRespondidas}
+      }},'PATCH')
+    ]);
 
     // atualiza local — fica na mesma questão, sem recarregar tudo nem pular sozinho
     item.respondida=true;
@@ -2314,10 +2319,25 @@ function irParaItemCaderno(i){
 
 function renderBanco(){
   if(cadernoAtivo) return renderCadernoResolucao();
-  const modulos=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const modulosTodos=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
   const cursosDisp=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
-  const publicacoes=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))];
-  const tagsDisp=[...new Set(questoes.flatMap(q=>q.tags||[]))].sort();
+
+  // cascata: cada nível de filtro só mostra opções que existem dentro do que já foi filtrado nos níveis acima
+  let poolParaModulo=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
+  if(filtBancoCurso!=='todos'){
+    const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
+    poolParaModulo=poolParaModulo.filter(q=>idsAtivDoCurso.has(q.idAtividade));
+  }
+  const modulosDisp=modulosTodos.filter(m=>poolParaModulo.some(q=>q.modulo===m));
+
+  let poolParaPublicacao=poolParaModulo;
+  if(filtBancoModulo!=='todos') poolParaPublicacao=poolParaPublicacao.filter(q=>q.modulo===filtBancoModulo);
+  const publicacoesDisp=[...new Set(poolParaPublicacao.map(q=>q.publicacao).filter(Boolean))];
+
+  let poolParaTags=poolParaPublicacao;
+  if(filtBancoPublicacao!=='todos') poolParaTags=poolParaTags.filter(q=>q.publicacao===filtBancoPublicacao);
+  const tagsDisp=[...new Set(poolParaTags.flatMap(q=>q.tags||[]))].sort();
+
   const poolAtual=calcularPoolBanco();
 
   const emAndamento=cadernos.filter(c=>c.status==='Em Andamento');
@@ -2350,19 +2370,19 @@ function renderBanco(){
 
     ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A')}
     <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
-    <select class="filter-select" onchange="filtBancoCurso=this.value;renderTab(tabAtual)">
+    <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
       <option value="todos">Curso: Todos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtBancoCurso===c?' selected':''}>${c}</option>`).join('')}
     </select>
-    <select class="filter-select" onchange="filtBancoModulo=this.value;renderTab(tabAtual)">
+    <select class="filter-select" onchange="setFiltBancoModulo(this.value)">
       <option value="todos">Módulo PSCPP: Todos</option>
-      ${modulos.map(m=>`<option value="${m}"${filtBancoModulo===m?' selected':''}>${m}</option>`).join('')}
+      ${modulosDisp.map(m=>`<option value="${m}"${filtBancoModulo===m?' selected':''}>${m}</option>`).join('')}
     </select>
-    <select class="filter-select" onchange="filtBancoPublicacao=this.value;renderTab(tabAtual)">
+    <select class="filter-select" onchange="setFiltBancoPublicacao(this.value)">
       <option value="todos">Publicação: Todos</option>
-      ${publicacoes.map(p=>`<option value="${p}"${filtBancoPublicacao===p?' selected':''}>${nomePub(p)}</option>`).join('')}
+      ${publicacoesDisp.map(p=>`<option value="${p}"${filtBancoPublicacao===p?' selected':''}>${nomePub(p)}</option>`).join('')}
     </select>
-    <select class="filter-select" onchange="filtBancoStatus=this.value;renderTab(tabAtual)">
+    <select class="filter-select" onchange="setFiltBancoStatus(this.value)">
       <option value="todos">Status: Todos</option>
       <option${filtBancoStatus==='Acertei'?' selected':''}>Acertei</option>
       <option${filtBancoStatus==='Errei'?' selected':''}>Errei</option>
@@ -2480,6 +2500,32 @@ function setFiltQCurso(v){filtQCurso=v;filtQAtividade='todos';filtQQuestao='todo
 function setFiltQTipo(v){filtQTipo=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual);}
 function setFiltQAtividade(v){filtQAtividade=v;filtQQuestao='todos';renderTab(tabAtual);}
 function setFiltQQuestao(v){filtQQuestao=v;renderTab(tabAtual);}
+
+// Filtros do Banco — em cascata: Curso -> Módulo -> Publicação -> Tags.
+// Trocar um filtro de cima reseta os de baixo, porque a seleção anterior pode não existir mais no novo contexto.
+// Status fica fora da cascata (independente). preservarScroll=true em todos pra não pular a tela pro topo.
+function setFiltBancoCurso(v){
+  filtBancoCurso=v;
+  filtBancoModulo='todos';
+  filtBancoPublicacao='todos';
+  filtBancoTags=[];
+  renderTab(tabAtual,true);
+}
+function setFiltBancoModulo(v){
+  filtBancoModulo=v;
+  filtBancoPublicacao='todos';
+  filtBancoTags=[];
+  renderTab(tabAtual,true);
+}
+function setFiltBancoPublicacao(v){
+  filtBancoPublicacao=v;
+  filtBancoTags=[];
+  renderTab(tabAtual,true);
+}
+function setFiltBancoStatus(v){
+  filtBancoStatus=v;
+  renderTab(tabAtual,true);
+}
 
 function abrirConfig(){
   document.getElementById('config-modal').style.display='flex';
