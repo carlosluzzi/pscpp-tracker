@@ -296,7 +296,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
-.saudacao{font-size:15px;font-weight:500;color:#0B1D45;margin-bottom:6px;margin-left:33px;position:relative;z-index:1;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.card-saudacao{background:#0A2882;border-radius:18px;padding:20px 16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.card-saudacao-texto{font-size:18px;font-weight:600;color:#fff;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:16px 4px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .resumo-stats{display:flex;flex:1;justify-content:space-between}
 .resumo-stat{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;padding:0;position:relative}
@@ -1047,13 +1048,21 @@ function renderHeaderZone(){
           </span>
         </span>
       </div>
-      <div class="saudacao">${saudacao()}, Carlos!</div>
+    </div>
+  `;
+}
+
+function renderCardSaudacao(){
+  return `
+    <div class="card-saudacao">
+      <span class="card-saudacao-texto">${saudacao()}, Carlos!</span>
     </div>
   `;
 }
 
 function renderInicio(){
   return `
+    ${renderCardSaudacao()}
     ${renderResumoTopo()}
     ${renderCardProximos()}
     ${renderCardBancoPratico()}
