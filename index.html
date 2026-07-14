@@ -633,9 +633,9 @@ const secIcons={
   nuvem:'<path d="M6.5 18a4.5 4.5 0 0 1 0-9 6 6 0 0 1 11.4-1.5A4.5 4.5 0 0 1 17.5 18z"/>',
   radio:'<circle cx="12" cy="16" r="2.5"/><path d="M8 12a5.7 5.7 0 0 1 8 0"/><path d="M5 9a10 10 0 0 1 14 0"/>',
   estrela:'<path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/>',
-  cadernomais:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="9" x2="15.5" y2="9"/><line x1="12.5" y1="6" x2="12.5" y2="12"/>',
+  cadernomais:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
-  checkcirculo:'<circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-6.5"/>',
+  checkcirculo:'<path d="M20 6 9 17l-5-5"/>',
 };
 const modIconesCustomSvg={
   'Legislação':(cor)=>`<svg viewBox="0 0 24 24" fill="${cor}"><path d="M22.951,11.259a.919.919,0,0,0-.057-.189c-.007-.014-.006-.03-.013-.044l-3.5-6.5a.913.913,0,0,0-.142-.187A.989.989,0,0,0,18.5,4H13V2a1,1,0,0,0-2,0V4H5.5a.989.989,0,0,0-.739.339.913.913,0,0,0-.142.187l-3.5,6.5c-.007.014-.006.03-.013.044a.91.91,0,0,0-.057.188.98.98,0,0,0-.04.2c0,.015-.009.028-.009.044a4.5,4.5,0,0,0,9,0c0-.016-.008-.029-.009-.044a.97.97,0,0,0-.04-.2.919.919,0,0,0-.057-.189c-.007-.014-.006-.03-.013-.044L7.174,6H11V18H8a1,1,0,0,0,0,2h8a1,1,0,0,0,0-2H13V6h3.826l-2.707,5.026c-.007.014-.006.03-.013.044a.91.91,0,0,0-.057.188.98.98,0,0,0-.04.2c0,.015-.009.028-.009.044a4.5,4.5,0,0,0,9,0c0-.016-.008-.029-.009-.044A.97.97,0,0,0,22.951,11.259ZM5.5,14a2.5,2.5,0,0,1-2.291-1.5H7.791A2.5,2.5,0,0,1,5.5,14Zm1.826-3.5H3.674L5.5,7.109ZM18.5,7.109,20.326,10.5H16.674ZM18.5,14a2.5,2.5,0,0,1-2.291-1.5h4.582A2.5,2.5,0,0,1,18.5,14ZM21,22a1,1,0,0,1-1,1H4a1,1,0,0,1,0-2H20A1,1,0,0,1,21,22Z"/></svg>`,
@@ -689,7 +689,7 @@ function fmtPct(v){
 }
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itensCadernoTodos=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
-let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
+let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=null,filtBancoNome='';
 let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false,filtBancoQtdErro=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -2561,7 +2561,7 @@ function renderBanco(){
     <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" ${filtBancoQtd==='todos'?'disabled':''} onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
     ${filtBancoQtdErro?'<div style="color:#A32D2D;font-size:var(--fs-c);margin-top:-6px;margin-bottom:10px">Preencha a quantidade de questões antes de gerar o caderno.</div>':''}
     <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px 14px;cursor:pointer">
-      <input type="checkbox" ${filtBancoQtd==='todos'?'checked':''} onchange="setFiltBancoQtd(this.checked?'todos':15)">
+      <input type="checkbox" ${filtBancoQtd==='todos'?'checked':''} onchange="setFiltBancoQtd(this.checked?'todos':null)">
       Todas as questões disponíveis
     </label>
 
