@@ -2115,6 +2115,12 @@ function calcularPoolBanco(){
   return pool;
 }
 
+// TODO: lógica do SuperQuest ainda não definida — Carlos vai explicar depois.
+// Por enquanto só o botão existe visualmente, sem gerar nada de verdade.
+async function gerarSuperQuest(){
+  alert('SuperQuest ainda não tem lógica definida — em breve.');
+}
+
 async function gerarCaderno(){
   if(filtBancoQtd===null||filtBancoQtd===undefined){
     filtBancoQtdErro=true;
@@ -2499,7 +2505,14 @@ function renderBanco(){
   const concluidos=cadernos.filter(c=>c.status==='Concluido');
 
   return `
-    ${sectionTitle('Novo caderno','cadernomais','#EEEDFE','#3C3489',{noBg:true})}
+    <button id="btn-super-quest" onclick="gerarSuperQuest()" style="width:100%;background:#202A45;color:#fff;border:none;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;margin-bottom:36px;font-weight:700;font-size:var(--fs-e);text-transform:uppercase;letter-spacing:0.02em">
+      <span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      </span>
+      Gerar SuperQuest
+    </button>
+
+    ${sectionTitle('Novo caderno','cadernomais','#E6F1FB','#202A45')}
     <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
     <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
       <option value="todos">Todos os cursos</option>
@@ -2528,11 +2541,11 @@ function renderBanco(){
       <option${filtBancoStatus==='Acertei'?' selected':''}>Acertei</option>
     </select>
 
-    <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-d);color:#111;padding:6px 2px;cursor:pointer">
+    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px;cursor:pointer">
       <input type="checkbox" ${filtBancoPriorizarErros?'checked':''} onchange="toggleBancoPriorizarErros()">
       Priorizar questões que mais erro
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-d);color:#111;padding:6px 2px 14px;cursor:pointer">
+    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px 14px;cursor:pointer">
       <input type="checkbox" ${filtBancoApenasIneditas?'checked':''} onchange="toggleBancoApenasIneditas()">
       Apenas questões inéditas
     </label>
@@ -2542,21 +2555,22 @@ function renderBanco(){
       ${tagsDisp.length?tagsDisp.map(t=>`<span class="tg" style="cursor:pointer;${filtBancoTags.includes(t)?'background:#111;color:#fff;border-color:#111':''}" onclick="toggleBancoTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join(''):'<div class="empty">Nenhuma tag no banco ainda.</div>'}
     </div>
 
+    <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
+
     <div class="section-title">Quantas questões</div>
     <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" ${filtBancoQtd==='todos'?'disabled':''} onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
     ${filtBancoQtdErro?'<div style="color:#A32D2D;font-size:var(--fs-c);margin-top:-6px;margin-bottom:10px">Preencha a quantidade de questões antes de gerar o caderno.</div>':''}
-    <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-d);color:#111;padding:6px 2px 14px;cursor:pointer">
+    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px 14px;cursor:pointer">
       <input type="checkbox" ${filtBancoQtd==='todos'?'checked':''} onchange="setFiltBancoQtd(this.checked?'todos':15)">
       Todas as questões disponíveis
     </label>
 
-    <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
     <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:10px;margin-bottom:14px" onclick="gerarCaderno()">Gerar caderno ↗</button>
 
     ${emAndamento.length?`
     <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosAndamento()">
-      <span class="section-icon" style="background:transparent;color:#5F5E5A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.relogio}</svg></span>
-      <span style="color:#5F5E5A">Cadernos em andamento (${emAndamento.length})</span>
+      <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.relogio}</svg></span>
+      <span style="color:#202A45">Cadernos em andamento (${emAndamento.length})</span>
       <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" id="cadernos-andamento-lista" style="flex-direction:column;padding:0;border-top:none">
@@ -2572,8 +2586,8 @@ function renderBanco(){
 
     ${concluidos.length?`
     <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosConcluidos()">
-      <span class="section-icon" style="background:transparent;color:#5F5E5A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.checkcirculo}</svg></span>
-      <span style="color:#5F5E5A">Cadernos concluídos (${concluidos.length})</span>
+      <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.checkcirculo}</svg></span>
+      <span style="color:#202A45">Cadernos concluídos (${concluidos.length})</span>
       <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" id="cadernos-concluidos-lista" style="flex-direction:column;padding:0;border-top:none">
