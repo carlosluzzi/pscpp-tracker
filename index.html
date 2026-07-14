@@ -23,18 +23,17 @@ button:active{transform:scale(0.96)}
   --fs-e:16px; --fs-f:18px; --fs-g:19px; --fs-h:24px;
 }
 html{height:100%;overflow:hidden;overscroll-behavior:none}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#FBFBFA;color:#111;height:100%;position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
-#bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#FBFBFA;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-position:0 0;background-size:auto;pointer-events:none;transform:translateZ(0);will-change:transform}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#F9F9F7;color:#111;height:100%;position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
+#bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#F9F9F7;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-position:0 0;background-size:auto;pointer-events:none;transform:translateZ(0);will-change:transform}
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
 .app{max-width:480px;margin:0 auto;height:100%;height:100svh;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 /* camada única e estática da imagem do header — mesmo tamanho/zoom sempre, cada aba só corta na sua própria altura */
-#header-bg-fixed{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:calc(env(safe-area-inset-top, 0px) + 200px);background-image:url('assets/header-bg.jpg');background-size:cover;background-position:center 85%;background-repeat:no-repeat;z-index:1;pointer-events:none}
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#0B1D45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.bussola-icone{width:28px;height:28px;flex-shrink:0;object-fit:contain;display:block}
+.logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .appname b{font-weight:700}
@@ -46,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.content{position:relative;z-index:1;padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#FBFBFA}
+.content{position:relative;z-index:1;padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7}
 .app.tab-inicio .topbar{display:none}
 .hero-toprow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:0;position:relative;z-index:1}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:0.5px solid #e0e0e0;display:flex;z-index:10}
@@ -76,8 +75,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .nav-label{font-size:var(--fs-b)}
   .header-zone{padding:calc(env(safe-area-inset-top, 0px) + 18px) 24px 14px}
   .mobile-break{display:none}
-  /* imagem própria pro iPad/tablet — mais larga e mais baixa que a do iPhone, cobre a largura toda */
-  #header-bg-fixed{max-width:100%;height:calc(env(safe-area-inset-top, 0px) + 190px);background-image:url('assets/header-bg-wide.jpg');background-position:center 80%}
 }
 
 /* DESKTOP (telas largas — sidebar lateral) */
@@ -91,8 +88,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   /* header ocupa a linha de cima, span nas duas colunas — antes não tinha posição explícita e caía numa linha implícita de altura zero, sumindo */
   .topbar{grid-column:1/-1;grid-row:1;max-width:100%;margin:0;padding:0 32px;z-index:20}
   #header-slot{grid-column:1/-1;grid-row:1}
-  /* imagem própria pro desktop/iPad-paisagem — travada em 1100px pra não esticar/borrar em telas muito largas, mesmo arquivo largo usado no tablet */
-  #header-bg-fixed{max-width:1100px;height:calc(env(safe-area-inset-top, 0px) + 200px);background-image:url('assets/header-bg-wide.jpg');background-position:center 80%}
   .bottom-nav{grid-column:1;grid-row:2;position:sticky;left:auto;bottom:auto;transform:none;width:100%;max-width:none;border-top:none;border-right:0.5px solid #e0e0e0;flex-direction:column;padding:20px 14px;gap:6px;align-self:start;top:0;height:100%;padding-bottom:20px}
   .nav-item{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 14px;border-radius:9px;width:100%}
   .nav-item.active{background:#f0f0ee}
@@ -130,12 +125,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .periodo-row .filter-btn{flex:1 1 auto;text-align:center;padding:8px 10px;white-space:nowrap}
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#111;color:#fff;border-color:#111}
-.filter-select{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
+.filter-select{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
 .filter-btn.active.status-errei{background:#A32D2D;border-color:#A32D2D;color:#fff}
 .filter-btn.active.status-duvida{background:#EF9F27;border-color:#EF9F27;color:#fff}
 .filter-btn.active.status-acertei{background:#3B6D11;border-color:#3B6D11;color:#fff}
 .filter-btn.active.status-todos{background:#111;border-color:#111;color:#fff}
-.filter-date{font-size:var(--fs-d);padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;flex:1}
+.filter-date{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;flex:1}
 
 /* CARDS DE ATIVIDADE */
 .ativ-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
@@ -240,7 +235,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
-.nota-questao-textarea{width:100%;min-height:80px;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
+.nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
 .q-detail.open{display:flex}
@@ -417,9 +412,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body>
 <div id="bg-fixed"></div>
 <div class="app">
-  <div id="header-bg-fixed"></div>
   <div class="topbar">
-    <span class="appname"><img class="bussola-icone" src="assets/logo.png" alt="PSCPP"><span><b>PSCPP</b>&nbsp;Tracker</span></span>
+    <span class="appname"><img class="logo-completa" src="assets/logo-completa.png" alt="PSCPP Tracker"></span>
     <span class="topbar-right topbar-pill">
       <span class="gear-btn" onclick="abrirConfig()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
@@ -1037,7 +1031,7 @@ function renderHeaderZone(){
   return `
     <div class="header-zone">
       <div class="hero-toprow">
-        <span class="appname"><img class="bussola-icone" src="assets/logo.png" alt="PSCPP"><span><b>PSCPP</b>&nbsp;Tracker</span></span>
+        <span class="appname"><img class="logo-completa" src="assets/logo-completa.png" alt="PSCPP Tracker"></span>
         <span class="topbar-right topbar-pill">
           <span class="gear-btn" onclick="abrirConfig()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
