@@ -663,7 +663,8 @@ function sectionTitle(texto,icone,bg,tx,opts){
   const iconBg=opts.noBg?'transparent':bg;
   const svgHtml=opts.customSvg||`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg>`;
   const sizeStyle=opts.fontSize?`font-size:${opts.fontSize};`:'';
-  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="color:${tx};${sizeStyle}">${texto}</span></div>`;
+  const corTexto=opts.corTexto||tx;
+  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="color:${corTexto};${sizeStyle}">${texto}</span></div>`;
 }
 const iconDesempenhoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><rect x="56" y="317.484" width="80" height="146.516"/><rect x="176" y="237.484" width="80" height="226.516"/><rect x="296" y="141.484" width="80" height="322.516"/><rect x="416" y="45.484" width="80" height="418.516"/><polygon points="16,496 16,0 0,0 0,496 0,512 16,512 512,512 512,496"/></svg>`;
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
@@ -2115,10 +2116,61 @@ function calcularPoolBanco(){
   return pool;
 }
 
-// TODO: lógica do SuperQuest ainda não definida — Carlos vai explicar depois.
-// Por enquanto só o botão existe visualmente, sem gerar nada de verdade.
+const QUANTIDADE_SUPERQUEST=70;
+
+// SuperQuest: gera um caderno de exatamente 70 questões do banco inteiro, ignorando
+// todos os filtros da tela. Sorteio 100% aleatório/uniforme entre módulos (Fisher-Yates) —
+// PENDÊNCIA FUTURA (não implementada, decisão consciente): hoje todo módulo tem a mesma
+// chance de entrar, mesmo que na prova real o peso entre matérias não seja igual. Ideias
+// registradas pra decidir depois: pesos fixos por módulo, cota exata por módulo baseada
+// no edital, peso pelo Wilson Score (mais peso onde o Carlos erra mais), ou configurável
+// manualmente. Nenhuma escolhida ainda — o sorteio continua uniforme até essa decisão.
 async function gerarSuperQuest(){
-  alert('SuperQuest ainda não tem lógica definida — em breve.');
+  // pool = banco inteiro, só removendo questões sem enunciado salvo ou excluídas do banco
+  // (equivalente à exclusão individual do Claude Quest) — nenhum outro filtro da tela conta aqui
+  const pool=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
+
+  if(pool.length<QUANTIDADE_SUPERQUEST){
+    alert(`O banco ainda não tem ${QUANTIDADE_SUPERQUEST} questões disponíveis pra montar um SuperQuest (tem ${pool.length} agora). Processe mais simulados pra desbloquear essa opção.`);
+    return;
+  }
+
+  const selecionadas=embaralharFisherYates(pool).slice(0,QUANTIDADE_SUPERQUEST);
+
+  const agora=new Date();
+  const dataIso=agora.toISOString().slice(0,10);
+  const dataBr=`${String(agora.getDate()).padStart(2,'0')}/${String(agora.getMonth()+1).padStart(2,'0')}/${agora.getFullYear()}`;
+  const nomeCaderno=`SuperQuest ${dataBr}`;
+
+  try{
+    await notionCall('/pages',{
+      parent:{database_id:DB_CADERNOS},
+      properties:{
+        'Nome':{title:[{text:{content:nomeCaderno}}]},
+        'Data Criacao':{date:{start:dataIso}},
+        'Filtros Usados':{rich_text:[{text:{content:'SuperQuest — 70 questões do banco inteiro, sem filtros'}}]},
+        'Status':{select:{name:'Em Andamento'}},
+        'Total Questoes':{number:selecionadas.length},
+        'Respondidas':{number:0}
+      }
+    },'POST');
+
+    await Promise.all(selecionadas.map((q,i)=>notionCall('/pages',{
+      parent:{database_id:DB_ITENS_CADERNO},
+      properties:{
+        'Titulo':{title:[{text:{content:`${nomeCaderno} — Q${q.questao}`}}]},
+        'Caderno':{rich_text:[{text:{content:nomeCaderno}}]},
+        'Atividade Origem':{rich_text:[{text:{content:q.idAtividade}}]},
+        'Numero Questao':{rich_text:[{text:{content:q.questao}}]},
+        'Ordem':{number:i+1},
+        'Respondida':{checkbox:false}
+      }
+    },'POST')));
+    await loadData();
+    await abrirCaderno(nomeCaderno);
+  }catch(e){
+    alert('Erro ao gerar SuperQuest: '+e.message);
+  }
 }
 
 async function gerarCaderno(){
@@ -2512,7 +2564,7 @@ function renderBanco(){
       Gerar SuperQuest
     </button>
 
-    ${sectionTitle('Novo caderno','cadernomais','#E6F1FB','#202A45')}
+    ${sectionTitle('Novo caderno','cadernomais','#E6F1FB','#202A45',{corTexto:'#555'})}
     <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
     <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
       <option value="todos">Todos os cursos</option>
@@ -2550,27 +2602,25 @@ function renderBanco(){
       Apenas questões inéditas
     </label>
 
-    <div class="section-title">Tags <span class="banco-combine-toggle" onclick="toggleBancoCombinar()">Combinar: ${bancoCombinarTags}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:6px">
+      <span style="font-size:var(--fs-c);color:#888">Tags</span>
+      <span class="banco-combine-toggle" style="margin-left:0" onclick="toggleBancoCombinar()">Combinar: ${bancoCombinarTags}</span>
+    </div>
     <div class="banco-tags-row">
       ${tagsDisp.length?tagsDisp.map(t=>`<span class="tg" style="cursor:pointer;${filtBancoTags.includes(t)?'background:#111;color:#fff;border-color:#111':''}" onclick="toggleBancoTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join(''):'<div class="empty">Nenhuma tag no banco ainda.</div>'}
     </div>
 
     <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
 
-    <div class="section-title">Quantas questões</div>
-    <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" ${filtBancoQtd==='todos'?'disabled':''} onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
+    <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="margin-top:14px;${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
     ${filtBancoQtdErro?'<div style="color:#A32D2D;font-size:var(--fs-c);margin-top:-6px;margin-bottom:10px">Preencha a quantidade de questões antes de gerar o caderno.</div>':''}
-    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px 14px;cursor:pointer">
-      <input type="checkbox" ${filtBancoQtd==='todos'?'checked':''} onchange="setFiltBancoQtd(this.checked?'todos':null)">
-      Todas as questões disponíveis
-    </label>
 
     <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:10px;margin-bottom:14px" onclick="gerarCaderno()">Gerar caderno ↗</button>
 
     ${emAndamento.length?`
-    <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosAndamento()">
+    <div class="section-title" style="cursor:pointer;margin-top:28px" onclick="toggleBancoCadernosAndamento()">
       <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.relogio}</svg></span>
-      <span style="color:#202A45">Cadernos em andamento (${emAndamento.length})</span>
+      <span style="color:#555">Cadernos em andamento (${emAndamento.length})</span>
       <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" id="cadernos-andamento-lista" style="flex-direction:column;padding:0;border-top:none">
@@ -2585,9 +2635,9 @@ function renderBanco(){
     `:''}
 
     ${concluidos.length?`
-    <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosConcluidos()">
+    <div class="section-title" style="cursor:pointer;margin-top:${emAndamento.length?'16px':'28px'}" onclick="toggleBancoCadernosConcluidos()">
       <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.checkcirculo}</svg></span>
-      <span style="color:#202A45">Cadernos concluídos (${concluidos.length})</span>
+      <span style="color:#555">Cadernos concluídos (${concluidos.length})</span>
       <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" id="cadernos-concluidos-lista" style="flex-direction:column;padding:0;border-top:none">
