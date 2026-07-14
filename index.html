@@ -1960,6 +1960,33 @@ async function editarApelidoPublicacao(original){
   }
 }
 
+// Separa um trecho de enunciado nas quebras de linha corretas.
+// Correção de bug: listas de correlação (tipo "Associe a coluna A com a coluna B")
+// antes só quebravam em qualquer "[A-F]. " solto, o que dava falso positivo quando a
+// PRÓPRIA FRASE de instrução continha uma letra maiúscula com ponto por acaso
+// (ex: "...com a coluna B. A. Radar B. AIS..." — o "B." da instrução já quebrava errado,
+// antes mesmo de chegar na lista de verdade). A correção ancora a busca no primeiro
+// "A." literal do texto (com \b antes, garantindo que é a letra "A" isolada seguida de
+// ponto e espaço) — tudo ANTES dessa âncora nunca quebra por letra maiúscula solta
+// (só por parênteses vazios, se houver), e só A PARTIR da âncora é que o texto quebra
+// em cada "[A-F]. " seguinte. Uma lista de correlação de verdade sempre começa citando
+// "A." como primeiro item, então essa âncora é um sinal confiável de "a lista começou aqui".
+function quebrarEnunciado(zonaEnunciado,temRomanos){
+  if(temRomanos){
+    return zonaEnunciado.split(/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/).map(p=>p.trim()).filter(Boolean);
+  }
+  const anchorMatch=zonaEnunciado.match(/\bA\.\s/);
+  if(!anchorMatch){
+    return zonaEnunciado.split(/(?=\s\(\s*\))/).map(p=>p.trim()).filter(Boolean);
+  }
+  const idxAncora=anchorMatch.index;
+  const antesAncora=zonaEnunciado.slice(0,idxAncora);
+  const dpsAncora=zonaEnunciado.slice(idxAncora);
+  const partesAntes=antesAncora.split(/(?=\s\(\s*\))/).map(p=>p.trim()).filter(Boolean);
+  const partesDepois=dpsAncora.split(/(?=[A-F]\.\s)/).map(p=>p.trim()).filter(Boolean);
+  return [...partesAntes,...partesDepois];
+}
+
 function formatApenasEnunciado(texto){
   if(!texto) return '';
   const escaped=escapeHtml(texto);
@@ -1967,8 +1994,7 @@ function formatApenasEnunciado(texto){
   const idxAlt=altMatch?altMatch.index:-1;
   const zonaEnunciado=idxAlt===-1?escaped:escaped.slice(0,idxAlt);
   const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
-  const padraoQuebra=temRomanos?/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/:/(?=\s(?:\(\s*\)|[A-F]\.\s))/;
-  const partesEnun=zonaEnunciado.split(padraoQuebra).map(p=>p.trim()).filter(Boolean);
+  const partesEnun=quebrarEnunciado(zonaEnunciado,temRomanos);
   return [partesEnun[0]||'', ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`)].join('');
 }
 
@@ -1983,8 +2009,7 @@ function formatQuestaoCompleta(texto){
 
   // no enunciado: quebra em cada assertiva romana (I) II) III)... até onde for necessário)
   const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
-  const padraoQuebra=temRomanos?/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/:/(?=\s(?:\(\s*\)|[A-F]\.\s))/;
-  const partesEnun=zonaEnunciado.split(padraoQuebra).map(p=>p.trim()).filter(Boolean);
+  const partesEnun=quebrarEnunciado(zonaEnunciado,temRomanos);
   // nas alternativas: quebra só nas letras minúsculas (a)-(e) — as alternativas são sempre salvas em minúscula,
   // então nunca confunde com um "(C)" ou "(E)" de conteúdo (ex: questões de marcação Certo/Errado)
   const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean):[];
