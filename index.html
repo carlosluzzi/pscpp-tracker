@@ -232,7 +232,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .enunciado-box{font-size:var(--fs-d);color:#111;line-height:1.6;margin-top:25px}
 .enunciado-linha{margin-top:6px}
 .banco-note{font-size:var(--fs-d);color:#888;background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-.banco-tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;max-height:96px;overflow-y:auto;padding:2px}
 .banco-combine-toggle{font-size:var(--fs-b);font-weight:500;color:#888;border:0.5px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:8px}
 .banco-alternativas{display:flex;flex-direction:column;gap:8px;margin-top:14px}
 .banco-alt-btn{text-align:left;font-size:var(--fs-d);padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;cursor:pointer;font-family:inherit;color:#111;line-height:1.5}
@@ -383,7 +382,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* MODAL DE CONFIRMAÇÃO */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
-.modal-box{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:320px}
+.modal-box{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:320px;max-height:85vh;overflow-y:auto}
 .modal-text{font-size:var(--fs-e);color:#111;line-height:1.5;margin-bottom:18px;text-align:center}
 .modal-actions{display:flex;gap:8px}
 .modal-btn{flex:1;padding:10px;font-size:var(--fs-e);font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
@@ -564,6 +563,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="banco-filtro-tags-modal" style="display:none" onclick="if(event.target===this)fecharFiltroTagsModal()">
+  <div class="modal-box">
+    <div class="config-title">Filtrar por tags <span class="banco-combine-toggle" id="banco-filtro-combinar-label" onclick="toggleBancoCombinar();renderFiltroTagsModal()">Combinar: OU</span></div>
+    <input type="text" id="banco-filtro-tags-busca" class="filter-select" placeholder="Buscar tag..." oninput="renderFiltroTagsModal()">
+    <div class="tr" id="banco-filtro-tags-lista" style="margin-bottom:14px;max-height:280px;overflow-y:auto;padding:2px"></div>
+    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:8px" onclick="fecharFiltroTagsModal()">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-info-fisheryates" style="display:none">
+  <div class="modal-box">
+    <div class="config-title">Fisher-Yates</div>
+    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-d);color:#111">É o algoritmo usado pra embaralhar a ordem das questões do seu caderno. Diferente de um embaralhamento "ingênuo" (tipo ordenar por número aleatório), o Fisher-Yates garante que cada ordem possível tem exatamente a mesma chance de acontecer — sem viés escondido favorecendo certas posições.</p>
+    <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('modal-info-fisheryates').style.display='none'">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-info-wilson" style="display:none">
+  <div class="modal-box">
+    <div class="config-title">Wilson Score</div>
+    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-d);color:#111">É a fórmula usada pra calcular a % de acerto e pra saber quais questões você mais erra. Diferente de uma % simples, ela leva em conta quantas vezes você já tentou aquela questão — errar 1 de 1 tentativa pesa menos do que errar 8 de 10, mesmo a % "crua" sendo parecida. Isso evita que uma questão respondida só uma vez pareça mais confiável do que realmente é.</p>
+    <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('modal-info-wilson').style.display='none'">Fechar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="banco-notas-modal" style="display:none" onclick="if(event.target===this)fecharPopupNotasBanco()">
   <div class="modal-box">
     <div class="config-title">Sua nota nessa questão</div>
@@ -664,11 +688,11 @@ function iconeInfo(){
 }
 
 function explicarSorteio(){
-  alert('As questões do caderno são sorteadas com um algoritmo chamado Fisher-Yates, que embaralha o pool inteiro de forma totalmente aleatória — cada questão tem exatamente a mesma chance de entrar e de aparecer em qualquer posição, sem viés.');
+  document.getElementById('modal-info-fisheryates').style.display='flex';
 }
 
 function explicarPriorizarErro(){
-  alert('Quando marcado, o caderno deixa de ser sorteado aleatoriamente e passa a priorizar as questões onde você mais erra, usando o histórico de Total de Erros/Acertos de cada questão (o mesmo cálculo usado no Banco Prático pra saber qual matéria está mais fraca).');
+  document.getElementById('modal-info-wilson').style.display='flex';
 }
 
 function sectionTitle(texto,icone,bg,tx,opts){
@@ -2092,7 +2116,29 @@ function toggleBancoTag(t){
   const idx=filtBancoTags.indexOf(t);
   if(idx===-1) filtBancoTags.push(t); else filtBancoTags.splice(idx,1);
   renderTab(tabAtual,true);
+  renderFiltroTagsModal();
 }
+
+function abrirFiltroTagsModal(){
+  const busca=document.getElementById('banco-filtro-tags-busca');
+  if(busca) busca.value='';
+  document.getElementById('banco-filtro-tags-modal').style.display='flex';
+  renderFiltroTagsModal();
+}
+function fecharFiltroTagsModal(){
+  document.getElementById('banco-filtro-tags-modal').style.display='none';
+}
+function renderFiltroTagsModal(){
+  const label=document.getElementById('banco-filtro-combinar-label');
+  if(label) label.textContent='Combinar: '+bancoCombinarTags;
+  const busca=(document.getElementById('banco-filtro-tags-busca')?.value||'').toLowerCase().trim();
+  const todasTags=calcularTagsDisp();
+  const filtradas=busca?todasTags.filter(t=>t.toLowerCase().includes(busca)):todasTags;
+  const cont=document.getElementById('banco-filtro-tags-lista');
+  if(!cont) return;
+  cont.innerHTML=filtradas.length?filtradas.map(t=>`<span class="tg" style="cursor:pointer;${filtBancoTags.includes(t)?'background:#111;color:#fff;border-color:#111':''}" onclick="toggleBancoTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join(''):'<div class="empty">Nenhuma tag encontrada.</div>';
+}
+
 function setFiltBancoQtd(n){filtBancoQtd=n;filtBancoQtdErro=false;renderTab(tabAtual,true);}
 
 function embaralharFisherYates(arr){
@@ -2543,6 +2589,19 @@ function irParaItemCaderno(i){
   renderTab(tabAtual);
 }
 
+function calcularTagsDisp(){
+  let poolParaModulo=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
+  if(filtBancoCurso!=='todos'){
+    const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
+    poolParaModulo=poolParaModulo.filter(q=>idsAtivDoCurso.has(q.idAtividade));
+  }
+  let poolParaPublicacao=poolParaModulo;
+  if(filtBancoModulo!=='todos') poolParaPublicacao=poolParaPublicacao.filter(q=>q.modulo===filtBancoModulo);
+  let poolParaTags=poolParaPublicacao;
+  if(filtBancoPublicacao!=='todos') poolParaTags=poolParaTags.filter(q=>q.publicacao===filtBancoPublicacao);
+  return [...new Set(poolParaTags.flatMap(q=>q.tags||[]))].sort();
+}
+
 function renderBanco(){
   if(cadernoAtivo) return renderCadernoResolucao();
   const modulosTodos=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
@@ -2560,9 +2619,7 @@ function renderBanco(){
   if(filtBancoModulo!=='todos') poolParaPublicacao=poolParaPublicacao.filter(q=>q.modulo===filtBancoModulo);
   const publicacoesDisp=[...new Set(poolParaPublicacao.map(q=>q.publicacao).filter(Boolean))];
 
-  let poolParaTags=poolParaPublicacao;
-  if(filtBancoPublicacao!=='todos') poolParaTags=poolParaTags.filter(q=>q.publicacao===filtBancoPublicacao);
-  const tagsDisp=[...new Set(poolParaTags.flatMap(q=>q.tags||[]))].sort();
+  const tagsDisp=calcularTagsDisp();
 
   const poolAtual=calcularPoolBanco();
 
@@ -2616,12 +2673,9 @@ function renderBanco(){
       Apenas questões inéditas
     </label>
 
-    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:6px">
-      <span style="font-size:var(--fs-c);color:#888">Tags</span>
-      <span class="banco-combine-toggle" style="margin-left:0" onclick="toggleBancoCombinar()">Combinar: ${bancoCombinarTags}</span>
-    </div>
-    <div class="banco-tags-row">
-      ${tagsDisp.length?tagsDisp.map(t=>`<span class="tg" style="cursor:pointer;${filtBancoTags.includes(t)?'background:#111;color:#fff;border-color:#111':''}" onclick="toggleBancoTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join(''):'<div class="empty">Nenhuma tag no banco ainda.</div>'}
+    <div class="filter-select" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="abrirFiltroTagsModal()">
+      <span>${filtBancoTags.length?`${filtBancoTags.length} ${filtBancoTags.length===1?'tag selecionada':'tags selecionadas'} (${bancoCombinarTags})`:'Filtrar por tags'}</span>
+      <span style="color:#888">›</span>
     </div>
 
     <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
