@@ -1745,8 +1745,8 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px',noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
-    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
+    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{noBg:true})}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -1797,8 +1797,8 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,fontSize:'14px',noBg:true})}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${modsHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
   `;
 }
 
@@ -1991,7 +1991,7 @@ function renderQuestoes(){
   const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
 
   return `
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{fontSize:'14px',noBg:true})}
+    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{noBg:true})}
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
@@ -2472,7 +2472,7 @@ function renderBanco(){
   const concluidos=cadernos.filter(c=>c.status==='Concluido');
 
   return `
-    ${sectionTitle('Novo caderno','cadernomais','#EEEDFE','#3C3489',{fontSize:'14px',noBg:true})}
+    ${sectionTitle('Novo caderno','cadernomais','#EEEDFE','#3C3489',{noBg:true})}
     <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
     <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
       <option value="todos">Todos os cursos</option>
