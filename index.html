@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
@@ -690,7 +690,7 @@ function fmtPct(v){
 
 let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itensCadernoTodos=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
 let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=15,filtBancoNome='';
-let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false;
+let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false,filtBancoQtdErro=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -1225,6 +1225,7 @@ function toggleFoco(i){
   const open=d.classList.contains('open');
   d.classList.toggle('open',!open);
   if(c) c.classList.toggle('open',!open);
+  if(!open) requestAnimationFrame(()=>{ d.scrollIntoView({block:'nearest',behavior:'smooth'}); });
 }
 
 async function marcarFocoEstudado(chave){
@@ -2078,7 +2079,7 @@ function toggleBancoTag(t){
   if(idx===-1) filtBancoTags.push(t); else filtBancoTags.splice(idx,1);
   renderTab(tabAtual,true);
 }
-function setFiltBancoQtd(n){filtBancoQtd=n;renderTab(tabAtual,true);}
+function setFiltBancoQtd(n){filtBancoQtd=n;filtBancoQtdErro=false;renderTab(tabAtual,true);}
 
 function embaralharFisherYates(arr){
   const a=[...arr];
@@ -2115,6 +2116,15 @@ function calcularPoolBanco(){
 }
 
 async function gerarCaderno(){
+  if(filtBancoQtd===null||filtBancoQtd===undefined){
+    filtBancoQtdErro=true;
+    renderTab(tabAtual,true);
+    requestAnimationFrame(()=>{
+      const el=document.getElementById('banco-qtd-input');
+      if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
+    });
+    return;
+  }
   const pool=calcularPoolBanco();
   if(!pool.length){alert('Nenhuma questão encontrada com esses filtros.');return;}
 
@@ -2533,10 +2543,12 @@ function renderBanco(){
     </div>
 
     <div class="section-title">Quantas questões</div>
-    <div class="filter-row">
-      ${[5,10,15,20,'todos'].map(n=>`<button class="filter-btn${filtBancoQtd===n?' active':''}" onclick="setFiltBancoQtd(${n==='todos'?"'todos'":n})">${n==='todos'?'Todas':n}</button>`).join('')}
-    </div>
-    <input type="number" min="1" class="filter-select" style="margin-top:8px" placeholder="Ou digite uma quantidade (ex: 35)" value="${(typeof filtBancoQtd==='number'&&![5,10,15,20].includes(filtBancoQtd))?filtBancoQtd:''}" onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):15)">
+    <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" ${filtBancoQtd==='todos'?'disabled':''} onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
+    ${filtBancoQtdErro?'<div style="color:#A32D2D;font-size:var(--fs-c);margin-top:-6px;margin-bottom:10px">Preencha a quantidade de questões antes de gerar o caderno.</div>':''}
+    <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-d);color:#111;padding:6px 2px 14px;cursor:pointer">
+      <input type="checkbox" ${filtBancoQtd==='todos'?'checked':''} onchange="setFiltBancoQtd(this.checked?'todos':15)">
+      Todas as questões disponíveis
+    </label>
 
     <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
     <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:10px;margin-bottom:14px" onclick="gerarCaderno()">Gerar caderno ↗</button>
@@ -2547,7 +2559,7 @@ function renderBanco(){
       <span style="color:#5F5E5A">Cadernos em andamento (${emAndamento.length})</span>
       <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
-    <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
+    <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" id="cadernos-andamento-lista" style="flex-direction:column;padding:0;border-top:none">
     ${emAndamento.map(c=>`<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="prox-left">
         <span class="prox-nome">${c.nome}</span>
@@ -2564,7 +2576,7 @@ function renderBanco(){
       <span style="color:#5F5E5A">Cadernos concluídos (${concluidos.length})</span>
       <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
-    <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
+    <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" id="cadernos-concluidos-lista" style="flex-direction:column;padding:0;border-top:none">
     ${concluidos.map(c=>{
       const itensDoCaderno=itensCadernoTodos.filter(it=>it.caderno===c.nome);
       const respondidasReal=itensDoCaderno.filter(it=>it.respondida).length;
@@ -2653,10 +2665,18 @@ function renderCadernoResolucao(){
 function toggleBancoCadernosAndamento(){
   bancoCadernosAndamentoAberto=!bancoCadernosAndamentoAberto;
   renderTab(tabAtual,true);
+  if(bancoCadernosAndamentoAberto) requestAnimationFrame(()=>{
+    const el=document.getElementById('cadernos-andamento-lista');
+    if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
 }
 function toggleBancoCadernosConcluidos(){
   bancoCadernosConcluidosAberto=!bancoCadernosConcluidosAberto;
   renderTab(tabAtual,true);
+  if(bancoCadernosConcluidosAberto) requestAnimationFrame(()=>{
+    const el=document.getElementById('cadernos-concluidos-lista');
+    if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
 }
 function toggleMod(i){
   const d=document.getElementById('mdet'+i);
@@ -2664,6 +2684,7 @@ function toggleMod(i){
   const open=d.classList.contains('open');
   d.classList.toggle('open',!open);
   if(c) c.classList.toggle('open',!open);
+  if(!open) requestAnimationFrame(()=>{ d.scrollIntoView({block:'nearest',behavior:'smooth'}); });
 }
 
 function toggleErrada(i){
@@ -2672,6 +2693,7 @@ function toggleErrada(i){
   const open=d.classList.contains('open');
   d.classList.toggle('open',!open);
   if(c) c.classList.toggle('open',!open);
+  if(!open) requestAnimationFrame(()=>{ d.scrollIntoView({block:'nearest',behavior:'smooth'}); });
 }
 
 function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
@@ -2731,12 +2753,17 @@ function abrirConfig(){
 function fecharConfig(){
   document.getElementById('config-modal').style.display='none';
 }
-function aplicarFontScale(v){
+function aplicarFontScale(v,salvar){
+  if(salvar===undefined) salvar=true;
   document.querySelector('.content').style.zoom=(v/100);
   // compensa o zoom pra reserva de espaço do bottom-nav continuar batendo com a altura real da tela,
-  // independente do zoom aplicado (evita o nav cobrir/deixar sobra variável de conteúdo)
-  document.documentElement.style.setProperty('--nav-clear', (76/(v/100))+'px');
-  localStorage.setItem('pscpp_font_scale',v);
+  // independente do zoom aplicado (evita o nav cobrir/deixar sobra variável de conteúdo) —
+  // mede a altura real do nav em vez de chutar um número fixo, porque ela varia por aparelho
+  // (env(safe-area-inset-bottom) muda entre iPhones com/sem barra de gesto)
+  const navEl=document.querySelector('.bottom-nav');
+  const alturaReal=navEl?navEl.offsetHeight:76;
+  document.documentElement.style.setProperty('--nav-clear', (alturaReal/(v/100))+'px');
+  if(salvar) localStorage.setItem('pscpp_font_scale',v);
   const label=document.getElementById('font-value');
   if(label) label.textContent=v+'%';
 }
@@ -2750,14 +2777,23 @@ function restaurarPadraoFonte(){
   if(savedScale){
     const slider=document.getElementById('font-slider');
     if(slider) slider.value=savedScale;
-    aplicarFontScale(savedScale);
   }
+  // sempre aplica (mesmo sem preferência salva), pra garantir que --nav-clear
+  // seja medido de verdade no carregamento, não fique só no chute do CSS —
+  // salvar=false porque isso não é uma escolha do usuário, é só medição automática
+  aplicarFontScale(savedScale||100,false);
   const savedTheme=localStorage.getItem('pscpp_theme');
   if(savedTheme){
     const sel=document.getElementById('theme-select');
     if(sel) sel.value=savedTheme;
   }
 })();
+
+// re-mede a altura real do nav se a tela girar/mudar de tamanho (orientação, teclado fechando, etc.)
+window.addEventListener('resize',()=>{
+  const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
+  aplicarFontScale(scaleAtual,false);
+});
 
 document.querySelector('.app').classList.add('tab-inicio');
 document.getElementById('header-slot').innerHTML=renderHeaderZone();
