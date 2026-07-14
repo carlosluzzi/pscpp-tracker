@@ -292,7 +292,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
 .card-saudacao{background:#202A45;border-radius:18px;padding:20px 16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
-.card-saudacao-texto{font-size:18px;font-weight:600;color:#fff;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.card-saudacao-texto{font-size:18px;font-weight:600;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.card-saudacao-subtexto{font-size:13px;opacity:0.85;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:block;margin-top:4px}
 .resumo-topo-card{background:#fff;border-radius:16px;padding:16px 4px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .resumo-stats{display:flex;flex:1;justify-content:space-between}
 .resumo-stat{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;padding:0;position:relative}
@@ -311,7 +312,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cards-2col .card-inicio{margin-bottom:0}
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #cfcfcb}
 .card-header-left{display:flex;align-items:center;gap:6px;min-width:0;line-height:1}
-.card-header-left span{font-size:14px;font-weight:700;color:#202A45;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1;display:flex;align-items:center}
+.card-header-left span{font-size:16px;font-weight:700;color:#202A45;text-transform:uppercase;letter-spacing:0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1;display:flex;align-items:center}
 .card-icone-mini{width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-icone-mini svg{width:18px;height:18px;display:block}
 .card-icone-mini img{width:17.6px;height:17.6px;object-fit:contain;display:block}
@@ -1053,6 +1054,7 @@ function renderCardSaudacao(){
   return `
     <div class="card-saudacao">
       <span class="card-saudacao-texto">${saudacao()}, Carlos!</span>
+      <span class="card-saudacao-subtexto">Bora estudar</span>
     </div>
   `;
 }
@@ -1798,7 +1800,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
   `;
 }
 
@@ -2527,7 +2529,7 @@ function renderBanco(){
     ${emAndamento.length?`
     <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosAndamento()">
       <span class="section-icon" style="background:transparent;color:#5F5E5A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.relogio}</svg></span>
-      <span style="color:#5F5E5A;font-size:14px">Cadernos em andamento (${emAndamento.length})</span>
+      <span style="color:#5F5E5A">Cadernos em andamento (${emAndamento.length})</span>
       <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
@@ -2544,7 +2546,7 @@ function renderBanco(){
     ${concluidos.length?`
     <div class="section-title" style="cursor:pointer" onclick="toggleBancoCadernosConcluidos()">
       <span class="section-icon" style="background:transparent;color:#5F5E5A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.checkcirculo}</svg></span>
-      <span style="color:#5F5E5A;font-size:14px">Cadernos concluídos (${concluidos.length})</span>
+      <span style="color:#5F5E5A">Cadernos concluídos (${concluidos.length})</span>
       <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" style="flex-direction:column;padding:0;border-top:none">
