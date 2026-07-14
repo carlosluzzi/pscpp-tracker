@@ -184,6 +184,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bf{height:6px;border-radius:6px}
 .mac{font-size:var(--fs-c);color:#888}
 .mod-detail{border-top:0.5px solid #e0e0e0;padding:10px 14px;display:none;flex-direction:column;gap:10px}
+.carrossel-cadernos{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.carrossel-cadernos::-webkit-scrollbar{display:none}
+.carrossel-pagina{flex:0 0 100%;scroll-snap-align:start;display:flex;flex-direction:column;min-width:0}
+.carrossel-dots{display:flex;justify-content:center;gap:6px;padding:8px 0 2px}
+.carrossel-dot{width:6px;height:6px;border-radius:50%;background:#ddd;flex-shrink:0}
+.carrossel-dot.ativo{background:#202A45}
 .mod-detail.open{display:flex}
 .pub-block{display:flex;flex-direction:column;gap:5px}
 .pub-top{display:flex;justify-content:space-between;align-items:center}
@@ -2361,6 +2367,16 @@ function fecharCaderno(){
   itensCadernoAtivo=[];
   itemCadernoAtual=0;
   renderTab(tabAtual);
+  requestAnimationFrame(()=>{
+    if(bancoCadernosAndamentoAberto){
+      const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Em Andamento').length/CADERNOS_POR_PAGINA);
+      initCarrosselCadernos('carrossel-andamento',totalPaginas);
+    }
+    if(bancoCadernosConcluidosAberto){
+      const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Concluido').length/CADERNOS_POR_PAGINA);
+      initCarrosselCadernos('carrossel-concluidos',totalPaginas);
+    }
+  });
 }
 
 function questaoAtualCaderno(){
@@ -2614,6 +2630,36 @@ function irParaItemCaderno(i){
   renderTab(tabAtual);
 }
 
+const CADERNOS_POR_PAGINA=5;
+function montarCarrosselCadernos(itensHtml,idTrack){
+  if(itensHtml.length<=CADERNOS_POR_PAGINA){
+    return `<div style="display:flex;flex-direction:column">${itensHtml.join('')}</div>`;
+  }
+  const paginas=[];
+  for(let i=0;i<itensHtml.length;i+=CADERNOS_POR_PAGINA){
+    paginas.push(itensHtml.slice(i,i+CADERNOS_POR_PAGINA));
+  }
+  return `
+    <div class="carrossel-cadernos" id="${idTrack}">
+      ${paginas.map(pagina=>`<div class="carrossel-pagina">${pagina.join('')}</div>`).join('')}
+    </div>
+    <div class="carrossel-dots">
+      ${paginas.map((_,i)=>`<span class="carrossel-dot${i===0?' ativo':''}" id="${idTrack}-dot${i}"></span>`).join('')}
+    </div>
+  `;
+}
+function initCarrosselCadernos(idTrack,totalPaginas){
+  const el=document.getElementById(idTrack);
+  if(!el||totalPaginas<=1) return;
+  el.addEventListener('scroll',()=>{
+    const pagina=Math.round(el.scrollLeft/el.clientWidth);
+    for(let i=0;i<totalPaginas;i++){
+      const dot=document.getElementById(idTrack+'-dot'+i);
+      if(dot) dot.classList.toggle('ativo',i===pagina);
+    }
+  },{passive:true});
+}
+
 function calcularTagsDisp(){
   let poolParaModulo=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
   if(filtBancoCurso!=='todos'){
@@ -2720,13 +2766,13 @@ function renderBanco(){
       <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" id="cadernos-andamento-lista" style="flex-direction:column;padding:0;border-top:none">
-    ${emAndamento.map(c=>`<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer">
+    ${montarCarrosselCadernos(emAndamento.map(c=>`<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer">
       <div class="prox-left">
         <span class="prox-nome">${c.nome}</span>
         <span class="fila-ref">${c.respondidas}/${c.totalQuestoes} respondidas · ${c.filtrosUsados}</span>
       </div>
       <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
-    </div>`).join('')}
+    </div>`),'carrossel-andamento')}
     </div>
     `:''}
 
@@ -2737,7 +2783,7 @@ function renderBanco(){
       <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
     </div>
     <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" id="cadernos-concluidos-lista" style="flex-direction:column;padding:0;border-top:none">
-    ${concluidos.map(c=>{
+    ${montarCarrosselCadernos(concluidos.map(c=>{
       const itensDoCaderno=itensCadernoTodos.filter(it=>it.caderno===c.nome);
       const respondidasReal=itensDoCaderno.filter(it=>it.respondida).length;
       const acertosReal=itensDoCaderno.filter(it=>it.respondida&&it.acertouCaderno).length;
@@ -2749,7 +2795,7 @@ function renderBanco(){
       </div>
       <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
     </div>`;
-    }).join('')}
+    }),'carrossel-concluidos')}
     </div>
     `:''}
   `;
@@ -2827,7 +2873,9 @@ function toggleBancoCadernosAndamento(){
   renderTab(tabAtual,true);
   if(bancoCadernosAndamentoAberto) requestAnimationFrame(()=>{
     const el=document.getElementById('cadernos-andamento-lista');
-    if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+    if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
+    const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Em Andamento').length/CADERNOS_POR_PAGINA);
+    initCarrosselCadernos('carrossel-andamento',totalPaginas);
   });
 }
 function toggleBancoCadernosConcluidos(){
@@ -2835,7 +2883,9 @@ function toggleBancoCadernosConcluidos(){
   renderTab(tabAtual,true);
   if(bancoCadernosConcluidosAberto) requestAnimationFrame(()=>{
     const el=document.getElementById('cadernos-concluidos-lista');
-    if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+    if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
+    const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Concluido').length/CADERNOS_POR_PAGINA);
+    initCarrosselCadernos('carrossel-concluidos',totalPaginas);
   });
 }
 function toggleMod(i){
