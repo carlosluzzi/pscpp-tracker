@@ -415,6 +415,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-list .prox-item+.prox-item.prox-due::before{display:none}
 .prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
+.prox-tema{display:block;font-size:var(--fs-b);color:#888;margin-top:2px;line-height:1.35}
+.prox-modalidade{display:inline-block;font-size:var(--fs-a);color:#888;margin-top:3px}
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
@@ -869,7 +871,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioRegras=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itensCadernoTodos=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itensCadernoTodos=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
 let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=null,filtBancoNome='';
 let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false,filtBancoQtdErro=false;
 let bancoCadernosAndamentoAberto=false;
@@ -955,14 +957,14 @@ async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
     const [
-      {data:a,error:eA},{data:qRaw,error:eQ},{data:cal,error:eCal},{data:notas,error:eNotas},
+      {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},
       {data:cadernosRes,error:eCadernos},{data:itensCadernoRes,error:eItens}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
-      sbDados.from('calendario_regras').select('*'),
+      sbDados.from('calendario_eventos').select('*'),
       sbDados.from('notas_estudo').select('*'),
       sbDados.from('atividades_complementares').select('*'),
       sbDados.from('banco_pratico_config').select('*'),
@@ -1012,15 +1014,15 @@ async function loadData(){
       totalErros:p.total_de_erros||0,
       totalAcertos:p.total_de_acertos||0,
     }));
-    calendarioRegras=cal.map(p=>({
+    calendarioEventos=calEventos.map(p=>({
       id:p.id,
-      curso:p.curso||null,
-      tipo:p.tipo||null,
-      intervaloDias:p.intervalo_dias||null,
-      padrao:p.padrao_numeracao||null,
-      ultimaNumeracao:p.ultima_numeracao_confirmada||null,
-      ultimaData:p.ultima_data_confirmada||null,
-    })).filter(r=>r.curso&&r.intervaloDias&&r.ultimaData&&r.ultimaNumeracao);
+      curso:p.curso,
+      numero:p.numero||null,
+      data:p.data||null,
+      tema:p.tema||null,
+      modalidade:p.modalidade||null,
+      feito:p.feito||false,
+    }));
     notasEstudo=notas.map(p=>({
       id:p.id,
       texto:p.texto||'',
@@ -1306,7 +1308,7 @@ function renderInicio(){
   return `
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
-    ${renderCardProximos()}
+    ${renderCardCalendario()}
     ${renderCardBancoPratico()}
     ${renderCardFoco()}
     ${renderCardComplementares()}
@@ -1316,23 +1318,29 @@ function renderInicio(){
 }
 
 // CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
-function calcularProxima(regra){
-  const ultimaData=new Date(regra.ultimaData+'T00:00:00');
-  const proximaData=new Date(ultimaData.getTime()+regra.intervaloDias*24*60*60*1000);
-  let proximaNumeracao;
-  if(regra.padrao==='Reinicia Mensal'){
-    const partes=regra.ultimaNumeracao.trim().split(' ');
-    const num=parseInt(partes[0],10)||0;
-    const meses=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-    const mesmoMes=proximaData.getMonth()===ultimaData.getMonth()&&proximaData.getFullYear()===ultimaData.getFullYear();
-    const novoNum=mesmoMes?num+1:1;
-    proximaNumeracao=String(novoNum).padStart(2,'0')+' '+meses[proximaData.getMonth()];
-  }else{
-    const digitos=regra.ultimaNumeracao.trim().length;
-    const num=parseInt(regra.ultimaNumeracao,10)||0;
-    proximaNumeracao=String(num+1).padStart(digitos,'0');
-  }
-  return {data:proximaData,numeracao:proximaNumeracao};
+// Acha o próximo evento de um curso — regra diferente por modalidade:
+// Presencial: sempre a menor data futura (você sempre comparece, não precisa confirmar)
+// Online/sem modalidade: a menor data ainda não confirmada como feita (mesmo já tendo passado,
+// já que você pode fazer alguns dias depois — fica sendo "o próximo" até você confirmar)
+function calcularProximoDoCurso(curso){
+  const eventos=calendarioEventos.filter(e=>e.curso===curso&&e.data);
+  if(!eventos.length) return null;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const candidatos=eventos.filter(e=>{
+    if(e.modalidade==='Presencial') return new Date(e.data+'T00:00:00')>=hoje;
+    return !e.feito;
+  });
+  if(!candidatos.length) return null;
+  candidatos.sort((a,b)=>a.data.localeCompare(b.data));
+  return candidatos[0];
+}
+// Presencial fica em alerta com antecedência (pra dar tempo de se preparar pra ir);
+// Online/sem modalidade só fica em alerta depois de dias sem confirmar que já fez.
+function eventoUrgente(ev){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const diffDias=Math.round((new Date(ev.data+'T00:00:00')-hoje)/(1000*60*60*24));
+  if(ev.modalidade==='Presencial') return diffDias<=15;
+  return diffDias<=-7;
 }
 
 // FOCO RECOMENDADO — módulos com pior aproveitamento, calculado sozinho
@@ -1473,51 +1481,48 @@ async function marcarFocoEstudado(chave){
 
 // PRÓXIMOS SIMULADOS / EXERCÍCIOS
 const mesesAbrev=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-function renderProxItem(it,corBotao){
-  const vencida=it.proxData<=(new Date().setHours(0,0,0,0));
-  const label=`${it.proxNumeracao} | ${it.curso}`;
-  const cc=cursoCores[it.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-  const mes=mesesAbrev[it.proxData.getMonth()];
-  const dia=it.proxData.getDate();
-  const btnStyle=corBotao?`style="background:${corBotao};border-color:${corBotao};color:#fff"`:'';
-  return `<div class="prox-item${vencida?' prox-due':''}">
-    <div class="prox-row-top">
-      <div class="prox-cal" style="background:${cc.bg};color:${cc.tx}">
-        <span class="prox-cal-mes">${mes}</span>
-        <span class="prox-cal-dia">${dia}</span>
-      </div>
-      <div class="prox-left">
-        <span class="prox-nome">${label}</span>
-      </div>
-    </div>
-    <button class="prox-confirm-btn" ${btnStyle} onclick="abrirConfirmacao('${it.id}','${label.replace(/'/g,"\\'")}','calendario')">feito</button>
-  </div>`;
-}
-
-function renderCardProximos(){
-  if(!calendarioRegras.length) return '';
-  const items=calendarioRegras.map(r=>{
-    const prox=calcularProxima(r);
-    return {...r,proxData:prox.data,proxNumeracao:prox.numeracao};
-  }).sort((a,b)=>a.proxData-b.proxData);
-  const simulados=items.filter(it=>it.tipo==='Simulado');
-  const exercicios=items.filter(it=>it.tipo!=='Simulado');
-  return `
-    <div class="card-inicio">
+function renderCardCalendario(){
+  const cursos=['Curso H','Curso Prático','MPX','Catavento'];
+  const cards=cursos.map(curso=>{
+    const cc=cursoCores[curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
+    const ev=calcularProximoDoCurso(curso);
+    if(!ev){
+      return `<div class="card-inicio">
+        <div class="card-header-row">
+          <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3C3489">${iconeSecao('calendario2')}</span><span style="color:#3C3489">Próximo — ${curso}</span></div>
+        </div>
+        <div class="empty" style="padding:16px 8px">Nada programado.</div>
+      </div>`;
+    }
+    const urgente=eventoUrgente(ev);
+    const dataObj=new Date(ev.data+'T00:00:00');
+    const mes=mesesAbrev[dataObj.getMonth()];
+    const dia=dataObj.getDate();
+    const label=ev.numero?`${ev.numero} | ${ev.curso}`:ev.curso;
+    const precisaBotao=ev.modalidade!=='Presencial';
+    return `<div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3C3489">${iconeSecao('calendario2')}</span><span style="color:#3C3489">Próximos simulados</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3C3489">${iconeSecao('calendario2')}</span><span style="color:#3C3489">Próximo — ${curso}</span></div>
       </div>
       <div class="prox-list prox-list-compact">
-        ${simulados.length?simulados.map(it=>renderProxItem(it,'#202A45')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum simulado programado.</div>'}
+        <div class="prox-item${urgente?' prox-due':''}">
+          <div class="prox-row-top">
+            <div class="prox-cal" style="background:${cc.bg};color:${cc.tx}">
+              <span class="prox-cal-mes">${mes}</span>
+              <span class="prox-cal-dia">${dia}</span>
+            </div>
+            <div class="prox-left">
+              <span class="prox-nome">${label}</span>
+              ${ev.tema?`<span class="prox-tema">${ev.tema}</span>`:''}
+              ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
+            </div>
+          </div>
+          ${precisaBotao?`<button class="prox-confirm-btn" onclick="abrirConfirmacao('${ev.id}','${label.replace(/'/g,"\\'")}','evento')">feito</button>`:''}
+        </div>
       </div>
-      <div class="card-header-row" style="margin-top:16px">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3C3489">${iconeSecao('calendario2')}</span><span style="color:#3C3489">Próximos exercícios</span></div>
-      </div>
-      <div class="prox-list prox-list-compact">
-        ${exercicios.length?exercicios.map(it=>renderProxItem(it,'#202A45')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
-      </div>
-    </div>
-  `;
+    </div>`;
+  }).join('');
+  return cards;
 }
 
 // BANCO PRÁTICO
@@ -1879,24 +1884,16 @@ function confirmarFeitoSim(){
   else if(tipo==='filaBanco') marcarFilaBancoFeito(id);
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
-  else marcarFeito(id);
+  else if(tipo==='evento') marcarEventoFeito(id);
 }
 
-async function marcarFeito(regraId){
-  const regra=calendarioRegras.find(r=>r.id===regraId);
-  if(!regra) return;
-  const prox=calcularProxima(regra);
-  const isoData=prox.data.toISOString().slice(0,10);
+async function marcarEventoFeito(eventoId){
   try{
-    await notionCall(`/pages/${regraId}`,{
-      properties:{
-        'Última Numeração Confirmada':{rich_text:[{text:{content:prox.numeracao}}]},
-        'Última Data Confirmada':{date:{start:isoData}}
-      }
-    },'PATCH');
+    const {error}=await sbDados.from('calendario_eventos').update({feito:true}).eq('id',eventoId);
+    if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao confirmar atividade: '+e.message);
+    alert('Erro ao confirmar evento: '+e.message);
   }
 }
 
