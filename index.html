@@ -792,6 +792,13 @@ const sbAuth=window.supabase.createClient(
   'sb_publishable_ne9lVc82Tdp6tloAbqm4xA_imwugeXg'
 );
 
+// Cliente Supabase apontando pro projeto PRÓPRIO do PSCPP Tracker — é daqui que vêm os
+// dados de verdade do app (Atividades, Banco de Questões, etc.), projeto separado do PilotQuest
+const sbDados=window.supabase.createClient(
+  'https://sdqhwsmuldsmyvwqlsuh.supabase.co',
+  'sb_publishable_qP5zH44_6VjXLGR9NIjifg_cevH8PIn'
+);
+
 async function entrar(){
   const erro=document.getElementById('login-erro');
   const email=document.getElementById('login-email').value.trim();
@@ -947,119 +954,148 @@ function setSyncStatus(state,text){
 async function loadData(){
   setSyncStatus('loading','Sincronizando...');
   try{
-    const [a,q,cal,notas,comp,banco,foco,apelidosRes,filaRes,cadernosRes,itensCadernoRes]=await Promise.all([notionQuery(DB_ATIVIDADES),notionQuery(DB_QUESTOES),notionQuery(DB_CALENDARIO),notionQuery(DB_NOTAS),notionQuery(DB_COMPLEMENTARES),notionQuery(DB_BANCO_PRATICO),notionQuery(DB_FOCO_ESTUDADO),notionQuery(DB_APELIDOS),notionQuery(DB_FILA_BANCO),notionQuery(DB_CADERNOS),notionQuery(DB_ITENS_CADERNO)]);
+    const [
+      {data:a,error:eA},{data:qRaw,error:eQ},{data:cal,error:eCal},{data:notas,error:eNotas},
+      {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
+      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},
+      {data:cadernosRes,error:eCadernos},{data:itensCadernoRes,error:eItens}
+    ]=await Promise.all([
+      sbDados.from('atividades').select('*'),
+      sbDados.from('banco_questoes').select('*'),
+      sbDados.from('calendario_regras').select('*'),
+      sbDados.from('notas_estudo').select('*'),
+      sbDados.from('atividades_complementares').select('*'),
+      sbDados.from('banco_pratico_config').select('*'),
+      sbDados.from('foco_estudado').select('*'),
+      sbDados.from('apelidos_publicacao').select('*'),
+      sbDados.from('fila_banco_pratico').select('*'),
+      sbDados.from('cadernos').select('*'),
+      sbDados.from('itens_caderno').select('*'),
+    ]);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eCadernos,eItens].find(Boolean);
+    if(primeiroErro) throw new Error(primeiroErro.message);
+
     atividades=a.map(p=>({
       id:p.id,
-      nome:getProp(p,'ID da Atividade')||'Sem título',
-      data:getProp(p,'Data')||null,
-      tipo:getProp(p,'Tipo')||null,
-      curso:getProp(p,'Curso')||null,
-      pontuacao:getProp(p,'Pontuação Obtida')||null,
-      pontuacaoTotal:getProp(p,'Pontuação Total')||null,
-      aproveitamento:getProp(p,'Aproveitamento %')||null,
-      acertos:getProp(p,'Acertos Efetivos')||null,
-      erros:getProp(p,'Erros Efetivos')||null,
-      anuladas:getProp(p,'Anuladas')||null,
-      total:getProp(p,'Total de Questões')||null,
+      nome:p.id_atividade||'Sem título',
+      data:p.data||null,
+      tipo:p.tipo||null,
+      curso:p.curso||null,
+      pontuacao:p.pontuacao_obtida!=null?Number(p.pontuacao_obtida):null,
+      pontuacaoTotal:p.pontuacao_total!=null?Number(p.pontuacao_total):null,
+      aproveitamento:p.aproveitamento!=null?Number(p.aproveitamento):null,
+      acertos:p.acertos_efetivos||null,
+      erros:p.erros_efetivos||null,
+      anuladas:p.anuladas||null,
+      total:p.total_questoes||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-    questoes=q.map(p=>({
+    questoes=qRaw.map(p=>({
       id:p.id,
-      questao:getProp(p,'Questão')||null,
-      idAtividade:getProp(p,'ID da Atividade')||null,
-      status:getProp(p,'Status')||null,
-      modulo:getProp(p,'Módulo PSCPP')||null,
-      publicacao:getProp(p,'Publicação')||null,
-      capitulo:getProp(p,'Capítulo')||null,
-      assuntoPrincipal:getProp(p,'Assunto Principal')||null,
-      tags:getProp(p,'Tags de Assunto')||[],
-      suaResposta:getProp(p,'Sua Resposta')||null,
-      gabarito:getProp(p,'Gabarito')||null,
-      motivo:getProp(p,'Questão Completa')||null,
-      revisoesRealizadas:getProp(p,'Revisões Realizadas')||0,
-      acertouRevisao:getProp(p,'Acertou na Revisão')||null,
-      tipoQuestao:getProp(p,'Tipo de Questão')||null,
-      ultimaRevisao:getProp(p,'Última Revisão')||null,
-      notasPessoais:getProp(p,'Notas Pessoais')||'',
-      favorita:getProp(p,'Favorita')||false,
-      excluida:getProp(p,'Excluida')||false,
-      totalErros:getProp(p,'Total de Erros')||0,
-      totalAcertos:getProp(p,'Total de Acertos')||0,
+      questao:p.numero_questao||null,
+      idAtividade:p.id_atividade||null,
+      status:p.status||null,
+      modulo:p.modulo_pscpp||null,
+      publicacao:p.publicacao||null,
+      capitulo:p.capitulo||null,
+      assuntoPrincipal:p.assunto_principal||null,
+      tags:p.tags_de_assunto||[],
+      suaResposta:p.sua_resposta||null,
+      gabarito:p.gabarito||null,
+      motivo:p.questao_completa||null,
+      revisoesRealizadas:p.revisoes_realizadas||0,
+      acertouRevisao:p.acertou_na_revisao||null,
+      tipoQuestao:p.tipo_questao||null,
+      ultimaRevisao:p.ultima_revisao||null,
+      notasPessoais:p.notas_pessoais||'',
+      favorita:p.favorita||false,
+      excluida:p.excluida||false,
+      totalErros:p.total_de_erros||0,
+      totalAcertos:p.total_de_acertos||0,
     }));
     calendarioRegras=cal.map(p=>({
       id:p.id,
-      curso:getProp(p,'Curso')||null,
-      tipo:getProp(p,'Tipo')||null,
-      intervaloDias:getProp(p,'Intervalo Dias')||null,
-      padrao:getProp(p,'Padrão Numeração')||null,
-      ultimaNumeracao:getProp(p,'Última Numeração Confirmada')||null,
-      ultimaData:getProp(p,'Última Data Confirmada')||null,
+      curso:p.curso||null,
+      tipo:p.tipo||null,
+      intervaloDias:p.intervalo_dias||null,
+      padrao:p.padrao_numeracao||null,
+      ultimaNumeracao:p.ultima_numeracao_confirmada||null,
+      ultimaData:p.ultima_data_confirmada||null,
     })).filter(r=>r.curso&&r.intervaloDias&&r.ultimaData&&r.ultimaNumeracao);
     notasEstudo=notas.map(p=>({
       id:p.id,
-      texto:getProp(p,'Texto')||'',
-      criadoEm:p.created_time||null,
+      texto:p.texto||'',
+      criadoEm:p.criado_em||null,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     complementares=comp.map(p=>({
       id:p.id,
-      nome:getProp(p,'Nome')||'Sem título',
-      dataLimite:getProp(p,'Data Limite')||null,
-      prioridade:getProp(p,'Prioridade')||'Média',
-      recorrenciaDias:getProp(p,'Recorrência Dias')||null,
-      status:getProp(p,'Status')||'Pendente',
+      nome:p.nome||'Sem título',
+      dataLimite:p.data_limite||null,
+      prioridade:p.prioridade||'Média',
+      recorrenciaDias:p.recorrencia_dias||null,
+      status:p.status||'Pendente',
     }));
     bancoPratico=banco.map(p=>({
       id:p.id,
-      nome:getProp(p,'Nome')||'Banco Prático',
-      url:getProp(p,'URL')||'',
-      intervaloDias:getProp(p,'Intervalo Dias')||1,
-      ultimaConfirmada:getProp(p,'Última Confirmada')||null,
-      metaDiaria:getProp(p,'Meta Diaria')||10,
-      dataProva:getProp(p,'Data Prova')||null,
+      nome:p.nome||'Banco Prático',
+      url:p.url||'',
+      intervaloDias:p.intervalo_dias||1,
+      ultimaConfirmada:p.ultima_confirmada||null,
+      metaDiaria:p.meta_diaria||10,
+      dataProva:p.data_prova||null,
     }))[0]||null;
-    focoEstudado=foco.map(p=>({chave:getProp(p,'Módulo')||'',data:getProp(p,'Data Confirmada')||null})).filter(f=>f.chave);
+    focoEstudado=foco.map(p=>({chave:p.modulo||'',data:p.data_confirmada||null})).filter(f=>f.chave);
     apelidos={};
     apelidosRes.forEach(p=>{
-      const orig=getProp(p,'Nome Original');
-      const custom=getProp(p,'Nome Personalizado');
+      const orig=p.nome_original;
+      const custom=p.nome_personalizado;
       if(orig&&custom) apelidos[orig]=custom;
     });
     filaBancoPratico=filaRes.map(p=>({
       id:p.id,
-      materia:getProp(p,'Materia')||'',
-      publicacao:getProp(p,'Publicacao')||'',
-      capitulo:getProp(p,'Capitulo')||'',
-      modulo:getProp(p,'Modulo')||'',
-      dataEntrada:getProp(p,'Data Entrada')||null,
-      status:getProp(p,'Status')||'Pendente',
-      quantidade:getProp(p,'Quantidade')||1,
+      materia:p.materia||'',
+      publicacao:p.publicacao||'',
+      capitulo:p.capitulo||'',
+      modulo:p.modulo||'',
+      dataEntrada:p.data_entrada||null,
+      status:p.status||'Pendente',
+      quantidade:p.quantidade||1,
     }));
     cadernos=cadernosRes.map(p=>({
       id:p.id,
-      nome:getProp(p,'Nome')||'',
-      dataCriacao:getProp(p,'Data Criacao')||null,
-      filtrosUsados:getProp(p,'Filtros Usados')||'',
-      status:getProp(p,'Status')||'Em Andamento',
-      totalQuestoes:getProp(p,'Total Questoes')||0,
-      respondidas:getProp(p,'Respondidas')||0,
+      nome:p.nome||'',
+      dataCriacao:p.data_criacao||null,
+      filtrosUsados:p.filtros_usados||'',
+      status:p.status||'Em Andamento',
+      totalQuestoes:p.total_questoes||0,
+      respondidas:p.respondidas||0,
     })).sort((a,b)=>(b.dataCriacao||'').localeCompare(a.dataCriacao||''));
-    itensCadernoTodos=itensCadernoRes.map(p=>({
-      id:p.id,
-      titulo:getProp(p,'Titulo')||'',
-      caderno:getProp(p,'Caderno')||'',
-      atividadeOrigem:getProp(p,'Atividade Origem')||'',
-      numeroQuestao:getProp(p,'Numero Questao')||'',
-      ordem:getProp(p,'Ordem')||0,
-      respondida:getProp(p,'Respondida')||false,
-      suaRespostaCaderno:getProp(p,'Sua Resposta Caderno')||'',
-      acertouCaderno:getProp(p,'Acertou Caderno')||false,
-    }));
+    // Itens Caderno agora vem com FK de verdade (caderno_id, questao_id) em vez do "casamento por
+    // texto" que o Notion exigia — aqui "traduzimos" de volta pros mesmos nomes de campo (caderno,
+    // atividadeOrigem, numeroQuestao) que o resto do app já usa, sem precisar mexer em mais nada por ora.
+    itensCadernoTodos=itensCadernoRes.map(p=>{
+      const cad=cadernosRes.find(c=>c.id===p.caderno_id);
+      const q=qRaw.find(qq=>qq.id===p.questao_id);
+      return{
+        id:p.id,
+        titulo:'',
+        caderno:cad?.nome||'',
+        atividadeOrigem:q?.id_atividade||'',
+        numeroQuestao:q?.numero_questao||'',
+        ordem:p.ordem||0,
+        respondida:p.respondida||false,
+        suaRespostaCaderno:p.sua_resposta_caderno||'',
+        acertouCaderno:p.acertou_caderno||false,
+        cadernoId:p.caderno_id,
+        questaoId:p.questao_id,
+      };
+    });
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
     finalizarSplash();
   }catch(e){
     setSyncStatus('error','Erro de conexão');
-    document.getElementById('content').innerHTML=`<div class="error-screen">Erro ao conectar com o Notion.<br><br>${e.message}</div>`;
+    document.getElementById('content').innerHTML=`<div class="error-screen">Erro ao conectar com o banco de dados.<br><br>${e.message}</div>`;
     finalizarSplash();
   }
 }
