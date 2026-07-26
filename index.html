@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 button{transition:transform 0.12s ease,opacity 0.12s ease}
@@ -114,6 +115,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
+#splash-screen.hidden{display:none}
 #splash-screen.fade-out{opacity:0;pointer-events:none}
 #splash-logo{height:38px;width:auto;object-fit:contain;display:block}
 #splash-bar-track{width:120px;height:4px;border-radius:2px;background:#EEE;overflow:hidden}
@@ -125,7 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .error-screen{padding:16px;background:#FCEBEB;border-radius:10px;color:#A32D2D;font-size:var(--fs-e);line-height:1.6}
 
 /* Tela de senha de acesso — visual adaptado do Claude Quest, cor de marca trocada pro nosso navy */
-#view-senha{
+#view-login{
   position:fixed;
   inset:0;
   display:flex;
@@ -137,9 +139,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   box-sizing:border-box;
   z-index:10000;
 }
-#view-senha.hidden{display:none}
+#view-login.hidden{display:none}
 .login-inner{width:100%;max-width:432px}
-#view-senha input{
+#view-login input{
   padding:6px 10px;
   border-radius:6px;
   border:0.5px solid #ddd;
@@ -163,7 +165,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   color:#888;
   cursor:pointer;
 }
-#view-senha .btn-primario{
+#view-login .btn-primario{
   background:#202A45;
   color:#fff;
   border-radius:8px;
@@ -175,7 +177,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   cursor:pointer;
   font-family:inherit;
 }
-#view-senha .erro{
+#view-login .erro{
   color:#B00020;
   font-size:14px;
   margin-bottom:8px;
@@ -385,7 +387,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* Sistema de cards da Início (substitui a trilha) */
 .header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);position:relative;overflow:hidden;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
-.card-deco-img{position:absolute;right:6px;bottom:4px;opacity:0.3;pointer-events:none}
 .header-zone svg.header-bussola-deco{position:absolute;right:-18px;top:-18px;width:110px;height:110px;opacity:0.12}
 .header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
 .card-inicio{background:#fff;border-radius:18px;padding:13px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
@@ -494,26 +495,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </style>
 </head>
 <body>
-<div id="view-senha" class="hidden">
+<div id="view-login" class="hidden">
 <div class="login-inner">
   <div style="text-align:center;margin-bottom:16px">
     <img src="assets/logo-completa.png" alt="PSCPP Tracker" style="height:32px;width:auto">
   </div>
 
-  <form id="form-senha-acesso" onsubmit="event.preventDefault(); entrarComSenha();">
+  <form id="form-login-entrar" onsubmit="event.preventDefault(); entrar();">
+    <input type="email" id="login-email" placeholder="Email" autocomplete="username" required>
     <div class="campo-senha-wrapper">
-      <input type="password" id="senha-acesso" placeholder="Senha" autocomplete="current-password" required>
-      <button type="button" class="btn-revelar-senha" onclick="toggleSenhaVisivel('senha-acesso', this)" aria-label="Mostrar senha">
+      <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" required>
+      <button type="button" class="btn-revelar-senha" onclick="toggleSenhaVisivel('login-senha', this)" aria-label="Mostrar senha">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
       </button>
     </div>
-    <div class="erro hidden" id="senha-erro"></div>
+    <div class="erro hidden" id="login-erro"></div>
     <button class="btn-primario" type="submit">Entrar</button>
   </form>
 </div>
 </div>
 
-<div id="splash-screen">
+<div id="splash-screen" class="hidden">
   <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
   <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
 </div>
@@ -659,7 +661,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="modal-overlay" id="banco-filtro-tags-modal" style="display:none" onclick="if(event.target===this)fecharFiltroTagsModal()">
   <div class="modal-box">
     <div class="config-title">Filtrar por tags <span class="banco-combine-toggle" id="banco-filtro-combinar-label" onclick="toggleBancoCombinar();renderFiltroTagsModal()">Combinar: OU</span></div>
-    <input type="text" id="banco-filtro-tags-busca" class="filter-select" placeholder="Buscar tag..." oninput="renderFiltroTagsModal()">
+    <input type="text" id="banco-filtro-tags-busca" class="filter-select" placeholder="Buscar tag..." oninput="renderFiltroTagsModalDebounced()">
     <div class="tr" id="banco-filtro-tags-lista" style="margin-bottom:14px;max-height:280px;overflow-y:auto;padding:2px"></div>
     <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:8px" onclick="fecharFiltroTagsModal()">Fechar</button>
   </div>
@@ -783,15 +785,38 @@ function toggleSenhaVisivel(idCampo, botao){
   campo.type=campo.type==='password'?'text':'password';
 }
 
-// TODO: lógica de verificação da senha ainda não definida — vamos decidir juntos
-// (onde a senha fica guardada, como comparar, o que acontece depois de validar).
-// Por enquanto só mostra a tela e não deixa passar — sem enganar ninguém de que já funciona.
-function entrarComSenha(){
-  const erro=document.getElementById('senha-erro');
-  if(erro){
-    erro.textContent='Lógica de verificação ainda não implementada.';
+// Cliente Supabase apontando pro projeto do PilotQuest — é de lá que vem a autenticação
+// (login unificado: entrar aqui usa a mesma conta do PilotQuest, sem senha própria do Tracker)
+const sbAuth=window.supabase.createClient(
+  'https://jenzxycerdtjpkrzesia.supabase.co',
+  'sb_publishable_ne9lVc82Tdp6tloAbqm4xA_imwugeXg'
+);
+
+async function entrar(){
+  const erro=document.getElementById('login-erro');
+  const email=document.getElementById('login-email').value.trim();
+  const senha=document.getElementById('login-senha').value;
+  erro.classList.add('hidden');
+
+  const {error}=await sbAuth.auth.signInWithPassword({email,password:senha});
+  if(error){
+    erro.textContent='Email ou senha incorretos.';
     erro.classList.remove('hidden');
+    return;
   }
+  await posLogin();
+}
+
+// Roda depois de um login bem-sucedido (ou de achar uma sessão já salva no boot):
+// esconde a tela de login, mostra a splash, e começa a carregar os dados do app.
+async function posLogin(){
+  document.getElementById('view-login').classList.add('hidden');
+  const splash=document.getElementById('splash-screen');
+  if(splash) splash.classList.remove('hidden');
+  loadData();
+  // trava de segurança: não importa o que dê errado no carregamento (banco travado, erro
+  // silencioso, o que for), a splash nunca fica presa na tela pra sempre — some sozinha
+  setTimeout(()=>{ finalizarSplash(); }, 6000);
 }
 
 function iconeInfo(){
@@ -848,23 +873,41 @@ let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='to
 let filtDataInicio='',filtDataFim='';
 
 async function notionQuery(dbId){
-  const res=await fetch('/api/notion',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body:{page_size:100}})
-  });
-  if(!res.ok) throw new Error('Erro '+res.status);
-  return (await res.json()).results||[];
+  let results=[];
+  let cursor=undefined;
+  do{
+    const body={page_size:100};
+    if(cursor) body.start_cursor=cursor;
+    const res=await fetch('/api/notion',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body})
+    });
+    if(!res.ok) throw new Error('Erro '+res.status);
+    const data=await res.json();
+    results=results.concat(data.results||[]);
+    cursor=data.has_more?data.next_cursor:null;
+  }while(cursor);
+  return results;
 }
 
 async function notionQueryFilter(dbId,filter){
-  const res=await fetch('/api/notion',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body:{filter,page_size:100}})
-  });
-  if(!res.ok) throw new Error('Erro '+res.status);
-  return (await res.json()).results||[];
+  let results=[];
+  let cursor=undefined;
+  do{
+    const body={filter,page_size:100};
+    if(cursor) body.start_cursor=cursor;
+    const res=await fetch('/api/notion',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body})
+    });
+    if(!res.ok) throw new Error('Erro '+res.status);
+    const data=await res.json();
+    results=results.concat(data.results||[]);
+    cursor=data.has_more?data.next_cursor:null;
+  }while(cursor);
+  return results;
 }
 
 async function notionCall(endpoint,body,method){
@@ -1437,8 +1480,6 @@ function renderCardProximos(){
       <div class="prox-list prox-list-compact">
         ${exercicios.length?exercicios.map(it=>renderProxItem(it,'#202A45')).join(''):'<div class="empty" style="padding:16px 8px">Nenhum exercício programado.</div>'}
       </div>
-      <img class="card-deco-img" src="assets/leme.png" width="58" height="45" alt="" style="top:6px;right:6px;bottom:auto;opacity:0.16">
-      <img class="card-deco-img" src="assets/farol.png" width="60" height="65" alt="" style="opacity:0.16">
     </div>
   `;
 }
@@ -1631,7 +1672,7 @@ function renderCardBancoPratico(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático"></span><span style="color:#0A2882">Banco prático</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático" loading="lazy"></span><span style="color:#0A2882">Banco prático</span></div>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
@@ -1961,7 +2002,7 @@ function renderDetalhe(a){
     <div class="mtr-grid" style="margin-top:12px">
       <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'—'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'—'}</span></div></div>
       <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'—'}</div></div>
-      <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos??'—'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'—'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${modsHtml}`:''}
@@ -2263,6 +2304,11 @@ function abrirFiltroTagsModal(){
 }
 function fecharFiltroTagsModal(){
   document.getElementById('banco-filtro-tags-modal').style.display='none';
+}
+let filtroTagsBuscaDebounce=null;
+function renderFiltroTagsModalDebounced(){
+  clearTimeout(filtroTagsBuscaDebounce);
+  filtroTagsBuscaDebounce=setTimeout(renderFiltroTagsModal,150);
 }
 function renderFiltroTagsModal(){
   const label=document.getElementById('banco-filtro-combinar-label');
@@ -3070,19 +3116,22 @@ function abrirConfig(){
 function fecharConfig(){
   document.getElementById('config-modal').style.display='none';
 }
+let fontScaleRAF=null;
 function aplicarFontScale(v,salvar){
   if(salvar===undefined) salvar=true;
   document.querySelector('.content').style.zoom=(v/100);
-  // compensa o zoom pra reserva de espaço do bottom-nav continuar batendo com a altura real da tela,
-  // independente do zoom aplicado (evita o nav cobrir/deixar sobra variável de conteúdo) —
-  // mede a altura real do nav em vez de chutar um número fixo, porque ela varia por aparelho
-  // (env(safe-area-inset-bottom) muda entre iPhones com/sem barra de gesto)
-  const navEl=document.querySelector('.bottom-nav');
-  const alturaReal=navEl?navEl.offsetHeight:76;
-  document.documentElement.style.setProperty('--nav-clear', (alturaReal/(v/100))+'px');
-  if(salvar) localStorage.setItem('pscpp_font_scale',v);
   const label=document.getElementById('font-value');
   if(label) label.textContent=v+'%';
+  if(salvar) localStorage.setItem('pscpp_font_scale',v);
+  // a medição de altura do nav (offsetHeight força reflow síncrono) é agrupada num só
+  // frame de tela — sem isso, arrastar o slider dispara essa leitura cara dezenas de
+  // vezes por segundo, travando o movimento. O valor final aplicado é sempre o mesmo.
+  if(fontScaleRAF) cancelAnimationFrame(fontScaleRAF);
+  fontScaleRAF=requestAnimationFrame(()=>{
+    const navEl=document.querySelector('.bottom-nav');
+    const alturaReal=navEl?navEl.offsetHeight:76;
+    document.documentElement.style.setProperty('--nav-clear', (alturaReal/(v/100))+'px');
+  });
 }
 function restaurarPadraoFonte(){
   const slider=document.getElementById('font-slider');
@@ -3126,11 +3175,16 @@ function finalizarSplash(){
   },250);
 }
 
-loadData();
-
-// trava de segurança: não importa o que dê errado no carregamento (Notion travado, erro
-// silencioso, o que for), a splash nunca fica presa na tela pra sempre — some sozinha
-setTimeout(()=>{ finalizarSplash(); }, 6000);
+// Checa se já existe sessão salva (login anterior lembrado): se tiver, pula direto pro
+// app sem pedir login de novo; se não tiver, mostra a tela de login e espera.
+(async function initAuth(){
+  const {data:{session}}=await sbAuth.auth.getSession();
+  if(session){
+    await posLogin();
+  }else{
+    document.getElementById('view-login').classList.remove('hidden');
+  }
+})();
 
 // sombra dinâmica sob o header: nasce só quando o conteúdo é rolado, some quando volta ao topo
 (function initScrollShadow(){
