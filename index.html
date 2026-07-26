@@ -1440,7 +1440,7 @@ function renderCardCalendario(){
     const urgente=eventoUrgente(ev);
     const dataObj=new Date(ev.data+'T00:00:00');
     const mes=mesesAbrev[dataObj.getMonth()];
-    const dia=dataObj.getDate();
+    const dia=String(dataObj.getDate()).padStart(2,'0');
     const labelVisivel=`${tipoLabelCurso[curso]}${ev.numero?' '+ev.numero:''}`;
     return `<div class="card-inicio">
       <div class="${headerRowClass}">
