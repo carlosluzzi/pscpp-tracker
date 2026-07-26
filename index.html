@@ -558,8 +558,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="nav-item" id="nav-questoes" onclick="showTab('questoes')">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="10.5" width="18" height="5" rx="1.5"/><rect x="3" y="17" width="18" height="5" rx="1.5"/></svg></span><span class="nav-label">Questões</span>
     </div>
-    <div class="nav-item" id="nav-banco" onclick="showTab('banco')">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7l-9 4.5L3 7l9-4.5Z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 17l9 4.5 9-4.5"/></svg></span><span class="nav-label">Quest</span>
+    <div class="nav-item" id="nav-aprovado" onclick="showTab('aprovado')">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="m9 9 2 2 4-4"/><path d="M8.5 14.5 7 22l5-3 5 3-1.5-7.5"/></svg></span><span class="nav-label">Aprovado</span>
     </div>
   </div>
 </div>
@@ -654,27 +654,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<div class="modal-overlay" id="banco-tags-modal" style="display:none" onclick="if(event.target===this)fecharPopupTagsBanco()">
-  <div class="modal-box">
-    <div class="config-title">Tags dessa questão</div>
-    <div class="tr" id="banco-tags-popup-lista" style="margin-bottom:14px"></div>
-    <div class="config-item" style="display:flex;gap:8px">
-      <input type="text" id="banco-tags-popup-input" class="filter-select" style="margin-bottom:0" placeholder="nova tag...">
-      <button class="prox-confirm-btn" onclick="adicionarTagQuestaoBanco()">+</button>
-    </div>
-    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:16px" onclick="fecharPopupTagsBanco()">Fechar</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="banco-filtro-tags-modal" style="display:none" onclick="if(event.target===this)fecharFiltroTagsModal()">
-  <div class="modal-box">
-    <div class="config-title">Filtrar por tags <span class="banco-combine-toggle" id="banco-filtro-combinar-label" onclick="toggleBancoCombinar();renderFiltroTagsModal()">Combinar: OU</span></div>
-    <input type="text" id="banco-filtro-tags-busca" class="filter-select" placeholder="Buscar tag..." oninput="renderFiltroTagsModalDebounced()">
-    <div class="tr" id="banco-filtro-tags-lista" style="margin-bottom:14px;max-height:280px;overflow-y:auto;padding:2px"></div>
-    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:8px" onclick="fecharFiltroTagsModal()">Fechar</button>
-  </div>
-</div>
-
 <div class="modal-overlay" id="evento-detalhe-modal" style="display:none" onclick="if(event.target===this)fecharDetalheEvento()">
   <div class="modal-box">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -688,32 +667,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-info-fisheryates" style="display:none">
-  <div class="modal-box">
-    <div class="config-title">Fisher-Yates</div>
-    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-d);color:#111">É o algoritmo usado pra embaralhar a ordem das questões do seu caderno. Diferente de um embaralhamento "ingênuo" (tipo ordenar por número aleatório), o Fisher-Yates garante que cada ordem possível tem exatamente a mesma chance de acontecer — sem viés escondido favorecendo certas posições.</p>
-    <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('modal-info-fisheryates').style.display='none'">Fechar</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-info-wilson" style="display:none">
-  <div class="modal-box">
-    <div class="config-title">Wilson Score</div>
-    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-d);color:#111">É a fórmula usada pra calcular a % de acerto e pra saber quais questões você mais erra. Diferente de uma % simples, ela leva em conta quantas vezes você já tentou aquela questão — errar 1 de 1 tentativa pesa menos do que errar 8 de 10, mesmo a % "crua" sendo parecida. Isso evita que uma questão respondida só uma vez pareça mais confiável do que realmente é.</p>
-    <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('modal-info-wilson').style.display='none'">Fechar</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="banco-notas-modal" style="display:none" onclick="if(event.target===this)fecharPopupNotasBanco()">
-  <div class="modal-box">
-    <div class="config-title">Sua nota nessa questão</div>
-    <textarea id="banco-notas-popup-campo" class="nota-questao-textarea" placeholder="Por que errei? O que devo lembrar da próxima vez?"></textarea>
-    <div class="modal-actions" style="margin-top:12px">
-      <button class="modal-btn modal-btn-nao" onclick="fecharPopupNotasBanco()">Cancelar</button>
-      <button class="modal-btn modal-btn-sim" onclick="salvarNotaPopupBanco()">Salvar</button>
-    </div>
-  </div>
-</div>
 
 <script>
 const DB_ATIVIDADES='94d1585ce5fc4eff8d783649d4bf9404';
@@ -725,9 +678,6 @@ const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
 const DB_FOCO_ESTUDADO='1d409ca929444beca2b0a8d06dd9a2a8';
 const DB_FILA_BANCO='c5777a8f0b9649a78b25e0797eff2415';
 const DB_APELIDOS='87c01cc3408441608fb1c5a3acc837ed';
-const DB_CADERNOS='588cc9d8e1c04ce5954a102ea0be9645';
-const DB_ITENS_CADERNO='954f07196a5846c4b00a651aafc86f13';
-const DB_REVISOES='910a8fcad3e44a41b1cb8480031b6e41';
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#202A45'},
@@ -851,14 +801,6 @@ function iconeInfo(){
   return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
 }
 
-function explicarSorteio(){
-  document.getElementById('modal-info-fisheryates').style.display='flex';
-}
-
-function explicarPriorizarErro(){
-  document.getElementById('modal-info-wilson').style.display='flex';
-}
-
 function sectionTitle(texto,icone,bg,tx,opts){
   opts=opts||{};
   const iconBg=opts.noBg?'transparent':bg;
@@ -890,9 +832,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],cadernos=[],cadernoAtivo=null,itensCadernoAtivo=[],itensCadernoTodos=[],itemCadernoAtual=0,tabAtual='inicio',atividadeAtual=null;
-let filtBancoCurso='todos',filtBancoModulo='todos',filtBancoPublicacao='todos',filtBancoStatus='todos',filtBancoTipoQuestao='todos',filtBancoTags=[],filtBancoQtd=null,filtBancoNome='';
-let filtBancoPriorizarErros=false,filtBancoApenasIneditas=false,filtBancoQtdErro=false;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],tabAtual='inicio',atividadeAtual=null;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -978,8 +918,7 @@ async function loadData(){
     const [
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
-      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},
-      {data:cadernosRes,error:eCadernos},{data:itensCadernoRes,error:eItens}
+      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -990,10 +929,8 @@ async function loadData(){
       sbDados.from('foco_estudado').select('*'),
       sbDados.from('apelidos_publicacao').select('*'),
       sbDados.from('fila_banco_pratico').select('*'),
-      sbDados.from('cadernos').select('*'),
-      sbDados.from('itens_caderno').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eCadernos,eItens].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
 
     atividades=a.map(p=>({
@@ -1081,35 +1018,6 @@ async function loadData(){
       status:p.status||'Pendente',
       quantidade:p.quantidade||1,
     }));
-    cadernos=cadernosRes.map(p=>({
-      id:p.id,
-      nome:p.nome||'',
-      dataCriacao:p.data_criacao||null,
-      filtrosUsados:p.filtros_usados||'',
-      status:p.status||'Em Andamento',
-      totalQuestoes:p.total_questoes||0,
-      respondidas:p.respondidas||0,
-    })).sort((a,b)=>(b.dataCriacao||'').localeCompare(a.dataCriacao||''));
-    // Itens Caderno agora vem com FK de verdade (caderno_id, questao_id) em vez do "casamento por
-    // texto" que o Notion exigia — aqui "traduzimos" de volta pros mesmos nomes de campo (caderno,
-    // atividadeOrigem, numeroQuestao) que o resto do app já usa, sem precisar mexer em mais nada por ora.
-    itensCadernoTodos=itensCadernoRes.map(p=>{
-      const cad=cadernosRes.find(c=>c.id===p.caderno_id);
-      const q=qRaw.find(qq=>qq.id===p.questao_id);
-      return{
-        id:p.id,
-        titulo:'',
-        caderno:cad?.nome||'',
-        atividadeOrigem:q?.id_atividade||'',
-        numeroQuestao:q?.numero_questao||'',
-        ordem:p.ordem||0,
-        respondida:p.respondida||false,
-        suaRespostaCaderno:p.sua_resposta_caderno||'',
-        acertouCaderno:p.acertou_caderno||false,
-        cadernoId:p.caderno_id,
-        questaoId:p.questao_id,
-      };
-    });
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
@@ -1124,7 +1032,7 @@ async function loadData(){
 function showTab(tab){
   tabAtual=tab;
   atividadeAtual=null;
-  ['inicio','atividades','questoes','banco'].forEach(t=>{
+  ['inicio','atividades','questoes','aprovado'].forEach(t=>{
     document.getElementById('nav-'+t).classList.toggle('active',t===tab);
   });
   renderTab(tab);
@@ -1140,9 +1048,16 @@ function renderTab(tab,preservarScroll){
   if(tab==='inicio') c.innerHTML=renderInicio();
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
-  else if(tab==='banco') c.innerHTML=renderBanco();
+  else if(tab==='aprovado') c.innerHTML=renderAprovado();
   c.scrollTop=scrollAnterior;
 }
+
+function renderAprovado(){
+  return `
+    <div class="empty" style="padding:60px 20px;text-align:center">Em construção.</div>
+  `;
+}
+
 
 function fmtData(d){
   if(!d) return '';
@@ -2361,774 +2276,6 @@ function renderQuestoes(){
 
 // BANCO — esqueleto visual, ainda não funcional (aguardando conversa própria pra fechar o desenho)
 let bancoCombinarTags='OU';
-function toggleBancoCombinar(){
-  bancoCombinarTags=bancoCombinarTags==='OU'?'E':'OU';
-  renderTab(tabAtual,true);
-}
-function parseAlternativas(texto){
-  if(!texto) return [];
-  const m=texto.match(/\s\([a-e]\)/);
-  if(!m) return [];
-  const zonaAlt=texto.slice(m.index).trim();
-  const partes=zonaAlt.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean);
-  return partes.map(p=>{
-    const mm=p.match(/^\(([a-e])\)\s*([\s\S]*)$/);
-    return mm?{letra:mm[1],texto:mm[2]}:null;
-  }).filter(Boolean);
-}
-
-function toggleBancoTag(t){
-  const idx=filtBancoTags.indexOf(t);
-  if(idx===-1) filtBancoTags.push(t); else filtBancoTags.splice(idx,1);
-  renderTab(tabAtual,true);
-  renderFiltroTagsModal();
-}
-
-function abrirFiltroTagsModal(){
-  const busca=document.getElementById('banco-filtro-tags-busca');
-  if(busca) busca.value='';
-  document.getElementById('banco-filtro-tags-modal').style.display='flex';
-  renderFiltroTagsModal();
-}
-function fecharFiltroTagsModal(){
-  document.getElementById('banco-filtro-tags-modal').style.display='none';
-}
-let filtroTagsBuscaDebounce=null;
-function renderFiltroTagsModalDebounced(){
-  clearTimeout(filtroTagsBuscaDebounce);
-  filtroTagsBuscaDebounce=setTimeout(renderFiltroTagsModal,150);
-}
-function renderFiltroTagsModal(){
-  const label=document.getElementById('banco-filtro-combinar-label');
-  if(label) label.textContent='Combinar: '+bancoCombinarTags;
-  const busca=(document.getElementById('banco-filtro-tags-busca')?.value||'').toLowerCase().trim();
-  const todasTags=calcularTagsDisp();
-  const filtradas=busca?todasTags.filter(t=>t.toLowerCase().includes(busca)):todasTags;
-  const cont=document.getElementById('banco-filtro-tags-lista');
-  if(!cont) return;
-  cont.innerHTML=filtradas.length?filtradas.map(t=>`<span class="tg" style="cursor:pointer;${filtBancoTags.includes(t)?'background:#111;color:#fff;border-color:#111':''}" onclick="toggleBancoTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join(''):'<div class="empty">Nenhuma tag encontrada.</div>';
-}
-
-function setFiltBancoQtd(n){filtBancoQtd=n;filtBancoQtdErro=false;renderTab(tabAtual,true);}
-
-function embaralharFisherYates(arr){
-  const a=[...arr];
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
-}
-function calcularPoolBanco(){
-  let pool=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
-  if(filtBancoCurso!=='todos'){
-    const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
-    pool=pool.filter(q=>idsAtivDoCurso.has(q.idAtividade));
-  }
-  if(filtBancoModulo!=='todos') pool=pool.filter(q=>q.modulo===filtBancoModulo);
-  if(filtBancoPublicacao!=='todos') pool=pool.filter(q=>q.publicacao===filtBancoPublicacao);
-  if(filtBancoStatus!=='todos'){
-    pool=pool.filter(q=>q.status===filtBancoStatus);
-  }
-  if(filtBancoTipoQuestao!=='todos'){
-    pool=pool.filter(q=>q.tipoQuestao===filtBancoTipoQuestao);
-  }
-  if(filtBancoApenasIneditas){
-    pool=pool.filter(q=>!q.status&&!(q.revisoesRealizadas>0));
-  }
-  if(filtBancoTags.length){
-    pool=pool.filter(q=>{
-      const qtags=q.tags||[];
-      return bancoCombinarTags==='E'?filtBancoTags.every(t=>qtags.includes(t)):filtBancoTags.some(t=>qtags.includes(t));
-    });
-  }
-  return pool;
-}
-
-const QUANTIDADE_SUPERQUEST=70;
-
-// SuperQuest: gera um caderno de exatamente 70 questões do banco inteiro, ignorando
-// todos os filtros da tela. Sorteio 100% aleatório/uniforme entre módulos (Fisher-Yates) —
-// PENDÊNCIA FUTURA (não implementada, decisão consciente): hoje todo módulo tem a mesma
-// chance de entrar, mesmo que na prova real o peso entre matérias não seja igual. Ideias
-// registradas pra decidir depois: pesos fixos por módulo, cota exata por módulo baseada
-// no edital, peso pelo Wilson Score (mais peso onde o Carlos erra mais), ou configurável
-// manualmente. Nenhuma escolhida ainda — o sorteio continua uniforme até essa decisão.
-async function gerarSuperQuest(){
-  // pool = banco inteiro, só removendo questões sem enunciado salvo ou excluídas do banco
-  // (equivalente à exclusão individual do Claude Quest) — nenhum outro filtro da tela conta aqui
-  const pool=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
-
-  if(pool.length<QUANTIDADE_SUPERQUEST){
-    alert(`O banco ainda não tem ${QUANTIDADE_SUPERQUEST} questões disponíveis pra montar um SuperQuest (tem ${pool.length} agora). Processe mais simulados pra desbloquear essa opção.`);
-    return;
-  }
-
-  const selecionadas=embaralharFisherYates(pool).slice(0,QUANTIDADE_SUPERQUEST);
-
-  const agora=new Date();
-  const dataIso=agora.toISOString().slice(0,10);
-  const dataBr=`${String(agora.getDate()).padStart(2,'0')}/${String(agora.getMonth()+1).padStart(2,'0')}/${agora.getFullYear()}`;
-  const nomeCaderno=`SuperQuest ${dataBr}`;
-
-  try{
-    await notionCall('/pages',{
-      parent:{database_id:DB_CADERNOS},
-      properties:{
-        'Nome':{title:[{text:{content:nomeCaderno}}]},
-        'Data Criacao':{date:{start:dataIso}},
-        'Filtros Usados':{rich_text:[{text:{content:'SuperQuest — 70 questões do banco inteiro, sem filtros'}}]},
-        'Status':{select:{name:'Em Andamento'}},
-        'Total Questoes':{number:selecionadas.length},
-        'Respondidas':{number:0}
-      }
-    },'POST');
-
-    await Promise.all(selecionadas.map((q,i)=>notionCall('/pages',{
-      parent:{database_id:DB_ITENS_CADERNO},
-      properties:{
-        'Titulo':{title:[{text:{content:`${nomeCaderno} — Q${q.questao}`}}]},
-        'Caderno':{rich_text:[{text:{content:nomeCaderno}}]},
-        'Atividade Origem':{rich_text:[{text:{content:q.idAtividade}}]},
-        'Numero Questao':{rich_text:[{text:{content:q.questao}}]},
-        'Ordem':{number:i+1},
-        'Respondida':{checkbox:false}
-      }
-    },'POST')));
-    await loadData();
-    await abrirCaderno(nomeCaderno);
-  }catch(e){
-    alert('Erro ao gerar SuperQuest: '+e.message);
-  }
-}
-
-async function gerarCaderno(){
-  if(filtBancoQtd===null||filtBancoQtd===undefined){
-    filtBancoQtdErro=true;
-    renderTab(tabAtual,true);
-    requestAnimationFrame(()=>{
-      const el=document.getElementById('banco-qtd-input');
-      if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
-    });
-    return;
-  }
-  const pool=calcularPoolBanco();
-  if(!pool.length){alert('Nenhuma questão encontrada com esses filtros.');return;}
-
-  let selecionadas;
-  if(filtBancoPriorizarErros){
-    const comPeso=pool.map(q=>{
-      const k=q.totalErros||0,n=(q.totalErros||0)+(q.totalAcertos||0);
-      return {q,peso:n>0?wilsonScoreLowerBound(k,n):-1};
-    }).filter(x=>x.peso>=0); // questões sem nenhum Total de Erros/Acertos registrado ficam fora do cálculo
-    comPeso.sort((a,b)=>b.peso-a.peso);
-    const qtdFinal=filtBancoQtd==='todos'?comPeso.length:Math.min(filtBancoQtd,comPeso.length);
-    selecionadas=comPeso.slice(0,qtdFinal).map(x=>x.q);
-  }else{
-    const embaralhado=embaralharFisherYates(pool);
-    const qtdFinal=filtBancoQtd==='todos'?embaralhado.length:Math.min(filtBancoQtd,embaralhado.length);
-    selecionadas=embaralhado.slice(0,qtdFinal);
-  }
-
-  const agora=new Date();
-  const dataIso=agora.toISOString().slice(0,10);
-  const nomeAuto=`Caderno ${dataIso} ${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
-  const nomeCaderno=filtBancoNome.trim()||nomeAuto;
-  const filtrosTexto=[
-    filtBancoCurso!=='todos'?`Curso: ${filtBancoCurso}`:null,
-    filtBancoModulo!=='todos'?`Módulo: ${filtBancoModulo}`:null,
-    filtBancoPublicacao!=='todos'?`Publicação: ${nomePub(filtBancoPublicacao)}`:null,
-    filtBancoStatus!=='todos'?`Status: ${filtBancoStatus}`:null,
-    filtBancoTags.length?`Tags (${bancoCombinarTags}): ${filtBancoTags.join(', ')}`:null,
-    filtBancoTipoQuestao!=='todos'?`Tipo de Questão: ${filtBancoTipoQuestao}`:null,
-    filtBancoPriorizarErros?`Priorizando mais erro`:null,
-    filtBancoApenasIneditas?`Apenas inéditas`:null,
-  ].filter(Boolean).join(' · ')||'Sem filtros';
-
-  try{
-    await notionCall('/pages',{
-      parent:{database_id:DB_CADERNOS},
-      properties:{
-        'Nome':{title:[{text:{content:nomeCaderno}}]},
-        'Data Criacao':{date:{start:dataIso}},
-        'Filtros Usados':{rich_text:[{text:{content:filtrosTexto}}]},
-        'Status':{select:{name:'Em Andamento'}},
-        'Total Questoes':{number:selecionadas.length},
-        'Respondidas':{number:0}
-      }
-    },'POST');
-
-    await Promise.all(selecionadas.map((q,i)=>notionCall('/pages',{
-      parent:{database_id:DB_ITENS_CADERNO},
-      properties:{
-        'Titulo':{title:[{text:{content:`${nomeCaderno} — Q${q.questao}`}}]},
-        'Caderno':{rich_text:[{text:{content:nomeCaderno}}]},
-        'Atividade Origem':{rich_text:[{text:{content:q.idAtividade}}]},
-        'Numero Questao':{rich_text:[{text:{content:q.questao}}]},
-        'Ordem':{number:i+1},
-        'Respondida':{checkbox:false}
-      }
-    },'POST')));
-    await loadData();
-    filtBancoNome='';
-    await abrirCaderno(nomeCaderno);
-  }catch(e){
-    alert('Erro ao gerar caderno: '+e.message);
-  }
-}
-
-async function abrirCaderno(nome){
-  alternativaSelecionada=null;
-  try{
-    const res=await notionQuery(DB_ITENS_CADERNO);
-    itensCadernoAtivo=res.map(p=>({
-      id:p.id,
-      titulo:getProp(p,'Titulo')||'',
-      caderno:getProp(p,'Caderno')||'',
-      atividadeOrigem:getProp(p,'Atividade Origem')||'',
-      numeroQuestao:getProp(p,'Numero Questao')||'',
-      ordem:getProp(p,'Ordem')||0,
-      respondida:getProp(p,'Respondida')||false,
-      suaRespostaCaderno:getProp(p,'Sua Resposta Caderno')||'',
-      acertouCaderno:getProp(p,'Acertou Caderno')||false,
-    })).filter(it=>it.caderno===nome).sort((a,b)=>a.ordem-b.ordem);
-    cadernoAtivo=cadernos.find(c=>c.nome===nome)||null;
-    const idx=itensCadernoAtivo.findIndex(it=>!it.respondida);
-    itemCadernoAtual=idx===-1?0:idx;
-    renderTab(tabAtual);
-  }catch(e){
-    alert('Erro ao abrir caderno: '+e.message);
-  }
-}
-
-function fecharCaderno(){
-  cadernoAtivo=null;
-  itensCadernoAtivo=[];
-  itemCadernoAtual=0;
-  renderTab(tabAtual);
-  requestAnimationFrame(()=>{
-    if(bancoCadernosAndamentoAberto){
-      const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Em Andamento').length/CADERNOS_POR_PAGINA);
-      initCarrosselCadernos('carrossel-andamento',totalPaginas);
-    }
-    if(bancoCadernosConcluidosAberto){
-      const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Concluido').length/CADERNOS_POR_PAGINA);
-      initCarrosselCadernos('carrossel-concluidos',totalPaginas);
-    }
-  });
-}
-
-function questaoAtualCaderno(){
-  const item=itensCadernoAtivo[itemCadernoAtual];
-  if(!item) return null;
-  return questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao)||null;
-}
-
-async function excluirQuestaoBanco(){
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  if(!confirm('Excluir essa questão do banco? Ela não vai aparecer mais em cadernos futuros.')) return;
-  try{
-    await notionCall(`/pages/${q.id}`,{properties:{'Excluida':{checkbox:true}}},'PATCH');
-    q.excluida=true;
-    alert('Questão excluída do banco.');
-    renderTab(tabAtual,true);
-  }catch(e){
-    alert('Erro ao excluir: '+e.message);
-  }
-}
-
-async function toggleFavoritaQuestao(){
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  const novoValor=!q.favorita;
-  try{
-    await notionCall(`/pages/${q.id}`,{properties:{'Favorita':{checkbox:novoValor}}},'PATCH');
-    q.favorita=novoValor;
-    renderTab(tabAtual,true);
-  }catch(e){
-    alert('Erro ao favoritar: '+e.message);
-  }
-}
-
-function abrirPopupTagsBanco(){
-  document.getElementById('banco-tags-modal').style.display='flex';
-  renderTagsPopupBanco();
-}
-function fecharPopupTagsBanco(){
-  document.getElementById('banco-tags-modal').style.display='none';
-}
-function renderTagsPopupBanco(){
-  const q=questaoAtualCaderno();
-  const cont=document.getElementById('banco-tags-popup-lista');
-  if(!cont||!q) return;
-  const tags=q.tags||[];
-  cont.innerHTML=tags.length?tags.map(t=>`<span class="tg">${t}<span class="tx" onclick="removerTagQuestaoBanco('${t.replace(/'/g,"\\'")}')">✕</span></span>`).join(''):'<span style="font-size:12px;color:#888">Nenhuma tag ainda</span>';
-}
-async function removerTagQuestaoBanco(tag){
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  const novasTags=(q.tags||[]).filter(t=>t!==tag);
-  await salvarTagsQuestaoBanco(novasTags);
-}
-async function adicionarTagQuestaoBanco(){
-  const campo=document.getElementById('banco-tags-popup-input');
-  const novaTag=campo?campo.value.trim():'';
-  if(!novaTag) return;
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  const novasTags=[...new Set([...(q.tags||[]),novaTag])];
-  campo.value='';
-  await salvarTagsQuestaoBanco(novasTags);
-}
-async function salvarTagsQuestaoBanco(novasTags){
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  try{
-    await notionCall(`/pages/${q.id}`,{properties:{'Tags de Assunto':{multi_select:novasTags.map(t=>({name:t}))}}},'PATCH');
-    q.tags=novasTags;
-    renderTagsPopupBanco();
-  }catch(e){
-    alert('Erro ao salvar tags: '+e.message);
-  }
-}
-
-function abrirPopupNotasBanco(){
-  const q=questaoAtualCaderno();
-  const campo=document.getElementById('banco-notas-popup-campo');
-  if(campo) campo.value=q?(q.notasPessoais||''):'';
-  document.getElementById('banco-notas-modal').style.display='flex';
-}
-function fecharPopupNotasBanco(){
-  document.getElementById('banco-notas-modal').style.display='none';
-}
-async function salvarNotaPopupBanco(){
-  const q=questaoAtualCaderno();
-  if(!q) return;
-  const campo=document.getElementById('banco-notas-popup-campo');
-  const texto=campo?campo.value.trim():'';
-  try{
-    await notionCall(`/pages/${q.id}`,{properties:{'Notas Pessoais':{rich_text:[{text:{content:texto}}]}}},'PATCH');
-    q.notasPessoais=texto;
-    fecharPopupNotasBanco();
-  }catch(e){
-    alert('Erro ao salvar nota: '+e.message);
-  }
-}
-
-function selecionarAlternativaCaderno(letra){
-  alternativaSelecionada=letra;
-  renderTab(tabAtual,true);
-}
-
-async function confirmarRespostaCaderno(){
-  const letra=alternativaSelecionada;
-  if(!letra) return;
-  const item=itensCadernoAtivo[itemCadernoAtual];
-  if(!item||item.respondida) return;
-  const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
-  if(!q){alert('Questão original não encontrada no Banco de Questões.');return;}
-  const acertou=letra.toLowerCase()===String(q.gabarito||'').toLowerCase();
-  try{
-    const novoRespondidas=(cadernoAtivo.respondidas||0)+1;
-    await Promise.all([
-      notionCall(`/pages/${item.id}`,{properties:{
-        'Respondida':{checkbox:true},
-        'Sua Resposta Caderno':{rich_text:[{text:{content:letra}}]},
-        'Acertou Caderno':{checkbox:acertou}
-      }},'PATCH'),
-      notionCall(`/pages/${cadernoAtivo.id}`,{properties:{
-        'Respondidas':{number:novoRespondidas}
-      }},'PATCH')
-    ]);
-
-    // atualiza local — fica na mesma questão, sem recarregar tudo nem pular sozinho
-    // não toca mais na questão original aqui (Revisões Realizadas/Última Revisão/Acertou na Revisão) —
-    // isso só é aplicado quando o caderno é finalizado, ver finalizarCaderno()
-    item.respondida=true;
-    item.suaRespostaCaderno=letra;
-    item.acertouCaderno=acertou;
-    cadernoAtivo.respondidas=novoRespondidas;
-
-    alternativaSelecionada=null;
-    renderTab(tabAtual,true);
-  }catch(e){
-    alert('Erro ao responder: '+e.message);
-  }
-}
-
-async function excluirCaderno(nome){
-  if(!confirm(`Excluir o caderno "${nome}"? Isso desfaz com precisão a contribuição dele nas questões originais (se já tiver sido finalizado).`)) return;
-  try{
-    const caderno=cadernos.find(c=>c.nome===nome);
-
-    if(caderno&&caderno.status==='Concluido'){
-      // caderno já finalizado: precisa desfazer com precisão o que ele somou nas questões originais
-      const revisoesDoCaderno=await notionQueryFilter(DB_REVISOES,{property:'Caderno',rich_text:{equals:nome}});
-      await Promise.all(revisoesDoCaderno.map(async rev=>{
-        const atividadeOrigem=getProp(rev,'Atividade Origem');
-        const numeroQuestao=getProp(rev,'Numero Questao');
-        const acertouRev=getProp(rev,'Acertou');
-        const q=questoes.find(qq=>qq.idAtividade===atividadeOrigem&&qq.questao===numeroQuestao);
-
-        // busca as outras revisões dessa mesma questão (filtrado direto no Notion), pra achar a mais recente restante
-        const revisoesDaQuestao=await notionQueryFilter(DB_REVISOES,{and:[
-          {property:'Atividade Origem',rich_text:{equals:atividadeOrigem}},
-          {property:'Numero Questao',rich_text:{equals:numeroQuestao}}
-        ]});
-        const restantes=revisoesDaQuestao.filter(r=>r.id!==rev.id)
-          .sort((a,b)=>(getProp(b,'Data')||'').localeCompare(getProp(a,'Data')||''));
-        const maisRecente=restantes[0]||null;
-
-        const propsQuestao={};
-        if(q){
-          propsQuestao['Revisões Realizadas']={number:Math.max(0,(q.revisoesRealizadas||0)-1)};
-          if(acertouRev==='Sim') propsQuestao['Total de Acertos']={number:Math.max(0,(q.totalAcertos||0)-1)};
-          else propsQuestao['Total de Erros']={number:Math.max(0,(q.totalErros||0)-1)};
-        }
-        if(maisRecente){
-          propsQuestao['Última Revisão']={date:{start:getProp(maisRecente,'Data')}};
-          propsQuestao['Acertou na Revisão']={select:{name:getProp(maisRecente,'Acertou')}};
-        }else{
-          propsQuestao['Última Revisão']={date:null};
-          propsQuestao['Acertou na Revisão']={select:null};
-        }
-
-        const tarefasRevisao=[notionCall(`/pages/${rev.id}`,{archived:true},'PATCH')];
-        if(q) tarefasRevisao.push(notionCall(`/pages/${q.id}`,{properties:propsQuestao},'PATCH'));
-        await Promise.all(tarefasRevisao);
-      }));
-    }
-
-    const tarefasFinais=[];
-    if(caderno) tarefasFinais.push(notionCall(`/pages/${caderno.id}`,{archived:true},'PATCH'));
-    const itensDoCaderno=await notionQueryFilter(DB_ITENS_CADERNO,{property:'Caderno',rich_text:{equals:nome}});
-    itensDoCaderno.forEach(it=>{
-      tarefasFinais.push(notionCall(`/pages/${it.id}`,{archived:true},'PATCH'));
-    });
-    await Promise.all(tarefasFinais);
-    if(cadernoAtivo&&cadernoAtivo.nome===nome){
-      cadernoAtivo=null;
-      itensCadernoAtivo=[];
-      itemCadernoAtual=0;
-    }
-    await loadData();
-  }catch(e){
-    alert('Erro ao excluir caderno: '+e.message);
-  }
-}
-
-async function finalizarCaderno(){
-  if(!cadernoAtivo) return;
-  try{
-    const respondidos=itensCadernoAtivo.filter(it=>it.respondida);
-    const hoje=new Date().toISOString().slice(0,10);
-    const tarefas=[
-      notionCall(`/pages/${cadernoAtivo.id}`,{properties:{'Status':{select:{name:'Concluido'}}}},'PATCH')
-    ];
-    respondidos.forEach(item=>{
-      const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
-      if(!q) return;
-      const acertou=item.acertouCaderno;
-      tarefas.push(notionCall('/pages',{
-        parent:{database_id:DB_REVISOES},
-        properties:{
-          'Titulo':{title:[{text:{content:`${cadernoAtivo.nome} — Q${item.numeroQuestao}`}}]},
-          'Atividade Origem':{rich_text:[{text:{content:item.atividadeOrigem}}]},
-          'Numero Questao':{rich_text:[{text:{content:item.numeroQuestao}}]},
-          'Caderno':{rich_text:[{text:{content:cadernoAtivo.nome}}]},
-          'Data':{date:{start:hoje}},
-          'Acertou':{select:{name:acertou?'Sim':'Não'}}
-        }
-      },'POST'));
-      tarefas.push(notionCall(`/pages/${q.id}`,{properties:{
-        'Total de Erros':{number:(q.totalErros||0)+(acertou?0:1)},
-        'Total de Acertos':{number:(q.totalAcertos||0)+(acertou?1:0)},
-        'Revisões Realizadas':{number:(q.revisoesRealizadas||0)+1},
-        'Última Revisão':{date:{start:hoje}},
-        'Acertou na Revisão':{select:{name:acertou?'Sim':'Não'}}
-      }},'PATCH'));
-      // atualiza local pra manter Foco Recomendado/Banco Prático consistentes sem precisar recarregar tudo
-      q.totalErros=(q.totalErros||0)+(acertou?0:1);
-      q.totalAcertos=(q.totalAcertos||0)+(acertou?1:0);
-      q.revisoesRealizadas=(q.revisoesRealizadas||0)+1;
-      q.acertouRevisao=acertou?'Sim':'Não';
-      q.ultimaRevisao=hoje;
-    });
-    await Promise.all(tarefas);
-    cadernoAtivo.status='Concluido';
-    fecharCaderno();
-  }catch(e){
-    alert('Erro ao finalizar caderno: '+e.message);
-  }
-}
-
-function irParaItemCaderno(i){
-  itemCadernoAtual=i;
-  alternativaSelecionada=null;
-  renderTab(tabAtual);
-}
-
-const CADERNOS_POR_PAGINA=5;
-function montarCarrosselCadernos(itensHtml,idTrack){
-  if(itensHtml.length<=CADERNOS_POR_PAGINA){
-    return `<div style="display:flex;flex-direction:column">${itensHtml.join('')}</div>`;
-  }
-  const paginas=[];
-  for(let i=0;i<itensHtml.length;i+=CADERNOS_POR_PAGINA){
-    paginas.push(itensHtml.slice(i,i+CADERNOS_POR_PAGINA));
-  }
-  return `
-    <div class="carrossel-cadernos" id="${idTrack}">
-      ${paginas.map(pagina=>`<div class="carrossel-pagina">${pagina.join('')}</div>`).join('')}
-    </div>
-    <div class="carrossel-dots">
-      ${paginas.map((_,i)=>`<span class="carrossel-dot${i===0?' ativo':''}" id="${idTrack}-dot${i}"></span>`).join('')}
-    </div>
-  `;
-}
-function initCarrosselCadernos(idTrack,totalPaginas){
-  const el=document.getElementById(idTrack);
-  if(!el||totalPaginas<=1) return;
-  el.addEventListener('scroll',()=>{
-    const pagina=Math.round(el.scrollLeft/el.clientWidth);
-    for(let i=0;i<totalPaginas;i++){
-      const dot=document.getElementById(idTrack+'-dot'+i);
-      if(dot) dot.classList.toggle('ativo',i===pagina);
-    }
-  },{passive:true});
-}
-
-function calcularTagsDisp(){
-  let poolParaModulo=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
-  if(filtBancoCurso!=='todos'){
-    const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
-    poolParaModulo=poolParaModulo.filter(q=>idsAtivDoCurso.has(q.idAtividade));
-  }
-  let poolParaPublicacao=poolParaModulo;
-  if(filtBancoModulo!=='todos') poolParaPublicacao=poolParaPublicacao.filter(q=>q.modulo===filtBancoModulo);
-  let poolParaTags=poolParaPublicacao;
-  if(filtBancoPublicacao!=='todos') poolParaTags=poolParaTags.filter(q=>q.publicacao===filtBancoPublicacao);
-  return [...new Set(poolParaTags.flatMap(q=>q.tags||[]))].sort();
-}
-
-function renderBanco(){
-  if(cadernoAtivo) return renderCadernoResolucao();
-  const modulosTodos=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  const cursosDisp=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
-
-  // cascata: cada nível de filtro só mostra opções que existem dentro do que já foi filtrado nos níveis acima
-  let poolParaModulo=questoes.filter(q=>q.motivo&&q.questao&&q.idAtividade&&!q.excluida);
-  if(filtBancoCurso!=='todos'){
-    const idsAtivDoCurso=new Set(atividades.filter(a=>a.curso===filtBancoCurso).map(a=>a.nome));
-    poolParaModulo=poolParaModulo.filter(q=>idsAtivDoCurso.has(q.idAtividade));
-  }
-  const modulosDisp=modulosTodos.filter(m=>poolParaModulo.some(q=>q.modulo===m));
-
-  let poolParaPublicacao=poolParaModulo;
-  if(filtBancoModulo!=='todos') poolParaPublicacao=poolParaPublicacao.filter(q=>q.modulo===filtBancoModulo);
-  const publicacoesDisp=[...new Set(poolParaPublicacao.map(q=>q.publicacao).filter(Boolean))];
-
-  const tagsDisp=calcularTagsDisp();
-
-  const poolAtual=calcularPoolBanco();
-
-  const emAndamento=cadernos.filter(c=>c.status==='Em Andamento');
-  const concluidos=cadernos.filter(c=>c.status==='Concluido');
-
-  return `
-    <button id="btn-super-quest" onclick="gerarSuperQuest()" style="width:100%;background:#202A45;color:#fff;border:none;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;margin-bottom:36px;font-weight:700;font-size:var(--fs-e);text-transform:uppercase;letter-spacing:0.02em">
-      <span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-      </span>
-      Gerar SuperQuest
-    </button>
-
-    ${sectionTitle('Novo caderno','cadernomais','#E6F1FB','#202A45',{corTexto:'#555'})}
-    <input type="text" id="banco-nome-caderno" class="filter-select" placeholder="Nome do caderno (opcional)" style="margin-bottom:10px" value="${filtBancoNome}" oninput="filtBancoNome=this.value">
-    <select class="filter-select" onchange="setFiltBancoCurso(this.value)">
-      <option value="todos">Todos os cursos</option>
-      ${cursosDisp.map(c=>`<option value="${c}"${filtBancoCurso===c?' selected':''}>${c}</option>`).join('')}
-    </select>
-    <select class="filter-select" onchange="setFiltBancoModulo(this.value)">
-      <option value="todos">Todos os módulos</option>
-      ${modulosDisp.map(m=>`<option value="${m}"${filtBancoModulo===m?' selected':''}>${m}</option>`).join('')}
-    </select>
-    <select class="filter-select" onchange="setFiltBancoPublicacao(this.value)">
-      <option value="todos">Todas as publicações</option>
-      ${publicacoesDisp.map(p=>`<option value="${p}"${filtBancoPublicacao===p?' selected':''}>${nomePub(p)}</option>`).join('')}
-    </select>
-    <select class="filter-select" onchange="setFiltBancoTipoQuestao(this.value)">
-      <option value="todos">Todos os tipos de questão</option>
-      <option${filtBancoTipoQuestao==='Conceitual'?' selected':''}>Conceitual</option>
-      <option${filtBancoTipoQuestao==='Cálculo'?' selected':''}>Cálculo</option>
-      <option${filtBancoTipoQuestao==='Número'?' selected':''}>Número</option>
-      <option${filtBancoTipoQuestao==='Lista'?' selected':''}>Lista</option>
-      <option${filtBancoTipoQuestao==='Identificação'?' selected':''}>Identificação</option>
-    </select>
-    <select class="filter-select" onchange="setFiltBancoStatus(this.value)">
-      <option value="todos">Todos os status</option>
-      <option${filtBancoStatus==='Errei'?' selected':''}>Errei</option>
-      <option${filtBancoStatus==='Acertei com dúvida'?' selected':''}>Acertei com dúvida</option>
-      <option${filtBancoStatus==='Acertei'?' selected':''}>Acertei</option>
-    </select>
-
-    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px;cursor:pointer">
-      <input type="checkbox" ${filtBancoPriorizarErros?'checked':''} onchange="toggleBancoPriorizarErros()">
-      Priorizar questões que mais erro
-      <span class="info-icone" onclick="event.preventDefault();explicarPriorizarErro()">${iconeInfo()}</span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:16px;color:#111;padding:6px 2px 14px;cursor:pointer">
-      <input type="checkbox" ${filtBancoApenasIneditas?'checked':''} onchange="toggleBancoApenasIneditas()">
-      Apenas questões inéditas
-    </label>
-
-    <div class="filter-select" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="abrirFiltroTagsModal()">
-      <span>${filtBancoTags.length?`${filtBancoTags.length} ${filtBancoTags.length===1?'tag selecionada':'tags selecionadas'} (${bancoCombinarTags})`:'Filtrar por tags'}</span>
-      <span style="color:#888">›</span>
-    </div>
-
-    <div class="banco-contador">${poolAtual.length} ${poolAtual.length===1?'questão disponível':'questões disponíveis'} com esses filtros</div>
-
-    <input type="number" min="1" id="banco-qtd-input" class="filter-select" style="margin-top:14px;${filtBancoQtdErro?'border-color:#E24B4A;background:#FCEBEB':''}" placeholder="Quantidade de questões" value="${typeof filtBancoQtd==='number'?filtBancoQtd:''}" onchange="setFiltBancoQtd(this.value?parseInt(this.value,10):null)">
-    ${filtBancoQtdErro?'<div style="color:#A32D2D;font-size:var(--fs-c);margin-top:-6px;margin-bottom:10px">Preencha a quantidade de questões antes de gerar o caderno.</div>':''}
-
-    <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:10px;margin-bottom:8px" onclick="gerarCaderno()">Gerar caderno ↗</button>
-    <div style="text-align:center;margin-bottom:14px">
-      <span class="info-icone" style="font-size:var(--fs-b)" onclick="explicarSorteio()">${iconeInfo()} Como a ordem das questões é sorteada?</span>
-    </div>
-
-    ${emAndamento.length?`
-    <div class="section-title" style="cursor:pointer;margin-top:28px" onclick="toggleBancoCadernosAndamento()">
-      <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.relogio}</svg></span>
-      <span style="color:#555">Cadernos em andamento (${emAndamento.length})</span>
-      <span class="chev${bancoCadernosAndamentoAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-    </div>
-    <div class="mod-detail${bancoCadernosAndamentoAberto?' open':''}" id="cadernos-andamento-lista" style="flex-direction:column;padding:0;border-top:none">
-    ${montarCarrosselCadernos(emAndamento.map(c=>`<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer">
-      <div class="prox-left">
-        <span class="prox-nome">${c.nome}</span>
-        <span class="fila-ref">${c.respondidas}/${c.totalQuestoes} respondidas · ${c.filtrosUsados}</span>
-      </div>
-      <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
-    </div>`),'carrossel-andamento')}
-    </div>
-    `:''}
-
-    ${concluidos.length?`
-    <div class="section-title" style="cursor:pointer;margin-top:${emAndamento.length?'16px':'28px'}" onclick="toggleBancoCadernosConcluidos()">
-      <span class="section-icon" style="background:#E6F1FB;color:#202A45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons.checkcirculo}</svg></span>
-      <span style="color:#555">Cadernos concluídos (${concluidos.length})</span>
-      <span class="chev${bancoCadernosConcluidosAberto?' open':''}" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-    </div>
-    <div class="mod-detail${bancoCadernosConcluidosAberto?' open':''}" id="cadernos-concluidos-lista" style="flex-direction:column;padding:0;border-top:none">
-    ${montarCarrosselCadernos(concluidos.map(c=>{
-      const itensDoCaderno=itensCadernoTodos.filter(it=>it.caderno===c.nome);
-      const respondidasReal=itensDoCaderno.filter(it=>it.respondida).length;
-      const acertosReal=itensDoCaderno.filter(it=>it.respondida&&it.acertouCaderno).length;
-      const pct=respondidasReal?Math.round(acertosReal/respondidasReal*100):null;
-      return `<div class="prox-item" onclick="abrirCaderno('${c.nome.replace(/'/g,"\\'")}')" style="cursor:pointer;opacity:0.7">
-      <div class="prox-left">
-        <span class="prox-nome">${c.nome}</span>
-        <span class="fila-ref">${c.respondidas}/${c.totalQuestoes}${pct!==null?` · ${pct}% de acerto`:''} · ${c.filtrosUsados}</span>
-      </div>
-      <span class="tx" style="font-size:16px;padding:4px" onclick="event.stopPropagation();excluirCaderno('${c.nome.replace(/'/g,"\\'")}')">✕</span>
-    </div>`;
-    }),'carrossel-concluidos')}
-    </div>
-    `:''}
-  `;
-}
-
-function renderCadernoResolucao(){
-  const item=itensCadernoAtivo[itemCadernoAtual];
-  if(!item){
-    return `<div class="detail-back" onclick="fecharCaderno()">← Cadernos</div><div class="empty">Esse caderno não tem questões.</div>`;
-  }
-  const q=questoes.find(qq=>qq.idAtividade===item.atividadeOrigem&&qq.questao===item.numeroQuestao);
-  const alternativas=q?parseAlternativas(q.motivo):[];
-
-  return `
-    <div class="detail-back" onclick="fecharCaderno()">← Cadernos</div>
-    <div class="filter-row" style="margin-bottom:16px">
-      ${itensCadernoAtivo.map((it,i)=>`<button class="filter-btn${i===itemCadernoAtual?' active':''}" style="${it.respondida?(it.acertouCaderno?'background:#EAF3DE;color:#3B6D11;border-color:#C0DD97':'background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1'):''}" onclick="irParaItemCaderno(${i})">${it.ordem}</button>`).join('')}
-    </div>
-    ${!q?'<div class="empty">Questão original não encontrada.</div>':`
-    <div class="q-card">
-      <div style="padding:14px">
-        <div class="section-title" style="margin-top:0;margin-bottom:8px">Questão ${item.ordem} de ${itensCadernoAtivo.length}</div>
-        <div class="enunciado-box">${formatApenasEnunciado(q.motivo)}</div>
-      </div>
-    </div>
-    <div class="banco-alternativas">
-      ${alternativas.map(alt=>{
-        const jaRespondida=item.respondida;
-        const foiSelecionada=!jaRespondida&&alternativaSelecionada===alt.letra;
-        const eEsta=jaRespondida&&item.suaRespostaCaderno===alt.letra;
-        const eGabarito=jaRespondida&&q.gabarito&&q.gabarito.toLowerCase()===alt.letra;
-        let estilo='';
-        if(jaRespondida){
-          if(eGabarito) estilo='background:#EAF3DE;border-color:#639922;color:#27500A';
-          else if(eEsta) estilo='background:#FCEBEB;border-color:#E24B4A;color:#A32D2D';
-        }else if(foiSelecionada){
-          estilo='background:#E6F1FB;border-color:#202A45;color:#202A45';
-        }
-        return `<button class="banco-alt-btn" style="${estilo}" ${jaRespondida?'disabled':''} onclick="selecionarAlternativaCaderno('${alt.letra}')"><strong>${alt.letra})</strong> ${alt.texto}</button>`;
-      }).join('')}
-    </div>
-    ${!item.respondida?`<button class="modal-btn modal-btn-sim" style="width:100%;margin-top:16px" ${!alternativaSelecionada?'disabled':''} onclick="confirmarRespostaCaderno()">Confirmar resposta</button>`:''}
-    ${item.respondida?`<div class="banco-resultado" style="color:${item.acertouCaderno?'#3B6D11':'#A32D2D'}">${item.acertouCaderno?'Acertou!':'Errou.'} Gabarito: ${(q.gabarito||'—').toUpperCase()}</div>`:''}
-    <div style="display:flex;gap:8px;margin-top:12px">
-      ${itemCadernoAtual>0?`<button class="prox-confirm-btn" style="flex:1;padding:10px;font-size:var(--fs-e);border-radius:8px;background:#fff;color:#111;border:0.5px solid #ccc" onclick="irParaItemCaderno(${itemCadernoAtual-1})">← Anterior</button>`:''}
-      ${itemCadernoAtual<itensCadernoAtivo.length-1?`<button class="prox-confirm-btn" style="flex:1;padding:10px;font-size:var(--fs-e);border-radius:8px" onclick="irParaItemCaderno(${itemCadernoAtual+1})">Próxima →</button>`:''}
-    </div>
-    ${itensCadernoAtivo.every(it=>it.respondida)?`<div style="display:flex;gap:8px;margin-top:12px">
-      <button style="flex:1;padding:10px;font-size:var(--fs-e);border-radius:8px;background:#fff;color:#A32D2D;border:0.5px solid #F7C1C1;cursor:pointer;font-family:inherit;font-weight:500" onclick="excluirCaderno('${cadernoAtivo.nome.replace(/'/g,"\\'")}')">Excluir caderno</button>
-      <button class="modal-btn modal-btn-sim" onclick="finalizarCaderno()">Finalizar caderno ✓</button>
-    </div>`:''}
-    
-    <div class="banco-acoes">
-      <button class="banco-acao-btn" onclick="excluirQuestaoBanco()" title="Excluir">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        <span>Excluir</span>
-      </button>
-      <button class="banco-acao-btn${q.favorita?' ativa':''}" onclick="toggleFavoritaQuestao()" title="Favoritar">
-        <svg viewBox="0 0 24 24" fill="${q.favorita?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span>Favoritar</span>
-      </button>
-      <button class="banco-acao-btn" onclick="abrirPopupTagsBanco()" title="Tags">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13 21l-9-9V4h8l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
-        <span>Tags</span>
-      </button>
-      <button class="banco-acao-btn" onclick="abrirPopupNotasBanco()" title="Notas">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg>
-        <span>Notas</span>
-      </button>
-    </div>
-    `}
-  `;
-}
-
-function toggleBancoCadernosAndamento(){
-  bancoCadernosAndamentoAberto=!bancoCadernosAndamentoAberto;
-  renderTab(tabAtual,true);
-  if(bancoCadernosAndamentoAberto) requestAnimationFrame(()=>{
-    const el=document.getElementById('cadernos-andamento-lista');
-    if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
-    const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Em Andamento').length/CADERNOS_POR_PAGINA);
-    initCarrosselCadernos('carrossel-andamento',totalPaginas);
-  });
-}
-function toggleBancoCadernosConcluidos(){
-  bancoCadernosConcluidosAberto=!bancoCadernosConcluidosAberto;
-  renderTab(tabAtual,true);
-  if(bancoCadernosConcluidosAberto) requestAnimationFrame(()=>{
-    const el=document.getElementById('cadernos-concluidos-lista');
-    if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
-    const totalPaginas=Math.ceil(cadernos.filter(c=>c.status==='Concluido').length/CADERNOS_POR_PAGINA);
-    initCarrosselCadernos('carrossel-concluidos',totalPaginas);
-  });
-}
 function toggleMod(i){
   const d=document.getElementById('mdet'+i);
   const c=document.getElementById('mchev'+i);
@@ -3163,41 +2310,6 @@ function setFiltQQuestao(v){filtQQuestao=v;renderTab(tabAtual);}
 // Filtros do Banco — em cascata: Curso -> Módulo -> Publicação -> Tags.
 // Trocar um filtro de cima reseta os de baixo, porque a seleção anterior pode não existir mais no novo contexto.
 // Status fica fora da cascata (independente). preservarScroll=true em todos pra não pular a tela pro topo.
-function setFiltBancoCurso(v){
-  filtBancoCurso=v;
-  filtBancoModulo='todos';
-  filtBancoPublicacao='todos';
-  filtBancoTags=[];
-  renderTab(tabAtual,true);
-}
-function setFiltBancoModulo(v){
-  filtBancoModulo=v;
-  filtBancoPublicacao='todos';
-  filtBancoTags=[];
-  renderTab(tabAtual,true);
-}
-function setFiltBancoPublicacao(v){
-  filtBancoPublicacao=v;
-  filtBancoTags=[];
-  renderTab(tabAtual,true);
-}
-function setFiltBancoStatus(v){
-  filtBancoStatus=v;
-  renderTab(tabAtual,true);
-}
-function toggleBancoPriorizarErros(){
-  filtBancoPriorizarErros=!filtBancoPriorizarErros;
-  renderTab(tabAtual,true);
-}
-function toggleBancoApenasIneditas(){
-  filtBancoApenasIneditas=!filtBancoApenasIneditas;
-  renderTab(tabAtual,true);
-}
-function setFiltBancoTipoQuestao(v){
-  filtBancoTipoQuestao=v;
-  renderTab(tabAtual,true);
-}
-
 function abrirConfig(){
   document.getElementById('config-modal').style.display='flex';
 }
