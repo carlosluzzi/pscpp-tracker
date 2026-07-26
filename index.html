@@ -419,10 +419,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-item.prox-due{background:#FCEBEB;border-radius:10px;padding:12px 10px;margin:2px -10px}
 .prox-list .prox-item.prox-due+.prox-item::before,
 .prox-list .prox-item+.prox-item.prox-due::before{display:none}
-.prox-left{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.prox-left{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .prox-nome{font-size:var(--fs-e);font-weight:600;color:#111}
-.prox-tema{display:block;font-size:var(--fs-b);color:#888;margin-top:2px;line-height:1.35}
-.prox-modalidade{display:inline-block;font-size:var(--fs-a);color:#888;margin-top:3px}
+.prox-modalidade{display:inline-block;font-size:var(--fs-a);color:#888}
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
@@ -1847,7 +1846,7 @@ function abrirDetalheEvento(eventoId,tipoLabel){
   const logoEl=document.getElementById('evento-detalhe-logo');
   logoEl.src=logosCursos[ev.curso]||'';
   logoEl.alt=ev.curso;
-  document.getElementById('evento-detalhe-data').textContent=dataExtenso+(ev.modalidade?' • '+ev.modalidade:'');
+  document.getElementById('evento-detalhe-data').textContent=dataExtenso;
   document.getElementById('evento-detalhe-titulo').textContent=`${tipoLabel}${ev.numero?' '+ev.numero:''}`;
   document.getElementById('evento-detalhe-tema').textContent=ev.tema||'';
   document.getElementById('evento-detalhe-tema').style.display=ev.tema?'block':'none';
