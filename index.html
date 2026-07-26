@@ -1498,7 +1498,7 @@ function renderCardCalendario(){
     const dataObj=new Date(ev.data+'T00:00:00');
     const mes=mesesAbrev[dataObj.getMonth()];
     const dia=dataObj.getDate();
-    const label=ev.numero?`${ev.numero} | ${ev.curso}`:ev.curso;
+    const label=ev.numero?`${ev.numero} | ${ev.curso}`:ev.curso; // usado só no texto do modal de confirmação
     const precisaBotao=ev.modalidade!=='Presencial';
     return `<div class="card-inicio">
       <div class="card-header-row">
@@ -1512,7 +1512,7 @@ function renderCardCalendario(){
               <span class="prox-cal-dia">${dia}</span>
             </div>
             <div class="prox-left">
-              <span class="prox-nome">${label}</span>
+              ${ev.numero?`<span class="prox-nome">${ev.numero}</span>`:''}
               ${ev.tema?`<span class="prox-tema">${ev.tema}</span>`:''}
               ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
             </div>
