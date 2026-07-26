@@ -674,6 +674,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="evento-detalhe-modal" style="display:none" onclick="if(event.target===this)fecharDetalheEvento()">
+  <div class="modal-box">
+    <div class="config-title" id="evento-detalhe-titulo"></div>
+    <p style="margin:0 0 6px 0;font-size:var(--fs-d);color:#888" id="evento-detalhe-data"></p>
+    <p style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-d);color:#111" id="evento-detalhe-tema"></p>
+    <button class="modal-btn modal-btn-sim" style="width:100%;margin-bottom:8px;display:none" id="evento-detalhe-btn-feito" onclick="confirmarEventoDetalheFeito()">Marcar como feito</button>
+    <button class="modal-btn modal-btn-nao" style="width:100%" onclick="fecharDetalheEvento()">Fechar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-info-fisheryates" style="display:none">
   <div class="modal-box">
     <div class="config-title">Fisher-Yates</div>
@@ -1513,14 +1523,12 @@ function renderCardCalendario(){
     const mes=mesesAbrev[dataObj.getMonth()];
     const dia=dataObj.getDate();
     const labelVisivel=`${tipoLabelCurso[curso]}${ev.numero?' '+ev.numero:''}`;
-    const label=`${labelVisivel} | ${ev.curso}`; // usado só no texto do modal de confirmação
-    const precisaBotao=ev.modalidade!=='Presencial';
     return `<div class="card-inicio">
       <div class="${headerRowClass}">
         <div class="card-header-left">${logoCurso}</div>
       </div>
       <div class="prox-list prox-list-compact">
-        <div class="prox-item${urgente?' prox-due':''}">
+        <div class="prox-item${urgente?' prox-due':''}" onclick="abrirDetalheEvento('${ev.id}','${tipoLabelCurso[curso]}')" style="cursor:pointer">
           <div class="prox-row-top">
             <div class="prox-cal">
               <span class="prox-cal-mes">${mes}</span>
@@ -1532,7 +1540,6 @@ function renderCardCalendario(){
               ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
             </div>
           </div>
-          ${precisaBotao?`<button class="prox-confirm-btn" onclick="abrirConfirmacao('${ev.id}','${label.replace(/'/g,"\\'")}','evento')">feito</button>`:''}
         </div>
       </div>
     </div>`;
@@ -1899,7 +1906,6 @@ function confirmarFeitoSim(){
   else if(tipo==='filaBanco') marcarFilaBancoFeito(id);
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
-  else if(tipo==='evento') marcarEventoFeito(id);
 }
 
 async function marcarEventoFeito(eventoId){
@@ -1910,6 +1916,34 @@ async function marcarEventoFeito(eventoId){
   }catch(e){
     alert('Erro ao confirmar evento: '+e.message);
   }
+}
+
+const mesesExtenso=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+let eventoDetalheAtualId=null;
+function abrirDetalheEvento(eventoId,tipoLabel){
+  const ev=calendarioEventos.find(e=>e.id===eventoId);
+  if(!ev) return;
+  eventoDetalheAtualId=eventoId;
+  const dataObj=new Date(ev.data+'T00:00:00');
+  const dataExtenso=`${dataObj.getDate()} de ${mesesExtenso[dataObj.getMonth()]} de ${dataObj.getFullYear()}`;
+  document.getElementById('evento-detalhe-titulo').textContent=`${tipoLabel}${ev.numero?' '+ev.numero:''} — ${ev.curso}`;
+  document.getElementById('evento-detalhe-data').textContent=dataExtenso+(ev.modalidade?' • '+ev.modalidade:'');
+  document.getElementById('evento-detalhe-tema').textContent=ev.tema||'';
+  document.getElementById('evento-detalhe-tema').style.display=ev.tema?'block':'none';
+  const btnFeito=document.getElementById('evento-detalhe-btn-feito');
+  const precisaBotao=ev.modalidade!=='Presencial'&&!ev.feito;
+  btnFeito.style.display=precisaBotao?'block':'none';
+  document.getElementById('evento-detalhe-modal').style.display='flex';
+}
+function fecharDetalheEvento(){
+  document.getElementById('evento-detalhe-modal').style.display='none';
+  eventoDetalheAtualId=null;
+}
+function confirmarEventoDetalheFeito(){
+  if(!eventoDetalheAtualId) return;
+  const id=eventoDetalheAtualId;
+  fecharDetalheEvento();
+  marcarEventoFeito(id);
 }
 
 // NOTAS DE ESTUDO — armazenadas no Notion (sincroniza entre dispositivos)
