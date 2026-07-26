@@ -370,9 +370,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prox-item{display:flex;align-items:center;gap:12px;background:transparent;border-radius:0;padding:12px 0;box-shadow:none;position:relative}
 .prox-list .prox-item+.prox-item{border-top:none}
 .prox-list .prox-item+.prox-item::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,#e6e6e3 12%,#e6e6e3 88%,transparent 100%)}
-.prox-cal{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
-.prox-cal-mes{font-size:9px;font-weight:600;line-height:1;text-transform:uppercase}
-.prox-cal-dia{font-size:15px;font-weight:600;line-height:1.4}
+.prox-cal{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#202A45;min-width:34px}
+.prox-cal-mes{font-size:10px;font-weight:600;line-height:1.3;text-transform:uppercase;color:#888;letter-spacing:0.03em}
+.prox-cal-dia{font-size:28px;font-weight:700;line-height:1}
 .prox-tipo{font-size:10px;color:#999;display:block;margin-top:1px}
 .card-saudacao{background:#202A45;border-radius:18px;padding:13px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .card-saudacao-texto{font-size:18px;font-weight:600;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -1451,7 +1451,7 @@ function renderCardFoco(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#6E1E37">${iconFocoSvg}</span><span style="color:#6E1E37">Foco recomendado</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconFocoSvg}</span><span style="color:#202A45">Foco recomendado</span></div>
       </div>
       <div class="foco-list">
         ${piores.map((m,i)=>renderFocoItem(m,i)).join('')}
@@ -1488,6 +1488,7 @@ async function marcarFocoEstudado(chave){
 const mesesAbrev=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 function renderCardCalendario(){
   const cursos=['Curso H','Curso Prático','MPX','Catavento'];
+  const tipoLabelCurso={'Curso H':'SIMULADO','Curso Prático':'SIMULADO','MPX':'CADERNO','Catavento':'CADERNO'};
   const logosCursos={
     'Curso H':'assets/logo-curso-h.png',
     'Curso Prático':'assets/logo-curso-pratico.png',
@@ -1495,7 +1496,6 @@ function renderCardCalendario(){
     'Catavento':'assets/logo-catavento.png',
   };
   const cards=cursos.map(curso=>{
-    const cc=cursoCores[curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
     const logoMaior=curso==='Catavento'||curso==='Curso Prático';
     const logoCurso=`<img src="${logosCursos[curso]}" alt="${curso}" class="${logoMaior?'prox-logo-curso-18':'prox-logo-curso'}">`;
     const headerRowClass=logoMaior?'card-header-row card-header-row-compacto':'card-header-row';
@@ -1512,7 +1512,8 @@ function renderCardCalendario(){
     const dataObj=new Date(ev.data+'T00:00:00');
     const mes=mesesAbrev[dataObj.getMonth()];
     const dia=dataObj.getDate();
-    const label=ev.numero?`${ev.numero} | ${ev.curso}`:ev.curso; // usado só no texto do modal de confirmação
+    const labelVisivel=`${tipoLabelCurso[curso]}${ev.numero?' '+ev.numero:''}`;
+    const label=`${labelVisivel} | ${ev.curso}`; // usado só no texto do modal de confirmação
     const precisaBotao=ev.modalidade!=='Presencial';
     return `<div class="card-inicio">
       <div class="${headerRowClass}">
@@ -1521,12 +1522,12 @@ function renderCardCalendario(){
       <div class="prox-list prox-list-compact">
         <div class="prox-item${urgente?' prox-due':''}">
           <div class="prox-row-top">
-            <div class="prox-cal" style="background:${cc.bg};color:${cc.tx}">
+            <div class="prox-cal">
               <span class="prox-cal-mes">${mes}</span>
               <span class="prox-cal-dia">${dia}</span>
             </div>
             <div class="prox-left">
-              ${ev.numero?`<span class="prox-nome">${ev.numero}</span>`:''}
+              <span class="prox-nome">${labelVisivel}</span>
               ${ev.tema?`<span class="prox-tema">${ev.tema}</span>`:''}
               ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
             </div>
@@ -1727,7 +1728,7 @@ function renderCardBancoPratico(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático" loading="lazy"></span><span style="color:#0A2882">Banco prático</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático" loading="lazy"></span><span style="color:#202A45">Banco prático</span></div>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
@@ -1789,7 +1790,7 @@ function renderCardComplementares(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#3B6D11">${iconComplementaresSvg}</span><span style="color:#3B6D11">Atividades complementares</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconComplementaresSvg}</span><span style="color:#202A45">Atividades complementares</span></div>
       </div>
       <div class="prox-list">
         ${pendentes.map(c=>{
@@ -1916,7 +1917,7 @@ function renderCardNotas(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#633806">${iconNotasSvg}</span><span style="color:#633806">Notas de estudo</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconNotasSvg}</span><span style="color:#202A45">Notas de estudo</span></div>
       </div>
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
