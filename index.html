@@ -1111,6 +1111,7 @@ async function loadData(){
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
+      reextracaoSolicitada:p.reextracao_solicitada||false,
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
@@ -1375,6 +1376,19 @@ async function solicitarReextracao(questaoId){
     if(q) q.reextracaoSolicitada=true;
     renderizarListaMarcacao();
     alert('Solicitado. Da próxima vez que você rodar o Claude Code na pasta dos PDFs, essa questão específica será reextraída.');
+  }catch(e){
+    alert('Erro ao solicitar reextração: '+e.message);
+  }
+}
+
+async function solicitarReextracaoAtividade(atividadeId){
+  try{
+    const {error}=await sbDados.from('atividades_pendentes').update({reextracao_solicitada:true}).eq('id',atividadeId);
+    if(error) throw error;
+    const ap=atividadesPendentes.find(a=>a.id===atividadeId);
+    if(ap) ap.reextracaoSolicitada=true;
+    renderTab(tabAtual,true);
+    alert('Solicitado. Se você já corrigiu o arquivo (ex: reexportou o PDF corrompido), o script vai tentar reabrir e extrair de novo na próxima vez que rodar.');
   }catch(e){
     alert('Erro ao solicitar reextração: '+e.message);
   }
@@ -3032,6 +3046,15 @@ function renderQuestoes(){
     </div>
     <div class="prox-list">
       ${pendentesAtivas.map(ap=>{
+        if(ap.status==='Falha na Extração'){
+          return `<div class="prox-item" style="background:#FCEBEB;border-radius:8px;padding:10px 12px;margin:-2px 0">
+            <div class="prox-left">
+              <span class="prox-nome" style="color:#A32D2D">❌ ${ap.nome||'(nome não identificado)'}</span>
+              <span class="prox-modalidade" style="color:#A32D2D">${ap.tipo} · ${ap.curso} · não foi possível extrair esse arquivo</span>
+            </div>
+            <button class="prox-confirm-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" ${ap.reextracaoSolicitada?'disabled':''} onclick="event.stopPropagation();solicitarReextracaoAtividade('${ap.id}')">${ap.reextracaoSolicitada?'Já solicitado':'Tentar de novo'}</button>
+          </div>`;
+        }
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
         const respondidas=qsDessa.filter(q=>q.respondida).length;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
