@@ -1146,11 +1146,29 @@ function renderTab(tab,preservarScroll){
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
   document.getElementById('header-slot').innerHTML=isInicio?renderHeaderZone():'';
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
-  if(tab==='inicio') c.innerHTML=renderInicio();
+  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
   else if(tab==='aprovado') c.innerHTML=renderAprovado();
   c.scrollTop=scrollAnterior;
+}
+
+// Os 4 cards do calendário (Curso H/Curso Prático/MPX/Catavento) precisam mostrar o texto
+// (ex: "SIMULADO 01 JAN") sempre numa linha só, e todos no MESMO tamanho entre si — em vez de
+// cortar com "..." o que não couber, encolhe a fonte dos 4 juntos até o mais comprido caber.
+function ajustarLabelsCalendario(){
+  requestAnimationFrame(()=>{
+    const labels=[...document.querySelectorAll('.prox-nome-calendario')];
+    if(!labels.length) return;
+    labels.forEach(el=>{ el.style.fontSize=''; }); // reseta pro padrão (16px do CSS) antes de medir
+    let tamanho=16;
+    const minimo=10;
+    const cabemTodos=()=>labels.every(el=>el.scrollWidth<=el.clientWidth+0.5);
+    while(!cabemTodos()&&tamanho>minimo){
+      tamanho-=0.5;
+      labels.forEach(el=>{ el.style.fontSize=tamanho+'px'; });
+    }
+  });
 }
 
 function calcularProximoDoCiclo(){
@@ -2235,7 +2253,7 @@ function renderCardCalendario(){
               </div>
             </div>
             <div class="prox-left">
-              <span class="prox-nome">${labelVisivel}</span>
+              <span class="prox-nome prox-nome-calendario">${labelVisivel}</span>
               ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
             </div>
           </div>
