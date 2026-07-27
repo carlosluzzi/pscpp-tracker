@@ -130,6 +130,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .marcacao-ref-editavel:hover{color:#111}
 .marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:76px;text-align:center}
 .marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
+.marcacao-toggle.pendente{border-color:#ccc;background:#f5f5f3;color:#888}
+.marcacao-detectada{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C5D6E8;background:#E6F1FB;color:#0C447C;font-size:var(--fs-d);font-weight:600;min-width:76px;text-align:center}
 #resolucao-aviso-incompleta{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FAEEDA;color:#633806;padding:10px 14px;font-size:var(--fs-c)}
 #resolucao-aviso-incompleta.hidden{display:none}
 .resolucao-puxar-btn{background:#633806;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:var(--fs-b);font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0}
@@ -1314,40 +1316,47 @@ function fecharMarcacaoPendente(){
 }
 
 function renderizarListaMarcacao(){
-  const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   const lista=document.getElementById('marcacao-lista');
   lista.innerHTML=qs.map(q=>{
-    const marcadaErrada=q.acertouSimplificado===false;
     const ref=[q.modulo,q.publicacao,q.capitulo].filter(Boolean).join(' · ');
+    // resolvida por detecção (marcação azul no PDF) — mostra badge, sem toggle manual
+    const detectada=!!q.suaResposta;
+    let controleHtml;
+    if(detectada){
+      controleHtml=`<span class="marcacao-detectada">Detectado: ${q.suaResposta.toUpperCase()}</span>`;
+    }else{
+      const estado=q.acertouSimplificado===true?'certa':q.acertouSimplificado===false?'errada':'pendente';
+      const rotulo=estado==='certa'?'Certa':estado==='errada'?'Errada':'Falta';
+      controleHtml=`<button class="marcacao-toggle ${estado}" onclick="toggleMarcacaoQuestao('${q.id}')">${rotulo}</button>`;
+    }
     return `<div class="marcacao-item">
       <div class="marcacao-item-esq">
         <span class="marcacao-num">Questão ${q.numeroQuestao}</span>
         <span class="marcacao-ref marcacao-ref-editavel" onclick="abrirEdicaoModuloQuestao('${q.id}')">${ref||'+ módulo / publicação'}</span>
       </div>
-      <button class="marcacao-toggle${marcadaErrada?' errada':''}" onclick="toggleMarcacaoQuestao('${q.id}')">${marcadaErrada?'Errada':'Certa'}</button>
+      ${controleHtml}
     </div>`;
   }).join('');
 
+  // completa = tem resposta detectada OU foi marcada manualmente (certa ou errada) — nunca assume nada
+  const faltando=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
-  const modoAutomatico=ap&&ap.modoResposta==='deteccao_automatica';
-  const semDeteccao=modoAutomatico?qs.filter(q=>!q.suaResposta):[];
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
     const q=incompletas[0];
     avisoEl.classList.remove('hidden');
     avisoEl.innerHTML=`<span>⚠ Questão ${q.numeroQuestao} veio incompleta na extração</span>${q.reextracaoSolicitada?'<span>Reextração já solicitada</span>':`<button class="resolucao-puxar-btn" onclick="solicitarReextracao('${q.id}')">Puxar de novo</button>`}`;
-  }else if(semDeteccao.length){
+  }else if(faltando.length){
     avisoEl.classList.remove('hidden');
-    avisoEl.innerHTML=`<span>⚠ Sem resposta detectada: ${semDeteccao.map(q=>q.numeroQuestao).join(', ')} — marque no PDF Expert e salve o arquivo</span>`;
+    avisoEl.innerHTML=`<span>⚠ Faltam ${faltando.length} questão(ões) responder: ${faltando.map(q=>q.numeroQuestao).join(', ')}</span>`;
   }else{
     avisoEl.classList.add('hidden');
     avisoEl.innerHTML='';
   }
 
-  // No modo automático, o botão de finalizar só aparece quando TODAS já tiverem resposta detectada
-  const podeFinalizarAutomatico=!modoAutomatico||semDeteccao.length===0;
-  document.getElementById('resolucao-finalizar-wrap').classList.toggle('hidden',qs.length===0||!podeFinalizarAutomatico);
+  // só finaliza com 100% respondido, por detecção ou toque manual — nunca assume nada
+  document.getElementById('resolucao-finalizar-wrap').classList.toggle('hidden',qs.length===0||faltando.length>0);
 }
 
 let edicaoModuloQuestaoId=null;
@@ -1388,13 +1397,16 @@ async function salvarEdicaoModuloQuestao(){
 async function toggleMarcacaoQuestao(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
-  const estavaErrada=q.acertouSimplificado===false;
-  const novoValor=estavaErrada?true:false; // alterna: certa <-> errada
+  // cicla: não respondida (null) -> certa (true) -> errada (false) -> não respondida (null)
+  let novoValor;
+  if(q.acertouSimplificado===null||q.acertouSimplificado===undefined) novoValor=true;
+  else if(q.acertouSimplificado===true) novoValor=false;
+  else novoValor=null;
   try{
-    const {error}=await sbDados.from('questoes_pendentes').update({acertou_simplificado:novoValor,respondida:true}).eq('id',questaoId);
+    const {error}=await sbDados.from('questoes_pendentes').update({acertou_simplificado:novoValor,respondida:novoValor!==null}).eq('id',questaoId);
     if(error) throw error;
     q.acertouSimplificado=novoValor;
-    q.respondida=true;
+    q.respondida=novoValor!==null;
     renderizarListaMarcacao();
   }catch(e){
     alert('Erro ao marcar questão: '+e.message);
@@ -1464,15 +1476,12 @@ async function finalizarCadernoPendente(){
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   if(!qs.length) return;
 
-  // No modo de detecção automática (Curso H digital), NUNCA finaliza com questão sem resposta
-  // detectada — trava e avisa quais faltam, em vez de assumir certo ou errado sozinho.
-  const modoAutomatico=ap.modoResposta==='deteccao_automatica';
-  if(modoAutomatico){
-    const semResposta=qs.filter(q=>!q.suaResposta).map(q=>q.numeroQuestao);
-    if(semResposta.length){
-      alert(`Ainda faltam ${semResposta.length} questão(ões) sem resposta detectada: ${semResposta.join(', ')}.\n\nVá conferir e marcar essas no PDF Expert — o script vai detectar automaticamente na próxima vez que você salvar o arquivo.`);
-      return;
-    }
+  // Regra única, pra qualquer curso: NUNCA finaliza com questão sem resposta — seja por
+  // detecção (marcação azul no PDF) ou por toque manual (Certa/Errada). Nunca assume nada sozinho.
+  const semResposta=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).map(q=>q.numeroQuestao);
+  if(semResposta.length){
+    alert(`Ainda faltam ${semResposta.length} questão(ões) sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo — o que vier primeiro resolve a questão.`);
+    return;
   }
 
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
@@ -1485,9 +1494,8 @@ async function finalizarCadernoPendente(){
     if(q.suaResposta&&q.gabarito){
       acertou=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase();
     }else{
-      // só chega aqui no modo simplificado — questão nunca tocada assume acerto
-      // (Carlos só marca as que errou, o resto assume acerto)
-      acertou=q.acertouSimplificado!==false; // null/true -> certa, false -> errada
+      // aqui só chega quem foi tocado manualmente de propósito — nunca null (bloqueio acima já garante isso)
+      acertou=q.acertouSimplificado===true;
     }
     pontuacaoTotal+=peso;
     if(acertou){ pontuacaoObtida+=peso; acertos++; } else erros++;
@@ -3136,14 +3144,14 @@ function renderQuestoes(){
           </div>`;
         }
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
-        const respondidas=qsDessa.filter(q=>q.respondida).length;
+        const faltando=qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
+        const respondidas=qsDessa.length-faltando;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
-        const semDeteccao=ap.modoResposta==='deteccao_automatica'?qsDessa.filter(q=>!q.suaResposta).length:0;
         return `<div class="prox-item" onclick="abrirMarcacaoPendente('${ap.id}')" style="cursor:pointer">
           <div class="prox-left">
             <span class="prox-nome">${ap.nome}</span>
             <span class="prox-modalidade">${ap.tipo} · ${ap.curso} · ${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
-            ${semDeteccao?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${semDeteccao} sem resposta detectada — confira no PDF Expert</span>`:''}
+            ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
           </div>
         </div>`;
       }).join('')}
