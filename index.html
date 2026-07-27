@@ -742,6 +742,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <select class="filter-select" id="registro-manual-publicacao">
       <option value="">Publicação (opcional)</option>
     </select>
+    <input type="number" min="1" class="filter-select" id="registro-manual-capitulo" placeholder="Capítulo (opcional)">
     <select class="filter-select" id="registro-manual-tipo">
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
@@ -950,7 +951,7 @@ function fmtPct(v){
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
-let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -1555,7 +1556,7 @@ function renderAprovado(){
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
-      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
+      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
@@ -1563,6 +1564,7 @@ function renderAprovado(){
         <option value="">Publicação (opcional)</option>
         ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
+      <input type="number" min="1" class="filter-select" placeholder="Capítulo (opcional)" value="${timerCapitulo}" oninput="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
       <div class="filter-row">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -1711,6 +1713,7 @@ function zerarTimer(){
   timerInicio=null;
   timerModulo='';
   timerPublicacao='';
+  timerCapitulo='';
   timerTipo='Leitura';
   timerFullscreenAberto=false;
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
@@ -1747,6 +1750,7 @@ async function pararESalvarTimer(){
     const {error}=await sbDados.from('sessoes_estudo').insert({
       modulo:timerModulo,
       publicacao:timerPublicacao||null,
+      capitulo:timerCapitulo?`Capítulo ${timerCapitulo}`:null,
       tipo:timerTipo,
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
@@ -1764,6 +1768,7 @@ function abrirRegistroManual(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
   document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
   atualizarPublicacoesRegistroManual();
+  document.getElementById('registro-manual-capitulo').value='';
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('registro-manual-modal').style.display='flex';
@@ -1779,6 +1784,7 @@ function fecharRegistroManual(){
 async function salvarRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
   const publicacao=document.getElementById('registro-manual-publicacao').value;
+  const numCapitulo=document.getElementById('registro-manual-capitulo').value.trim();
   const tipo=document.getElementById('registro-manual-tipo').value;
   const duracao=parseInt(document.getElementById('registro-manual-duracao').value,10);
   const data=document.getElementById('registro-manual-data').value;
@@ -1787,7 +1793,7 @@ async function salvarRegistroManual(){
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,publicacao:publicacao||null,tipo,duracao_minutos:duracao,data,
+      modulo,publicacao:publicacao||null,capitulo:numCapitulo?`Capítulo ${numCapitulo}`:null,tipo,duracao_minutos:duracao,data,
     });
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
