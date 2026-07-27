@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#202A45">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1426,23 +1426,33 @@ function abrirTimerFullscreen(){
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   // Tenta tela cheia real do navegador (cobre até a barra de status do sistema, quando suportado).
-  // Se não for suportado (comum em iPhone Safari), cai de volta pro modo CSS que já tínhamos, sem erro.
   const el=document.getElementById('timer-fullscreen');
   try{
     const pedir=el.requestFullscreen||el.webkitRequestFullscreen;
     if(pedir) pedir.call(el).catch(()=>{});
   }catch(e){}
+  // Ativa viewport-fit=cover só enquanto o timer está aberto — estende o fundo escuro por baixo da
+  // barra de status. Revertido ao fechar, então não afeta o resto do app (onde isso causava um bug antigo).
+  const metaViewport=document.getElementById('meta-viewport');
+  metaViewport.dataset.original=metaViewport.getAttribute('content');
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
 }
 
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
+  restaurarViewportOriginal();
   try{
     const sair=document.exitFullscreen||document.webkitExitFullscreen;
     if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
   }catch(e){}
   renderTab(tabAtual,true);
+}
+
+function restaurarViewportOriginal(){
+  const metaViewport=document.getElementById('meta-viewport');
+  if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
 }
 
 function atualizarTickTimer(){
@@ -1481,6 +1491,7 @@ function zerarTimer(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
+  restaurarViewportOriginal();
   try{
     const sair=document.exitFullscreen||document.webkitExitFullscreen;
     if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
@@ -1496,6 +1507,7 @@ function saiuDoFullscreenReal(){
     timerFullscreenAberto=false;
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
+    restaurarViewportOriginal();
     renderTab(tabAtual,true);
   }
 }
