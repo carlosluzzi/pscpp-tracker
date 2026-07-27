@@ -118,7 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-bottom:32px}
-.tf-tempo{font-size:64px;font-weight:700;color:#fff;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.tf-tempo{font-size:88px;font-weight:700;color:#fff;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
 .tf-btns{display:flex;gap:10px;justify-content:center}
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit}
@@ -463,6 +463,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nota-card{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:#FEF6E0;border:0.5px solid #F5D98A;border-radius:10px;padding:12px 14px}
 .nota-texto{font-size:var(--fs-d);font-weight:600;color:#4A3600;flex:1;line-height:1.5}
 .nota-close{position:absolute;top:8px;right:10px;font-size:var(--fs-c);color:#8A6D1F;cursor:pointer;opacity:0.45;flex-shrink:0;padding:2px}
+.historico-excluir{font-size:var(--fs-c);color:#A32D2D;cursor:pointer;opacity:0.5;flex-shrink:0;padding:6px}
 .nota-close:hover{opacity:1}
 .nota-add{font-size:var(--fs-d);color:#888;text-align:center;padding:10px;border:1px dashed #ddd;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .nota-add:hover{color:#111;border-color:#bbb}
@@ -889,7 +890,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],tabAtual='inicio',atividadeAtual=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -977,7 +978,7 @@ async function loadData(){
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
-      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas}
+      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -991,8 +992,9 @@ async function loadData(){
       sbDados.from('sessoes_estudo').select('*'),
       sbDados.from('ciclo_estudos_config').select('*'),
       sbDados.from('metas_estudo').select('*'),
+      sbDados.from('revisoes_espacadas').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
 
     // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
@@ -1105,6 +1107,7 @@ async function loadData(){
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
+    revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
@@ -1178,6 +1181,57 @@ function calcularProgressoMetas(periodo){
   }).filter(Boolean);
 }
 
+// REVISÃO ESPAÇADA — sequência clássica de intervalos, ajustada pela taxa de erro real do módulo/publicação
+const SEQUENCIA_REVISAO_DIAS=[1,7,30,90];
+function calcularTaxaErroModulo(modulo,publicacao){
+  let qs=publicacao?questoes.filter(q=>q.modulo===modulo&&q.publicacao===publicacao&&q.status):[];
+  if(!qs.length) qs=questoes.filter(q=>q.modulo===modulo&&q.status);
+  if(!qs.length) return 30; // sem dado suficiente, usa taxa neutra (intervalo normal)
+  const erros=qs.filter(q=>q.status==='Errei').length;
+  return Math.round(erros/qs.length*100);
+}
+function fatorAjusteRevisao(taxaErroPct){
+  if(taxaErroPct>=50) return 0.5;
+  if(taxaErroPct>=20) return 1;
+  return 1.5;
+}
+function calcularProximaDataRevisao(nivel,taxaErroPct,hoje){
+  const nivelClamp=Math.min(nivel,SEQUENCIA_REVISAO_DIAS.length-1);
+  const diasBase=SEQUENCIA_REVISAO_DIAS[nivelClamp];
+  const dias=Math.max(1,Math.round(diasBase*fatorAjusteRevisao(taxaErroPct)));
+  const proxima=new Date(hoje);
+  proxima.setDate(proxima.getDate()+dias);
+  return proxima.toISOString().slice(0,10);
+}
+async function agendarRevisaoSeLeitura(modulo,publicacao,tipo){
+  if(tipo!=='Leitura') return;
+  const taxaErro=calcularTaxaErroModulo(modulo,publicacao||'');
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const proximaData=calcularProximaDataRevisao(0,taxaErro,hoje);
+  try{
+    await sbDados.from('revisoes_espacadas').upsert({
+      modulo,publicacao:publicacao||'',nivel:0,proxima_data:proximaData,atualizado_em:new Date().toISOString(),
+    },{onConflict:'modulo,publicacao'});
+  }catch(e){
+    console.error('Erro ao agendar revisão:',e);
+  }
+}
+async function concluirRevisao(id){
+  const rev=revisoesEspacadas.find(r=>r.id===id);
+  if(!rev) return;
+  const taxaErro=calcularTaxaErroModulo(rev.modulo,rev.publicacao);
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const novoNivel=rev.nivel+1;
+  const proximaData=calcularProximaDataRevisao(novoNivel,taxaErro,hoje);
+  try{
+    const {error}=await sbDados.from('revisoes_espacadas').update({nivel:novoNivel,proxima_data:proximaData,atualizado_em:new Date().toISOString()}).eq('id',id);
+    if(error) throw error;
+    await loadData();
+  }catch(e){
+    alert('Erro ao concluir revisão: '+e.message);
+  }
+}
+
 function renderAprovado(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
 
@@ -1195,6 +1249,19 @@ function renderAprovado(){
   const minutosPorModulo={};
   sessoesRecentes.forEach(s=>{ minutosPorModulo[s.modulo]=(minutosPorModulo[s.modulo]||0)+s.duracaoMinutos; });
   const totalMinutos=Object.values(minutosPorModulo).reduce((a,b)=>a+b,0);
+
+  const hojeStr=hoje.toISOString().slice(0,10);
+  const revisoesVencidas=revisoesEspacadas.filter(r=>r.proximaData<=hojeStr).sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
+  const revisoesHtml=revisoesVencidas.map(r=>{
+    const cc=modCores[r.modulo];
+    return `<div class="prox-item" style="cursor:default">
+      <div class="prox-left">
+        <span class="prox-nome">${r.modulo}${r.publicacao?' — '+r.publicacao:''}</span>
+        <span class="prox-modalidade" style="color:${cc.tx}">nível ${r.nivel+1} da sequência</span>
+      </div>
+      <button class="prox-confirm-btn" onclick="concluirRevisao('${r.id}')">concluí</button>
+    </div>`;
+  }).join('');
 
   const graficoHtml=modulosPscpp.filter(m=>minutosPorModulo[m]).map(m=>{
     const min=minutosPorModulo[m];
@@ -1216,6 +1283,7 @@ function renderAprovado(){
         <span class="prox-nome">${s.modulo}${refCompleta?' — '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
       </div>
+      <span class="historico-excluir" onclick="excluirSessaoEstudo('${s.id}')">✕</span>
     </div>`;
   }).join('');
 
@@ -1248,6 +1316,15 @@ function renderAprovado(){
       <div style="font-size:var(--fs-b);color:#888;margin-top:2px">próximo do ciclo, peso ${proxCiclo.peso}</div>
       <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:12px" onclick="usarModuloNoTimer('${proxCiclo.modulo}')">Estudar isso agora</button>
     </div>
+
+    ${revisoesVencidas.length?`<div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões de hoje</span></div>
+      </div>
+      <div class="prox-list">
+        ${revisoesHtml}
+      </div>
+    </div>`:''}
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
@@ -1405,6 +1482,7 @@ async function pararESalvarTimer(){
       data:new Date().toISOString().slice(0,10),
     });
     if(error) throw error;
+    await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo);
     zerarTimer();
     await loadData();
   }catch(e){
@@ -1442,6 +1520,7 @@ async function salvarRegistroManual(){
       modulo,publicacao:publicacao||null,tipo,duracao_minutos:duracao,data,
     });
     if(error) throw error;
+    await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
     fecharRegistroManual();
     await loadData();
   }catch(e){
@@ -1516,6 +1595,16 @@ async function salvarConfigMetas(){
   }
 }
 
+async function excluirSessaoEstudo(id){
+  if(!confirm('Excluir essa sessão do histórico? Isso não pode ser desfeito.')) return;
+  try{
+    const {error}=await sbDados.from('sessoes_estudo').delete().eq('id',id);
+    if(error) throw error;
+    await loadData();
+  }catch(e){
+    alert('Erro ao excluir sessão: '+e.message);
+  }
+}
 
 function fmtData(d){
   if(!d) return '';
