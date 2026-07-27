@@ -18,7 +18,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 button{transition:transform 0.12s ease,opacity 0.12s ease}
@@ -117,22 +116,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#resolucao-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999998;background:#2B2B2B;display:flex;flex-direction:column;box-sizing:border-box}
-#resolucao-fullscreen.hidden{display:none}
-#resolucao-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px 14px;color:#fff}
-#resolucao-questao-label{font-size:var(--fs-e);font-weight:600}
-.resolucao-fechar-btn{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:6px}
-#resolucao-toolbar{display:flex;gap:6px}
-.resolucao-tool-btn{background:#444;border:none;border-radius:8px;width:38px;height:38px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0.6}
-.resolucao-tool-btn.active{background:#1a3fa8;opacity:1}
-#resolucao-scroll-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#3a3a3a;-webkit-overflow-scrolling:touch}
-#resolucao-paginas-container{display:flex;flex-direction:column;align-items:center;gap:14px;padding:14px 0 30px 0}
-.resolucao-pagina-wrap{position:relative;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.3)}
-.resolucao-canvas-pdf{display:block}
-.resolucao-canvas-desenho{position:absolute;top:0;left:0;touch-action:pan-y}
-.resolucao-pagina-num{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#999}
-.resolucao-nav-btn{flex:1;padding:11px;border-radius:8px;border:none;background:#444;color:#fff;font-size:var(--fs-d);font-weight:500;cursor:pointer;font-family:inherit}
-.resolucao-nav-btn:active{opacity:0.7}
+#marcacao-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999998;background:#FBFBFA;display:flex;flex-direction:column;box-sizing:border-box}
+#marcacao-fullscreen.hidden{display:none}
+#marcacao-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px 16px;border-bottom:0.5px solid #e0e0e0}
+#marcacao-titulo{font-size:var(--fs-f);font-weight:600;color:#111}
+.marcacao-fechar-btn{background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:6px}
+#marcacao-lista-wrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 16px 20px 16px}
+.marcacao-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:0.5px solid #eee}
+.marcacao-item-esq{display:flex;flex-direction:column;gap:2px;min-width:0}
+.marcacao-num{font-size:var(--fs-e);font-weight:600;color:#111}
+.marcacao-ref{font-size:var(--fs-b);color:#888}
+.marcacao-ref-editavel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+.marcacao-ref-editavel:hover{color:#111}
+.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:76px;text-align:center}
+.marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
 #resolucao-aviso-incompleta{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FAEEDA;color:#633806;padding:10px 14px;font-size:var(--fs-c)}
 #resolucao-aviso-incompleta.hidden{display:none}
 .resolucao-puxar-btn{background:#633806;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:var(--fs-b);font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0}
@@ -140,9 +137,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 #resolucao-toast.hidden{display:none;opacity:0}
 #resolucao-toast.certo{background:rgba(59,109,17,0.92)}
 #resolucao-toast.errado{background:rgba(163,45,45,0.92)}
-#resolucao-finalizar-wrap{flex-shrink:0;padding:10px 14px calc(env(safe-area-inset-bottom, 0px) + 10px) 14px;background:#1c1c1c}
+#resolucao-finalizar-wrap{flex-shrink:0;padding:10px 16px calc(env(safe-area-inset-bottom, 0px) + 14px) 16px;border-top:0.5px solid #e0e0e0}
 #resolucao-finalizar-wrap.hidden{display:none}
-.resolucao-finalizar-btn{width:100%;background:#3B6D11}
+.resolucao-finalizar-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#3B6D11;color:#fff;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-bottom:32px}
@@ -560,22 +557,45 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="timer-fullscreen-conteudo"></div>
 </div>
 
-<div id="resolucao-fullscreen" class="hidden">
-  <div id="resolucao-header">
-    <button class="resolucao-fechar-btn" onclick="fecharResolucaoPendente()">✕</button>
-    <span id="resolucao-questao-label"></span>
-    <div id="resolucao-toolbar">
-      <button class="resolucao-tool-btn active" id="resolucao-tool-caneta" onclick="resolucaoSetFerramenta('caneta')">✏️</button>
-      <button class="resolucao-tool-btn" id="resolucao-tool-borracha" onclick="resolucaoSetFerramenta('borracha')">🧹</button>
-    </div>
+<div id="marcacao-fullscreen" class="hidden">
+  <div id="marcacao-header">
+    <span id="marcacao-titulo"></span>
+    <button class="marcacao-fechar-btn" onclick="fecharMarcacaoPendente()">✕</button>
   </div>
   <div id="resolucao-aviso-incompleta" class="hidden"></div>
-  <div id="resolucao-scroll-wrap">
-    <div id="resolucao-paginas-container"></div>
+  <div id="marcacao-lista-wrap">
+    <div id="marcacao-lista"></div>
   </div>
   <div id="resolucao-toast" class="hidden"></div>
   <div id="resolucao-finalizar-wrap" class="hidden">
-    <button class="resolucao-nav-btn resolucao-finalizar-btn" onclick="finalizarCadernoPendente()">✓ Finalizar caderno</button>
+    <button class="resolucao-finalizar-btn" onclick="finalizarCadernoPendente()">✓ Finalizar caderno</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edicao-modulo-modal" style="display:none" onclick="if(event.target===this)fecharEdicaoModuloQuestao()">
+  <div class="modal-box">
+    <div class="config-title">Módulo / Publicação</div>
+    <div class="config-item">
+      <div class="config-label">Módulo PSCPP</div>
+      <select class="filter-select" id="edicao-modulo-select" style="margin-bottom:0">
+        <option value="">— nenhum —</option>
+        <option>Manobrabilidade</option>
+        <option>Arte Naval</option>
+        <option>Navegação em Águas Restritas</option>
+        <option>Legislação</option>
+        <option>Meteorologia e Oceanografia</option>
+        <option>Comunicações</option>
+        <option>Conhecimentos Gerais</option>
+      </select>
+    </div>
+    <div class="config-item">
+      <div class="config-label">Publicação</div>
+      <input type="text" id="edicao-publicacao-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: Fonseca — Arte Naval">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharEdicaoModuloQuestao()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarEdicaoModuloQuestao()">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -926,7 +946,7 @@ function fmtPct(v){
 
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
-let resolucaoAtiva=false,resolucaoAtividadeId=null,resolucaoPdfDoc=null,resolucaoTotalPaginas=1,resolucaoTracosPorPagina={},resolucaoDesenhando=false,resolucaoViewportsPorPagina={},resolucaoFerramentaAtual='caneta';
+let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -1095,6 +1115,7 @@ async function loadData(){
       questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
       respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
       zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
+      acertouSimplificado:p.acertou_simplificado,
     })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
@@ -1223,270 +1244,91 @@ async function concluirRevisao(id){
 // TELA DE RESOLUÇÃO — mostra o PDF real, captura desenho com caneta, detecta resposta por posição
 const RAIO_DETECCAO_ZONA=16; // pixels de tolerância ao redor de cada zona, em coordenadas de tela
 
-async function abrirResolucaoPendente(atividadePendenteId){
+async function abrirMarcacaoPendente(atividadePendenteId){
   const ap=atividadesPendentes.find(a=>a.id===atividadePendenteId);
-  if(!ap||!ap.arquivoProva){ alert('PDF dessa atividade não encontrado.'); return; }
+  if(!ap) return;
   resolucaoAtividadeId=atividadePendenteId;
-  resolucaoFerramentaAtual='caneta';
-  resolucaoSetFerramenta('caneta');
-  document.getElementById('resolucao-fullscreen').classList.remove('hidden');
-  document.getElementById('resolucao-questao-label').textContent='Carregando...';
-  document.getElementById('resolucao-paginas-container').innerHTML='';
-  try{
-    const {data,error}=await sbDados.storage.from('pdfs-pendentes').download(ap.arquivoProva);
-    if(error) throw error;
-    const arrayBuffer=await data.arrayBuffer();
-    resolucaoPdfDoc=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
-    resolucaoTotalPaginas=resolucaoPdfDoc.numPages;
-
-    // carrega TODAS as anotações já salvas dessa atividade de uma vez, uma linha por página
-    resolucaoTracosPorPagina={};
-    try{
-      const {data:anotacoesRes}=await sbDados.from('anotacoes_pdf').select('numero_pagina,tracos').eq('atividade_pendente_id',resolucaoAtividadeId);
-      (anotacoesRes||[]).forEach(a=>{ resolucaoTracosPorPagina[a.numero_pagina]=a.tracos||[]; });
-    }catch(e){}
-
-    await resolucaoRenderizarTodasPaginas();
-    atualizarResolucaoHeaderEAvisos();
-  }catch(e){
-    alert('Erro ao carregar PDF: '+e.message);
-    fecharResolucaoPendente();
-  }
+  document.getElementById('marcacao-titulo').textContent=ap.nome;
+  document.getElementById('marcacao-fullscreen').classList.remove('hidden');
+  renderizarListaMarcacao();
 }
 
-// Renderiza todas as páginas de uma vez, empilhadas, num container com scroll —
-// leitor contínuo de verdade, não mais uma página de cada vez com botão avançar.
-async function resolucaoRenderizarTodasPaginas(){
-  const container=document.getElementById('resolucao-paginas-container');
-  container.innerHTML='';
-  resolucaoViewportsPorPagina={};
-  const wrap=document.getElementById('resolucao-scroll-wrap');
-  const larguraDisp=wrap.clientWidth-24;
-  // renderiza numa resolução bem maior que o tamanho exibido (mínimo 2x), pra ficar nítido
-  // em qualquer tela — só o CSS que reduz o tamanho visual, os pixels reais continuam lá
-  const dpr=Math.max(2,window.devicePixelRatio||1);
-
-  for(let numPagina=1;numPagina<=resolucaoTotalPaginas;numPagina++){
-    const page=await resolucaoPdfDoc.getPage(numPagina);
-    const viewportBase=page.getViewport({scale:1});
-    const escalaExibicao=larguraDisp/viewportBase.width;
-    const viewportExibicao=page.getViewport({scale:escalaExibicao});
-    const viewportRender=page.getViewport({scale:escalaExibicao*dpr});
-    resolucaoViewportsPorPagina[numPagina]=viewportExibicao;
-
-    const pagWrap=document.createElement('div');
-    pagWrap.className='resolucao-pagina-wrap';
-    pagWrap.style.width=viewportExibicao.width+'px';
-    pagWrap.style.height=viewportExibicao.height+'px';
-
-    const canvasPdf=document.createElement('canvas');
-    canvasPdf.className='resolucao-canvas-pdf';
-    canvasPdf.width=viewportRender.width;
-    canvasPdf.height=viewportRender.height;
-    canvasPdf.style.width=viewportExibicao.width+'px';
-    canvasPdf.style.height=viewportExibicao.height+'px';
-
-    const canvasDesenho=document.createElement('canvas');
-    canvasDesenho.className='resolucao-canvas-desenho';
-    canvasDesenho.dataset.pagina=numPagina;
-    canvasDesenho.width=viewportRender.width;
-    canvasDesenho.height=viewportRender.height;
-    canvasDesenho.style.width=viewportExibicao.width+'px';
-    canvasDesenho.style.height=viewportExibicao.height+'px';
-
-    const numLabel=document.createElement('span');
-    numLabel.className='resolucao-pagina-num';
-    numLabel.textContent=`${numPagina} / ${resolucaoTotalPaginas}`;
-
-    pagWrap.appendChild(canvasPdf);
-    pagWrap.appendChild(canvasDesenho);
-    pagWrap.appendChild(numLabel);
-    container.appendChild(pagWrap);
-
-    const ctx=canvasPdf.getContext('2d');
-    await page.render({canvasContext:ctx,viewport:viewportRender}).promise;
-
-    resolucaoRedesenharTracos(numPagina);
-    configurarCapturaDesenho(canvasDesenho,numPagina);
-  }
+function fecharMarcacaoPendente(){
+  document.getElementById('marcacao-fullscreen').classList.add('hidden');
+  resolucaoAtividadeId=null;
 }
 
-function resolucaoRedesenharTracos(numPagina){
-  const canvas=document.querySelector(`.resolucao-canvas-desenho[data-pagina="${numPagina}"]`);
-  if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const escala=canvas.width/parseFloat(canvas.style.width);
-  ctx.strokeStyle='#1a3fa8';
-  ctx.lineWidth=2.2*escala;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  const tracos=resolucaoTracosPorPagina[numPagina]||[];
-  tracos.forEach(traco=>{
-    if(!traco.length) return;
-    ctx.beginPath();
-    ctx.moveTo(traco[0].x*escala,traco[0].y*escala);
-    for(let i=1;i<traco.length;i++) ctx.lineTo(traco[i].x*escala,traco[i].y*escala);
-    ctx.stroke();
-  });
-}
+function renderizarListaMarcacao(){
+  const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
+  const lista=document.getElementById('marcacao-lista');
+  lista.innerHTML=qs.map(q=>{
+    const marcadaErrada=q.acertouSimplificado===false;
+    const ref=[q.modulo,q.publicacao].filter(Boolean).join(' · ');
+    return `<div class="marcacao-item">
+      <div class="marcacao-item-esq">
+        <span class="marcacao-num">Questão ${q.numeroQuestao}</span>
+        <span class="marcacao-ref marcacao-ref-editavel" onclick="abrirEdicaoModuloQuestao('${q.id}')">${ref||'+ módulo / publicação'}</span>
+      </div>
+      <button class="marcacao-toggle${marcadaErrada?' errada':''}" onclick="toggleMarcacaoQuestao('${q.id}')">${marcadaErrada?'Errada':'Certa'}</button>
+    </div>`;
+  }).join('');
 
-// Só a Apple Pencil desenha (pointerType 'pen') — dedo/mouse rolam a tela normalmente,
-// igual qualquer leitor de PDF. O canvas usa touch-action:pan-y pra permitir isso.
-function configurarCapturaDesenho(canvas,numPagina){
-  canvas.onpointerdown=e=>{
-    if(e.pointerType!=='pen') return;
-    e.preventDefault();
-    resolucaoDesenhando=true;
-    const rect=canvas.getBoundingClientRect();
-    const escalaCss=parseFloat(canvas.style.width)/rect.width;
-    const x=(e.clientX-rect.left)*escalaCss;
-    const y=(e.clientY-rect.top)*escalaCss;
-    resolucaoTracoEmAndamento=[{x,y}];
-  };
-  canvas.onpointermove=e=>{
-    if(e.pointerType!=='pen'||!resolucaoDesenhando) return;
-    e.preventDefault();
-    const rect=canvas.getBoundingClientRect();
-    const escalaCss=parseFloat(canvas.style.width)/rect.width;
-    const x=(e.clientX-rect.left)*escalaCss;
-    const y=(e.clientY-rect.top)*escalaCss;
-    resolucaoTracoEmAndamento.push({x,y});
-    resolucaoDesenharTracoAoVivo(canvas,numPagina);
-  };
-  const finalizarTraco=async e=>{
-    if(e&&e.pointerType&&e.pointerType!=='pen') return;
-    if(!resolucaoDesenhando) return;
-    resolucaoDesenhando=false;
-    if(resolucaoTracoEmAndamento&&resolucaoTracoEmAndamento.length>1){
-      if(resolucaoFerramentaAtual==='borracha'){
-        resolucaoApagarTracosProximos(numPagina,resolucaoTracoEmAndamento);
-      }else{
-        if(!resolucaoTracosPorPagina[numPagina]) resolucaoTracosPorPagina[numPagina]=[];
-        resolucaoTracosPorPagina[numPagina].push(resolucaoTracoEmAndamento);
-        await resolucaoDetectarZonas(numPagina,resolucaoTracoEmAndamento);
-      }
-      resolucaoRedesenharTracos(numPagina);
-      await resolucaoSalvarTracosPagina(numPagina);
-    }
-    resolucaoTracoEmAndamento=null;
-  };
-  canvas.onpointerup=finalizarTraco;
-  canvas.onpointerleave=finalizarTraco;
-}
-
-function resolucaoDesenharTracoAoVivo(canvas,numPagina){
-  resolucaoRedesenharTracos(numPagina);
-  const ctx=canvas.getContext('2d');
-  const escala=canvas.width/parseFloat(canvas.style.width);
-  ctx.strokeStyle=resolucaoFerramentaAtual==='borracha'?'rgba(200,50,50,0.4)':'#1a3fa8';
-  ctx.lineWidth=(resolucaoFerramentaAtual==='borracha'?14:2.2)*escala;
-  ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.beginPath();
-  ctx.moveTo(resolucaoTracoEmAndamento[0].x*escala,resolucaoTracoEmAndamento[0].y*escala);
-  for(let i=1;i<resolucaoTracoEmAndamento.length;i++) ctx.lineTo(resolucaoTracoEmAndamento[i].x*escala,resolucaoTracoEmAndamento[i].y*escala);
-  ctx.stroke();
-}
-
-function resolucaoApagarTracosProximos(numPagina,tracoBorracha){
-  const RAIO_BORRACHA=14;
-  const tracos=resolucaoTracosPorPagina[numPagina]||[];
-  resolucaoTracosPorPagina[numPagina]=tracos.filter(traco=>!traco.some(p=>tracoBorracha.some(b=>Math.hypot(p.x-b.x,p.y-b.y)<=RAIO_BORRACHA)));
-}
-
-function resolucaoSetFerramenta(ferramenta){
-  resolucaoFerramentaAtual=ferramenta;
-  const btnCaneta=document.getElementById('resolucao-tool-caneta');
-  const btnBorracha=document.getElementById('resolucao-tool-borracha');
-  if(btnCaneta) btnCaneta.classList.toggle('active',ferramenta==='caneta');
-  if(btnBorracha) btnBorracha.classList.toggle('active',ferramenta==='borracha');
-}
-
-async function resolucaoDetectarZonas(numPagina,traco){
-  const qsDessaPagina=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId&&q.pdfPagina===numPagina);
-  const viewport=resolucaoViewportsPorPagina[numPagina];
-  if(!viewport) return;
-  for(const q of qsDessaPagina){
-    if(!q.zonasAlternativas) continue;
-    for(const letra of ['a','b','c','d','e']){
-      const zonaPdf=q.zonasAlternativas[letra];
-      if(!zonaPdf) continue;
-      const [zx,zy]=viewport.convertToViewportPoint(zonaPdf.x,zonaPdf.y);
-      const tocou=traco.some(p=>Math.hypot(p.x-zx,p.y-zy)<=RAIO_DETECCAO_ZONA);
-      if(tocou){
-        await resolucaoMarcarResposta(q.id,letra.toUpperCase());
-        return;
-      }
-    }
-  }
-}
-
-let resolucaoSalvarTimeouts={};
-function resolucaoSalvarTracosPagina(numPagina){
-  return new Promise(resolve=>{
-    if(resolucaoSalvarTimeouts[numPagina]) clearTimeout(resolucaoSalvarTimeouts[numPagina]);
-    resolucaoSalvarTimeouts[numPagina]=setTimeout(async()=>{
-      try{
-        await sbDados.from('anotacoes_pdf').upsert({
-          atividade_pendente_id:resolucaoAtividadeId,
-          numero_pagina:numPagina,
-          tracos:resolucaoTracosPorPagina[numPagina]||[],
-          atualizado_em:new Date().toISOString(),
-        },{onConflict:'atividade_pendente_id,numero_pagina'});
-      }catch(e){
-        console.error('Erro ao salvar traços:',e);
-      }
-      resolve();
-    },400);
-  });
-}
-
-function atualizarResolucaoHeaderEAvisos(){
-  const todasDaAtividade=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
-  document.getElementById('resolucao-questao-label').textContent=`${todasDaAtividade.filter(q=>q.respondida).length}/${todasDaAtividade.length} respondidas`;
-
-  const incompletas=todasDaAtividade.filter(q=>q.statusExtracao==='incompleta');
+  const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
+    const q=incompletas[0];
     avisoEl.classList.remove('hidden');
-    avisoEl.innerHTML=incompletas.map(q=>`<span>⚠ Q${q.numeroQuestao} incompleta</span>${q.reextracaoSolicitada?'<span>Solicitado</span>':`<button class="resolucao-puxar-btn" onclick="solicitarReextracao('${q.id}')">Puxar de novo</button>`}`).join('');
+    avisoEl.innerHTML=`<span>⚠ Questão ${q.numeroQuestao} veio incompleta na extração</span>${q.reextracaoSolicitada?'<span>Reextração já solicitada</span>':`<button class="resolucao-puxar-btn" onclick="solicitarReextracao('${q.id}')">Puxar de novo</button>`}`;
   }else{
     avisoEl.classList.add('hidden');
     avisoEl.innerHTML='';
   }
 
-  const finalizarWrap=document.getElementById('resolucao-finalizar-wrap');
-  const todasRespondidas=todasDaAtividade.length>0&&todasDaAtividade.every(q=>q.respondida);
-  finalizarWrap.classList.toggle('hidden',!todasRespondidas);
+  document.getElementById('resolucao-finalizar-wrap').classList.toggle('hidden',qs.length===0);
 }
 
-async function fecharResolucaoPendente(){
-  document.getElementById('resolucao-fullscreen').classList.add('hidden');
-  resolucaoAtividadeId=null;
-  resolucaoPdfDoc=null;
-  resolucaoTracosPorPagina={};
-  resolucaoViewportsPorPagina={};
-  await loadData();
+let edicaoModuloQuestaoId=null;
+function abrirEdicaoModuloQuestao(questaoId){
+  const q=questoesPendentes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  edicaoModuloQuestaoId=questaoId;
+  document.getElementById('edicao-modulo-select').value=q.modulo||'';
+  document.getElementById('edicao-publicacao-input').value=q.publicacao||'';
+  document.getElementById('edicao-modulo-modal').style.display='flex';
 }
-
-async function resolucaoMarcarResposta(questaoId,letra){
+function fecharEdicaoModuloQuestao(){
+  document.getElementById('edicao-modulo-modal').style.display='none';
+  edicaoModuloQuestaoId=null;
+}
+async function salvarEdicaoModuloQuestao(){
+  if(!edicaoModuloQuestaoId) return;
+  const modulo=document.getElementById('edicao-modulo-select').value||null;
+  const publicacao=document.getElementById('edicao-publicacao-input').value.trim()||null;
   try{
-    const {error}=await sbDados.from('questoes_pendentes').update({sua_resposta:letra,respondida:true}).eq('id',questaoId);
+    const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao}).eq('id',edicaoModuloQuestaoId);
     if(error) throw error;
-    const q=questoesPendentes.find(qq=>qq.id===questaoId);
-    if(q){ q.suaResposta=letra; q.respondida=true; }
-    atualizarResolucaoHeaderEAvisos();
-    // Feedback na hora — só se soubermos o gabarito dessa questão
-    if(q&&q.gabarito){
-      const acertou=letra.toUpperCase()===q.gabarito.toUpperCase();
-      const toast=document.getElementById('resolucao-toast');
-      toast.className=acertou?'certo':'errado';
-      toast.textContent=acertou?'✓ Certo!':`✗ Gabarito: ${q.gabarito.toUpperCase()}`;
-      clearTimeout(window._resolucaoToastTimeout);
-      window._resolucaoToastTimeout=setTimeout(()=>{ toast.classList.add('hidden'); },1400);
-    }
+    const q=questoesPendentes.find(qq=>qq.id===edicaoModuloQuestaoId);
+    if(q){ q.modulo=modulo; q.publicacao=publicacao; }
+    fecharEdicaoModuloQuestao();
+    renderizarListaMarcacao();
   }catch(e){
-    console.error('Erro ao marcar resposta:',e);
+    alert('Erro ao salvar: '+e.message);
+  }
+}
+
+async function toggleMarcacaoQuestao(questaoId){
+  const q=questoesPendentes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  const estavaErrada=q.acertouSimplificado===false;
+  const novoValor=estavaErrada?true:false; // alterna: certa <-> errada
+  try{
+    const {error}=await sbDados.from('questoes_pendentes').update({acertou_simplificado:novoValor,respondida:true}).eq('id',questaoId);
+    if(error) throw error;
+    q.acertouSimplificado=novoValor;
+    q.respondida=true;
+    renderizarListaMarcacao();
+  }catch(e){
+    alert('Erro ao marcar questão: '+e.message);
   }
 }
 
@@ -1496,7 +1338,7 @@ async function solicitarReextracao(questaoId){
     if(error) throw error;
     const q=questoesPendentes.find(qq=>qq.id===questaoId);
     if(q) q.reextracaoSolicitada=true;
-    atualizarResolucaoHeaderEAvisos();
+    renderizarListaMarcacao();
     alert('Solicitado. Da próxima vez que você rodar o Claude Code na pasta dos PDFs, essa questão específica será reextraída.');
   }catch(e){
     alert('Erro ao solicitar reextração: '+e.message);
@@ -1507,21 +1349,25 @@ async function finalizarCadernoPendente(){
   const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
   if(!ap) return;
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
-  if(!qs.length||!qs.every(q=>q.respondida)){ alert('Ainda tem questão sem responder.'); return; }
+  if(!qs.length) return;
 
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
   if(!nomeAtividade||!nomeAtividade.trim()) return;
 
-  const comGabarito=qs.filter(q=>q.gabarito);
-  const semGabarito=qs.length-comGabarito.length;
-  if(semGabarito>0&&!confirm(`${semGabarito} questão(ões) não têm gabarito registrado e não vão contar pra pontuação. Continuar mesmo assim?`)) return;
-
+  // Toda questão nunca tocada conta como certa por padrão (regra do fluxo simplificado:
+  // Carlos só marca as que errou, o resto assume acerto).
   let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0;
-  comGabarito.forEach(q=>{
+  const resultados=qs.map(q=>{
     const peso=q.peso||1;
+    let acertou;
+    if(q.suaResposta&&q.gabarito){
+      acertou=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase();
+    }else{
+      acertou=q.acertouSimplificado!==false; // null/true -> certa, false -> errada
+    }
     pontuacaoTotal+=peso;
-    if((q.suaResposta||'').toUpperCase()===q.gabarito.toUpperCase()){ pontuacaoObtida+=peso; acertos++; }
-    else erros++;
+    if(acertou){ pontuacaoObtida+=peso; acertos++; } else erros++;
+    return {q,acertou};
   });
 
   try{
@@ -1539,10 +1385,10 @@ async function finalizarCadernoPendente(){
     });
     if(eAtiv) throw eAtiv;
 
-    const linhasQuestoes=qs.map(q=>({
+    const linhasQuestoes=resultados.map(({q,acertou})=>({
       numero_questao:q.numeroQuestao,
       id_atividade:nomeAtividade.trim(),
-      status:q.gabarito?((q.suaResposta||'').toUpperCase()===q.gabarito.toUpperCase()?'Acertei':'Errei'):null,
+      status:acertou?'Acertei':'Errei',
       modulo_pscpp:q.modulo,
       publicacao:q.publicacao,
       capitulo:q.capitulo,
@@ -1557,7 +1403,8 @@ async function finalizarCadernoPendente(){
     if(eStatus) throw eStatus;
 
     alert(`Caderno finalizado! ${acertos}/${qs.length} acertos, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`);
-    await fecharResolucaoPendente();
+    fecharMarcacaoPendente();
+    await loadData();
   }catch(e){
     alert('Erro ao finalizar caderno: '+e.message);
   }
@@ -3137,7 +2984,7 @@ function renderQuestoes(){
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
         const respondidas=qsDessa.filter(q=>q.respondida).length;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
-        return `<div class="prox-item" onclick="abrirResolucaoPendente('${ap.id}')" style="cursor:pointer">
+        return `<div class="prox-item" onclick="abrirMarcacaoPendente('${ap.id}')" style="cursor:pointer">
           <div class="prox-left">
             <span class="prox-nome">${ap.nome}</span>
             <span class="prox-modalidade">${ap.tipo} · ${ap.curso} · ${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
