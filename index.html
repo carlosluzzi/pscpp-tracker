@@ -1109,8 +1109,7 @@ async function loadData(){
     revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
-      arquivoProva:p.arquivo_prova,arquivoGabarito:p.arquivo_gabarito,
-      dataAtividade:p.data_atividade,status:p.status,
+      dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
@@ -1262,6 +1261,7 @@ function fecharMarcacaoPendente(){
 }
 
 function renderizarListaMarcacao(){
+  const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   const lista=document.getElementById('marcacao-lista');
   lista.innerHTML=qs.map(q=>{
@@ -1277,17 +1277,24 @@ function renderizarListaMarcacao(){
   }).join('');
 
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
+  const modoAutomatico=ap&&ap.modoResposta==='deteccao_automatica';
+  const semDeteccao=modoAutomatico?qs.filter(q=>!q.suaResposta):[];
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
     const q=incompletas[0];
     avisoEl.classList.remove('hidden');
     avisoEl.innerHTML=`<span>⚠ Questão ${q.numeroQuestao} veio incompleta na extração</span>${q.reextracaoSolicitada?'<span>Reextração já solicitada</span>':`<button class="resolucao-puxar-btn" onclick="solicitarReextracao('${q.id}')">Puxar de novo</button>`}`;
+  }else if(semDeteccao.length){
+    avisoEl.classList.remove('hidden');
+    avisoEl.innerHTML=`<span>⚠ Sem resposta detectada: ${semDeteccao.map(q=>q.numeroQuestao).join(', ')} — marque no PDF Expert e salve o arquivo</span>`;
   }else{
     avisoEl.classList.add('hidden');
     avisoEl.innerHTML='';
   }
 
-  document.getElementById('resolucao-finalizar-wrap').classList.toggle('hidden',qs.length===0);
+  // No modo automático, o botão de finalizar só aparece quando TODAS já tiverem resposta detectada
+  const podeFinalizarAutomatico=!modoAutomatico||semDeteccao.length===0;
+  document.getElementById('resolucao-finalizar-wrap').classList.toggle('hidden',qs.length===0||!podeFinalizarAutomatico);
 }
 
 let edicaoModuloQuestaoId=null;
@@ -1360,11 +1367,20 @@ async function finalizarCadernoPendente(){
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   if(!qs.length) return;
 
+  // No modo de detecção automática (Curso H digital), NUNCA finaliza com questão sem resposta
+  // detectada — trava e avisa quais faltam, em vez de assumir certo ou errado sozinho.
+  const modoAutomatico=ap.modoResposta==='deteccao_automatica';
+  if(modoAutomatico){
+    const semResposta=qs.filter(q=>!q.suaResposta).map(q=>q.numeroQuestao);
+    if(semResposta.length){
+      alert(`Ainda faltam ${semResposta.length} questão(ões) sem resposta detectada: ${semResposta.join(', ')}.\n\nVá conferir e marcar essas no PDF Expert — o script vai detectar automaticamente na próxima vez que você salvar o arquivo.`);
+      return;
+    }
+  }
+
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
   if(!nomeAtividade||!nomeAtividade.trim()) return;
 
-  // Toda questão nunca tocada conta como certa por padrão (regra do fluxo simplificado:
-  // Carlos só marca as que errou, o resto assume acerto).
   let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0;
   const resultados=qs.map(q=>{
     const peso=q.peso||1;
@@ -1372,6 +1388,8 @@ async function finalizarCadernoPendente(){
     if(q.suaResposta&&q.gabarito){
       acertou=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase();
     }else{
+      // só chega aqui no modo simplificado — questão nunca tocada assume acerto
+      // (Carlos só marca as que errou, o resto assume acerto)
       acertou=q.acertouSimplificado!==false; // null/true -> certa, false -> errada
     }
     pontuacaoTotal+=peso;
@@ -2993,10 +3011,12 @@ function renderQuestoes(){
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
         const respondidas=qsDessa.filter(q=>q.respondida).length;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
+        const semDeteccao=ap.modoResposta==='deteccao_automatica'?qsDessa.filter(q=>!q.suaResposta).length:0;
         return `<div class="prox-item" onclick="abrirMarcacaoPendente('${ap.id}')" style="cursor:pointer">
           <div class="prox-left">
             <span class="prox-nome">${ap.nome}</span>
             <span class="prox-modalidade">${ap.tipo} · ${ap.curso} · ${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
+            ${semDeteccao?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${semDeteccao} sem resposta detectada — confira no PDF Expert</span>`:''}
           </div>
         </div>`;
       }).join('')}
