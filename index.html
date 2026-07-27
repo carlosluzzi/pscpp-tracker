@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 button{transition:transform 0.12s ease,opacity 0.12s ease}
@@ -116,6 +117,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#resolucao-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999998;background:#2B2B2B;display:flex;flex-direction:column;box-sizing:border-box}
+#resolucao-fullscreen.hidden{display:none}
+#resolucao-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px 14px;color:#fff}
+#resolucao-questao-label{font-size:var(--fs-e);font-weight:600}
+#resolucao-pagina-label{font-size:var(--fs-c);color:#aaa}
+.resolucao-fechar-btn{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:6px}
+#resolucao-canvas-wrap{flex:1;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;position:relative;background:#3a3a3a}
+#resolucao-canvas-pdf{background:#fff;display:block;touch-action:none}
+#resolucao-canvas-desenho{position:absolute;top:0;left:0;touch-action:none}
+#resolucao-nav{flex-shrink:0;display:flex;gap:8px;padding:10px 14px calc(env(safe-area-inset-bottom, 0px) + 10px) 14px;background:#1c1c1c}
+.resolucao-nav-btn{flex:1;padding:11px;border-radius:8px;border:none;background:#444;color:#fff;font-size:var(--fs-d);font-weight:500;cursor:pointer;font-family:inherit}
+.resolucao-nav-btn:active{opacity:0.7}
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-bottom:32px}
@@ -536,6 +549,23 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="timer-fullscreen-conteudo"></div>
 </div>
 
+<div id="resolucao-fullscreen" class="hidden">
+  <div id="resolucao-header">
+    <button class="resolucao-fechar-btn" onclick="fecharResolucaoPendente()">✕</button>
+    <span id="resolucao-questao-label"></span>
+    <span id="resolucao-pagina-label"></span>
+  </div>
+  <div id="resolucao-canvas-wrap">
+    <canvas id="resolucao-canvas-pdf"></canvas>
+    <canvas id="resolucao-canvas-desenho"></canvas>
+  </div>
+  <div id="resolucao-nav">
+    <button class="resolucao-nav-btn" id="resolucao-btn-anterior" onclick="resolucaoIrPagina(-1)">← Página</button>
+    <button class="resolucao-nav-btn" id="resolucao-btn-limpar" onclick="resolucaoLimparPagina()">Limpar traços</button>
+    <button class="resolucao-nav-btn" id="resolucao-btn-proxima" onclick="resolucaoIrPagina(1)">Página →</button>
+  </div>
+</div>
+
 <div id="splash-screen" class="hidden">
   <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
   <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
@@ -891,7 +921,9 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],tabAtual='inicio',atividadeAtual=null;
+// Estado da tela de resolução (PDF + caneta)
+let resolucaoAtiva=false,resolucaoAtividadeId=null,resolucaoPdfDoc=null,resolucaoPaginaAtual=1,resolucaoTotalPaginas=1,resolucaoTracosPagina=[],resolucaoDesenhando=false,resolucaoViewportAtual=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -979,7 +1011,8 @@ async function loadData(){
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
-      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes}
+      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
+      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -994,8 +1027,10 @@ async function loadData(){
       sbDados.from('ciclo_estudos_config').select('*'),
       sbDados.from('metas_estudo').select('*'),
       sbDados.from('revisoes_espacadas').select('*'),
+      sbDados.from('atividades_pendentes').select('*'),
+      sbDados.from('questoes_pendentes').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
 
     // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
@@ -1109,6 +1144,18 @@ async function loadData(){
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
     revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
+    atividadesPendentes=ativPendRes.map(p=>({
+      id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
+      arquivoProva:p.arquivo_prova,arquivoGabarito:p.arquivo_gabarito,
+      dataAtividade:p.data_atividade,status:p.status,
+    }));
+    questoesPendentes=questPendRes.map(p=>({
+      id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
+      peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
+      questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
+      respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
+      zonasAlternativas:p.zonas_alternativas||{},
+    })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
@@ -1233,6 +1280,202 @@ async function concluirRevisao(id){
   }
 }
 
+// TELA DE RESOLUÇÃO — mostra o PDF real, captura desenho com caneta, detecta resposta por posição
+const RAIO_DETECCAO_ZONA=16; // pixels de tolerância ao redor de cada zona, em coordenadas de tela
+
+async function abrirResolucaoPendente(atividadePendenteId){
+  const ap=atividadesPendentes.find(a=>a.id===atividadePendenteId);
+  if(!ap||!ap.arquivoProva){ alert('PDF dessa atividade não encontrado.'); return; }
+  resolucaoAtividadeId=atividadePendenteId;
+  document.getElementById('resolucao-fullscreen').classList.remove('hidden');
+  document.getElementById('resolucao-questao-label').textContent='Carregando...';
+  try{
+    const {data,error}=await sbDados.storage.from('pdfs-pendentes').download(ap.arquivoProva);
+    if(error) throw error;
+    const arrayBuffer=await data.arrayBuffer();
+    resolucaoPdfDoc=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    resolucaoTotalPaginas=resolucaoPdfDoc.numPages;
+    const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===atividadePendenteId);
+    const primeiraNaoRespondida=qsDessa.find(q=>!q.respondida);
+    resolucaoPaginaAtual=primeiraNaoRespondida?(primeiraNaoRespondida.pdfPagina||1):1;
+    await resolucaoRenderizarPagina(resolucaoPaginaAtual);
+  }catch(e){
+    alert('Erro ao carregar PDF: '+e.message);
+    fecharResolucaoPendente();
+  }
+}
+
+async function resolucaoRenderizarPagina(numeroPagina){
+  resolucaoPaginaAtual=Math.max(1,Math.min(numeroPagina,resolucaoTotalPaginas));
+  const page=await resolucaoPdfDoc.getPage(resolucaoPaginaAtual);
+  const wrap=document.getElementById('resolucao-canvas-wrap');
+  const larguraDisp=wrap.clientWidth-20;
+  const viewportBase=page.getViewport({scale:1});
+  const escala=larguraDisp/viewportBase.width;
+  const viewport=page.getViewport({scale:escala});
+  resolucaoViewportAtual=viewport;
+
+  const canvasPdf=document.getElementById('resolucao-canvas-pdf');
+  const canvasDesenho=document.getElementById('resolucao-canvas-desenho');
+  canvasPdf.width=viewport.width; canvasPdf.height=viewport.height;
+  canvasDesenho.width=viewport.width; canvasDesenho.height=viewport.height;
+  canvasPdf.style.width=viewport.width+'px'; canvasPdf.style.height=viewport.height+'px';
+  canvasDesenho.style.width=viewport.width+'px'; canvasDesenho.style.height=viewport.height+'px';
+
+  const ctx=canvasPdf.getContext('2d');
+  await page.render({canvasContext:ctx,viewport}).promise;
+
+  // carrega traços já salvos dessa página, se existirem
+  try{
+    const {data}=await sbDados.from('anotacoes_pdf').select('tracos').eq('atividade_pendente_id',resolucaoAtividadeId).eq('numero_pagina',resolucaoPaginaAtual).maybeSingle();
+    resolucaoTracosPagina=(data&&data.tracos)||[];
+  }catch(e){
+    resolucaoTracosPagina=[];
+  }
+  resolucaoRedesenharTracos();
+
+  const qsDessaPagina=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId&&q.pdfPagina===resolucaoPaginaAtual);
+  document.getElementById('resolucao-questao-label').textContent=qsDessaPagina.length
+    ?`Questão${qsDessaPagina.length>1?'ões':''} ${qsDessaPagina.map(q=>q.numeroQuestao+(q.respondida?' ✓':'')).join(', ')}`
+    :'';
+  document.getElementById('resolucao-pagina-label').textContent=`Página ${resolucaoPaginaAtual} de ${resolucaoTotalPaginas}`;
+  document.getElementById('resolucao-btn-anterior').disabled=resolucaoPaginaAtual<=1;
+  document.getElementById('resolucao-btn-proxima').disabled=resolucaoPaginaAtual>=resolucaoTotalPaginas;
+
+  configurarCapturaDesenho();
+}
+
+function resolucaoRedesenharTracos(){
+  const canvas=document.getElementById('resolucao-canvas-desenho');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#1a3fa8';
+  ctx.lineWidth=2.2;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  resolucaoTracosPagina.forEach(traco=>{
+    if(!traco.length) return;
+    ctx.beginPath();
+    ctx.moveTo(traco[0].x,traco[0].y);
+    for(let i=1;i<traco.length;i++) ctx.lineTo(traco[i].x,traco[i].y);
+    ctx.stroke();
+  });
+}
+
+let resolucaoTracoEmAndamento=null;
+function configurarCapturaDesenho(){
+  const canvas=document.getElementById('resolucao-canvas-desenho');
+  canvas.onpointerdown=e=>{
+    e.preventDefault();
+    resolucaoDesenhando=true;
+    const rect=canvas.getBoundingClientRect();
+    const x=(e.clientX-rect.left)*(canvas.width/rect.width);
+    const y=(e.clientY-rect.top)*(canvas.height/rect.height);
+    resolucaoTracoEmAndamento=[{x,y}];
+  };
+  canvas.onpointermove=e=>{
+    if(!resolucaoDesenhando) return;
+    e.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    const x=(e.clientX-rect.left)*(canvas.width/rect.width);
+    const y=(e.clientY-rect.top)*(canvas.height/rect.height);
+    resolucaoTracoEmAndamento.push({x,y});
+    resolucaoRedesenharTracos();
+    const ctx=canvas.getContext('2d');
+    ctx.strokeStyle='#1a3fa8'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(resolucaoTracoEmAndamento[0].x,resolucaoTracoEmAndamento[0].y);
+    for(let i=1;i<resolucaoTracoEmAndamento.length;i++) ctx.lineTo(resolucaoTracoEmAndamento[i].x,resolucaoTracoEmAndamento[i].y);
+    ctx.stroke();
+  };
+  const finalizarTraco=async()=>{
+    if(!resolucaoDesenhando) return;
+    resolucaoDesenhando=false;
+    if(resolucaoTracoEmAndamento&&resolucaoTracoEmAndamento.length>1){
+      resolucaoTracosPagina.push(resolucaoTracoEmAndamento);
+      await resolucaoDetectarZonas(resolucaoTracoEmAndamento);
+      await resolucaoSalvarTracos();
+    }
+    resolucaoTracoEmAndamento=null;
+  };
+  canvas.onpointerup=finalizarTraco;
+  canvas.onpointerleave=finalizarTraco;
+}
+
+async function resolucaoDetectarZonas(traco){
+  const qsDessaPagina=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId&&q.pdfPagina===resolucaoPaginaAtual);
+  for(const q of qsDessaPagina){
+    if(!q.zonasAlternativas) continue;
+    for(const letra of ['a','b','c','d','e']){
+      const zonaPdf=q.zonasAlternativas[letra];
+      if(!zonaPdf) continue;
+      const [zx,zy]=resolucaoViewportAtual.convertToViewportPoint(zonaPdf.x,zonaPdf.y);
+      const tocou=traco.some(p=>Math.hypot(p.x-zx,p.y-zy)<=RAIO_DETECCAO_ZONA);
+      if(tocou){
+        await resolucaoMarcarResposta(q.id,letra.toUpperCase());
+        return;
+      }
+    }
+  }
+}
+
+async function resolucaoMarcarResposta(questaoId,letra){
+  try{
+    const {error}=await sbDados.from('questoes_pendentes').update({sua_resposta:letra,respondida:true}).eq('id',questaoId);
+    if(error) throw error;
+    const q=questoesPendentes.find(qq=>qq.id===questaoId);
+    if(q){ q.suaResposta=letra; q.respondida=true; }
+    const labelEl=document.getElementById('resolucao-questao-label');
+    if(labelEl){
+      const qsDessaPagina=questoesPendentes.filter(qq=>qq.atividadePendenteId===resolucaoAtividadeId&&qq.pdfPagina===resolucaoPaginaAtual);
+      labelEl.textContent=qsDessaPagina.map(qq=>qq.numeroQuestao+(qq.respondida?' ✓':'')).join(', ');
+    }
+  }catch(e){
+    console.error('Erro ao marcar resposta:',e);
+  }
+}
+
+let resolucaoSalvarTimeoutId=null;
+function resolucaoSalvarTracos(){
+  return new Promise(resolve=>{
+    if(resolucaoSalvarTimeoutId) clearTimeout(resolucaoSalvarTimeoutId);
+    resolucaoSalvarTimeoutId=setTimeout(async()=>{
+      try{
+        await sbDados.from('anotacoes_pdf').upsert({
+          atividade_pendente_id:resolucaoAtividadeId,
+          numero_pagina:resolucaoPaginaAtual,
+          tracos:resolucaoTracosPagina,
+          atualizado_em:new Date().toISOString(),
+        },{onConflict:'atividade_pendente_id,numero_pagina'});
+      }catch(e){
+        console.error('Erro ao salvar traços:',e);
+      }
+      resolve();
+    },400);
+  });
+}
+
+async function resolucaoIrPagina(delta){
+  await resolucaoSalvarTracos();
+  await resolucaoRenderizarPagina(resolucaoPaginaAtual+delta);
+}
+
+async function resolucaoLimparPagina(){
+  if(!confirm('Apagar todos os traços dessa página? Isso não desfaz respostas já detectadas.')) return;
+  resolucaoTracosPagina=[];
+  resolucaoRedesenharTracos();
+  await resolucaoSalvarTracos();
+}
+
+async function fecharResolucaoPendente(){
+  if(resolucaoAtividadeId) await resolucaoSalvarTracos();
+  document.getElementById('resolucao-fullscreen').classList.add('hidden');
+  resolucaoAtividadeId=null;
+  resolucaoPdfDoc=null;
+  resolucaoTracosPagina=[];
+  await loadData();
+}
+
 function renderAprovado(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
 
@@ -1327,6 +1570,25 @@ function renderAprovado(){
       </div>
     </div>`:''}
 
+    ${atividadesPendentes.length?`<div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('lista')}</span><span style="color:#202A45">Cadernos pendentes</span></div>
+      </div>
+      <div class="prox-list">
+        ${atividadesPendentes.map(ap=>{
+          const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
+          const respondidas=qsDessa.filter(q=>q.respondida).length;
+          const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
+          return `<div class="prox-item" onclick="abrirResolucaoPendente('${ap.id}')" style="cursor:pointer">
+            <div class="prox-left">
+              <span class="prox-nome">${ap.nome}</span>
+              <span class="prox-modalidade">${ap.tipo} · ${ap.curso} · ${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
@@ -1348,7 +1610,7 @@ function renderAprovado(){
           `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="abrirTimerFullscreen()" ${!timerModulo?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
           :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Salvar</button>`}
       </div>
-      ${!timerRodando&&timerAcumuladoSeg>0?`<div class="config-reset-btn" onclick="zerarTimer()">Descartar e zerar</div>`:''}
+      ${!timerRodando&&timerAcumuladoSeg>0?`<button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px" onclick="zerarTimer()">Descartar e zerar</button>`:''}
     </div>
 
     <div class="card-inicio">
@@ -1477,6 +1739,7 @@ function pausarTimer(){
   timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
   timerRodando=false;
   timerInicio=null;
+  if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   else renderTab(tabAtual,true);
 }
@@ -1489,6 +1752,7 @@ function zerarTimer(){
   timerPublicacao='';
   timerTipo='Leitura';
   timerFullscreenAberto=false;
+  if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
