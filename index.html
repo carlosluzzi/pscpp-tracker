@@ -604,6 +604,39 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="resolver-tipo-curso-modal" style="display:none" onclick="if(event.target===this)fecharResolverTipoCurso()">
+  <div class="modal-box">
+    <div class="config-title">Confirmar Tipo / Curso</div>
+    <div class="config-desc" id="resolver-tipo-curso-arquivo" style="margin-bottom:14px"></div>
+    <div class="config-item">
+      <div class="config-label">Curso</div>
+      <select class="filter-select" id="resolver-curso-select" style="margin-bottom:0">
+        <option value="">— selecione —</option>
+        <option>Curso H</option>
+        <option>Catavento</option>
+        <option>MPX</option>
+        <option>Curso Prático</option>
+      </select>
+    </div>
+    <div class="config-item">
+      <div class="config-label">Tipo</div>
+      <select class="filter-select" id="resolver-tipo-select" style="margin-bottom:0">
+        <option value="">— selecione —</option>
+        <option>Simulado</option>
+        <option>Caderno de Exercícios</option>
+      </select>
+    </div>
+    <div class="config-item">
+      <div class="config-label">Nome curto (ID da Atividade)</div>
+      <input type="text" id="resolver-nome-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: 218, 02 AGO 2026...">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharResolverTipoCurso()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarResolverTipoCurso()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="splash-screen">
   <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
   <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
@@ -1111,7 +1144,7 @@ async function loadData(){
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
-      reextracaoSolicitada:p.reextracao_solicitada||false,
+      reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
@@ -1391,6 +1424,37 @@ async function solicitarReextracaoAtividade(atividadeId){
     alert('Solicitado. Se você já corrigiu o arquivo (ex: reexportou o PDF corrompido), o script vai tentar reabrir e extrair de novo na próxima vez que rodar.');
   }catch(e){
     alert('Erro ao solicitar reextração: '+e.message);
+  }
+}
+
+let resolverTipoCursoAtividadeId=null;
+function abrirResolverTipoCurso(atividadeId){
+  const ap=atividadesPendentes.find(a=>a.id===atividadeId);
+  if(!ap) return;
+  resolverTipoCursoAtividadeId=atividadeId;
+  document.getElementById('resolver-tipo-curso-arquivo').textContent=ap.nomeArquivoOriginal?`Arquivo: ${ap.nomeArquivoOriginal}`:'Arquivo sem nome identificado';
+  document.getElementById('resolver-curso-select').value=ap.curso||'';
+  document.getElementById('resolver-tipo-select').value=ap.tipo||'';
+  document.getElementById('resolver-nome-input').value=ap.nome||'';
+  document.getElementById('resolver-tipo-curso-modal').style.display='flex';
+}
+function fecharResolverTipoCurso(){
+  document.getElementById('resolver-tipo-curso-modal').style.display='none';
+  resolverTipoCursoAtividadeId=null;
+}
+async function salvarResolverTipoCurso(){
+  if(!resolverTipoCursoAtividadeId) return;
+  const curso=document.getElementById('resolver-curso-select').value;
+  const tipo=document.getElementById('resolver-tipo-select').value;
+  const nome=document.getElementById('resolver-nome-input').value.trim();
+  if(!curso||!tipo||!nome){ alert('Preenche Curso, Tipo e Nome antes de confirmar.'); return; }
+  try{
+    const {error}=await sbDados.from('atividades_pendentes').update({curso,tipo,nome,status:'Pendente'}).eq('id',resolverTipoCursoAtividadeId);
+    if(error) throw error;
+    fecharResolverTipoCurso();
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar: '+e.message);
   }
 }
 
@@ -3053,6 +3117,22 @@ function renderQuestoes(){
               <span class="prox-modalidade" style="color:#A32D2D">${ap.tipo} · ${ap.curso} · não foi possível extrair esse arquivo</span>
             </div>
             <button class="prox-confirm-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" ${ap.reextracaoSolicitada?'disabled':''} onclick="event.stopPropagation();solicitarReextracaoAtividade('${ap.id}')">${ap.reextracaoSolicitada?'Já solicitado':'Tentar de novo'}</button>
+          </div>`;
+        }
+        if(ap.status==='Aguardando Confirmação'){
+          return `<div class="prox-item" style="background:#FAEEDA;border-radius:8px;padding:10px 12px;margin:-2px 0;cursor:pointer" onclick="abrirResolverTipoCurso('${ap.id}')">
+            <div class="prox-left">
+              <span class="prox-nome" style="color:#633806">⚠ ${ap.nomeArquivoOriginal||'(arquivo sem nome)'}</span>
+              <span class="prox-modalidade" style="color:#633806">Não consegui identificar Tipo/Curso — toque pra confirmar</span>
+            </div>
+          </div>`;
+        }
+        if(ap.status==='Aguardando Par'){
+          return `<div class="prox-item" style="background:#F1EFE8;border-radius:8px;padding:10px 12px;margin:-2px 0">
+            <div class="prox-left">
+              <span class="prox-nome" style="color:#444441">⏳ ${ap.nomeArquivoOriginal||ap.nome}</span>
+              <span class="prox-modalidade" style="color:#444441">${ap.tipo||''} ${ap.curso?'· '+ap.curso:''} · esperando o outro arquivo do par (prova ou gabarito) cair na pasta</span>
+            </div>
           </div>`;
         }
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
