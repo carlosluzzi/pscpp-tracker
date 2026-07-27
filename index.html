@@ -668,10 +668,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="modal-overlay" id="registro-manual-modal" style="display:none" onclick="if(event.target===this)fecharRegistroManual()">
   <div class="modal-box">
     <div class="config-title">Registrar sessão de estudo</div>
-    <select class="filter-select" id="registro-manual-modulo"></select>
-    <input type="text" class="filter-select" id="registro-manual-publicacao" list="registro-manual-publicacoes-lista" placeholder="Publicação (opcional)">
-    <datalist id="registro-manual-publicacoes-lista"></datalist>
-    <input type="text" class="filter-select" id="registro-manual-capitulo" placeholder="Capítulo (opcional)">
+    <select class="filter-select" id="registro-manual-modulo" onchange="atualizarPublicacoesRegistroManual()"></select>
+    <select class="filter-select" id="registro-manual-publicacao">
+      <option value="">Publicação (opcional)</option>
+    </select>
     <select class="filter-select" id="registro-manual-tipo">
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
@@ -734,6 +734,7 @@ const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
 const DB_FOCO_ESTUDADO='1d409ca929444beca2b0a8d06dd9a2a8';
 const DB_FILA_BANCO='c5777a8f0b9649a78b25e0797eff2415';
 const DB_APELIDOS='87c01cc3408441608fb1c5a3acc837ed';
+
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#202A45'},
@@ -812,8 +813,8 @@ function toggleSenhaVisivel(idCampo, botao){
   campo.type=campo.type==='password'?'text':'password';
 }
 
-// Cliente Supabase apontando pro projeto do PilotQuest — é de lá que vem a autenticação
-// (login unificado: entrar aqui usa a mesma conta do PilotQuest, sem senha própria do Tracker)
+// Cliente Supabase apontando pro projeto do PilotQuest — usado pra login (conta unificada) e
+// também pra ler a tabela bibliografia (fonte única, nunca alterada por aqui, só consultada)
 const sbAuth=window.supabase.createClient(
   'https://jenzxycerdtjpkrzesia.supabase.co',
   'sb_publishable_ne9lVc82Tdp6tloAbqm4xA_imwugeXg'
@@ -888,8 +889,8 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],tabAtual='inicio',atividadeAtual=null;
-let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],tabAtual='inicio',atividadeAtual=null;
+let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -993,6 +994,19 @@ async function loadData(){
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
+
+    // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
+    // pra não travar o resto do app se o PilotQuest estiver fora do ar.
+    try{
+      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao');
+      if(eBib) throw eBib;
+      bibliografia=bibRes.map(p=>({
+        modulo:p.modulo_pscpp,
+        nome:p.nome_exibicao||p.titulo,
+      })).filter(b=>b.modulo&&b.nome);
+    }catch(e){
+      bibliografia=[];
+    }
 
     atividades=a.map(p=>({
       id:p.id,
@@ -1174,7 +1188,6 @@ function renderAprovado(){
   const tempoFormatado=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
 
   const tiposEstudo=['Leitura','Exercício','Revisão'];
-  const publicacoesConhecidas=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))].sort();
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const seteDiasAtras=new Date(hoje);seteDiasAtras.setDate(seteDiasAtras.getDate()-6);
@@ -1197,7 +1210,7 @@ function renderAprovado(){
   }).join('');
 
   const historicoHtml=sessoesEstudo.slice(0,20).map(s=>{
-    const refCompleta=[s.publicacao,s.capitulo].filter(Boolean).join(' — ');
+    const refCompleta=s.publicacao||'';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
         <span class="prox-nome">${s.modulo}${refCompleta?' — '+refCompleta:''}</span>
@@ -1241,15 +1254,14 @@ function renderAprovado(){
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
-      <select class="filter-select" onchange="timerModulo=this.value" ${timerRodando?'disabled':''}>
+      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
-      <input type="text" class="filter-select" list="lista-publicacoes-timer" placeholder="Publicação (opcional)" value="${timerPublicacao}" oninput="timerPublicacao=this.value" ${timerRodando?'disabled':''}>
-      <datalist id="lista-publicacoes-timer">
-        ${publicacoesConhecidas.map(p=>`<option value="${p}">`).join('')}
-      </datalist>
-      <input type="text" class="filter-select" placeholder="Capítulo (opcional)" value="${timerCapitulo}" oninput="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
+      <select class="filter-select" onchange="timerPublicacao=this.value" ${timerRodando||!timerModulo?'disabled':''}>
+        <option value="">Publicação (opcional)</option>
+        ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
+      </select>
       <div class="filter-row">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -1310,7 +1322,7 @@ function formatarTempoTimer(seg){
 
 function renderTimerFullscreenConteudo(){
   const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
-  const refCompleta=[timerPublicacao,timerCapitulo].filter(Boolean).join(' — ');
+  const refCompleta=timerPublicacao||'';
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <div>
@@ -1374,7 +1386,6 @@ function zerarTimer(){
   timerInicio=null;
   timerModulo='';
   timerPublicacao='';
-  timerCapitulo='';
   timerTipo='Leitura';
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
@@ -1389,7 +1400,6 @@ async function pararESalvarTimer(){
     const {error}=await sbDados.from('sessoes_estudo').insert({
       modulo:timerModulo,
       publicacao:timerPublicacao||null,
-      capitulo:timerCapitulo||null,
       tipo:timerTipo,
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
@@ -1404,14 +1414,16 @@ async function pararESalvarTimer(){
 
 function abrirRegistroManual(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  const publicacoesConhecidas=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))].sort();
-  document.getElementById('registro-manual-modulo').innerHTML=modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
-  document.getElementById('registro-manual-publicacoes-lista').innerHTML=publicacoesConhecidas.map(p=>`<option value="${p}">`).join('');
-  document.getElementById('registro-manual-publicacao').value='';
-  document.getElementById('registro-manual-capitulo').value='';
+  document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
+  atualizarPublicacoesRegistroManual();
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('registro-manual-modal').style.display='flex';
+}
+function atualizarPublicacoesRegistroManual(){
+  const modulo=document.getElementById('registro-manual-modulo').value;
+  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
+  document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação (opcional)</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
 }
 function fecharRegistroManual(){
   document.getElementById('registro-manual-modal').style.display='none';
@@ -1419,15 +1431,15 @@ function fecharRegistroManual(){
 async function salvarRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
   const publicacao=document.getElementById('registro-manual-publicacao').value;
-  const capitulo=document.getElementById('registro-manual-capitulo').value;
   const tipo=document.getElementById('registro-manual-tipo').value;
   const duracao=parseInt(document.getElementById('registro-manual-duracao').value,10);
   const data=document.getElementById('registro-manual-data').value;
+  if(!modulo){ alert('Escolhe o módulo.'); return; }
   if(!duracao||duracao<1){ alert('Preenche a duração em minutos.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,publicacao:publicacao||null,capitulo:capitulo||null,tipo,duracao_minutos:duracao,data,
+      modulo,publicacao:publicacao||null,tipo,duracao_minutos:duracao,data,
     });
     if(error) throw error;
     fecharRegistroManual();
