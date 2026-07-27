@@ -592,6 +592,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <div class="config-label">Publicação</div>
       <input type="text" id="edicao-publicacao-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: Fonseca — Arte Naval">
     </div>
+    <div class="config-item">
+      <div class="config-label">Capítulo (opcional, só o número)</div>
+      <input type="number" min="1" id="edicao-capitulo-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: 6">
+      <div class="config-desc" style="margin-top:4px">Provisório — quando o sistema de capítulos por matéria estiver pronto, o que você digitar aqui já vai contar como o capítulo certo, se bater.</div>
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharEdicaoModuloQuestao()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarEdicaoModuloQuestao()">Salvar</button>
@@ -599,7 +604,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div id="splash-screen" class="hidden">
+<div id="splash-screen">
   <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
   <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
 </div>
@@ -901,8 +906,6 @@ async function entrar(){
 // esconde a tela de login, mostra a splash, e começa a carregar os dados do app.
 async function posLogin(){
   document.getElementById('view-login').classList.add('hidden');
-  const splash=document.getElementById('splash-screen');
-  if(splash) splash.classList.remove('hidden');
   loadData();
   // trava de segurança: não importa o que dê errado no carregamento (banco travado, erro
   // silencioso, o que for), a splash nunca fica presa na tela pra sempre — some sozinha
@@ -1263,7 +1266,7 @@ function renderizarListaMarcacao(){
   const lista=document.getElementById('marcacao-lista');
   lista.innerHTML=qs.map(q=>{
     const marcadaErrada=q.acertouSimplificado===false;
-    const ref=[q.modulo,q.publicacao].filter(Boolean).join(' · ');
+    const ref=[q.modulo,q.publicacao,q.capitulo].filter(Boolean).join(' · ');
     return `<div class="marcacao-item">
       <div class="marcacao-item-esq">
         <span class="marcacao-num">Questão ${q.numeroQuestao}</span>
@@ -1294,6 +1297,9 @@ function abrirEdicaoModuloQuestao(questaoId){
   edicaoModuloQuestaoId=questaoId;
   document.getElementById('edicao-modulo-select').value=q.modulo||'';
   document.getElementById('edicao-publicacao-input').value=q.publicacao||'';
+  // extrai só o número de "Capítulo N", se já vier nesse formato
+  const numCapitulo=q.capitulo?(q.capitulo.match(/\d+/)||[])[0]:'';
+  document.getElementById('edicao-capitulo-input').value=numCapitulo||'';
   document.getElementById('edicao-modulo-modal').style.display='flex';
 }
 function fecharEdicaoModuloQuestao(){
@@ -1304,11 +1310,14 @@ async function salvarEdicaoModuloQuestao(){
   if(!edicaoModuloQuestaoId) return;
   const modulo=document.getElementById('edicao-modulo-select').value||null;
   const publicacao=document.getElementById('edicao-publicacao-input').value.trim()||null;
+  const numCapitulo=document.getElementById('edicao-capitulo-input').value.trim();
+  // formata igual ao padrão de referência já usado no resto do projeto: "Capítulo N", por extenso
+  const capitulo=numCapitulo?`Capítulo ${numCapitulo}`:null;
   try{
-    const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao}).eq('id',edicaoModuloQuestaoId);
+    const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao,capitulo}).eq('id',edicaoModuloQuestaoId);
     if(error) throw error;
     const q=questoesPendentes.find(qq=>qq.id===edicaoModuloQuestaoId);
-    if(q){ q.modulo=modulo; q.publicacao=publicacao; }
+    if(q){ q.modulo=modulo; q.publicacao=publicacao; q.capitulo=capitulo; }
     fecharEdicaoModuloQuestao();
     renderizarListaMarcacao();
   }catch(e){
@@ -3152,6 +3161,7 @@ function finalizarSplash(){
     await posLogin();
   }else{
     document.getElementById('view-login').classList.remove('hidden');
+    finalizarSplash();
   }
 })();
 
