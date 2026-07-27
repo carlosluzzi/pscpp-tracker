@@ -652,6 +652,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="registro-manual-modal" style="display:none" onclick="if(event.target===this)fecharRegistroManual()">
+  <div class="modal-box">
+    <div class="config-title">Registrar sessão de estudo</div>
+    <select class="filter-select" id="registro-manual-modulo"></select>
+    <input type="text" class="filter-select" id="registro-manual-assunto" placeholder="Assunto (opcional)">
+    <select class="filter-select" id="registro-manual-tipo">
+      <option value="Leitura">Leitura</option>
+      <option value="Exercício">Exercício</option>
+      <option value="Revisão">Revisão</option>
+    </select>
+    <input type="number" class="filter-select" id="registro-manual-duracao" placeholder="Duração em minutos" min="1">
+    <input type="date" class="filter-select" id="registro-manual-data">
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarRegistroManual()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="evento-detalhe-modal" style="display:none" onclick="if(event.target===this)fecharDetalheEvento()">
   <div class="modal-box">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
@@ -830,7 +849,8 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],tabAtual='inicio',atividadeAtual=null;
+let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerAssunto='',timerTipo='Leitura',timerIntervalId=null;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -916,7 +936,7 @@ async function loadData(){
     const [
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
-      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila}
+      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -927,8 +947,9 @@ async function loadData(){
       sbDados.from('foco_estudado').select('*'),
       sbDados.from('apelidos_publicacao').select('*'),
       sbDados.from('fila_banco_pratico').select('*'),
+      sbDados.from('sessoes_estudo').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
 
     atividades=a.map(p=>({
@@ -1016,6 +1037,15 @@ async function loadData(){
       status:p.status||'Pendente',
       quantidade:p.quantidade||1,
     }));
+    sessoesEstudo=sessoesRes.map(p=>({
+      id:p.id,
+      modulo:p.modulo,
+      assunto:p.assunto||'',
+      tipo:p.tipo,
+      duracaoMinutos:p.duracao_minutos||0,
+      data:p.data,
+      criadoEm:p.criado_em,
+    })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
@@ -1051,9 +1081,165 @@ function renderTab(tab,preservarScroll){
 }
 
 function renderAprovado(){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+
+  const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+  const hh=Math.floor(segAtual/3600);
+  const mm=Math.floor((segAtual%3600)/60);
+  const ss=segAtual%60;
+  const tempoFormatado=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+
+  const tiposEstudo=['Leitura','Exercício','Revisão'];
+
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const seteDiasAtras=new Date(hoje);seteDiasAtras.setDate(seteDiasAtras.getDate()-6);
+  const sessoesRecentes=sessoesEstudo.filter(s=>new Date(s.data+'T00:00:00')>=seteDiasAtras);
+  const minutosPorModulo={};
+  sessoesRecentes.forEach(s=>{ minutosPorModulo[s.modulo]=(minutosPorModulo[s.modulo]||0)+s.duracaoMinutos; });
+  const totalMinutos=Object.values(minutosPorModulo).reduce((a,b)=>a+b,0);
+
+  const graficoHtml=modulosPscpp.filter(m=>minutosPorModulo[m]).map(m=>{
+    const min=minutosPorModulo[m];
+    const pct=totalMinutos?Math.round(min/totalMinutos*100):0;
+    const cc=modCores[m];
+    const horas=(min/60).toFixed(1).replace('.0','');
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:var(--fs-c);margin-bottom:3px">
+        <span>${m}</span><span style="color:#888">${horas}h</span>
+      </div>
+      <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${pct}%;background:${cc.tx}"></div></div>
+    </div>`;
+  }).join('');
+
+  const historicoHtml=sessoesEstudo.slice(0,20).map(s=>{
+    return `<div class="prox-item" style="cursor:default">
+      <div class="prox-left">
+        <span class="prox-nome">${s.modulo}${s.assunto?' — '+s.assunto:''}</span>
+        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
   return `
-    <div class="empty" style="padding:60px 20px;text-align:center">Em construção.</div>
+    <div class="card-inicio">
+      ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
+      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums">${tempoFormatado}</div>
+      <select class="filter-select" onchange="timerModulo=this.value" ${timerRodando?'disabled':''}>
+        <option value="">Selecione o módulo</option>
+        ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <input type="text" class="filter-select" placeholder="Assunto (opcional)" value="${timerAssunto}" oninput="timerAssunto=this.value" ${timerRodando?'disabled':''}>
+      <div class="filter-row">
+        ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        ${!timerRodando?
+          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="iniciarTimer()" ${!timerModulo?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
+          :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Salvar</button>`}
+      </div>
+      ${!timerRodando&&timerAcumuladoSeg>0?`<div class="config-reset-btn" onclick="zerarTimer()">Descartar e zerar</div>`:''}
+    </div>
+
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('cadernomais')}</span><span style="color:#202A45">Registrar manualmente</span></div>
+      </div>
+      <button class="modal-btn modal-btn-nao" style="width:100%" onclick="abrirRegistroManual()">+ Registrar sessão</button>
+    </div>
+
+    <div class="card-inicio">
+      ${sectionTitle('Horas por matéria — últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
+      ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
+    </div>
+
+    <div class="card-inicio">
+      ${sectionTitle('Histórico','lista','#EEEDFE','#202A45',{noBg:true})}
+      <div class="prox-list">
+        ${historicoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
+      </div>
+    </div>
   `;
+}
+
+function setTimerTipo(t){
+  timerTipo=t;
+  renderTab(tabAtual,true);
+}
+
+function iniciarTimer(){
+  if(!timerModulo) return;
+  timerRodando=true;
+  timerInicio=Date.now();
+  if(!timerIntervalId) timerIntervalId=setInterval(()=>{ if(tabAtual==='aprovado') renderTab(tabAtual,true); },1000);
+  renderTab(tabAtual,true);
+}
+
+function pausarTimer(){
+  timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
+  timerRodando=false;
+  timerInicio=null;
+  renderTab(tabAtual,true);
+}
+
+function zerarTimer(){
+  timerAcumuladoSeg=0;
+  timerRodando=false;
+  timerInicio=null;
+  timerModulo='';
+  timerAssunto='';
+  timerTipo='Leitura';
+  renderTab(tabAtual,true);
+}
+
+async function pararESalvarTimer(){
+  const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+  const minutos=Math.round(segFinal/60);
+  if(minutos<1){ alert('Sessão muito curta pra salvar (menos de 1 minuto).'); return; }
+  try{
+    const {error}=await sbDados.from('sessoes_estudo').insert({
+      modulo:timerModulo,
+      assunto:timerAssunto||null,
+      tipo:timerTipo,
+      duracao_minutos:minutos,
+      data:new Date().toISOString().slice(0,10),
+    });
+    if(error) throw error;
+    zerarTimer();
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar sessão: '+e.message);
+  }
+}
+
+function abrirRegistroManual(){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  document.getElementById('registro-manual-modulo').innerHTML=modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('registro-manual-assunto').value='';
+  document.getElementById('registro-manual-duracao').value='';
+  document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('registro-manual-modal').style.display='flex';
+}
+function fecharRegistroManual(){
+  document.getElementById('registro-manual-modal').style.display='none';
+}
+async function salvarRegistroManual(){
+  const modulo=document.getElementById('registro-manual-modulo').value;
+  const assunto=document.getElementById('registro-manual-assunto').value;
+  const tipo=document.getElementById('registro-manual-tipo').value;
+  const duracao=parseInt(document.getElementById('registro-manual-duracao').value,10);
+  const data=document.getElementById('registro-manual-data').value;
+  if(!duracao||duracao<1){ alert('Preenche a duração em minutos.'); return; }
+  if(!data){ alert('Preenche a data.'); return; }
+  try{
+    const {error}=await sbDados.from('sessoes_estudo').insert({
+      modulo,assunto:assunto||null,tipo,duracao_minutos:duracao,data,
+    });
+    if(error) throw error;
+    fecharRegistroManual();
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar sessão: '+e.message);
+  }
 }
 
 
