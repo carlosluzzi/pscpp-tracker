@@ -114,7 +114,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .section-icon svg{width:17px;height:17px}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
-#timer-fullscreen{position:fixed;inset:0;z-index:10000;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+#timer-fullscreen{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-bottom:32px}
@@ -1344,7 +1344,7 @@ function renderAprovado(){
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
-          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="iniciarTimer()" ${!timerModulo?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
+          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="abrirTimerFullscreen()" ${!timerModulo?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
           :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Salvar</button>`}
       </div>
       ${!timerRodando&&timerAcumuladoSeg>0?`<div class="config-reset-btn" onclick="zerarTimer()">Descartar e zerar</div>`:''}
