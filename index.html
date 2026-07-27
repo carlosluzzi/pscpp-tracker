@@ -114,6 +114,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .section-icon svg{width:17px;height:17px}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
+#timer-fullscreen{position:fixed;inset:0;z-index:10000;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+#timer-fullscreen.hidden{display:none}
+.tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
+.tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-bottom:32px}
+.tf-tempo{font-size:64px;font-weight:700;color:#fff;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
+.tf-btns{display:flex;gap:10px;justify-content:center}
+.tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit}
+.tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:20px;color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:8px}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
 #splash-screen.hidden{display:none}
 #splash-screen.fade-out{opacity:0;pointer-events:none}
@@ -521,6 +530,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 </div>
 
+<div id="timer-fullscreen" class="hidden">
+  <div id="timer-fullscreen-conteudo"></div>
+</div>
+
 <div id="splash-screen" class="hidden">
   <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
   <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
@@ -557,7 +570,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="10.5" width="18" height="5" rx="1.5"/><rect x="3" y="17" width="18" height="5" rx="1.5"/></svg></span><span class="nav-label">Questões</span>
     </div>
     <div class="nav-item" id="nav-aprovado" onclick="showTab('aprovado')">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="m9 9 2 2 4-4"/><path d="M8.5 14.5 7 22l5-3 5 3-1.5-7.5"/></svg></span><span class="nav-label">Aprovado</span>
+      <span class="nav-icon"><svg viewBox="0 0 512 512"><circle cx="178" cy="88" r="34" fill="currentColor"/><path fill="currentColor" d="M78 215 C105 180 150 160 205 170 C255 178 302 208 335 252 C365 293 387 345 398 430 C350 398 300 378 245 370 C175 360 120 325 88 275 C75 255 70 235 78 215 Z"/><path fill="currentColor" d="M235 165 C280 178 330 212 372 257 C410 297 434 335 448 388 C430 377 413 370 398 366 C384 326 358 285 325 250 C296 219 262 196 220 181 Z"/><path fill="#fff" d="M205 185 C238 203 273 235 303 274 C327 305 346 341 359 381 C346 351 327 321 303 292 C274 257 242 229 200 205 Z"/><path fill="currentColor" d="M58 260 L118 320 L108 375 L52 320 Z"/><path fill="currentColor" d="M362 198 L450 270 L430 325 L350 252 Z"/></svg></span><span class="nav-label">Aprovado</span>
     </div>
   </div>
 </div>
@@ -876,7 +889,7 @@ function fmtPct(v){
 }
 
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],tabAtual='inicio',atividadeAtual=null;
-let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null;
+let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -1225,7 +1238,9 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
-      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums">${tempoFormatado}</div>
+      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
+        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
+      </div>
       <select class="filter-select" onchange="timerModulo=this.value" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
@@ -1286,19 +1301,71 @@ function setTimerTipo(t){
   renderTab(tabAtual,true);
 }
 
+function formatarTempoTimer(seg){
+  const hh=Math.floor(seg/3600);
+  const mm=Math.floor((seg%3600)/60);
+  const ss=seg%60;
+  return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function renderTimerFullscreenConteudo(){
+  const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+  const refCompleta=[timerPublicacao,timerCapitulo].filter(Boolean).join(' — ');
+  return `
+    <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
+    <div>
+      <div class="tf-modulo">${timerModulo||'—'}</div>
+      ${refCompleta?`<div class="tf-ref">${refCompleta}</div>`:'<div class="tf-ref" style="margin-bottom:32px"></div>'}
+      <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
+      <div class="tf-tipo">${timerTipo}</div>
+      <div class="tf-btns">
+        ${!timerRodando?
+          `<button class="tf-btn" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
+          :`<button class="tf-btn" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
+        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Salvar</button>
+      </div>
+    </div>
+  `;
+}
+
+function abrirTimerFullscreen(){
+  if(!timerModulo) return;
+  if(!timerRodando) iniciarTimer();
+  timerFullscreenAberto=true;
+  document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  document.getElementById('timer-fullscreen').classList.remove('hidden');
+}
+
+function fecharTimerFullscreen(){
+  timerFullscreenAberto=false;
+  document.getElementById('timer-fullscreen').classList.add('hidden');
+  renderTab(tabAtual,true);
+}
+
+function atualizarTickTimer(){
+  if(timerFullscreenAberto){
+    document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  }
+  if(tabAtual==='aprovado'&&!timerFullscreenAberto){
+    renderTab(tabAtual,true);
+  }
+}
+
 function iniciarTimer(){
   if(!timerModulo) return;
   timerRodando=true;
   timerInicio=Date.now();
-  if(!timerIntervalId) timerIntervalId=setInterval(()=>{ if(tabAtual==='aprovado') renderTab(tabAtual,true); },1000);
-  renderTab(tabAtual,true);
+  if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
+  if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  else renderTab(tabAtual,true);
 }
 
 function pausarTimer(){
   timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
   timerRodando=false;
   timerInicio=null;
-  renderTab(tabAtual,true);
+  if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  else renderTab(tabAtual,true);
 }
 
 function zerarTimer(){
@@ -1309,6 +1376,8 @@ function zerarTimer(){
   timerPublicacao='';
   timerCapitulo='';
   timerTipo='Leitura';
+  timerFullscreenAberto=false;
+  document.getElementById('timer-fullscreen').classList.add('hidden');
   renderTab(tabAtual,true);
 }
 
