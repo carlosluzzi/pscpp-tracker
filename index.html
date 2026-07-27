@@ -551,7 +551,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3.5v-6.5h5V21H18a1 1 0 0 0 1-1V9.5"/></svg></span><span class="nav-label">Início</span>
     </div>
     <div class="nav-item" id="nav-atividades" onclick="showTab('atividades')">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 10.5h6M9 13.5h6M9 16.5h4"/></svg></span><span class="nav-label">Atividades</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 10.5h6M9 13.5h6M9 16.5h4"/></svg></span><span class="nav-label">Desempenho</span>
     </div>
     <div class="nav-item" id="nav-questoes" onclick="showTab('questoes')">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="10.5" width="18" height="5" rx="1.5"/><rect x="3" y="17" width="18" height="5" rx="1.5"/></svg></span><span class="nav-label">Questões</span>
@@ -656,7 +656,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="modal-box">
     <div class="config-title">Registrar sessão de estudo</div>
     <select class="filter-select" id="registro-manual-modulo"></select>
-    <input type="text" class="filter-select" id="registro-manual-assunto" placeholder="Assunto (opcional)">
+    <input type="text" class="filter-select" id="registro-manual-publicacao" list="registro-manual-publicacoes-lista" placeholder="Publicação (opcional)">
+    <datalist id="registro-manual-publicacoes-lista"></datalist>
+    <input type="text" class="filter-select" id="registro-manual-capitulo" placeholder="Capítulo (opcional)">
     <select class="filter-select" id="registro-manual-tipo">
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
@@ -667,6 +669,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarRegistroManual()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="config-ciclo-modal" style="display:none" onclick="if(event.target===this)fecharConfigCiclo()">
+  <div class="modal-box">
+    <div class="config-title">Peso de cada módulo no ciclo</div>
+    <p style="margin:0 0 14px 0;font-size:var(--fs-c);color:#888">Peso maior = entra na fila com mais frequência. Padrão é 1 pra todos.</p>
+    <div id="config-ciclo-lista" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharConfigCiclo()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarConfigCiclo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="config-metas-modal" style="display:none" onclick="if(event.target===this)fecharConfigMetas()">
+  <div class="modal-box">
+    <div class="config-title">Meta semanal por módulo</div>
+    <p style="margin:0 0 14px 0;font-size:var(--fs-c);color:#888">Em horas por semana. Deixa em branco pra não ter meta naquele módulo.</p>
+    <div id="config-metas-lista" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharConfigMetas()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarConfigMetas()">Salvar</button>
     </div>
   </div>
 </div>
@@ -849,8 +875,8 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],tabAtual='inicio',atividadeAtual=null;
-let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerAssunto='',timerTipo='Leitura',timerIntervalId=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],tabAtual='inicio',atividadeAtual=null;
+let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null;
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -936,7 +962,8 @@ async function loadData(){
     const [
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
-      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes}
+      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
+      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -948,8 +975,10 @@ async function loadData(){
       sbDados.from('apelidos_publicacao').select('*'),
       sbDados.from('fila_banco_pratico').select('*'),
       sbDados.from('sessoes_estudo').select('*'),
+      sbDados.from('ciclo_estudos_config').select('*'),
+      sbDados.from('metas_estudo').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
 
     atividades=a.map(p=>({
@@ -1040,12 +1069,15 @@ async function loadData(){
     sessoesEstudo=sessoesRes.map(p=>({
       id:p.id,
       modulo:p.modulo,
-      assunto:p.assunto||'',
+      publicacao:p.publicacao||'',
+      capitulo:p.capitulo||'',
       tipo:p.tipo,
       duracaoMinutos:p.duracao_minutos||0,
       data:p.data,
       criadoEm:p.criado_em,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+    cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
+    metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
     await verificarFilaBancoPratico();
     setSyncStatus('ok','Sincronizado');
     renderTab(tabAtual,true);
@@ -1080,6 +1112,45 @@ function renderTab(tab,preservarScroll){
   c.scrollTop=scrollAnterior;
 }
 
+function calcularProximoDoCiclo(){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const creditos=modulosPscpp.map(m=>{
+    const cfg=cicloEstudosConfig.find(c=>c.modulo===m);
+    const peso=cfg?cfg.peso:1;
+    const sessoesModulo=sessoesEstudo.filter(s=>s.modulo===m);
+    let dias;
+    if(sessoesModulo.length){
+      const maisRecente=sessoesModulo.reduce((max,s)=>s.data>max?s.data:max,sessoesModulo[0].data);
+      dias=Math.max(1,Math.round((hoje-new Date(maisRecente+'T00:00:00'))/(1000*60*60*24)));
+    }else{
+      dias=999;
+    }
+    return {modulo:m,peso,credito:peso*dias};
+  });
+  creditos.sort((a,b)=>b.credito-a.credito);
+  return creditos[0];
+}
+
+function calcularProgressoMetas(periodo){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  let inicio;
+  if(periodo==='Semanal'){
+    inicio=new Date(hoje);
+    inicio.setDate(inicio.getDate()-inicio.getDay());
+  }else{
+    inicio=new Date(hoje.getFullYear(),hoje.getMonth(),1);
+  }
+  return modulosPscpp.map(m=>{
+    const meta=metasEstudo.find(mt=>mt.modulo===m&&mt.periodo===periodo);
+    if(!meta) return null;
+    const minutosFeitos=sessoesEstudo.filter(s=>s.modulo===m&&new Date(s.data+'T00:00:00')>=inicio).reduce((sum,s)=>sum+s.duracaoMinutos,0);
+    const pct=Math.min(100,Math.round(minutosFeitos/meta.metaMinutos*100));
+    return {modulo:m,minutosFeitos,metaMinutos:meta.metaMinutos,pct};
+  }).filter(Boolean);
+}
+
 function renderAprovado(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
 
@@ -1090,6 +1161,7 @@ function renderAprovado(){
   const tempoFormatado=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
 
   const tiposEstudo=['Leitura','Exercício','Revisão'];
+  const publicacoesConhecidas=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))].sort();
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const seteDiasAtras=new Date(hoje);seteDiasAtras.setDate(seteDiasAtras.getDate()-6);
@@ -1112,15 +1184,45 @@ function renderAprovado(){
   }).join('');
 
   const historicoHtml=sessoesEstudo.slice(0,20).map(s=>{
+    const refCompleta=[s.publicacao,s.capitulo].filter(Boolean).join(' — ');
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${s.modulo}${s.assunto?' — '+s.assunto:''}</span>
+        <span class="prox-nome">${s.modulo}${refCompleta?' — '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
       </div>
     </div>`;
   }).join('');
 
+  const proxCiclo=calcularProximoDoCiclo();
+  const ccCiclo=modCores[proxCiclo.modulo];
+
+  const progressoSemanal=calcularProgressoMetas('Semanal');
+  const metasHtml=progressoSemanal.map(p=>{
+    const cc=modCores[p.modulo];
+    const h=(p.minutosFeitos/60).toFixed(1).replace('.0','');
+    const hMeta=(p.metaMinutos/60).toFixed(1).replace('.0','');
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:var(--fs-c);margin-bottom:3px">
+        <span>${p.modulo}</span><span style="color:#888">${h}h / ${hMeta}h</span>
+      </div>
+      <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${p.pct}%;background:${cc.tx}"></div></div>
+    </div>`;
+  }).join('');
+
   return `
+    <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span></div>
+        <span class="info-icone" onclick="abrirConfigCiclo()">${iconeInfo()} configurar</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:10px;height:10px;border-radius:3px;background:${ccCiclo.tx};flex-shrink:0"></span>
+        <span style="font-size:var(--fs-f);font-weight:600;color:#111">${proxCiclo.modulo}</span>
+      </div>
+      <div style="font-size:var(--fs-b);color:#888;margin-top:2px">próximo do ciclo, peso ${proxCiclo.peso}</div>
+      <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:12px" onclick="usarModuloNoTimer('${proxCiclo.modulo}')">Estudar isso agora</button>
+    </div>
+
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums">${tempoFormatado}</div>
@@ -1128,7 +1230,11 @@ function renderAprovado(){
         <option value="">Selecione o módulo</option>
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
-      <input type="text" class="filter-select" placeholder="Assunto (opcional)" value="${timerAssunto}" oninput="timerAssunto=this.value" ${timerRodando?'disabled':''}>
+      <input type="text" class="filter-select" list="lista-publicacoes-timer" placeholder="Publicação (opcional)" value="${timerPublicacao}" oninput="timerPublicacao=this.value" ${timerRodando?'disabled':''}>
+      <datalist id="lista-publicacoes-timer">
+        ${publicacoesConhecidas.map(p=>`<option value="${p}">`).join('')}
+      </datalist>
+      <input type="text" class="filter-select" placeholder="Capítulo (opcional)" value="${timerCapitulo}" oninput="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
       <div class="filter-row">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -1148,6 +1254,14 @@ function renderAprovado(){
     </div>
 
     <div class="card-inicio">
+      <div class="card-header-row">
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Metas da semana</span></div>
+        <span class="info-icone" onclick="abrirConfigMetas()">${iconeInfo()} configurar</span>
+      </div>
+      ${metasHtml||'<div class="empty" style="padding:16px 8px">Nenhuma meta configurada ainda.</div>'}
+    </div>
+
+    <div class="card-inicio">
       ${sectionTitle('Horas por matéria — últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
@@ -1159,6 +1273,12 @@ function renderAprovado(){
       </div>
     </div>
   `;
+}
+
+function usarModuloNoTimer(modulo){
+  timerModulo=modulo;
+  renderTab(tabAtual,true);
+  document.getElementById('content').scrollTo({top:0,behavior:'smooth'});
 }
 
 function setTimerTipo(t){
@@ -1186,7 +1306,8 @@ function zerarTimer(){
   timerRodando=false;
   timerInicio=null;
   timerModulo='';
-  timerAssunto='';
+  timerPublicacao='';
+  timerCapitulo='';
   timerTipo='Leitura';
   renderTab(tabAtual,true);
 }
@@ -1198,7 +1319,8 @@ async function pararESalvarTimer(){
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
       modulo:timerModulo,
-      assunto:timerAssunto||null,
+      publicacao:timerPublicacao||null,
+      capitulo:timerCapitulo||null,
       tipo:timerTipo,
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
@@ -1213,8 +1335,11 @@ async function pararESalvarTimer(){
 
 function abrirRegistroManual(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const publicacoesConhecidas=[...new Set(questoes.map(q=>q.publicacao).filter(Boolean))].sort();
   document.getElementById('registro-manual-modulo').innerHTML=modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
-  document.getElementById('registro-manual-assunto').value='';
+  document.getElementById('registro-manual-publicacoes-lista').innerHTML=publicacoesConhecidas.map(p=>`<option value="${p}">`).join('');
+  document.getElementById('registro-manual-publicacao').value='';
+  document.getElementById('registro-manual-capitulo').value='';
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('registro-manual-modal').style.display='flex';
@@ -1224,7 +1349,8 @@ function fecharRegistroManual(){
 }
 async function salvarRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
-  const assunto=document.getElementById('registro-manual-assunto').value;
+  const publicacao=document.getElementById('registro-manual-publicacao').value;
+  const capitulo=document.getElementById('registro-manual-capitulo').value;
   const tipo=document.getElementById('registro-manual-tipo').value;
   const duracao=parseInt(document.getElementById('registro-manual-duracao').value,10);
   const data=document.getElementById('registro-manual-data').value;
@@ -1232,13 +1358,80 @@ async function salvarRegistroManual(){
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,assunto:assunto||null,tipo,duracao_minutos:duracao,data,
+      modulo,publicacao:publicacao||null,capitulo:capitulo||null,tipo,duracao_minutos:duracao,data,
     });
     if(error) throw error;
     fecharRegistroManual();
     await loadData();
   }catch(e){
     alert('Erro ao salvar sessão: '+e.message);
+  }
+}
+
+function abrirConfigCiclo(){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  document.getElementById('config-ciclo-lista').innerHTML=modulosPscpp.map(m=>{
+    const cfg=cicloEstudosConfig.find(c=>c.modulo===m);
+    const peso=cfg?cfg.peso:1;
+    return `<div class="config-item" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span style="font-size:var(--fs-d)">${m}</span>
+      <input type="number" class="filter-select" style="width:70px;margin-bottom:0" min="1" max="10" value="${peso}" data-modulo="${m}">
+    </div>`;
+  }).join('');
+  document.getElementById('config-ciclo-modal').style.display='flex';
+}
+function fecharConfigCiclo(){
+  document.getElementById('config-ciclo-modal').style.display='none';
+}
+async function salvarConfigCiclo(){
+  const inputs=document.querySelectorAll('#config-ciclo-lista input');
+  const linhas=Array.from(inputs).map(inp=>({
+    modulo:inp.dataset.modulo,
+    peso:parseInt(inp.value,10)||1,
+  }));
+  try{
+    const {error}=await sbDados.from('ciclo_estudos_config').upsert(linhas,{onConflict:'modulo'});
+    if(error) throw error;
+    fecharConfigCiclo();
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar configuração: '+e.message);
+  }
+}
+
+function abrirConfigMetas(){
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  document.getElementById('config-metas-lista').innerHTML=modulosPscpp.map(m=>{
+    const meta=metasEstudo.find(mt=>mt.modulo===m&&mt.periodo==='Semanal');
+    const horas=meta?(meta.metaMinutos/60):'';
+    return `<div class="config-item" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span style="font-size:var(--fs-d)">${m}</span>
+      <input type="number" class="filter-select" style="width:70px;margin-bottom:0" min="0" step="0.5" placeholder="horas" value="${horas}" data-modulo="${m}">
+    </div>`;
+  }).join('');
+  document.getElementById('config-metas-modal').style.display='flex';
+}
+function fecharConfigMetas(){
+  document.getElementById('config-metas-modal').style.display='none';
+}
+async function salvarConfigMetas(){
+  const inputs=document.querySelectorAll('#config-metas-lista input');
+  const linhas=Array.from(inputs)
+    .filter(inp=>inp.value&&parseFloat(inp.value)>0)
+    .map(inp=>({
+      modulo:inp.dataset.modulo,
+      periodo:'Semanal',
+      meta_minutos:Math.round(parseFloat(inp.value)*60),
+    }));
+  try{
+    if(linhas.length){
+      const {error}=await sbDados.from('metas_estudo').upsert(linhas,{onConflict:'modulo,periodo'});
+      if(error) throw error;
+    }
+    fecharConfigMetas();
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar metas: '+e.message);
   }
 }
 
