@@ -1425,12 +1425,23 @@ function abrirTimerFullscreen(){
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
+  // Tenta tela cheia real do navegador (cobre até a barra de status do sistema, quando suportado).
+  // Se não for suportado (comum em iPhone Safari), cai de volta pro modo CSS que já tínhamos, sem erro.
+  const el=document.getElementById('timer-fullscreen');
+  try{
+    const pedir=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(pedir) pedir.call(el).catch(()=>{});
+  }catch(e){}
 }
 
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
+  try{
+    const sair=document.exitFullscreen||document.webkitExitFullscreen;
+    if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
+  }catch(e){}
   renderTab(tabAtual,true);
 }
 
@@ -1470,8 +1481,26 @@ function zerarTimer(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
+  try{
+    const sair=document.exitFullscreen||document.webkitExitFullscreen;
+    if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
+  }catch(e){}
   renderTab(tabAtual,true);
 }
+
+// Se o usuário sair da tela cheia real pelo próprio gesto do sistema (não pelo nosso "✕"),
+// sincroniza o estado do app com isso — sem isso o app "achava" que ainda estava em tela cheia.
+function saiuDoFullscreenReal(){
+  const aindaEmFullscreen=document.fullscreenElement||document.webkitFullscreenElement;
+  if(!aindaEmFullscreen&&timerFullscreenAberto){
+    timerFullscreenAberto=false;
+    document.getElementById('timer-fullscreen').classList.add('hidden');
+    document.body.classList.remove('timer-fullscreen-ativo');
+    renderTab(tabAtual,true);
+  }
+}
+document.addEventListener('fullscreenchange',saiuDoFullscreenReal);
+document.addEventListener('webkitfullscreenchange',saiuDoFullscreenReal);
 
 async function pararESalvarTimer(){
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
