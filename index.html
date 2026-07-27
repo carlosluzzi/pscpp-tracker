@@ -572,7 +572,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div class="modal-overlay" id="edicao-modulo-modal" style="display:none" onclick="if(event.target===this)fecharEdicaoModuloQuestao()">
+<div class="modal-overlay" id="edicao-modulo-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharEdicaoModuloQuestao()">
   <div class="modal-box">
     <div class="config-title">Módulo / Publicação</div>
     <div class="config-item">
@@ -604,7 +604,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div class="modal-overlay" id="resolver-tipo-curso-modal" style="display:none" onclick="if(event.target===this)fecharResolverTipoCurso()">
+<div class="modal-overlay" id="resolver-tipo-curso-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharResolverTipoCurso()">
   <div class="modal-box">
     <div class="config-title">Confirmar Tipo / Curso</div>
     <div class="config-desc" id="resolver-tipo-curso-arquivo" style="margin-bottom:14px"></div>
