@@ -588,7 +588,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="header-slot"></div>
 
   <div class="content" id="content">
-    <div class="loading-screen"><span>Carregando dados do Notion...</span></div>
+    <div class="loading-screen"><span>Carregando dados...</span></div>
   </div>
 
   <div class="bottom-nav">
@@ -757,16 +757,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 
 <script>
-const DB_ATIVIDADES='94d1585ce5fc4eff8d783649d4bf9404';
-const DB_QUESTOES='d444bd126bf2472abd5c62529d7c752d';
-const DB_CALENDARIO='7f1d05795f4f4fdbb3038f977d21a09e';
-const DB_NOTAS='5792fba68a9a4bbfbda33a582d7bba65';
-const DB_COMPLEMENTARES='c8ec85bc67014833b27dcf6c33cd2ae3';
-const DB_BANCO_PRATICO='760ac54c96d84bb093dea07dd3e8012b';
-const DB_FOCO_ESTUDADO='1d409ca929444beca2b0a8d06dd9a2a8';
-const DB_FILA_BANCO='c5777a8f0b9649a78b25e0797eff2415';
-const DB_APELIDOS='87c01cc3408441608fb1c5a3acc837ed';
-
 const modCores={
   'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
   'Arte Naval':{bg:'#E6F1FB',tx:'#202A45'},
@@ -932,76 +922,13 @@ let filtPeriodo='30d',filtCurso='todos',filtTipo='todos',filtStatus=null,filtMod
 let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='todos';
 let filtDataInicio='',filtDataFim='';
 
-async function notionQuery(dbId){
-  let results=[];
-  let cursor=undefined;
-  do{
-    const body={page_size:100};
-    if(cursor) body.start_cursor=cursor;
-    const res=await fetch('/api/notion',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body})
-    });
-    if(!res.ok) throw new Error('Erro '+res.status);
-    const data=await res.json();
-    results=results.concat(data.results||[]);
-    cursor=data.has_more?data.next_cursor:null;
-  }while(cursor);
-  return results;
-}
-
-async function notionQueryFilter(dbId,filter){
-  let results=[];
-  let cursor=undefined;
-  do{
-    const body={filter,page_size:100};
-    if(cursor) body.start_cursor=cursor;
-    const res=await fetch('/api/notion',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({endpoint:`/databases/${dbId}/query`,body})
-    });
-    if(!res.ok) throw new Error('Erro '+res.status);
-    const data=await res.json();
-    results=results.concat(data.results||[]);
-    cursor=data.has_more?data.next_cursor:null;
-  }while(cursor);
-  return results;
-}
-
-async function notionCall(endpoint,body,method){
-  const res=await fetch('/api/notion',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({endpoint,body,method})
-  });
-  if(!res.ok) throw new Error('Erro '+res.status);
-  return res.json();
-}
-
-function getProp(page,key){
-  const p=page.properties[key];
-  if(!p) return null;
-  if(p.type==='title') return p.title.map(t=>t.plain_text).join('');
-  if(p.type==='rich_text') return p.rich_text.map(t=>t.plain_text).join('');
-  if(p.type==='number') return p.number;
-  if(p.type==='date') return p.date?.start||null;
-  if(p.type==='select') return p.select?.name||null;
-  if(p.type==='multi_select') return p.multi_select.map(s=>s.name);
-  if(p.type==='formula') return p.formula?.number||p.formula?.string||null;
-  if(p.type==='checkbox') return p.checkbox;
-  return null;
-}
-
 let syncState='loading';
 function setSyncStatus(state,text){
   syncState=state;
-  const label=state==='error'?'ERRO':'NOTION';
   document.querySelectorAll('.js-sync-dot').forEach(dot=>{
     dot.className='sync-dot js-sync-dot'+(state==='ok'?' ok':state==='loading'?' loading':' error');
   });
-  document.querySelectorAll('.js-sync-text').forEach(txt=>{txt.textContent=label;});
+  document.querySelectorAll('.js-sync-text').forEach(txt=>{txt.textContent=text;});
 }
 
 async function loadData(){
@@ -1990,7 +1917,8 @@ async function salvarDataProva(texto){
   if(!bancoPratico) return;
   if(texto&&!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return;
   try{
-    await notionCall(`/pages/${bancoPratico.id}`,{properties:{'Data Prova':{date:texto?{start:texto}:null}}},'PATCH');
+    const {error}=await sbDados.from('banco_pratico_config').update({data_prova:texto||null}).eq('id',bancoPratico.id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao salvar data da prova: '+e.message);
@@ -2077,7 +2005,7 @@ function renderHeaderZone(){
           </span>
           <span class="sync-status">
             <span class="sync-dot js-sync-dot${syncState==='ok'?' ok':syncState==='loading'?' loading':' error'}"></span>
-            <span class="js-sync-text">${syncState==='error'?'ERRO':'NOTION'}</span>
+            <span class="js-sync-text">${syncState==='error'?'Erro de conexão':syncState==='loading'?'Sincronizando...':'Sincronizado'}</span>
           </span>
         </span>
       </div>
@@ -2256,13 +2184,11 @@ function toggleFoco(i){
 
 async function marcarFocoEstudado(chave){
   try{
-    await notionCall('/pages',{
-      parent:{database_id:DB_FOCO_ESTUDADO},
-      properties:{
-        'Módulo':{title:[{text:{content:chave}}]},
-        'Data Confirmada':{date:{start:new Date().toISOString().slice(0,10)}}
-      }
-    },'POST');
+    const {error}=await sbDados.from('foco_estudado').upsert({
+      modulo:chave,
+      data_confirmada:new Date().toISOString().slice(0,10),
+    },{onConflict:'modulo'});
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao confirmar: '+e.message);
@@ -2398,6 +2324,11 @@ async function verificarFilaBancoPratico(){
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const hojeStr=hoje.toISOString().slice(0,10);
 
+  // Proteção real contra rodar mais de uma vez no mesmo dia — checa diretamente se já existe
+  // qualquer entrada de hoje, em vez de só olhar a "última data" (que falhava quando a fila estava vazia).
+  const jaTemEntradaHoje=filaBancoPratico.some(f=>f.dataEntrada===hojeStr);
+  if(jaTemEntradaHoje) return;
+
   const datasExistentes=filaBancoPratico.map(f=>f.dataEntrada).filter(Boolean).sort();
   const ultimaData=datasExistentes.length?new Date(datasExistentes[datasExistentes.length-1]+'T00:00:00'):null;
 
@@ -2406,7 +2337,6 @@ async function verificarFilaBancoPratico(){
     diasParaPreencher=[hojeStr];
   }else{
     const diffDias=Math.round((hoje-ultimaData)/(1000*60*60*24));
-    if(diffDias<=0) return; // já processado hoje, nada a fazer
     const diasAPreencher=Math.min(diffDias,7); // teto de 7 dias — não compensa além disso
     for(let i=diasAPreencher-1;i>=0;i--){
       const d=new Date(hoje);
@@ -2442,34 +2372,33 @@ async function verificarFilaBancoPratico(){
       const somaPesosLote=escolhidas.reduce((s,e)=>s+e.peso,0)||1;
       for(const escolhida of escolhidas){
         const qtd=Math.max(1,Math.round((escolhida.peso/somaPesosLote)*meta));
-        await notionCall('/pages',{
-          parent:{database_id:DB_FILA_BANCO},
-          properties:{
-            'Materia':{title:[{text:{content:escolhida.nome}}]},
-            'Modulo':{rich_text:[{text:{content:escolhida.modulo||''}}]},
-            'Publicacao':{rich_text:[{text:{content:escolhida.publicacao||''}}]},
-            'Capitulo':{rich_text:[{text:{content:escolhida.capitulo||''}}]},
-            'Data Entrada':{date:{start:dataStr}},
-            'Status':{select:{name:'Pendente'}},
-            'Quantidade':{number:qtd}
-          }
-        },'POST');
+        const {error}=await sbDados.from('fila_banco_pratico').insert({
+          materia:escolhida.nome,
+          modulo:escolhida.modulo||'',
+          publicacao:escolhida.publicacao||'',
+          capitulo:escolhida.capitulo||'',
+          data_entrada:dataStr,
+          status:'Pendente',
+          quantidade:qtd,
+        });
+        if(error) throw error;
         // atualiza localmente também, pra a "safra" do dia seguinte já contar com isso no cálculo de crédito
         filaBancoPratico.push({materia:escolhida.nome,modulo:escolhida.modulo,publicacao:escolhida.publicacao,capitulo:escolhida.capitulo,dataEntrada:dataStr,status:'Pendente',quantidade:qtd});
         mudou=true;
       }
     }
     if(mudou){
-      const filaRes=await notionQuery(DB_FILA_BANCO);
+      const {data:filaRes,error}=await sbDados.from('fila_banco_pratico').select('*');
+      if(error) throw error;
       filaBancoPratico=filaRes.map(p=>({
         id:p.id,
-        materia:getProp(p,'Materia')||'',
-        publicacao:getProp(p,'Publicacao')||'',
-        capitulo:getProp(p,'Capitulo')||'',
-        modulo:getProp(p,'Modulo')||'',
-        dataEntrada:getProp(p,'Data Entrada')||null,
-        status:getProp(p,'Status')||'Pendente',
-        quantidade:getProp(p,'Quantidade')||1,
+        materia:p.materia||'',
+        publicacao:p.publicacao||'',
+        capitulo:p.capitulo||'',
+        modulo:p.modulo||'',
+        dataEntrada:p.data_entrada||null,
+        status:p.status||'Pendente',
+        quantidade:p.quantidade||1,
       }));
     }
   }catch(e){
@@ -2479,7 +2408,8 @@ async function verificarFilaBancoPratico(){
 
 async function marcarFilaBancoFeito(id){
   try{
-    await notionCall(`/pages/${id}`,{properties:{'Status':{select:{name:'Feito'}}}},'PATCH');
+    const {error}=await sbDados.from('fila_banco_pratico').update({status:'Feito'}).eq('id',id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao confirmar: '+e.message);
@@ -2493,7 +2423,8 @@ async function editarMetaDiaria(){
   const novaMeta=parseInt(texto,10);
   if(isNaN(novaMeta)||novaMeta<1){alert('Digite um número válido.');return;}
   try{
-    await notionCall(`/pages/${bancoPratico.id}`,{properties:{'Meta Diaria':{number:novaMeta}}},'PATCH');
+    const {error}=await sbDados.from('banco_pratico_config').update({meta_diaria:novaMeta}).eq('id',bancoPratico.id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao salvar meta: '+e.message);
@@ -2545,7 +2476,8 @@ function renderCardBancoPratico(){
 }
 async function marcarBancoPraticoFeito(id){
   try{
-    await notionCall(`/pages/${id}`,{properties:{'Última Confirmada':{date:{start:new Date().toISOString().slice(0,10)}}}},'PATCH');
+    const {error}=await sbDados.from('banco_pratico_config').update({ultima_confirmada:new Date().toISOString().slice(0,10)}).eq('id',id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao confirmar: '+e.message);
@@ -2622,13 +2554,11 @@ async function salvarComplementar(){
   const nome=(document.getElementById('comp-nome').value||'').trim();
   if(!nome){alert('Digite o nome da atividade.');return;}
   try{
-    const props={
-      'Nome':{title:[{text:{content:nome}}]},
-      'Status':{select:{name:'Pendente'}}
-    };
-    if(compPrioridadeSel) props['Prioridade']={select:{name:compPrioridadeSel}};
-    if(compRecorrenciaSel>0) props['Recorrência Dias']={number:compRecorrenciaSel};
-    await notionCall('/pages',{parent:{database_id:DB_COMPLEMENTARES},properties:props},'POST');
+    const props={nome,status:'Pendente'};
+    if(compPrioridadeSel) props.prioridade=compPrioridadeSel;
+    if(compRecorrenciaSel>0) props.recorrencia_dias=compRecorrenciaSel;
+    const {error}=await sbDados.from('atividades_complementares').insert(props);
+    if(error) throw error;
     fecharComplementarModal();
     await loadData();
   }catch(e){
@@ -2639,13 +2569,15 @@ async function marcarComplementarFeito(id){
   const item=complementares.find(c=>c.id===id);
   if(!item) return;
   try{
+    let error;
     if(item.recorrenciaDias){
       const novaData=new Date();
       novaData.setDate(novaData.getDate()+item.recorrenciaDias);
-      await notionCall(`/pages/${id}`,{properties:{'Data Limite':{date:{start:novaData.toISOString().slice(0,10)}}}},'PATCH');
+      ({error}=await sbDados.from('atividades_complementares').update({data_limite:novaData.toISOString().slice(0,10)}).eq('id',id));
     }else{
-      await notionCall(`/pages/${id}`,{properties:{'Status':{select:{name:'Feito'}}}},'PATCH');
+      ({error}=await sbDados.from('atividades_complementares').update({status:'Feito'}).eq('id',id));
     }
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao confirmar: '+e.message);
@@ -2653,7 +2585,8 @@ async function marcarComplementarFeito(id){
 }
 async function pararRecorrencia(id){
   try{
-    await notionCall(`/pages/${id}`,{properties:{'Recorrência Dias':{number:null}}},'PATCH');
+    const {error}=await sbDados.from('atividades_complementares').update({recorrencia_dias:null}).eq('id',id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao parar recorrência: '+e.message);
@@ -2725,7 +2658,7 @@ function confirmarEventoDetalheFeito(){
   marcarEventoFeito(id);
 }
 
-// NOTAS DE ESTUDO — armazenadas no Notion (sincroniza entre dispositivos)
+// NOTAS DE ESTUDO — armazenadas no Supabase (sincroniza entre dispositivos)
 function renderCardNotas(){
   return `
     <div class="card-inicio">
@@ -2754,10 +2687,8 @@ async function adicionarNota(){
   const texto=prompt('Nova nota de estudo:');
   if(!texto||!texto.trim()) return;
   try{
-    await notionCall('/pages',{
-      parent:{database_id:DB_NOTAS},
-      properties:{'Texto':{title:[{text:{content:texto.trim()}}]}}
-    },'POST');
+    const {error}=await sbDados.from('notas_estudo').insert({texto:texto.trim()});
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao salvar nota: '+e.message);
@@ -2766,7 +2697,8 @@ async function adicionarNota(){
 
 async function removerNota(id){
   try{
-    await notionCall(`/pages/${id}`,{archived:true},'PATCH');
+    const {error}=await sbDados.from('notas_estudo').delete().eq('id',id);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao remover nota: '+e.message);
@@ -2931,9 +2863,8 @@ async function adicionarAssuntoPrincipal(questaoId){
   const texto=prompt('Assunto principal desta questão:');
   if(!texto||!texto.trim()) return;
   try{
-    await notionCall(`/pages/${questaoId}`,{
-      properties:{'Assunto Principal':{rich_text:[{text:{content:texto.trim()}}]}}
-    },'PATCH');
+    const {error}=await sbDados.from('banco_questoes').update({assunto_principal:texto.trim()}).eq('id',questaoId);
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao salvar: '+e.message);
@@ -2951,22 +2882,11 @@ async function editarApelidoPublicacao(original){
   const texto=prompt(`Como você quer chamar "${original}"?`,atual);
   if(!texto||!texto.trim()||texto.trim()===original) return;
   try{
-    const existing=await notionCall(`/databases/${DB_APELIDOS}/query`,{page_size:100},'POST');
-    const pageExistente=(existing.results||[]).find(p=>{
-      const t=p.properties&&p.properties['Nome Original']&&p.properties['Nome Original'].title;
-      return t&&t.map(x=>x.plain_text).join('')===original;
-    });
-    if(pageExistente){
-      await notionCall(`/pages/${pageExistente.id}`,{properties:{'Nome Personalizado':{rich_text:[{text:{content:texto.trim()}}]}}},'PATCH');
-    }else{
-      await notionCall('/pages',{
-        parent:{database_id:DB_APELIDOS},
-        properties:{
-          'Nome Original':{title:[{text:{content:original}}]},
-          'Nome Personalizado':{rich_text:[{text:{content:texto.trim()}}]}
-        }
-      },'POST');
-    }
+    const {error}=await sbDados.from('apelidos_publicacao').upsert({
+      nome_original:original,
+      nome_personalizado:texto.trim(),
+    },{onConflict:'nome_original'});
+    if(error) throw error;
     await loadData();
   }catch(e){
     alert('Erro ao salvar apelido: '+e.message);
