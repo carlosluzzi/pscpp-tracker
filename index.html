@@ -655,6 +655,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
         <span class="sync-dot loading js-sync-dot"></span>
         <span class="js-sync-text">Conectando...</span>
       </span>
+      <span style="font-size:9px;color:#ccc;margin-left:4px">build-20260728a</span>
     </span>
   </div>
 
@@ -1351,6 +1352,7 @@ function renderizarListaMarcacao(){
   // completa: no modo manual puro, null conta como respondida (certa implícita) — no modo misto, não
   const faltando=modoManualPuro?[]:qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
+  const semCapitulo=qs.filter(q=>!q.capitulo);
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
     const q=incompletas[0];
@@ -1359,6 +1361,9 @@ function renderizarListaMarcacao(){
   }else if(faltando.length){
     avisoEl.classList.remove('hidden');
     avisoEl.innerHTML=`<span>⚠ Faltam ${faltando.length} questão(ões) responder: ${faltando.map(q=>q.numeroQuestao).join(', ')}</span>`;
+  }else if(semCapitulo.length){
+    avisoEl.classList.remove('hidden');
+    avisoEl.innerHTML=`<span>${semCapitulo.length} questão(ões) sem capítulo: ${semCapitulo.map(q=>q.numeroQuestao).join(', ')}</span>`;
   }else{
     avisoEl.classList.add('hidden');
     avisoEl.innerHTML='';
@@ -3168,11 +3173,13 @@ function renderQuestoes(){
         const faltando=modoManualPuroCard?0:qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
         const respondidas=qsDessa.length-faltando;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
+        const semCapitulo=qsDessa.filter(q=>!q.capitulo).length;
         return `<div class="prox-item" onclick="abrirMarcacaoPendente('${ap.id}')" style="cursor:pointer">
           <div class="prox-left">
             <span class="prox-nome">${ap.nome}</span>
             <span class="prox-modalidade">${ap.tipo} · ${ap.curso} · ${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
             ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
+            ${semCapitulo?`<span class="prox-modalidade" style="color:#5F5E5A">${semCapitulo} sem capítulo</span>`:''}
           </div>
         </div>`;
       }).join('')}
