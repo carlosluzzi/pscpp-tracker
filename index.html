@@ -581,10 +581,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div class="modal-overlay" id="edicao-modulo-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharEdicaoModuloQuestao()">
   <div class="modal-box">
-    <div class="config-title">Módulo / Publicação</div>
+    <div class="config-title">Módulo / Publicação / Capítulo</div>
     <div class="config-item">
       <div class="config-label">Módulo PSCPP</div>
-      <select class="filter-select" id="edicao-modulo-select" style="margin-bottom:0">
+      <select class="filter-select" id="edicao-modulo-select" style="margin-bottom:0" onchange="aoTrocarModuloEdicao()">
         <option value="">— nenhum —</option>
         <option>Manobrabilidade</option>
         <option>Arte Naval</option>
@@ -597,12 +597,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     </div>
     <div class="config-item">
       <div class="config-label">Publicação</div>
-      <input type="text" id="edicao-publicacao-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: Fonseca — Arte Naval">
+      <select class="filter-select" id="edicao-publicacao-select" style="margin-bottom:0" onchange="aoTrocarPublicacaoEdicao()">
+        <option value="">— nenhuma —</option>
+      </select>
     </div>
     <div class="config-item">
-      <div class="config-label">Capítulo (opcional, só o número)</div>
-      <input type="number" min="1" id="edicao-capitulo-input" class="filter-select" style="margin-bottom:0" placeholder="Ex: 6">
-      <div class="config-desc" style="margin-top:4px">Provisório — quando o sistema de capítulos por matéria estiver pronto, o que você digitar aqui já vai contar como o capítulo certo, se bater.</div>
+      <div class="config-label" id="edicao-capitulo-label">Capítulo</div>
+      <select class="filter-select" id="edicao-capitulo-select" style="margin-bottom:0">
+        <option value="">— escolha a publicação —</option>
+      </select>
     </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharEdicaoModuloQuestao()">Cancelar</button>
@@ -1335,7 +1338,9 @@ function renderizarListaMarcacao(){
   const modoManualPuro=!qs.some(q=>q.suaResposta);
 
   lista.innerHTML=qs.map(q=>{
-    const ref=[q.modulo,q.publicacao,q.capitulo].filter(Boolean).join(' · ');
+    const refPartes=[q.modulo,q.publicacao,q.capitulo].filter(Boolean);
+    const faltaAlgo=!q.modulo||!q.publicacao||!q.capitulo;
+    const ref=refPartes.join(' · ');
     const detectada=!!q.suaResposta;
     let controleHtml;
     if(detectada){
@@ -1353,7 +1358,7 @@ function renderizarListaMarcacao(){
     return `<div class="marcacao-item">
       <div class="marcacao-item-esq">
         <span class="marcacao-num">Questão ${q.numeroQuestao}</span>
-        <span class="marcacao-ref marcacao-ref-editavel" onclick="abrirEdicaoModuloQuestao('${q.id}')">${ref||'+ módulo / publicação'}</span>
+        <span class="marcacao-ref marcacao-ref-editavel" style="${faltaAlgo?'color:#A32D2D;font-weight:600':''}" onclick="abrirEdicaoModuloQuestao('${q.id}')">${ref||'+ módulo / publicação'}${faltaAlgo?' ⚠':''}</span>
       </div>
       ${controleHtml}
     </div>`;
@@ -1362,6 +1367,8 @@ function renderizarListaMarcacao(){
   // completa: no modo manual puro, null conta como respondida (certa implícita) — no modo misto, não
   const faltando=modoManualPuro?[]:qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
+  const semModuloAviso=qs.filter(q=>!q.modulo);
+  const semPublicacaoAviso=qs.filter(q=>!q.publicacao);
   const semCapitulo=qs.filter(q=>!q.capitulo);
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
@@ -1371,9 +1378,13 @@ function renderizarListaMarcacao(){
   }else if(faltando.length){
     avisoEl.classList.remove('hidden');
     avisoEl.innerHTML=`<span>⚠ Falta${faltando.length>1?'m':''} ${faltando.length} questão${faltando.length>1?'ões':''} responder: ${faltando.map(q=>q.numeroQuestao).join(', ')}</span>`;
-  }else if(semCapitulo.length){
+  }else if(semModuloAviso.length||semPublicacaoAviso.length||semCapitulo.length){
     avisoEl.classList.remove('hidden');
-    avisoEl.innerHTML=`<span>${semCapitulo.length} questão${semCapitulo.length>1?'ões':''} sem capítulo: ${semCapitulo.map(q=>q.numeroQuestao).join(', ')}</span>`;
+    const partes=[];
+    if(semModuloAviso.length) partes.push(`sem módulo: ${semModuloAviso.map(q=>q.numeroQuestao).join(', ')}`);
+    if(semPublicacaoAviso.length) partes.push(`sem publicação: ${semPublicacaoAviso.map(q=>q.numeroQuestao).join(', ')}`);
+    if(semCapitulo.length) partes.push(`sem capítulo: ${semCapitulo.map(q=>q.numeroQuestao).join(', ')}`);
+    avisoEl.innerHTML=`<span>⚠ ${partes.join(' · ')}</span>`;
   }else{
     avisoEl.classList.add('hidden');
     avisoEl.innerHTML='';
@@ -1384,16 +1395,63 @@ function renderizarListaMarcacao(){
 }
 
 let edicaoModuloQuestaoId=null;
+const CAPITULO_CONFIRMADO_VAZIO='Sem capítulo (confirmado)';
+
 function abrirEdicaoModuloQuestao(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
   edicaoModuloQuestaoId=questaoId;
   document.getElementById('edicao-modulo-select').value=q.modulo||'';
-  document.getElementById('edicao-publicacao-input').value=q.publicacao||'';
-  // extrai só o número de "Capítulo N", se já vier nesse formato
-  const numCapitulo=q.capitulo?(q.capitulo.match(/\d+/)||[])[0]:'';
-  document.getElementById('edicao-capitulo-input').value=numCapitulo||'';
+  popularPublicacoesEdicao(q.modulo, q.publicacao);
+  popularCapitulosEdicao(q.modulo, q.publicacao, q.capitulo);
   document.getElementById('edicao-modulo-modal').style.display='flex';
+}
+function aoTrocarModuloEdicao(){
+  const modulo=document.getElementById('edicao-modulo-select').value;
+  popularPublicacoesEdicao(modulo, null);
+  popularCapitulosEdicao(modulo, null, null);
+}
+function aoTrocarPublicacaoEdicao(){
+  const modulo=document.getElementById('edicao-modulo-select').value;
+  const publicacao=document.getElementById('edicao-publicacao-select').value;
+  popularCapitulosEdicao(modulo, publicacao, null);
+}
+function popularPublicacoesEdicao(modulo, publicacaoAtual){
+  const sel=document.getElementById('edicao-publicacao-select');
+  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
+  sel.innerHTML='<option value="">— nenhuma —</option>'+opcoes.map(p=>`<option value="${p}" ${publicacaoAtual===p?'selected':''}>${p}</option>`).join('');
+  // se a publicação atual da questão não está na lista da bibliografia (nome antigo/livre), adiciona mesmo assim
+  if(publicacaoAtual&&!opcoes.includes(publicacaoAtual)){
+    sel.innerHTML+=`<option value="${publicacaoAtual}" selected>${publicacaoAtual} (não cadastrada)</option>`;
+  }
+}
+function popularCapitulosEdicao(modulo, publicacao, capituloAtual){
+  const sel=document.getElementById('edicao-capitulo-select');
+  const label=document.getElementById('edicao-capitulo-label');
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!publicacao){
+    sel.innerHTML='<option value="">— escolha a publicação —</option>';
+    sel.disabled=true;
+    label.textContent='Capítulo';
+    return;
+  }
+  if(!pubInfo||pubInfo.capituloUnico){
+    sel.innerHTML='<option value="">— publicação sem capítulo —</option>';
+    sel.disabled=true;
+    label.textContent='Capítulo';
+    return;
+  }
+  sel.disabled=false;
+  label.textContent=pubInfo.rotuloCapitulo;
+  const opcoesCapitulo=(pubInfo.capitulosValidos||[]).map(c=>`${pubInfo.rotuloCapitulo} ${c}`);
+  let html=`<option value="">— não sei ainda —</option>`;
+  html+=opcoesCapitulo.map(c=>`<option value="${c}" ${capituloAtual===c?'selected':''}>${c}</option>`).join('');
+  html+=`<option value="${CAPITULO_CONFIRMADO_VAZIO}" ${capituloAtual===CAPITULO_CONFIRMADO_VAZIO?'selected':''}>${CAPITULO_CONFIRMADO_VAZIO}</option>`;
+  // se o capítulo atual da questão não está na lista (formato antigo/livre), adiciona mesmo assim
+  if(capituloAtual&&!opcoesCapitulo.includes(capituloAtual)&&capituloAtual!==CAPITULO_CONFIRMADO_VAZIO){
+    html+=`<option value="${capituloAtual}" selected>${capituloAtual} (fora da lista)</option>`;
+  }
+  sel.innerHTML=html;
 }
 function fecharEdicaoModuloQuestao(){
   document.getElementById('edicao-modulo-modal').style.display='none';
@@ -1402,10 +1460,8 @@ function fecharEdicaoModuloQuestao(){
 async function salvarEdicaoModuloQuestao(){
   if(!edicaoModuloQuestaoId) return;
   const modulo=document.getElementById('edicao-modulo-select').value||null;
-  const publicacao=document.getElementById('edicao-publicacao-input').value.trim()||null;
-  const numCapitulo=document.getElementById('edicao-capitulo-input').value.trim();
-  // formata igual ao padrão de referência já usado no resto do projeto: "Capítulo N", por extenso
-  const capitulo=numCapitulo?`Capítulo ${numCapitulo}`:null;
+  const publicacao=document.getElementById('edicao-publicacao-select').value||null;
+  const capitulo=document.getElementById('edicao-capitulo-select').value||null;
   try{
     const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao,capitulo}).eq('id',edicaoModuloQuestaoId);
     if(error) throw error;
@@ -1521,13 +1577,19 @@ async function finalizarCadernoPendente(){
     }
   }
 
-  // Nunca finaliza silenciosamente com capítulo faltando — mesmo com todas as respostas já
-  // detectadas/marcadas. Exige confirmação explícita (não é bloqueio permanente, já que algumas
-  // questões genuinamente não têm capítulo citado na fonte — mas isso nunca passa despercebido).
+  // Bloqueio real, sem escape: nunca finaliza com módulo, publicação ou capítulo faltando em
+  // qualquer questão. "Sem capítulo (confirmado)" conta como preenchido — é o Carlos confirmando
+  // de propósito que revisou e a fonte genuinamente não cita capítulo ali, não um vazio esquecido.
+  const semModulo=qs.filter(q=>!q.modulo).map(q=>q.numeroQuestao);
+  const semPublicacao=qs.filter(q=>!q.publicacao).map(q=>q.numeroQuestao);
   const semCapituloFinalizar=qs.filter(q=>!q.capitulo).map(q=>q.numeroQuestao);
-  if(semCapituloFinalizar.length){
-    const confirmou=confirm(`${semCapituloFinalizar.length} questão(ões) sem capítulo: ${semCapituloFinalizar.join(', ')}.\n\nPode ser porque a fonte genuinamente não cita capítulo nessas, ou porque ainda falta preencher. Confirma que já revisou e quer finalizar mesmo assim?`);
-    if(!confirmou) return;
+  if(semModulo.length||semPublicacao.length||semCapituloFinalizar.length){
+    const partes=[];
+    if(semModulo.length) partes.push(`Sem módulo: ${semModulo.join(', ')}`);
+    if(semPublicacao.length) partes.push(`Sem publicação: ${semPublicacao.join(', ')}`);
+    if(semCapituloFinalizar.length) partes.push(`Sem capítulo: ${semCapituloFinalizar.join(', ')} (toque em "+ módulo / publicação" na questão e escolha "${CAPITULO_CONFIRMADO_VAZIO}" se a fonte genuinamente não citar)`);
+    alert(`Não dá pra finalizar ainda — falta preencher:\n\n${partes.join('\n')}`);
+    return;
   }
 
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
