@@ -3329,10 +3329,9 @@ function renderQuestoes(){
     </div>`;
   }
 
-  const cardPendentesHtml=pendentesAtivas.length?`<div class="card-inicio">
-    <div class="card-header-row">
-      <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('lista')}</span><span style="color:#202A45">Cadernos pendentes</span></div>
-    </div>
+  const cardPendentesHtml=pendentesAtivas.length?`
+    ${sectionTitle('Cadernos pendentes','lista','#202A45','#202A45',{noBg:true})}
+    <div class="card-inicio">
     ${gruposPorCurso.map(g=>{
       const logoMaiorGrupo=g.curso==='Catavento'||g.curso==='Curso Prático';
       return `
