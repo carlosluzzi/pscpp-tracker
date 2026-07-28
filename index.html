@@ -3538,6 +3538,22 @@ function finalizarSplash(){
     spinner.classList.remove('girando');
   }
 
+  // Depois de carregar, precisa de um reset diferente do normal: NÃO pode remover 'escondida' da
+  // seta ao mesmo tempo que o container encolhe, senão a seta reaparece com fade-in bem no meio
+  // do encolhimento (pisca por um instante). Encolhe primeiro, e só reseta a seta depois, sem
+  // transição nenhuma, já com tudo escondido.
+  function finalizarCarregamento(){
+    indicador.classList.remove('ativo');
+    indicador.style.height='0px';
+    spinner.classList.remove('girando');
+    setTimeout(()=>{
+      seta.style.transition='none';
+      seta.classList.remove('pronta','escondida');
+      seta.offsetHeight; // força o navegador a aplicar antes de religar a transição
+      seta.style.transition='';
+    },200); // mesma duração da transição de altura do indicador
+  }
+
   contentEl.addEventListener('touchstart',(e)=>{
     if(atualizando) return;
     if(contentEl.scrollTop<=0){
@@ -3578,7 +3594,7 @@ function finalizarSplash(){
       seta.classList.add('escondida');
       spinner.classList.add('girando');
       try{ await loadData(); }catch(e){}
-      resetVisual();
+      finalizarCarregamento();
       atualizando=false;
     }else{
       resetVisual();
