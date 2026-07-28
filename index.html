@@ -1697,8 +1697,15 @@ function renderAprovado(){
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-        if(!timerPublicacao||!pubInfo||pubInfo.capituloUnico) return '';
-        if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length) return '';
+        if(!timerPublicacao){
+          return `<select class="filter-select" disabled><option value="">Capítulo/Seção (escolha a publicação)</option></select>`;
+        }
+        if(!pubInfo||pubInfo.capituloUnico){
+          return `<select class="filter-select" disabled><option value="">Capítulo/Seção (publicação única)</option></select>`;
+        }
+        if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
+          return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option></select>`;
+        }
         return `<select class="filter-select" onchange="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
           <option value="">${pubInfo.rotuloCapitulo} (opcional)</option>
           ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
