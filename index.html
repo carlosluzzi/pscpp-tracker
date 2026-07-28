@@ -402,7 +402,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cadernos-grupo-curso{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e6e6e3}
 .cadernos-grupo-curso:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
 .cadernos-grupo-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.cadernos-grupo-header img{height:15px;width:auto;max-width:90px;object-fit:contain;display:block}
+.cadernos-grupo-header img{height:15px;width:auto;object-fit:contain;display:block}
 .cadernos-grupo-header span{font-size:var(--fs-c);font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.3px}
 .cadernos-item-leve{padding:9px 0;cursor:pointer;border-top:1px solid #f0f0ee;display:flex;align-items:center;gap:10px}
 .cadernos-grupo-curso .cadernos-item-leve:first-child{border-top:none}
@@ -1334,7 +1334,7 @@ async function abrirMarcacaoPendente(atividadePendenteId){
   if(!ap) return;
   resolucaoAtividadeId=atividadePendenteId;
   const tipoAbrevTitulo=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
-  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:18px;width:auto;max-width:60px;object-fit:contain">`:'';
+  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:18px;width:auto;object-fit:contain">`:'';
   document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tipoAbrevTitulo}${ap.nome?' '+ap.nome:''}</span>`;
   document.getElementById('marcacao-fullscreen').classList.remove('hidden');
   renderizarListaMarcacao();
