@@ -1318,14 +1318,24 @@ function fecharMarcacaoPendente(){
 function renderizarListaMarcacao(){
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   const lista=document.getElementById('marcacao-lista');
+  // Se NENHUMA questão do arquivo tem marcação detectada, é um caderno 100% manual — nesse caso,
+  // volta o comportamento de "assume certa por padrão, só marca as erradas" (mais rápido de revisar).
+  // Se tiver PELO MENOS 1 detecção, é digital/misto — exige toque explícito em todas, sem presumir nada
+  // (protege contra esquecer 1 questão sem perceber, que é o risco real nesse modo).
+  const modoManualPuro=!qs.some(q=>q.suaResposta);
+
   lista.innerHTML=qs.map(q=>{
     const ref=[q.modulo,q.publicacao,q.capitulo].filter(Boolean).join(' · ');
-    // resolvida por detecção (marcação azul no PDF) — mostra badge, sem toggle manual
     const detectada=!!q.suaResposta;
     let controleHtml;
     if(detectada){
       controleHtml=`<span class="marcacao-detectada">Detectado: ${q.suaResposta.toUpperCase()}</span>`;
+    }else if(modoManualPuro){
+      // 2 estados só: certa (padrão, inclusive null) <-> errada
+      const errada=q.acertouSimplificado===false;
+      controleHtml=`<button class="marcacao-toggle${errada?' errada':''}" onclick="toggleMarcacaoQuestao('${q.id}')">${errada?'Errada':'Certa'}</button>`;
     }else{
+      // 3 estados: falta (null) -> certa -> errada -> falta
       const estado=q.acertouSimplificado===true?'certa':q.acertouSimplificado===false?'errada':'pendente';
       const rotulo=estado==='certa'?'Certa':estado==='errada'?'Errada':'Falta';
       controleHtml=`<button class="marcacao-toggle ${estado}" onclick="toggleMarcacaoQuestao('${q.id}')">${rotulo}</button>`;
@@ -1339,8 +1349,8 @@ function renderizarListaMarcacao(){
     </div>`;
   }).join('');
 
-  // completa = tem resposta detectada OU foi marcada manualmente (certa ou errada) — nunca assume nada
-  const faltando=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
+  // completa: no modo manual puro, null conta como respondida (certa implícita) — no modo misto, não
+  const faltando=modoManualPuro?[]:qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
@@ -1397,11 +1407,18 @@ async function salvarEdicaoModuloQuestao(){
 async function toggleMarcacaoQuestao(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
-  // cicla: não respondida (null) -> certa (true) -> errada (false) -> não respondida (null)
+  const qsAtividade=questoesPendentes.filter(qq=>qq.atividadePendenteId===q.atividadePendenteId);
+  const modoManualPuro=!qsAtividade.some(qq=>qq.suaResposta);
   let novoValor;
-  if(q.acertouSimplificado===null||q.acertouSimplificado===undefined) novoValor=true;
-  else if(q.acertouSimplificado===true) novoValor=false;
-  else novoValor=null;
+  if(modoManualPuro){
+    // 2 estados: certa (null ou true) <-> errada (false)
+    novoValor=q.acertouSimplificado===false?true:false;
+  }else{
+    // 3 estados: não respondida (null) -> certa (true) -> errada (false) -> não respondida (null)
+    if(q.acertouSimplificado===null||q.acertouSimplificado===undefined) novoValor=true;
+    else if(q.acertouSimplificado===true) novoValor=false;
+    else novoValor=null;
+  }
   try{
     const {error}=await sbDados.from('questoes_pendentes').update({acertou_simplificado:novoValor,respondida:novoValor!==null}).eq('id',questaoId);
     if(error) throw error;
@@ -1476,12 +1493,18 @@ async function finalizarCadernoPendente(){
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   if(!qs.length) return;
 
-  // Regra única, pra qualquer curso: NUNCA finaliza com questão sem resposta — seja por
-  // detecção (marcação azul no PDF) ou por toque manual (Certa/Errada). Nunca assume nada sozinho.
-  const semResposta=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).map(q=>q.numeroQuestao);
-  if(semResposta.length){
-    alert(`Ainda faltam ${semResposta.length} questão(ões) sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo — o que vier primeiro resolve a questão.`);
-    return;
+  // Caderno 100% manual (zero detecção no arquivo inteiro): assume certa por padrão — não bloqueia
+  // por "falta responder", já que questão nunca tocada já conta como certa implícita nesse modo.
+  const modoManualPuro=!qs.some(q=>q.suaResposta);
+
+  // Modo misto/digital: NUNCA finaliza com questão sem resposta — seja por detecção (marcação
+  // azul no PDF) ou por toque manual (Certa/Errada). Nunca assume nada sozinho nesse modo.
+  if(!modoManualPuro){
+    const semResposta=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).map(q=>q.numeroQuestao);
+    if(semResposta.length){
+      alert(`Ainda faltam ${semResposta.length} questão(ões) sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo — o que vier primeiro resolve a questão.`);
+      return;
+    }
   }
 
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
@@ -1493,6 +1516,9 @@ async function finalizarCadernoPendente(){
     let acertou;
     if(q.suaResposta&&q.gabarito){
       acertou=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase();
+    }else if(modoManualPuro){
+      // nunca tocada (null) conta como certa nesse modo — só marcada explicitamente errada conta como erro
+      acertou=q.acertouSimplificado!==false;
     }else{
       // aqui só chega quem foi tocado manualmente de propósito — nunca null (bloqueio acima já garante isso)
       acertou=q.acertouSimplificado===true;
@@ -3144,7 +3170,8 @@ function renderQuestoes(){
           </div>`;
         }
         const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
-        const faltando=qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
+        const modoManualPuroCard=!qsDessa.some(q=>q.suaResposta);
+        const faltando=modoManualPuroCard?0:qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
         const respondidas=qsDessa.length-faltando;
         const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
         return `<div class="prox-item" onclick="abrirMarcacaoPendente('${ap.id}')" style="cursor:pointer">
