@@ -3336,8 +3336,7 @@ function renderQuestoes(){
     ${gruposPorCurso.map(g=>`
       <div class="cadernos-grupo-curso">
         <div class="cadernos-grupo-header">
-          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}">`:''}
-          <span>${g.curso}</span>
+          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}">`:`<span>${g.curso}</span>`}
         </div>
         ${g.atividades.map(renderItemCaderno).join('')}
       </div>
