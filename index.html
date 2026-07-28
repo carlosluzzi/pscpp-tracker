@@ -399,12 +399,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .foco-materia-feito{flex-shrink:0;font-size:12px;padding:6px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
 .foco-materia-feito:hover{background:#f5f5f3;color:#111;border-color:#999}
 .prox-list{display:flex;flex-direction:column;gap:0;margin-bottom:4px}
-.cadernos-grupo-curso{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e6e6e3}
+.cadernos-grupo-curso{margin-bottom:18px;padding-bottom:16px;border-bottom:2px solid #dcdcd8}
 .cadernos-grupo-curso:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
 .cadernos-grupo-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .cadernos-grupo-header img{height:15px;width:auto;object-fit:contain;display:block}
 .cadernos-grupo-header span{font-size:var(--fs-c);font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.3px}
-.cadernos-item-leve{padding:9px 0;cursor:pointer;border-top:1px solid #f0f0ee;display:flex;align-items:center;gap:10px}
+.cadernos-item-leve{padding:9px 0;cursor:pointer;border-top:1px solid #f7f7f5;display:flex;align-items:center;gap:10px}
 .cadernos-grupo-curso .cadernos-item-leve:first-child{border-top:none}
 .cadernos-item-leve.problema{cursor:default}
 .cadernos-item-icone{flex-shrink:0;width:20px;height:20px}
@@ -3282,12 +3282,11 @@ function renderQuestoes(){
 
   function renderItemCaderno(ap){
     if(ap.status==='Falha na Extração'){
-      const iconeFantasma=`<svg class="cadernos-item-icone" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>`;
-      return `<div class="cadernos-item-leve problema" style="border-left:3px solid #A32D2D;padding-left:8px">
-        ${iconeFantasma}
+      const tipoAbrevFalha=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
+      return `<div class="cadernos-item-leve problema">
         <div class="prox-left">
-          <span class="prox-nome" style="color:#A32D2D">${ap.nome||'(nome não identificado)'}</span>
-          <span class="prox-modalidade" style="color:#A32D2D">${ap.tipo} · não consegui ler esse arquivo</span>
+          <span class="prox-nome" style="color:#A32D2D">${tipoAbrevFalha}${ap.nome?' '+ap.nome:''}</span>
+          <span class="prox-modalidade" style="color:#A32D2D">não consegui ler esse arquivo</span>
         </div>
         <button class="prox-confirm-btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D;flex-shrink:0" ${ap.reextracaoSolicitada?'disabled':''} onclick="event.stopPropagation();solicitarReextracaoAtividade('${ap.id}')">${ap.reextracaoSolicitada?'Já solicitado':'Tentar de novo'}</button>
       </div>`;
