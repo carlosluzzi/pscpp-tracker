@@ -779,10 +779,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div class="modal-box">
     <div class="config-title">Registrar sessão de estudo</div>
     <select class="filter-select" id="registro-manual-modulo" onchange="atualizarPublicacoesRegistroManual()"></select>
-    <select class="filter-select" id="registro-manual-publicacao">
+    <select class="filter-select" id="registro-manual-publicacao" onchange="atualizarCapitulosRegistroManual()">
       <option value="">Publicação (opcional)</option>
     </select>
-    <input type="number" min="1" class="filter-select" id="registro-manual-capitulo" placeholder="Capítulo (opcional)">
+    <select class="filter-select" id="registro-manual-capitulo">
+      <option value="">Capítulo (opcional)</option>
+    </select>
     <select class="filter-select" id="registro-manual-tipo">
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
@@ -1040,11 +1042,14 @@ async function loadData(){
     // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
     // pra não travar o resto do app se o PilotQuest estiver fora do ar.
     try{
-      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao');
+      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
       if(eBib) throw eBib;
       bibliografia=bibRes.map(p=>({
         modulo:p.modulo_pscpp,
         nome:p.nome_exibicao||p.titulo,
+        capituloUnico:p.capitulo_unico||false,
+        capitulosValidos:p.capitulos_validos||[],
+        rotuloCapitulo:p.rotulo_capitulo||'Capítulo',
       })).filter(b=>b.modulo&&b.nome);
     }catch(e){
       bibliografia=[];
@@ -1686,11 +1691,19 @@ function renderAprovado(){
         <option value="">Selecione o módulo</option>
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
-      <select class="filter-select" onchange="timerPublicacao=this.value" ${timerRodando||!timerModulo?'disabled':''}>
+      <select class="filter-select" onchange="timerPublicacao=this.value;timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando||!timerModulo?'disabled':''}>
         <option value="">Publicação (opcional)</option>
         ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
-      <input type="number" min="1" class="filter-select" placeholder="Capítulo (opcional)" value="${timerCapitulo}" oninput="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
+      ${(()=>{
+        const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
+        if(!timerPublicacao||!pubInfo||pubInfo.capituloUnico) return '';
+        if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length) return '';
+        return `<select class="filter-select" onchange="timerCapitulo=this.value" ${timerRodando?'disabled':''}>
+          <option value="">${pubInfo.rotuloCapitulo} (opcional)</option>
+          ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
+        </select>`;
+      })()}
       <div class="filter-row">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -1872,11 +1885,13 @@ async function pararESalvarTimer(){
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
   if(minutos<1){ alert('Sessão muito curta pra salvar (menos de 1 minuto).'); return; }
+  const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
+  const rotuloSalvar=pubInfoSalvar?pubInfoSalvar.rotuloCapitulo:'Capítulo';
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
       modulo:timerModulo,
       publicacao:timerPublicacao||null,
-      capitulo:timerCapitulo?`Capítulo ${timerCapitulo}`:null,
+      capitulo:timerCapitulo?`${rotuloSalvar} ${timerCapitulo}`:null,
       tipo:timerTipo,
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
@@ -1894,7 +1909,6 @@ function abrirRegistroManual(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
   document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
   atualizarPublicacoesRegistroManual();
-  document.getElementById('registro-manual-capitulo').value='';
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('registro-manual-modal').style.display='flex';
@@ -1903,6 +1917,20 @@ function atualizarPublicacoesRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
   const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
   document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação (opcional)</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
+  atualizarCapitulosRegistroManual();
+}
+function atualizarCapitulosRegistroManual(){
+  const modulo=document.getElementById('registro-manual-modulo').value;
+  const publicacao=document.getElementById('registro-manual-publicacao').value;
+  const capSelect=document.getElementById('registro-manual-capitulo');
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!publicacao||!pubInfo||pubInfo.capituloUnico||!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
+    capSelect.innerHTML='<option value="">Capítulo (opcional)</option>';
+    capSelect.disabled=true;
+    return;
+  }
+  capSelect.disabled=false;
+  capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo} (opcional)</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
 }
 function fecharRegistroManual(){
   document.getElementById('registro-manual-modal').style.display='none';
@@ -1910,7 +1938,9 @@ function fecharRegistroManual(){
 async function salvarRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
   const publicacao=document.getElementById('registro-manual-publicacao').value;
-  const numCapitulo=document.getElementById('registro-manual-capitulo').value.trim();
+  const numCapitulo=document.getElementById('registro-manual-capitulo').value;
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
   const tipo=document.getElementById('registro-manual-tipo').value;
   const duracao=parseInt(document.getElementById('registro-manual-duracao').value,10);
   const data=document.getElementById('registro-manual-data').value;
@@ -1919,7 +1949,7 @@ async function salvarRegistroManual(){
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,publicacao:publicacao||null,capitulo:numCapitulo?`Capítulo ${numCapitulo}`:null,tipo,duracao_minutos:duracao,data,
+      modulo,publicacao:publicacao||null,capitulo:numCapitulo?`${rotulo} ${numCapitulo}`:null,tipo,duracao_minutos:duracao,data,
     });
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
