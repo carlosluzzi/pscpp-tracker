@@ -1521,6 +1521,15 @@ async function finalizarCadernoPendente(){
     }
   }
 
+  // Nunca finaliza silenciosamente com capítulo faltando — mesmo com todas as respostas já
+  // detectadas/marcadas. Exige confirmação explícita (não é bloqueio permanente, já que algumas
+  // questões genuinamente não têm capítulo citado na fonte — mas isso nunca passa despercebido).
+  const semCapituloFinalizar=qs.filter(q=>!q.capitulo).map(q=>q.numeroQuestao);
+  if(semCapituloFinalizar.length){
+    const confirmou=confirm(`${semCapituloFinalizar.length} questão(ões) sem capítulo: ${semCapituloFinalizar.join(', ')}.\n\nPode ser porque a fonte genuinamente não cita capítulo nessas, ou porque ainda falta preencher. Confirma que já revisou e quer finalizar mesmo assim?`);
+    if(!confirmou) return;
+  }
+
   const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
   if(!nomeAtividade||!nomeAtividade.trim()) return;
 
