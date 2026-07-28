@@ -402,7 +402,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cadernos-grupo-curso{margin-bottom:18px;padding-bottom:16px;border-bottom:2px solid #dcdcd8}
 .cadernos-grupo-curso:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
 .cadernos-grupo-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.cadernos-grupo-header img{height:15px;width:auto;object-fit:contain;display:block}
+.cadernos-grupo-header img{width:auto;object-fit:contain;display:block}
 .cadernos-grupo-header span{font-size:var(--fs-c);font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.3px}
 .cadernos-item-leve{padding:9px 0;cursor:pointer;border-top:1px solid #f7f7f5;display:flex;align-items:center;gap:10px}
 .cadernos-grupo-curso .cadernos-item-leve:first-child{border-top:none}
@@ -1334,7 +1334,8 @@ async function abrirMarcacaoPendente(atividadePendenteId){
   if(!ap) return;
   resolucaoAtividadeId=atividadePendenteId;
   const tipoAbrevTitulo=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
-  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:18px;width:auto;object-fit:contain">`:'';
+  const logoMaiorTitulo=ap.curso==='Catavento'||ap.curso==='Curso Prático';
+  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:${logoMaiorTitulo?18:16}px;width:auto;object-fit:contain">`:'';
   document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tipoAbrevTitulo}${ap.nome?' '+ap.nome:''}</span>`;
   document.getElementById('marcacao-fullscreen').classList.remove('hidden');
   renderizarListaMarcacao();
@@ -3332,14 +3333,16 @@ function renderQuestoes(){
     <div class="card-header-row">
       <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('lista')}</span><span style="color:#202A45">Cadernos pendentes</span></div>
     </div>
-    ${gruposPorCurso.map(g=>`
+    ${gruposPorCurso.map(g=>{
+      const logoMaiorGrupo=g.curso==='Catavento'||g.curso==='Curso Prático';
+      return `
       <div class="cadernos-grupo-curso">
         <div class="cadernos-grupo-header">
-          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}">`:`<span>${g.curso}</span>`}
+          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}" class="${logoMaiorGrupo?'prox-logo-curso-18':'prox-logo-curso'}">`:`<span>${g.curso}</span>`}
         </div>
         ${g.atividades.map(renderItemCaderno).join('')}
       </div>
-    `).join('')}
+    `;}).join('')}
     ${semCursoIdentificado.length?`
       <div class="cadernos-grupo-curso">
         <div class="cadernos-grupo-header"><span>Aguardando identificação</span></div>
