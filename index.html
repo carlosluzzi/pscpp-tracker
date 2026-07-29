@@ -3274,7 +3274,8 @@ function renderQuestoes(){
   const ORDEM_CURSOS=['Curso H','Curso Prático','MPX','Catavento'];
   const gruposPorCurso=ORDEM_CURSOS.map(curso=>({
     curso,
-    atividades:pendentesAtivas.filter(ap=>ap.curso===curso),
+    atividades:pendentesAtivas.filter(ap=>ap.curso===curso)
+      .sort((a,b)=>(a.nome||'').localeCompare(b.nome||'',undefined,{numeric:true,sensitivity:'base'})),
   })).filter(g=>g.atividades.length);
   // atividades sem curso identificado (ex: Aguardando Confirmação) ficam num grupo à parte, no fim
   const semCursoIdentificado=pendentesAtivas.filter(ap=>!ORDEM_CURSOS.includes(ap.curso));
