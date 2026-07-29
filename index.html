@@ -1490,10 +1490,25 @@ async function salvarEdicaoModuloQuestao(){
   const modulo=document.getElementById('edicao-modulo-select').value||null;
   const publicacao=document.getElementById('edicao-publicacao-select').value||null;
   const capitulo=document.getElementById('edicao-capitulo-select').value||null;
+  const q=questoesPendentes.find(qq=>qq.id===edicaoModuloQuestaoId);
   try{
     const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao,capitulo}).eq('id',edicaoModuloQuestaoId);
     if(error) throw error;
-    const q=questoesPendentes.find(qq=>qq.id===edicaoModuloQuestaoId);
+    // Se essa questão já tinha página mostrada (capítulo não veio da citação) e agora um capítulo
+    // de verdade foi escolhido, vira conhecimento reaproveitável — grava na tabela de referência
+    // pra próxima questão com a mesma página, na mesma publicação, poder se resolver sozinha.
+    if(q&&q.pagina&&capitulo&&capitulo!==CAPITULO_CONFIRMADO_VAZIO&&publicacao){
+      const faixaPagina=q.pagina.match(/Página (\d+)(?:-(\d+))?/);
+      if(faixaPagina){
+        const pagina_inicio=parseInt(faixaPagina[1],10);
+        const pagina_fim=faixaPagina[2]?parseInt(faixaPagina[2],10):pagina_inicio;
+        try{
+          await sbAuth.from('paginas_capitulos_referencia').insert({
+            publicacao,pagina_inicio,pagina_fim,capitulo,origem:'preenchido_manual',
+          });
+        }catch(e2){ /* não bloqueia o salvamento principal se isso falhar */ }
+      }
+    }
     if(q){ q.modulo=modulo; q.publicacao=publicacao; q.capitulo=capitulo; }
     fecharEdicaoModuloQuestao();
     renderizarListaMarcacao();
