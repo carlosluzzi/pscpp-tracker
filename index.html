@@ -129,7 +129,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 #marcacao-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px 16px;border-bottom:0.5px solid #e0e0e0}
 #marcacao-titulo{font-size:16px;font-weight:600;color:#111;display:flex;align-items:center;gap:8px}
 .marcacao-fechar-btn{background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:6px}
-#marcacao-lista-wrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 16px 20px 16px}
+#marcacao-lista-wrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 16px 20px 16px;overscroll-behavior:contain}
 .marcacao-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:0.5px solid #eee}
 .marcacao-item-esq{display:flex;flex-direction:column;gap:2px;min-width:0}
 .marcacao-num{font-size:16px;font-weight:600;color:#111}
@@ -3624,6 +3624,26 @@ function finalizarSplash(){
       resetVisual();
     }
   },{passive:true});
+})();
+
+// Trava o bounce nativo na lista de questões dentro do caderno — nem no topo (não tem pull-to-
+// refresh aqui, não faz sentido "puxar") nem no final (não pode sobrar espaço vazio embaixo).
+(function travarBounceListaMarcacao(){
+  const lista=document.getElementById('marcacao-lista-wrap');
+  if(!lista) return;
+  let yInicial=null;
+  lista.addEventListener('touchstart',(e)=>{
+    yInicial=e.touches[0].clientY;
+  },{passive:true});
+  lista.addEventListener('touchmove',(e)=>{
+    if(yInicial===null) return;
+    const delta=e.touches[0].clientY-yInicial;
+    const noTopo=lista.scrollTop<=0;
+    const noFinal=lista.scrollTop+lista.clientHeight>=lista.scrollHeight-1;
+    if((noTopo&&delta>0)||(noFinal&&delta<0)){
+      e.preventDefault();
+    }
+  },{passive:false});
 })();
 </script>
 </body>
