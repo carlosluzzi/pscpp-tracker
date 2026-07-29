@@ -620,7 +620,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       </select>
     </div>
     <div class="config-item hidden" id="edicao-pagina-wrap">
-      <div class="config-label">Página (da fonte, informativo — abre o livro nessa página pra achar o capítulo)</div>
+      <div class="config-label">Página (da fonte, informativo – abre o livro nessa página pra achar o capítulo)</div>
       <div class="filter-select" id="edicao-pagina-texto" style="margin-bottom:0;color:#888;background:#f5f5f3;cursor:default"></div>
     </div>
     <div class="modal-actions">
@@ -743,12 +743,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
     <div class="config-item">
       <div class="config-label">Notificações</div>
-      <div class="config-desc">Lembretes de estudo — em breve</div>
+      <div class="config-desc">Lembretes de estudo – em breve</div>
     </div>
 
     <div class="config-item">
       <div class="config-label">Exportar dados</div>
-      <div class="config-desc">Baixar tudo em CSV/JSON — em breve</div>
+      <div class="config-desc">Baixar tudo em CSV/JSON – em breve</div>
     </div>
 
     <div class="config-item">
@@ -1600,7 +1600,7 @@ async function finalizarCadernoPendente(){
   if(!modoManualPuro){
     const semResposta=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).map(q=>q.numeroQuestao);
     if(semResposta.length){
-      alert(`Ainda falta${semResposta.length>1?'m':''} ${semResposta.length} questão${semResposta.length>1?'ões':''} sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo — o que vier primeiro resolve a questão.`);
+      alert(`Ainda falta${semResposta.length>1?'m':''} ${semResposta.length} questão${semResposta.length>1?'ões':''} sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo – o que vier primeiro resolve a questão.`);
       return;
     }
   }
@@ -1616,7 +1616,7 @@ async function finalizarCadernoPendente(){
     if(semModulo.length) partes.push(`Sem módulo: ${semModulo.join(', ')}`);
     if(semPublicacao.length) partes.push(`Sem publicação: ${semPublicacao.join(', ')}`);
     if(semCapituloFinalizar.length) partes.push(`Sem capítulo: ${semCapituloFinalizar.join(', ')} (toque em "+ módulo / publicação" na questão e escolha "${CAPITULO_CONFIRMADO_VAZIO}" se a fonte genuinamente não citar)`);
-    alert(`Não dá pra finalizar ainda — falta preencher:\n\n${partes.join('\n')}`);
+    alert(`Não dá pra finalizar ainda – falta preencher:\n\n${partes.join('\n')}`);
     return;
   }
 
@@ -1705,7 +1705,7 @@ function renderAprovado(){
     const cc=modCores[r.modulo];
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${r.modulo}${r.publicacao?' — '+r.publicacao:''}</span>
+        <span class="prox-nome">${r.modulo}${r.publicacao?' – '+r.publicacao:''}</span>
         <span class="prox-modalidade" style="color:${cc.tx}">nível ${r.nivel+1} da sequência</span>
       </div>
       <button class="prox-confirm-btn" onclick="concluirRevisao('${r.id}')">concluí</button>
@@ -1729,7 +1729,7 @@ function renderAprovado(){
     const refCompleta=s.publicacao||'';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${s.modulo}${refCompleta?' — '+refCompleta:''}</span>
+        <span class="prox-nome">${s.modulo}${refCompleta?' – '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
       </div>
       <span class="historico-excluir" onclick="excluirSessaoEstudo('${s.id}')">✕</span>
@@ -1837,7 +1837,7 @@ function renderAprovado(){
     </div>
 
     <div class="card-inicio">
-      ${sectionTitle('Horas por matéria — últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
+      ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
@@ -1874,7 +1874,7 @@ function renderTimerFullscreenConteudo(){
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <div>
-      <div class="tf-modulo">${timerModulo||'—'}</div>
+      <div class="tf-modulo">${timerModulo||'–'}</div>
       ${refCompleta?`<div class="tf-ref">${refCompleta}</div>`:'<div class="tf-ref" style="margin-bottom:32px"></div>'}
       <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
       <div class="tf-tipo">${timerTipo}</div>
@@ -2194,9 +2194,9 @@ function ativCard(a,clicavel=true){
     <div class="ativ-top"><span class="ativ-title">${a.nome}</span></div>
     <div class="ativ-badges">${badgesCursoTipo(a)}</div>
     <div class="ativ-metrics">
-      <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'—'}</div><div class="ativ-metric-lbl">pontos</div></div>
-      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'—'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
-      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'—'}</div><div class="ativ-metric-lbl">erros</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'–'}</div><div class="ativ-metric-lbl">erros</div></div>
     </div>
   </div>`;
 }
@@ -2250,7 +2250,7 @@ function renderResumoTopo(){
       <div class="resumo-stat" style="cursor:pointer;color:#202A45;position:relative">
         <input type="date" value="${dataProvaUsada||''}" onchange="salvarDataProva(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;border:0;-webkit-appearance:none">
         <svg viewBox="0 0 64 64" fill="currentColor"><path d="M60,6h-7V4c0-2.212-1.789-4-4-4H15c-2.211,0-4,1.788-4,4v2H4c-2.211,0-4,1.788-4,4v8 c0,6.074,4.925,11,11,11h0.096C12.01,38.659,19.477,46.395,29,47.761V56h-7c-2.211,0-4,1.788-4,4v3c0,0.552,0.447,1,1,1h26 c0.553,0,1-0.448,1-1v-3c0-2.212-1.789-4-4-4h-7v-8.239c9.523-1.366,16.985-9.1,17.899-18.761H53c6.075,0,11-4.926,11-11v-8 C64,7.788,62.211,6,60,6z M11,23c-2.762,0-5-2.239-5-5v-6h5V23z M2,18v-8c0-1.105,0.896-2,2-2h7v2H5c-0.553,0-1,0.446-1,1v7 c0,3.865,3.134,7,7,7v2C6.029,27,2,22.97,2,18z M42,58c1.104,0,2,0.895,2,2v2H20v-2c0-1.105,0.896-2,2-2H42z M31,56v-8.052 C31.334,47.964,31.662,48,32,48s0.666-0.036,1-0.052V56H31z M51,27c0,10.492-8.507,19-19,19s-19-8.508-19-19V4c0-1.105,0.896-2,2-2 h34c1.104,0,2,0.895,2,2V27z M53,12h5v6c0,2.761-2.238,5-5,5V12z M62,18c0,4.97-4.029,9-9,9v-2c3.866,0,7-3.135,7-7v-7 c0-0.554-0.447-1-1-1h-6V8h7c1.104,0,2,0.895,2,2V18z"/><path d="M39.147,19.36l-4.309-0.658l-1.936-4.123c-0.165-0.352-0.518-0.575-0.905-0.575s-0.74,0.224-0.905,0.575 l-1.936,4.123l-4.309,0.658c-0.37,0.058-0.678,0.315-0.797,0.671s-0.029,0.747,0.232,1.016l3.146,3.227l-0.745,4.564 c-0.062,0.378,0.099,0.758,0.411,0.979s0.725,0.243,1.061,0.059l3.841-2.123l3.841,2.123C35.99,29.959,36.157,30,36.323,30 c0.202,0,0.404-0.062,0.576-0.184c0.312-0.221,0.473-0.601,0.411-0.979l-0.745-4.564l3.146-3.227 c0.262-0.269,0.352-0.66,0.232-1.016S39.518,19.418,39.147,19.36z M34.781,23.238c-0.222,0.228-0.322,0.546-0.271,0.859 l0.495,3.029l-2.522-1.395c-0.151-0.083-0.317-0.125-0.484-0.125s-0.333,0.042-0.484,0.125l-2.522,1.395l0.495-3.029 c0.051-0.313-0.05-0.632-0.271-0.859l-2.141-2.193l2.913-0.446c0.329-0.05,0.612-0.261,0.754-0.563l1.257-2.678l1.257,2.678 c0.142,0.303,0.425,0.514,0.754,0.563l2.913,0.446L34.781,23.238z"/></svg>
-        <span class="resumo-stat-num">${diasProva!==null?diasProva:'—'}</span>
+        <span class="resumo-stat-num">${diasProva!==null?diasProva:'–'}</span>
         <span class="resumo-stat-label">Dias até<br class="mobile-break">a prova</span>
       </div>
 
@@ -2369,7 +2369,7 @@ function renderFocoItem(m,i){
   // agrupa por matéria: tag quando existe, senão o nome da publicação como fallback
   const materiaInfo={};
   errosDoModulo.forEach(q=>{
-    const pub=q.publicacao||'—';
+    const pub=q.publicacao||'–';
     if(q.tags&&q.tags.length){
       q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
     }else{
@@ -2384,7 +2384,7 @@ function renderFocoItem(m,i){
       qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(info.label));
       const contagem={};
       qsDaMateria.forEach(q=>{
-        const k=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+        const k=`${q.publicacao||'–'}|||${q.capitulo||''}`;
         contagem[k]=(contagem[k]||0)+1;
       });
       const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
@@ -2538,7 +2538,7 @@ function calcularFocoSugerido(moduloNome){
     const qsComTag=erros.filter(q=>(q.tags||[]).includes(tagTop));
     const contagemPub={};
     qsComTag.forEach(q=>{
-      const chave=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+      const chave=`${q.publicacao||'–'}|||${q.capitulo||''}`;
       contagemPub[chave]=(contagemPub[chave]||0)+1;
     });
     const [chaveTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
@@ -2547,7 +2547,7 @@ function calcularFocoSugerido(moduloNome){
   }
   const contagemPub={};
   erros.forEach(q=>{
-    const pub=q.publicacao||'—';
+    const pub=q.publicacao||'–';
     contagemPub[pub]=(contagemPub[pub]||0)+1;
   });
   const [pubTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
@@ -2570,7 +2570,7 @@ function calcularMateriasGlobais(){
     if(q.tags&&q.tags.length){
       q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
     }else{
-      const pub=q.publicacao||'—';
+      const pub=q.publicacao||'–';
       materiaInfo['pub::'+pub]={isTag:false,label:pub,pubFallback:pub};
     }
   });
@@ -2588,7 +2588,7 @@ function calcularMateriasGlobais(){
     const modulo=qsDaMateria[0]?qsDaMateria[0].modulo:'';
     const contagem={};
     qsDaMateria.forEach(q=>{
-      const k=`${q.publicacao||'—'}|||${q.capitulo||''}`;
+      const k=`${q.publicacao||'–'}|||${q.capitulo||''}`;
       contagem[k]=(contagem[k]||0)+1;
     });
     const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
@@ -2737,8 +2737,8 @@ function renderCardBancoPratico(){
         return `<div class="fila-item">
         <span class="foco-icone" style="flex-shrink:0">${iconeSvgModulo(f.modulo,modCores[f.modulo]?modCores[f.modulo].tx:'#5F5E5A')}</span>
         <div class="fila-info">
-          <span class="fila-modulo">${f.modulo||'—'}</span>
-          <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'—'}${f.capitulo?', '+f.capitulo:''}</span>
+          <span class="fila-modulo">${f.modulo||'–'}</span>
+          <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'–'}${f.capitulo?', '+f.capitulo:''}</span>
           ${f.materia!==f.publicacao?`<span class="fila-foco">Foco em ${f.materia}</span>`:''}
           ${pctMod!==undefined?`<div class="fila-bar-row"><div class="pub-bar-bg" style="flex:1"><div class="pub-bar-fill" style="width:${pctMod}%;background:${fc(pctMod)}"></div></div><span class="fila-bar-pct" style="color:${fc(pctMod)}">${pctMod}%</span><span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span></div>`:`<span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span>`}
           <div class="fila-bottom">
@@ -2747,7 +2747,7 @@ function renderCardBancoPratico(){
         </div>
         <button class="foco-materia-feito" onclick="abrirConfirmacao('${f.id}','${f.materia.replace(/'/g,"\\'")}','filaBanco')">feito</button>
       </div>`;
-      }).join(''):'<div class="empty">Nenhuma sugestão ainda — processe um simulado com erros pra começar.</div>'}
+      }).join(''):'<div class="empty">Nenhuma sugestão ainda – processe um simulado com erros pra começar.</div>'}
     </div>
   `;
 }
@@ -3050,15 +3050,15 @@ function renderDetalhe(a){
     const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
     return `<div class="ec">
       <div class="er" onclick="toggleErrada(${i})">
-        <span class="eq">${e.questao||'—'}</span>
-        <span class="ep">${e.publicacao?nomePub(e.publicacao):"—"}</span>
-        <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'—'}</span>
+        <span class="eq">${e.questao||'–'}</span>
+        <span class="ep">${e.publicacao?nomePub(e.publicacao):"–"}</span>
+        <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'–'}</span>
         <span class="chev" id="echev${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
       </div>
       <div class="ed" id="ed${i}">
         <div class="rs">
-          <span class="rl">Sua resposta</span><span class="rv re">${e.suaResposta||'—'}</span>
-          <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'—'}</span>
+          <span class="rl">Sua resposta</span><span class="rv re">${e.suaResposta||'–'}</span>
+          <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'–'}</span>
         </div>
         ${tags?`<div class="tr">${tags}</div>`:''}
         ${e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo)}</div>`:''}
@@ -3070,10 +3070,10 @@ function renderDetalhe(a){
     <div class="detail-back" onclick="voltarLista()">← Atividades</div>
     <div class="ativ-badges">${badgesCursoTipo(a)}</div>
     <div class="mtr-grid" style="margin-top:12px">
-      <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'—'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'—'}</span></div></div>
-      <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'—'}</div></div>
-      <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'—'}</div></div>
-      <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'—'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'–'}</span></div></div>
+      <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'–'}</div></div>
+      <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${modsHtml}`:''}
     ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
@@ -3113,7 +3113,7 @@ function renderPubsCards(qs){
     const pc=fc(pp);
     const caps=pqs.map(q=>{
       const si=statusInfo(q);
-      const capitulo=q.capitulo||'—';
+      const capitulo=q.capitulo||'–';
       const assuntoHtml=q.assuntoPrincipal
         ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
         :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
@@ -3239,7 +3239,7 @@ function badgesQuestao(q){
   return `<div class="q-badges">
     ${ativ&&cc?`<span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${ativ.curso}</span>`:''}
     ${ativ&&tc?`<span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${ativ.tipo}</span>`:''}
-    <span class="q-mod" style="background:${cor.bg};color:${cor.tx}">${q.modulo||'—'}</span>
+    <span class="q-mod" style="background:${cor.bg};color:${cor.tx}">${q.modulo||'–'}</span>
   </div>`;
 }
 
@@ -3308,7 +3308,7 @@ function renderQuestoes(){
         ${iconeDuvida}
         <div class="prox-left">
           <span class="prox-nome" style="color:#633806">${ap.nomeArquivoOriginal||'(arquivo sem nome)'}</span>
-          <span class="prox-modalidade" style="color:#633806">Não consegui identificar Tipo/Curso — toque pra confirmar</span>
+          <span class="prox-modalidade" style="color:#633806">Não consegui identificar Tipo/Curso – toque pra confirmar</span>
         </div>
       </div>`;
     }
@@ -3401,15 +3401,15 @@ function renderQuestoes(){
       const statusCor=q.status==='Errei'?{bg:'#FCEBEB',tx:'#A32D2D'}:q.status==='Acertei com dúvida'?{bg:'#FAEEDA',tx:'#633806'}:q.status==='Anulada'?{bg:'#FAEEDA',tx:'#854F0B'}:{bg:'#EAF3DE',tx:'#3B6D11'};
       return `<div class="q-card">
         <div class="q-row" onclick="document.getElementById('qd${i}').classList.toggle('open')">
-          <span class="q-num">${q.questao||'—'}</span>
-          <span class="q-pub">${q.publicacao?nomePub(q.publicacao):"—"}</span>
-          <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status||'—'}</span>
+          <span class="q-num">${q.questao||'–'}</span>
+          <span class="q-pub">${q.publicacao?nomePub(q.publicacao):"–"}</span>
+          <span class="q-status-badge" style="background:${statusCor.bg};color:${statusCor.tx}">${q.status||'–'}</span>
         </div>
         <div class="q-detail" id="qd${i}">
           ${badgesQuestao(q)}
           <div class="rs">
-            <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'—'}</span>
-            <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'—'}</span>
+            <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'–'}</span>
+            <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
           </div>
           ${tags?`<div class="tr">${tags}</div>`:''}
           ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo)}</div>`:''}
