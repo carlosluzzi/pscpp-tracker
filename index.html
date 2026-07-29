@@ -673,7 +673,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       </span>
       <span class="sync-status">
         <span class="sync-dot loading js-sync-dot"></span>
-        <span class="js-sync-text">Conectando...</span>
       </span>
     </span>
   </div>
@@ -1020,16 +1019,15 @@ let filtQCurso='todos',filtQTipo='todos',filtQAtividade='todos',filtQQuestao='to
 let filtDataInicio='',filtDataFim='';
 
 let syncState='loading';
-function setSyncStatus(state,text){
+function setSyncStatus(state){
   syncState=state;
   document.querySelectorAll('.js-sync-dot').forEach(dot=>{
     dot.className='sync-dot js-sync-dot'+(state==='ok'?' ok':state==='loading'?' loading':' error');
   });
-  document.querySelectorAll('.js-sync-text').forEach(txt=>{txt.textContent=text;});
 }
 
 async function loadData(){
-  setSyncStatus('loading','Sincronizando...');
+  setSyncStatus('loading');
   try{
     const [
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
@@ -1186,11 +1184,11 @@ async function loadData(){
       acertouSimplificado:p.acertou_simplificado,
     })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
     await verificarFilaBancoPratico();
-    setSyncStatus('ok','Sincronizado');
+    setSyncStatus('ok');
     renderTab(tabAtual,true);
     finalizarSplash();
   }catch(e){
-    setSyncStatus('error','Erro de conexão');
+    setSyncStatus('error');
     document.getElementById('content').innerHTML=`<div class="error-screen">Erro ao conectar com o banco de dados.<br><br>${e.message}</div>`;
     finalizarSplash();
   }
@@ -2275,7 +2273,6 @@ function renderHeaderZone(){
           </span>
           <span class="sync-status">
             <span class="sync-dot js-sync-dot${syncState==='ok'?' ok':syncState==='loading'?' loading':' error'}"></span>
-            <span class="js-sync-text">${syncState==='error'?'Erro de conexão':syncState==='loading'?'Sincronizando...':'Sincronizado'}</span>
           </span>
         </span>
       </div>
