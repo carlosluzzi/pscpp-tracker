@@ -3563,8 +3563,14 @@ function finalizarSplash(){
     },200); // mesma duração da transição de altura do indicador
   }
 
+  function algumaTelaFullscreenAberta(){
+    const marcacao=document.getElementById('marcacao-fullscreen');
+    const timer=document.getElementById('timer-fullscreen');
+    return (marcacao&&!marcacao.classList.contains('hidden'))||(timer&&!timer.classList.contains('hidden'));
+  }
+
   contentEl.addEventListener('touchstart',(e)=>{
-    if(atualizando) return;
+    if(atualizando||algumaTelaFullscreenAberta()) return;
     if(contentEl.scrollTop<=0){
       yInicial=e.touches[0].clientY;
       arrastando=true;
@@ -3576,7 +3582,7 @@ function finalizarSplash(){
   },{passive:true});
 
   contentEl.addEventListener('touchmove',(e)=>{
-    if(!arrastando||yInicial===null||atualizando) return;
+    if(!arrastando||yInicial===null||atualizando||algumaTelaFullscreenAberta()){ resetVisual(); arrastando=false; return; }
     const delta=e.touches[0].clientY-yInicial;
     if(delta<=0){ resetVisual(); return; }
     if(contentEl.scrollTop>0){ arrastando=false; return; }
