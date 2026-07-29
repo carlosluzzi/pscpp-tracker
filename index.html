@@ -134,7 +134,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .marcacao-item-esq{display:flex;flex-direction:column;gap:2px;min-width:0}
 .marcacao-num{font-size:16px;font-weight:600;color:#111}
 .marcacao-ref{font-size:var(--fs-b);color:#888}
-.marcacao-ref-editavel{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+.marcacao-ref-editavel{cursor:pointer}
 .marcacao-ref-editavel:hover{color:#111}
 .marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:76px;text-align:center}
 .marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
@@ -3327,9 +3327,13 @@ function renderQuestoes(){
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
-        ${semModulo?`<span class="prox-modalidade" style="color:#5F5E5A">${semModulo} sem módulo</span>`:''}
-        ${semPublicacao?`<span class="prox-modalidade" style="color:#5F5E5A">${semPublicacao} sem publicação</span>`:''}
-        ${semCapitulo?`<span class="prox-modalidade" style="color:#5F5E5A">${semCapitulo} sem capítulo</span>`:''}
+        ${(()=>{
+          const partes=[];
+          if(semModulo) partes.push(`${semModulo} sem módulo`);
+          if(semPublicacao) partes.push(`${semPublicacao} sem publicação`);
+          if(semCapitulo) partes.push(`${semCapitulo} sem capítulo`);
+          return partes.length?`<span class="prox-modalidade" style="color:#5F5E5A">${partes.join(' · ')}</span>`:'';
+        })()}
       </div>
     </div>`;
   }
