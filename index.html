@@ -3591,6 +3591,10 @@ function finalizarSplash(){
     const delta=e.touches[0].clientY-yInicial;
     if(delta<=0){ resetVisual(); return; }
     if(contentEl.scrollTop>0){ arrastando=false; return; }
+    // Bloqueia o bounce nativo do Safari aqui — overscroll-behavior sozinho não é confiável em
+    // todas as versões do iOS pra isso. Com passive:false, preventDefault() impede o navegador de
+    // processar esse gesto como scroll/bounce nativo, deixando só o indicador customizado.
+    e.preventDefault();
     const distancia=Math.min(delta*0.5,MAX_ARRASTO);
     indicador.classList.add('ativo');
     indicador.style.height=distancia+'px';
@@ -3601,7 +3605,7 @@ function finalizarSplash(){
       passouLimiar=cruzouAgora;
       seta.classList.toggle('pronta',passouLimiar);
     }
-  },{passive:true});
+  },{passive:false});
 
   contentEl.addEventListener('touchend',async()=>{
     if(!arrastando||yInicial===null){ yInicial=null; return; }
