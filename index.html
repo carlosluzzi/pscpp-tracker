@@ -3490,7 +3490,12 @@ function restaurarPadraoFonte(){
 })();
 
 // re-mede a altura real do nav se a tela girar/mudar de tamanho (orientação, teclado fechando, etc.)
+// — mas ignora resize que só muda a ALTURA (barra de endereço do Safari expandindo/retraindo
+// durante o scroll, que dispara resize repetidamente sem a tela ter mudado de verdade).
+let larguraAnteriorResize=window.innerWidth;
 window.addEventListener('resize',()=>{
+  if(window.innerWidth===larguraAnteriorResize) return;
+  larguraAnteriorResize=window.innerWidth;
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
 });
