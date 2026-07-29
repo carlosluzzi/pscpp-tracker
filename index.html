@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#202A45">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1894,7 +1894,7 @@ function abrirTimerFullscreen(){
   // barra de status. Revertido ao fechar, então não afeta o resto do app (onde isso causava um bug antigo).
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no');
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
 }
 
 function fecharTimerFullscreen(){
