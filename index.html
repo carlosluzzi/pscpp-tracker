@@ -3316,6 +3316,8 @@ function renderQuestoes(){
     const faltando=modoManualPuroCard?0:qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
     const respondidas=qsDessa.length-faltando;
     const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
+    const semModulo=qsDessa.filter(q=>!q.modulo).length;
+    const semPublicacao=qsDessa.filter(q=>!q.publicacao).length;
     const semCapitulo=qsDessa.filter(q=>!q.capitulo).length;
     const semExcelCorrelacao=ap.curso==='Catavento'&&ap.excelCorrelacaoEncontrado===false;
     const tipoAbrev=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
@@ -3325,6 +3327,8 @@ function renderQuestoes(){
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
+        ${semModulo?`<span class="prox-modalidade" style="color:#5F5E5A">${semModulo} sem módulo</span>`:''}
+        ${semPublicacao?`<span class="prox-modalidade" style="color:#5F5E5A">${semPublicacao} sem publicação</span>`:''}
         ${semCapitulo?`<span class="prox-modalidade" style="color:#5F5E5A">${semCapitulo} sem capítulo</span>`:''}
       </div>
     </div>`;
