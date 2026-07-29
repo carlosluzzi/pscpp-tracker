@@ -619,6 +619,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
         <option value="">— escolha a publicação —</option>
       </select>
     </div>
+    <div class="config-item hidden" id="edicao-pagina-wrap">
+      <div class="config-label">Página (da fonte, informativo — abre o livro nessa página pra achar o capítulo)</div>
+      <div class="filter-select" id="edicao-pagina-texto" style="margin-bottom:0;color:#888;background:#f5f5f3;cursor:default"></div>
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharEdicaoModuloQuestao()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarEdicaoModuloQuestao()">Salvar</button>
@@ -1177,7 +1181,7 @@ async function loadData(){
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
-      peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
+      peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,pagina:p.pagina,
       questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
       respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
       zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
@@ -1421,6 +1425,13 @@ function abrirEdicaoModuloQuestao(questaoId){
   document.getElementById('edicao-modulo-select').value=q.modulo||'';
   popularPublicacoesEdicao(q.modulo, q.publicacao);
   popularCapitulosEdicao(q.modulo, q.publicacao, q.capitulo);
+  const paginaWrap=document.getElementById('edicao-pagina-wrap');
+  if(q.pagina){
+    document.getElementById('edicao-pagina-texto').textContent=q.pagina;
+    paginaWrap.classList.remove('hidden');
+  }else{
+    paginaWrap.classList.add('hidden');
+  }
   document.getElementById('edicao-modulo-modal').style.display='flex';
 }
 function aoTrocarModuloEdicao(){
