@@ -1426,9 +1426,9 @@ function renderizarListaMarcacao(){
       controleHtml=`<button class="marcacao-toggle ${estado}" onclick="toggleMarcacaoQuestao('${q.id}')">${rotulo}</button>`;
     }
     return `<div class="marcacao-item">
-      <div class="marcacao-item-esq">
+      <div class="marcacao-item-esq" style="cursor:pointer" onclick="abrirEdicaoModuloQuestao('${q.id}')">
         <span class="marcacao-num">Questão ${q.numeroQuestao}</span>
-        <span class="marcacao-ref marcacao-ref-editavel" style="${faltaAlgo?'color:#A32D2D;font-weight:600':''}" onclick="abrirEdicaoModuloQuestao('${q.id}')">${ref||'+ módulo / publicação'}${faltaAlgo?' ⚠':''}</span>
+        <span class="marcacao-ref${q.gabarito!=='Anulada'?' marcacao-ref-editavel':''}" style="${faltaAlgo&&q.gabarito!=='Anulada'?'color:#A32D2D;font-weight:600':''}">${q.gabarito==='Anulada'?'&nbsp;':(ref||'+ módulo / publicação')}${faltaAlgo&&q.gabarito!=='Anulada'?' ⚠':''}</span>
       </div>
       ${controleHtml}
     </div>`;
