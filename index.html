@@ -247,7 +247,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   .periodo-row .filter-btn{flex:1 1 0}
 }
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
-.filter-btn.active{background:#111;color:#fff;border-color:#111}
+.filter-btn.active{background:#202A45;color:#fff;border-color:#202A45}
 .filter-select{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
 .filter-btn.active.status-errei{background:#A32D2D;border-color:#A32D2D;color:#fff}
 .filter-btn.active.status-duvida{background:#EF9F27;border-color:#EF9F27;color:#fff}
@@ -1830,11 +1830,11 @@ function renderAprovado(){
       </div>
       <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
-        ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
+        ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
       <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo?'disabled':''}>
         <option value="">Publicação</option>
-        ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
+        ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt')).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
@@ -2118,7 +2118,7 @@ async function confirmarSalvarTimer(){
 
 function abrirRegistroManual(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+modulosPscpp.map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
   atualizarPublicacoesRegistroManual();
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-caracteres').value='';
@@ -2127,7 +2127,7 @@ function abrirRegistroManual(){
 }
 function atualizarPublicacoesRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
-  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
+  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt'));
   document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
   atualizarCapitulosRegistroManual();
 }
