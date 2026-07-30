@@ -118,7 +118,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   .mobile-break{display:none}
 }
 
-.section-title{font-size:var(--fs-e);font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
+.section-title{font-size:16px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
 .section-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .section-icon svg{width:17px;height:17px}
 .section-title:first-child{margin-top:0}
@@ -468,8 +468,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cards-2col .card-icone-mini{width:18px;height:18px}
 .cards-2col .card-icone-mini svg{width:10px;height:10px}
 .card-deco{position:absolute;right:8px;bottom:6px;width:60px;height:60px;opacity:0.08;pointer-events:none}
-.notas-postit{background:linear-gradient(180deg,#FDF6DC 0%,#FBEFC4 100%);border-radius:10px;padding:14px 16px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:flex-start;gap:8px}
-.nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:0.5;font-weight:700;color:#E3C271;flex-shrink:0;margin-top:8px}
+.notas-postit{background:linear-gradient(180deg,#F2F8FD 0%,#E5F1FA 100%);border-radius:10px;padding:14px 16px;position:relative;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:flex-start;gap:8px}
+.nota-quote{font-family:Georgia,'Times New Roman',serif;font-size:19px;line-height:0.5;font-weight:700;color:#8FB8DE;flex-shrink:0;margin-top:8px}
 .prox-item.prox-due{background:#FCEBEB;border-radius:10px;padding:12px 10px;margin:2px -10px}
 .prox-list .prox-item.prox-due+.prox-item::before,
 .prox-list .prox-item+.prox-item.prox-due::before{display:none}
@@ -507,8 +507,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* NOTAS DE ESTUDO */
 .notas-list{display:flex;flex-direction:column;gap:8px;margin-bottom:0}
 .nota-card{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:#FEF6E0;border:0.5px solid #F5D98A;border-radius:10px;padding:12px 14px}
-.nota-texto{font-size:var(--fs-d);font-weight:600;color:#4A3600;flex:1;line-height:1.5}
-.nota-close{position:absolute;top:8px;right:10px;font-size:var(--fs-c);color:#8A6D1F;cursor:pointer;opacity:0.45;flex-shrink:0;padding:2px}
+.nota-texto{font-size:var(--fs-d);font-weight:600;color:#1C3A5E;flex:1;line-height:1.5}
+.nota-close{position:absolute;top:8px;right:10px;font-size:var(--fs-c);color:#4A6B8A;cursor:pointer;opacity:0.45;flex-shrink:0;padding:2px}
 .historico-excluir{font-size:var(--fs-c);color:#999;cursor:pointer;opacity:0.5;flex-shrink:0;padding:6px}
 .nota-close:hover{opacity:1}
 .nota-add{font-size:var(--fs-d);color:#888;text-align:center;padding:10px;border:1px dashed #ddd;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -1042,6 +1042,7 @@ let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+let saudacaoSubtexto='Bora estudar';
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
 let alternativaSelecionada=null;
@@ -1065,7 +1066,7 @@ async function loadData(){
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
       {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
-      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend}
+      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -1082,9 +1083,11 @@ async function loadData(){
       sbDados.from('revisoes_espacadas').select('*'),
       sbDados.from('atividades_pendentes').select('*'),
       sbDados.from('questoes_pendentes').select('*'),
+      sbDados.from('app_config').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
+    saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
 
     // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
     // pra não travar o resto do app se o PilotQuest estiver fora do ar.
@@ -1804,11 +1807,13 @@ function renderAprovado(){
       ${semDadoCiclo?`
       <div style="font-size:var(--fs-b);color:#888;padding:4px 0">Registre sua primeira sessão de estudo pra o ciclo começar a recomendar um módulo.</div>
       `:`
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="width:10px;height:10px;border-radius:3px;background:${ccCiclo.tx};flex-shrink:0"></span>
-        <span style="font-size:var(--fs-f);font-weight:600;color:#111">${proxCiclo.modulo}</span>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <span style="width:20px;height:20px;flex-shrink:0;color:${ccCiclo.tx};display:flex;align-items:center;justify-content:center;margin-top:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">${modIcones[proxCiclo.modulo]||''}</svg></span>
+        <div>
+          <span style="font-size:var(--fs-f);font-weight:600;color:#111;display:block">${proxCiclo.modulo}</span>
+          <span style="font-size:var(--fs-b);color:#888">próximo do ciclo, peso ${proxCiclo.peso}</span>
+        </div>
       </div>
-      <div style="font-size:var(--fs-b);color:#888;margin-top:2px">próximo do ciclo, peso ${proxCiclo.peso}</div>
       <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:12px" onclick="usarModuloNoTimer('${proxCiclo.modulo}')">Estudar isso agora</button>
       `}
     </div>
@@ -2198,8 +2203,8 @@ function abrirConfigCiclo(){
     const cfg=cicloEstudosConfig.find(c=>c.modulo===m);
     const peso=cfg?cfg.peso:1;
     return `<div class="config-item" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span style="font-size:var(--fs-d)">${m}</span>
-      <input type="number" class="filter-select" style="width:70px;margin-bottom:0" min="1" max="10" value="${peso}" data-modulo="${m}">
+      <span style="font-size:var(--fs-d);flex:1;min-width:0">${m}</span>
+      <input type="number" class="filter-select" style="width:70px;margin-bottom:0;flex-shrink:0" min="1" max="10" value="${peso}" data-modulo="${m}">
     </div>`;
   }).join('');
   document.getElementById('config-ciclo-modal').style.display='flex';
@@ -2229,8 +2234,8 @@ function abrirConfigMetas(){
     const meta=metasEstudo.find(mt=>mt.modulo===m&&mt.periodo==='Semanal');
     const horas=meta?(meta.metaMinutos/60):'';
     return `<div class="config-item" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span style="font-size:var(--fs-d)">${m}</span>
-      <input type="number" class="filter-select" style="width:70px;margin-bottom:0" min="0" step="0.5" placeholder="horas" value="${horas}" data-modulo="${m}">
+      <span style="font-size:var(--fs-d);flex:1;min-width:0">${m}</span>
+      <input type="number" class="filter-select" style="width:70px;margin-bottom:0;flex-shrink:0" min="0" step="0.5" placeholder="horas" value="${horas}" data-modulo="${m}">
     </div>`;
   }).join('');
   document.getElementById('config-metas-modal').style.display='flex';
@@ -2421,9 +2426,24 @@ function renderCardSaudacao(){
   return `
     <div class="card-saudacao">
       <span class="card-saudacao-texto">${saudacao()}, Carlos!</span>
-      <span class="card-saudacao-subtexto">Bora estudar</span>
+      <span class="card-saudacao-subtexto" style="cursor:pointer" onclick="abrirEditarSaudacaoSubtexto()">${saudacaoSubtexto} <span style="opacity:0.6">✎</span></span>
     </div>
   `;
+}
+function abrirEditarSaudacaoSubtexto(){
+  const novo=prompt('Texto abaixo da saudação:',saudacaoSubtexto);
+  if(novo===null||!novo.trim()) return;
+  salvarSaudacaoSubtexto(novo.trim());
+}
+async function salvarSaudacaoSubtexto(novo){
+  try{
+    const {error}=await sbDados.from('app_config').upsert({chave:'saudacao_subtexto',valor:novo});
+    if(error) throw error;
+    saudacaoSubtexto=novo;
+    renderTab(tabAtual,true);
+  }catch(e){
+    alert('Erro ao salvar: '+e.message);
+  }
 }
 
 function renderInicio(){
