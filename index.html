@@ -1436,9 +1436,9 @@ function renderizarListaMarcacao(){
   // completa: no modo manual puro, null conta como respondida (certa implícita) — no modo misto, não
   const faltando=modoManualPuro?[]:qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
-  const semModuloAviso=qs.filter(q=>!q.modulo);
-  const semPublicacaoAviso=qs.filter(q=>!q.publicacao);
-  const semCapitulo=qs.filter(q=>!q.capitulo);
+  const semModuloAviso=qs.filter(q=>!q.modulo&&q.gabarito!=='Anulada');
+  const semPublicacaoAviso=qs.filter(q=>!q.publicacao&&q.gabarito!=='Anulada');
+  const semCapitulo=qs.filter(q=>!q.capitulo&&q.gabarito!=='Anulada');
   const avisoEl=document.getElementById('resolucao-aviso-incompleta');
   if(incompletas.length){
     const q=incompletas[0];
@@ -1666,9 +1666,9 @@ async function finalizarCadernoPendente(){
   // Bloqueio real, sem escape: nunca finaliza com módulo, publicação ou capítulo faltando em
   // qualquer questão. "Sem capítulo (confirmado)" conta como preenchido — é o Carlos confirmando
   // de propósito que revisou e a fonte genuinamente não cita capítulo ali, não um vazio esquecido.
-  const semModulo=qs.filter(q=>!q.modulo).map(q=>q.numeroQuestao);
-  const semPublicacao=qs.filter(q=>!q.publicacao).map(q=>q.numeroQuestao);
-  const semCapituloFinalizar=qs.filter(q=>!q.capitulo).map(q=>q.numeroQuestao);
+  const semModulo=qs.filter(q=>!q.modulo&&q.gabarito!=='Anulada').map(q=>q.numeroQuestao);
+  const semPublicacao=qs.filter(q=>!q.publicacao&&q.gabarito!=='Anulada').map(q=>q.numeroQuestao);
+  const semCapituloFinalizar=qs.filter(q=>!q.capitulo&&q.gabarito!=='Anulada').map(q=>q.numeroQuestao);
   if(semModulo.length||semPublicacao.length||semCapituloFinalizar.length){
     const partes=[];
     if(semModulo.length) partes.push(`Sem módulo: ${semModulo.join(', ')}`);
@@ -3521,9 +3521,9 @@ function renderQuestoes(){
     const faltando=modoManualPuroCard?0:qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
     const respondidas=qsDessa.length-faltando;
     const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
-    const semModulo=qsDessa.filter(q=>!q.modulo).length;
-    const semPublicacao=qsDessa.filter(q=>!q.publicacao).length;
-    const semCapitulo=qsDessa.filter(q=>!q.capitulo).length;
+    const semModulo=qsDessa.filter(q=>!q.modulo&&q.gabarito!=='Anulada').length;
+    const semPublicacao=qsDessa.filter(q=>!q.publicacao&&q.gabarito!=='Anulada').length;
+    const semCapitulo=qsDessa.filter(q=>!q.capitulo&&q.gabarito!=='Anulada').length;
     const semExcelCorrelacao=ap.curso==='Catavento'&&ap.excelCorrelacaoEncontrado===false;
     const tipoAbrev=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
     return `<div class="cadernos-item-leve" onclick="abrirMarcacaoPendente('${ap.id}')">
