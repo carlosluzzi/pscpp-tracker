@@ -1391,7 +1391,9 @@ function renderizarListaMarcacao(){
   const modoManualPuro=!qs.some(q=>q.suaResposta);
 
   lista.innerHTML=qs.map(q=>{
-    const refPartes=[q.modulo,q.publicacao,q.capitulo].filter(Boolean);
+    const pubInfoQ=bibliografia.find(b=>b.nome===q.publicacao&&b.modulo===q.modulo);
+    const capituloFormatadoQ=formatarCapituloExibicao(pubInfoQ,q.capitulo);
+    const refPartes=[q.modulo,q.publicacao,capituloFormatadoQ].filter(Boolean);
     const faltaAlgo=!q.modulo||!q.publicacao||!q.capitulo;
     const ref=refPartes.join(' · ');
     const detectada=!!q.suaResposta;
@@ -1499,13 +1501,12 @@ function popularCapitulosEdicao(modulo, publicacao, capituloAtual){
   }
   sel.disabled=false;
   label.textContent=pubInfo.rotuloCapitulo;
-  const opcoesCapitulo=(pubInfo.capitulosValidos||[]).map(c=>`${pubInfo.rotuloCapitulo} ${c}`);
   let html=`<option value="">— não sei ainda —</option>`;
-  html+=opcoesCapitulo.map(c=>`<option value="${c}" ${capituloAtual===c?'selected':''}>${c}</option>`).join('');
+  html+=(pubInfo.capitulosValidos||[]).map(c=>`<option value="${c}" ${capituloAtual===c?'selected':''}>${formatarCapituloExibicao(pubInfo,c)}</option>`).join('');
   html+=`<option value="${CAPITULO_CONFIRMADO_VAZIO}" ${capituloAtual===CAPITULO_CONFIRMADO_VAZIO?'selected':''}>${CAPITULO_CONFIRMADO_VAZIO}</option>`;
   // se o capítulo atual da questão não está na lista (formato antigo/livre), adiciona mesmo assim
-  if(capituloAtual&&!opcoesCapitulo.includes(capituloAtual)&&capituloAtual!==CAPITULO_CONFIRMADO_VAZIO){
-    html+=`<option value="${capituloAtual}" selected>${capituloAtual} (fora da lista)</option>`;
+  if(capituloAtual&&!(pubInfo.capitulosValidos||[]).includes(capituloAtual)&&capituloAtual!==CAPITULO_CONFIRMADO_VAZIO){
+    html+=`<option value="${capituloAtual}" selected>${formatarCapituloExibicao(pubInfo,capituloAtual)} (fora da lista)</option>`;
   }
   sel.innerHTML=html;
 }
@@ -1919,7 +1920,7 @@ function formatarTempoTimer(seg){
 function renderTimerFullscreenConteudo(){
   const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const pubInfoTf=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  const capituloFormatadoTf=timerCapitulo&&pubInfoTf?`${pubInfoTf.rotuloCapitulo} ${timerCapitulo}`:'';
+  const capituloFormatadoTf=formatarCapituloExibicao(pubInfoTf,timerCapitulo);
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <div>
@@ -1955,6 +1956,25 @@ function aoTrocarPublicacaoTimer(novaPublicacao){
     timerCapitulo='';
   }
   renderTab(tabAtual,true);
+}
+
+// Formata o identificador puro de capítulo (ex: "3", "V", "Único") pra exibição, buscando o
+// rótulo certo (Capítulo/Chapter/Seção/Section) na bibliografia. "Único" é caso especial: sempre
+// mostra "Capítulo Único" fixo, independente do idioma da publicação — preserva o texto que já
+// era exibido antes desta função existir (nunca "Chapter Único").
+// Proteção de transição: enquanto o backfill único (que descasca o prefixo dos dados já salvos no
+// formato antigo) não rodar, `identificador` pode chegar aqui já formatado ("Capítulo 3"/"Chapter
+// V") em vez de puro ("3"/"V") — nesse caso, usa como está, sem concatenar de novo (senão vira
+// "Capítulo Capítulo 3", duplicado). Depois do backfill, esse caminho nunca mais é usado, mas fica
+// como rede de segurança permanente — não faz mal manter.
+const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section'];
+function formatarCapituloExibicao(pubInfo,identificador){
+  if(!identificador) return '';
+  if(identificador==='Único') return 'Capítulo Único';
+  if(identificador===CAPITULO_CONFIRMADO_VAZIO) return identificador;
+  if(ROTULOS_CAPITULO_CONHECIDOS.some(r=>identificador.startsWith(r+' '))) return identificador;
+  const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
+  return `${rotulo} ${identificador}`;
 }
 
 function timerCamposObrigatoriosCompletos(){
@@ -2072,8 +2092,7 @@ function pararESalvarTimer(){
     return;
   }
   const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  const rotuloSalvar=pubInfoSalvar?pubInfoSalvar.rotuloCapitulo:'Capítulo';
-  const capituloFormatado=timerCapitulo?`${rotuloSalvar} ${timerCapitulo}`:null;
+  const capituloFormatado=formatarCapituloExibicao(pubInfoSalvar,timerCapitulo);
   const partesResumo=[timerModulo,timerPublicacao,capituloFormatado].filter(Boolean);
   document.getElementById('timer-confirmar-resumo').innerHTML=`${partesResumo.join(' · ')}<br>${formatarTempoTimer(segFinal)} de ${timerTipo.toLowerCase()}`;
   document.getElementById('timer-caracteres-input').value='';
@@ -2093,15 +2112,13 @@ async function confirmarSalvarTimer(){
   btn.textContent='Salvando...';
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
-  const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  const rotuloSalvar=pubInfoSalvar?pubInfoSalvar.rotuloCapitulo:'Capítulo';
   const caracteresInput=document.getElementById('timer-caracteres-input').value;
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
       modulo:timerModulo,
       publicacao:timerPublicacao||null,
-      capitulo:timerCapitulo?`${rotuloSalvar} ${timerCapitulo}`:null,
+      capitulo:timerCapitulo||null,
       tipo:timerTipo,
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
@@ -2184,7 +2201,7 @@ async function salvarRegistroManual(){
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,publicacao:publicacao||null,capitulo:numCapitulo?`${rotulo} ${numCapitulo}`:null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
+      modulo,publicacao:publicacao||null,capitulo:numCapitulo||null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
     });
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
@@ -2533,7 +2550,9 @@ function renderFocoItem(m,i){
       });
       const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
       const [pubOrig,cap]=chaveTop.split('|||');
-      refEstudo=cap?`${nomePub(pubOrig)}, ${cap}`:nomePub(pubOrig);
+      const pubInfoFoco=bibliografia.find(b=>b.nome===pubOrig&&b.modulo===m.nome);
+      const capFormatadoFoco=formatarCapituloExibicao(pubInfoFoco,cap);
+      refEstudo=capFormatadoFoco?`${nomePub(pubOrig)}, ${capFormatadoFoco}`:nomePub(pubOrig);
     }else{
       qsDaMateria=questoes.filter(q=>q.modulo===m.nome&&q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
       refEstudo=nomePub(info.pubFallback);
@@ -2687,7 +2706,9 @@ function calcularFocoSugerido(moduloNome){
     });
     const [chaveTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
     const [pubOrig,cap]=chaveTop.split('|||');
-    return cap?`${moduloNome} → ${nomePub(pubOrig)}, ${cap}`:`${moduloNome} → ${nomePub(pubOrig)}`;
+    const pubInfoBP=bibliografia.find(b=>b.nome===pubOrig&&b.modulo===moduloNome);
+    const capFormatadoBP=formatarCapituloExibicao(pubInfoBP,cap);
+    return capFormatadoBP?`${moduloNome} → ${nomePub(pubOrig)}, ${capFormatadoBP}`:`${moduloNome} → ${nomePub(pubOrig)}`;
   }
   const contagemPub={};
   erros.forEach(q=>{
@@ -2878,11 +2899,13 @@ function renderCardBancoPratico(){
           statusLabel=`atrasada há ${dias} dia${dias!==1?'s':''}`;statusCor='#A32D2D';
         }
         const pctMod=modsPctMap[f.modulo];
+        const pubInfoFila=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
+        const capituloFila=formatarCapituloExibicao(pubInfoFila,f.capitulo);
         return `<div class="fila-item">
         <span class="foco-icone" style="flex-shrink:0">${iconeSvgModulo(f.modulo,modCores[f.modulo]?modCores[f.modulo].tx:'#5F5E5A')}</span>
         <div class="fila-info">
           <span class="fila-modulo">${f.modulo||'–'}</span>
-          <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'–'}${f.capitulo?', '+f.capitulo:''}</span>
+          <span class="fila-ref">${f.publicacao?nomePub(f.publicacao):'–'}${capituloFila?', '+capituloFila:''}</span>
           ${f.materia!==f.publicacao?`<span class="fila-foco">Foco em ${f.materia}</span>`:''}
           ${pctMod!==undefined?`<div class="fila-bar-row"><div class="pub-bar-bg" style="flex:1"><div class="pub-bar-fill" style="width:${pctMod}%;background:${fc(pctMod)}"></div></div><span class="fila-bar-pct" style="color:${fc(pctMod)}">${pctMod}%</span><span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span></div>`:`<span class="fila-status-label" style="color:${statusCor}">${statusLabel}</span>`}
           <div class="fila-bottom">
@@ -3257,7 +3280,8 @@ function renderPubsCards(qs){
     const pc=fc(pp);
     const caps=pqs.map(q=>{
       const si=statusInfo(q);
-      const capitulo=q.capitulo||'–';
+      const pubInfoCap=bibliografia.find(b=>b.nome===pub&&b.modulo===q.modulo);
+      const capitulo=formatarCapituloExibicao(pubInfoCap,q.capitulo)||'–';
       const assuntoHtml=q.assuntoPrincipal
         ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
         :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
