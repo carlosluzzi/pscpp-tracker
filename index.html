@@ -620,6 +620,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="nome-atividade-modal" style="display:none;z-index:1000000">
+  <div class="modal-box">
+    <div class="config-title">Nome curto da atividade</div>
+    <p style="margin:0 0 14px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">ID da Atividade, no padrão do curso (ex: "02 JUN" pro Curso H, "218" pro Curso Prático).</p>
+    <input type="text" class="filter-select" id="nome-atividade-input" style="margin-bottom:0">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharNomeAtividadeModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarNomeAtividade()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="excluir-sessao-modal" style="display:none;z-index:1000000">
   <div class="modal-box">
     <div class="config-title">Excluir sessão</div>
@@ -1692,25 +1704,43 @@ async function finalizarCadernoPendente(){
     return;
   }
 
-  const nomeAtividade=prompt('Nome curto da atividade (ID da Atividade), no padrão do curso:',ap.nome);
+  document.getElementById('nome-atividade-input').value=ap.nome||'';
+  document.getElementById('nome-atividade-modal').style.display='flex';
+}
+function fecharNomeAtividadeModal(){
+  document.getElementById('nome-atividade-modal').style.display='none';
+}
+async function confirmarNomeAtividade(){
+  const nomeAtividade=document.getElementById('nome-atividade-input').value;
   if(!nomeAtividade||!nomeAtividade.trim()) return;
+  fecharNomeAtividadeModal();
 
-  let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0;
+  const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
+  if(!ap) return;
+  const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
+  const modoManualPuro=!qs.some(q=>q.suaResposta);
+
+  let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0,anuladas=0;
   const resultados=qs.map(q=>{
     const peso=q.peso||1;
-    let acertou;
-    if(q.suaResposta&&q.gabarito){
-      acertou=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase();
+    let statusFinal;
+    if(q.gabarito==='Anulada'){
+      // Anulada sempre gera ponto cheio e mantém o rótulo próprio — nunca vira Acertei/Errei.
+      statusFinal='Anulada';
+    }else if(q.suaResposta&&q.gabarito){
+      statusFinal=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase()?'Acertei':'Errei';
     }else if(modoManualPuro){
       // nunca tocada (null) conta como certa nesse modo — só marcada explicitamente errada conta como erro
-      acertou=q.acertouSimplificado!==false;
+      statusFinal=q.acertouSimplificado!==false?'Acertei':'Errei';
     }else{
       // aqui só chega quem foi tocado manualmente de propósito — nunca null (bloqueio acima já garante isso)
-      acertou=q.acertouSimplificado===true;
+      statusFinal=q.acertouSimplificado===true?'Acertei':'Errei';
     }
     pontuacaoTotal+=peso;
-    if(acertou){ pontuacaoObtida+=peso; acertos++; } else erros++;
-    return {q,acertou};
+    if(statusFinal==='Anulada'){ pontuacaoObtida+=peso; anuladas++; }
+    else if(statusFinal==='Acertei'){ pontuacaoObtida+=peso; acertos++; }
+    else erros++;
+    return {q,statusFinal};
   });
 
   try{
@@ -1723,15 +1753,15 @@ async function finalizarCadernoPendente(){
       pontuacao_total:pontuacaoTotal,
       acertos_efetivos:acertos,
       erros_efetivos:erros,
-      anuladas:0,
+      anuladas:anuladas,
       total_questoes:qs.length,
     });
     if(eAtiv) throw eAtiv;
 
-    const linhasQuestoes=resultados.map(({q,acertou})=>({
+    const linhasQuestoes=resultados.map(({q,statusFinal})=>({
       numero_questao:q.numeroQuestao,
       id_atividade:nomeAtividade.trim(),
-      status:acertou?'Acertei':'Errei',
+      status:statusFinal,
       modulo_pscpp:q.modulo,
       publicacao:q.publicacao,
       capitulo:q.capitulo,
@@ -1745,7 +1775,7 @@ async function finalizarCadernoPendente(){
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
     if(eStatus) throw eStatus;
 
-    alert(`Caderno finalizado! ${acertos}/${qs.length} acertos, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`);
+    alert(`Caderno finalizado! ${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`);
     fecharMarcacaoPendente();
     await loadData();
   }catch(e){
