@@ -120,6 +120,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 }
 
 .section-title{font-size:16px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
+.content>.section-title:first-child{margin-top:0}
 .section-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .section-icon svg{width:17px;height:17px}
 .section-title:first-child{margin-top:0}
@@ -934,7 +935,7 @@ const secIcons={
   radio:'<circle cx="12" cy="16" r="2.5"/><path d="M8 12a5.7 5.7 0 0 1 8 0"/><path d="M5 9a10 10 0 0 1 14 0"/>',
   estrela:'<path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/>',
   cadernomais:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  relogio:'<circle cx="12" cy="12" r="10.5"/><path d="M12 6v6l4 2.3"/>',
   checkcirculo:'<path d="M20 6 9 17l-5-5"/>',
 };
 const modIconesCustomSvg={
@@ -1879,21 +1880,21 @@ function renderAprovado(){
       <button class="modal-btn modal-btn-nao" style="width:100%" onclick="abrirRegistroManual()">+ Registrar sessão</button>
     </div>
 
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      ${sectionTitle('Metas da semana','alvo','#EEEDFE','#202A45',{noBg:true})}
+      <span class="info-icone" onclick="abrirConfigMetas()">${iconeInfo()} configurar</span>
+    </div>
     <div class="card-inicio">
-      <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Metas da semana</span></div>
-        <span class="info-icone" onclick="abrirConfigMetas()">${iconeInfo()} configurar</span>
-      </div>
       ${metasHtml||'<div class="empty" style="padding:16px 8px">Nenhuma meta configurada ainda.</div>'}
     </div>
 
+    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
     <div class="card-inicio">
-      ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
+    ${sectionTitle('Histórico','lista','#EEEDFE','#202A45',{noBg:true})}
     <div class="card-inicio">
-      ${sectionTitle('Histórico','lista','#EEEDFE','#202A45',{noBg:true})}
       <div class="prox-list">
         ${historicoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
       </div>
