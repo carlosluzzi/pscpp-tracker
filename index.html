@@ -1808,10 +1808,10 @@ function renderAprovado(){
       <div style="font-size:var(--fs-b);color:#888;padding:4px 0">Registre sua primeira sessão de estudo pra o ciclo começar a recomendar um módulo.</div>
       `:`
       <div style="display:flex;align-items:flex-start;gap:10px">
-        <span style="width:20px;height:20px;flex-shrink:0;color:${ccCiclo.tx};display:flex;align-items:center;justify-content:center;margin-top:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">${modIcones[proxCiclo.modulo]||''}</svg></span>
+        <span style="width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px">${iconeSvgModulo(proxCiclo.modulo,ccCiclo.tx).replace('<svg ','<svg width="18" height="18" ')}</span>
         <div>
-          <span style="font-size:var(--fs-f);font-weight:600;color:#111;display:block">${proxCiclo.modulo}</span>
-          <span style="font-size:var(--fs-b);color:#888">próximo do ciclo, peso ${proxCiclo.peso}</span>
+          <span style="font-size:16px;font-weight:600;color:#111;display:block">${proxCiclo.modulo}</span>
+          <span style="font-size:var(--fs-b);color:#888">Próximo ciclo, peso ${proxCiclo.peso}</span>
         </div>
       </div>
       <button class="modal-btn modal-btn-sim" style="width:100%;margin-top:12px" onclick="usarModuloNoTimer('${proxCiclo.modulo}')">Estudar isso agora</button>
