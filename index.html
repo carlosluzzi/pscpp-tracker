@@ -574,15 +574,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div id="timer-fullscreen" class="hidden">
   <div id="timer-fullscreen-conteudo"></div>
-  <div id="timer-aviso-curto-modal" class="hidden" style="position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div id="timer-aviso-curto-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
     <div class="modal-box" style="max-width:340px">
       <div class="modal-text">Sessão muito curta pra salvar (menos de 1 minuto).</div>
       <div class="modal-actions">
-        <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('timer-aviso-curto-modal').classList.add('hidden')">Ok</button>
+        <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('timer-aviso-curto-modal').style.display='none'">Ok</button>
       </div>
     </div>
   </div>
-  <div id="timer-confirmar-salvar-modal" class="hidden" style="position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div id="timer-confirmar-salvar-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
     <div class="modal-box" style="max-width:380px">
       <div class="config-title">Confirmar sessão de estudo</div>
       <div id="timer-confirmar-resumo" style="font-size:var(--fs-c);color:#5F5E5A;margin-bottom:14px"></div>
@@ -1835,7 +1835,7 @@ function renderAprovado(){
           return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
         if(!pubInfo||pubInfo.capituloUnico){
-          return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
+          return `<select class="filter-select" disabled><option value="">Capítulo Único</option></select>`;
         }
         if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
           return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option></select>`;
@@ -1851,7 +1851,7 @@ function renderAprovado(){
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
           `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="abrirTimerFullscreen()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
-          :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Salvar</button>`}
+          :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Finalizar</button>`}
       </div>
       ${!timerRodando&&timerAcumuladoSeg>0?`<button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px" onclick="zerarTimer()">Descartar e zerar</button>`:''}
     </div>
@@ -1917,7 +1917,7 @@ function renderTimerFullscreenConteudo(){
         ${!timerRodando?
           `<button class="tf-btn" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
           :`<button class="tf-btn" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Salvar</button>
+        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Finalizar</button>
       </div>
     </div>
   `;
@@ -2038,7 +2038,7 @@ function pararESalvarTimer(){
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
   if(minutos<1){
-    document.getElementById('timer-aviso-curto-modal').classList.remove('hidden');
+    document.getElementById('timer-aviso-curto-modal').style.display='flex';
     return;
   }
   const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
@@ -2049,11 +2049,11 @@ function pararESalvarTimer(){
   document.getElementById('timer-caracteres-input').value='';
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
-  document.getElementById('timer-confirmar-salvar-modal').classList.remove('hidden');
+  document.getElementById('timer-confirmar-salvar-modal').style.display='flex';
 }
 
 function fecharConfirmarSalvarTimer(){
-  document.getElementById('timer-confirmar-salvar-modal').classList.add('hidden');
+  document.getElementById('timer-confirmar-salvar-modal').style.display='none';
 }
 
 async function confirmarSalvarTimer(){
@@ -2108,13 +2108,23 @@ function atualizarCapitulosRegistroManual(){
   const publicacao=document.getElementById('registro-manual-publicacao').value;
   const capSelect=document.getElementById('registro-manual-capitulo');
   const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
-  if(!publicacao||!pubInfo||pubInfo.capituloUnico||!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
-    capSelect.innerHTML='<option value="">Capítulo (opcional)</option>';
+  if(!publicacao||!pubInfo){
+    capSelect.innerHTML='<option value="">Capítulo/Seção</option>';
+    capSelect.disabled=true;
+    return;
+  }
+  if(pubInfo.capituloUnico){
+    capSelect.innerHTML='<option value="">Capítulo Único</option>';
+    capSelect.disabled=true;
+    return;
+  }
+  if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
+    capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option>`;
     capSelect.disabled=true;
     return;
   }
   capSelect.disabled=false;
-  capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo} (opcional)</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
+  capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
 }
 function fecharRegistroManual(){
   document.getElementById('registro-manual-modal').style.display='none';
