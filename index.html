@@ -620,6 +620,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="caderno-finalizado-modal" style="display:none;z-index:1000000">
+  <div class="modal-box">
+    <div class="config-title">Caderno finalizado!</div>
+    <p id="caderno-finalizado-texto" style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('caderno-finalizado-modal').style.display='none'">Ok</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="nome-atividade-modal" style="display:none;z-index:1000000">
   <div class="modal-box">
     <div class="config-title">ID da atividade</div>
@@ -1788,9 +1798,10 @@ async function confirmarNomeAtividade(){
       throw eStatus;
     }
 
-    alert(`Caderno finalizado! ${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`);
     fecharMarcacaoPendente();
     await loadData();
+    document.getElementById('caderno-finalizado-texto').textContent=`${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`;
+    document.getElementById('caderno-finalizado-modal').style.display='flex';
   }catch(e){
     alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade — pode tentar de novo com segurança.');
   }
