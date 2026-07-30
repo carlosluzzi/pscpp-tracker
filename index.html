@@ -655,9 +655,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     </div>
     <div class="config-item">
       <div class="config-label" id="edicao-capitulo-label">Capítulo</div>
-      <select class="filter-select" id="edicao-capitulo-select" style="margin-bottom:0">
+      <select class="filter-select" id="edicao-capitulo-select" style="margin-bottom:0" onchange="aoTrocarCapituloEdicao()">
         <option value="">— escolha a publicação —</option>
       </select>
+      <input type="text" class="filter-select hidden" id="edicao-capitulo-outro-input" placeholder="Digita o número/identificador do capítulo" style="margin-top:8px;margin-bottom:0">
     </div>
     <div class="config-item" id="edicao-pagina-wrap">
       <div class="config-label">Página (na fonte original)</div>
@@ -1522,7 +1523,19 @@ function popularCapitulosEdicao(modulo, publicacao, capituloAtual){
   if(capituloAtual&&!(pubInfo.capitulosValidos||[]).includes(capituloAtual)&&capituloAtual!==CAPITULO_CONFIRMADO_VAZIO){
     html+=`<option value="${capituloAtual}" selected>${formatarCapituloExibicao(pubInfo,capituloAtual)} (fora da lista)</option>`;
   }
+  html+=`<option value="__outro__">+ outro (ainda não cadastrado)</option>`;
   sel.innerHTML=html;
+}
+function aoTrocarCapituloEdicao(){
+  const sel=document.getElementById('edicao-capitulo-select');
+  const input=document.getElementById('edicao-capitulo-outro-input');
+  if(sel.value==='__outro__'){
+    input.classList.remove('hidden');
+    input.value='';
+    input.focus();
+  }else{
+    input.classList.add('hidden');
+  }
 }
 function fecharEdicaoModuloQuestao(){
   document.getElementById('edicao-modulo-modal').style.display='none';
@@ -1532,7 +1545,10 @@ async function salvarEdicaoModuloQuestao(){
   if(!edicaoModuloQuestaoId) return;
   const modulo=document.getElementById('edicao-modulo-select').value||null;
   const publicacao=document.getElementById('edicao-publicacao-select').value||null;
-  const capitulo=document.getElementById('edicao-capitulo-select').value||null;
+  const capituloSelecionado=document.getElementById('edicao-capitulo-select').value;
+  const capitulo=capituloSelecionado==='__outro__'
+    ?(document.getElementById('edicao-capitulo-outro-input').value.trim()||null)
+    :(capituloSelecionado||null);
   const q=questoesPendentes.find(qq=>qq.id===edicaoModuloQuestaoId);
   try{
     const {error}=await sbDados.from('questoes_pendentes').update({modulo_pscpp:modulo,publicacao,capitulo}).eq('id',edicaoModuloQuestaoId);
