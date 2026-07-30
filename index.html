@@ -801,7 +801,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="config-title">Registrar sessão de estudo</div>
     <select class="filter-select" id="registro-manual-modulo" onchange="atualizarPublicacoesRegistroManual()"></select>
     <select class="filter-select" id="registro-manual-publicacao" onchange="atualizarCapitulosRegistroManual()">
-      <option value="">Publicação (opcional)</option>
+      <option value="">Publicação</option>
     </select>
     <select class="filter-select" id="registro-manual-capitulo">
       <option value="">Capítulo (opcional)</option>
@@ -895,7 +895,7 @@ const secIcons={
   calendario2:'<path d="M3 9H21M7 3V5M17 3V5M6 13H8M6 17H8M11 13H13M11 17H13M16 13H18M16 17H18M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z"/>',
   alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   alerta:'<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-  lista:'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/>',
+  lista:'<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/>',
   nota:'<path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/>',
   filtro:'<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/>',
   grafico:'<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3" height="8"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="3" width="3" height="17"/>',
@@ -1806,16 +1806,16 @@ function renderAprovado(){
         ${modulosPscpp.map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
       <select class="filter-select" onchange="timerPublicacao=this.value;timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando||!timerModulo?'disabled':''}>
-        <option value="">Publicação (opcional)</option>
+        <option value="">Publicação</option>
         ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
         if(!timerPublicacao){
-          return `<select class="filter-select" disabled><option value="">Capítulo/Seção (escolha a publicação)</option></select>`;
+          return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
         if(!pubInfo||pubInfo.capituloUnico){
-          return `<select class="filter-select" disabled><option value="">Capítulo/Seção (publicação única)</option></select>`;
+          return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
         if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
           return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option></select>`;
@@ -2037,7 +2037,7 @@ function abrirRegistroManual(){
 function atualizarPublicacoesRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
   const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
-  document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação (opcional)</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
   atualizarCapitulosRegistroManual();
 }
 function atualizarCapitulosRegistroManual(){
