@@ -1772,16 +1772,27 @@ async function confirmarNomeAtividade(){
       questao_completa:q.questaoCompleta,
     }));
     const {error:eQuest}=await sbDados.from('banco_questoes').insert(linhasQuestoes);
-    if(eQuest) throw eQuest;
+    if(eQuest){
+      // desfaz o insert em 'atividades' que já tinha dado certo, pra não deixar lixo órfão
+      // se essa etapa falhar — sem isso, uma tentativa nova esbarra em "chave duplicada"
+      // no id_atividade, mesmo sem nenhuma questão ter sido salva de verdade.
+      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      throw eQuest;
+    }
 
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
-    if(eStatus) throw eStatus;
+    if(eStatus){
+      // mesma lógica: desfaz os dois inserts anteriores, que já tinham dado certo
+      await sbDados.from('banco_questoes').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      throw eStatus;
+    }
 
     alert(`Caderno finalizado! ${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`);
     fecharMarcacaoPendente();
     await loadData();
   }catch(e){
-    alert('Erro ao finalizar caderno: '+e.message);
+    alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade — pode tentar de novo com segurança.');
   }
 }
 
