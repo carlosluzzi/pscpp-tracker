@@ -622,9 +622,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div class="modal-overlay" id="nome-atividade-modal" style="display:none;z-index:1000000">
   <div class="modal-box">
-    <div class="config-title">Nome curto da atividade</div>
-    <p style="margin:0 0 14px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">ID da Atividade, no padrão do curso (ex: "02 JUN" pro Curso H, "218" pro Curso Prático).</p>
-    <input type="text" class="filter-select" id="nome-atividade-input" style="margin-bottom:0">
+    <div class="config-title">ID da atividade</div>
+    <div class="config-item">
+      <div class="config-label">Adicionar ID de atividade no padrão do curso</div>
+      <input type="text" class="filter-select" id="nome-atividade-input" style="margin-bottom:0">
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharNomeAtividadeModal()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarNomeAtividade()">Confirmar</button>
