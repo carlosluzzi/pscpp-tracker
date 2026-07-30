@@ -637,7 +637,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="config-item">
       <div class="config-label">Módulo PSCPP</div>
       <select class="filter-select" id="edicao-modulo-select" style="margin-bottom:0" onchange="aoTrocarModuloEdicao()">
-        <option value="">— nenhum —</option>
+        <option value="">Selecionar</option>
         <option>Manobrabilidade</option>
         <option>Arte Naval</option>
         <option>Navegação em Águas Restritas</option>
@@ -650,13 +650,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="config-item">
       <div class="config-label">Publicação</div>
       <select class="filter-select" id="edicao-publicacao-select" style="margin-bottom:0" onchange="aoTrocarPublicacaoEdicao()">
-        <option value="">— nenhuma —</option>
+        <option value="">Selecionar</option>
       </select>
     </div>
     <div class="config-item">
       <div class="config-label" id="edicao-capitulo-label">Capítulo</div>
       <select class="filter-select" id="edicao-capitulo-select" style="margin-bottom:0" onchange="aoTrocarCapituloEdicao()">
-        <option value="">— escolha a publicação —</option>
+        <option value="">Selecionar</option>
       </select>
       <input type="text" class="filter-select hidden" id="edicao-capitulo-outro-input" placeholder="Digita o número/identificador do capítulo" style="margin-top:8px;margin-bottom:0">
     </div>
@@ -1465,7 +1465,6 @@ function renderizarListaMarcacao(){
 }
 
 let edicaoModuloQuestaoId=null;
-const CAPITULO_CONFIRMADO_VAZIO='Sem capítulo (confirmado)';
 
 function abrirEdicaoModuloQuestao(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
@@ -1492,7 +1491,7 @@ function aoTrocarPublicacaoEdicao(){
 function popularPublicacoesEdicao(modulo, publicacaoAtual){
   const sel=document.getElementById('edicao-publicacao-select');
   const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
-  sel.innerHTML='<option value="">— nenhuma —</option>'+opcoes.map(p=>`<option value="${p}" ${publicacaoAtual===p?'selected':''}>${p}</option>`).join('');
+  sel.innerHTML='<option value="">Selecionar</option>'+opcoes.map(p=>`<option value="${p}" ${publicacaoAtual===p?'selected':''}>${p}</option>`).join('');
   // se a publicação atual da questão não está na lista da bibliografia (nome antigo/livre), adiciona mesmo assim
   if(publicacaoAtual&&!opcoes.includes(publicacaoAtual)){
     sel.innerHTML+=`<option value="${publicacaoAtual}" selected>${publicacaoAtual} (não cadastrada)</option>`;
@@ -1503,27 +1502,26 @@ function popularCapitulosEdicao(modulo, publicacao, capituloAtual){
   const label=document.getElementById('edicao-capitulo-label');
   const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
   if(!publicacao){
-    sel.innerHTML='<option value="">— escolha a publicação —</option>';
+    sel.innerHTML='<option value="">Selecionar</option>';
     sel.disabled=true;
     label.textContent='Capítulo';
     return;
   }
   if(!pubInfo||pubInfo.capituloUnico){
-    sel.innerHTML='<option value="">— publicação sem capítulo —</option>';
+    sel.innerHTML='<option value="">Selecionar</option>';
     sel.disabled=true;
     label.textContent='Capítulo';
     return;
   }
   sel.disabled=false;
   label.textContent=pubInfo.rotuloCapitulo;
-  let html=`<option value="">— não sei ainda —</option>`;
+  let html=`<option value="">Selecionar</option>`;
   html+=(pubInfo.capitulosValidos||[]).map(c=>`<option value="${c}" ${capituloAtual===c?'selected':''}>${formatarCapituloExibicao(pubInfo,c)}</option>`).join('');
-  html+=`<option value="${CAPITULO_CONFIRMADO_VAZIO}" ${capituloAtual===CAPITULO_CONFIRMADO_VAZIO?'selected':''}>${CAPITULO_CONFIRMADO_VAZIO}</option>`;
   // se o capítulo atual da questão não está na lista (formato antigo/livre), adiciona mesmo assim
-  if(capituloAtual&&!(pubInfo.capitulosValidos||[]).includes(capituloAtual)&&capituloAtual!==CAPITULO_CONFIRMADO_VAZIO){
+  if(capituloAtual&&!(pubInfo.capitulosValidos||[]).includes(capituloAtual)){
     html+=`<option value="${capituloAtual}" selected>${formatarCapituloExibicao(pubInfo,capituloAtual)} (fora da lista)</option>`;
   }
-  html+=`<option value="__outro__">+ outro (ainda não cadastrado)</option>`;
+  html+=`<option value="__outro__">Adicionar capítulo</option>`;
   sel.innerHTML=html;
 }
 function aoTrocarCapituloEdicao(){
@@ -1556,7 +1554,7 @@ async function salvarEdicaoModuloQuestao(){
     // Se essa questão já tinha página mostrada (capítulo não veio da citação) e agora um capítulo
     // de verdade foi escolhido, vira conhecimento reaproveitável — grava na tabela de referência
     // pra próxima questão com a mesma página, na mesma publicação, poder se resolver sozinha.
-    if(q&&q.pagina&&capitulo&&capitulo!==CAPITULO_CONFIRMADO_VAZIO&&publicacao){
+    if(q&&q.pagina&&capitulo&&publicacao){
       const faixaPagina=q.pagina.match(/Página (\d+)(?:-(\d+))?/);
       if(faixaPagina){
         const pagina_inicio=parseInt(faixaPagina[1],10);
@@ -1689,7 +1687,7 @@ async function finalizarCadernoPendente(){
     const partes=[];
     if(semModulo.length) partes.push(`Sem módulo: ${semModulo.join(', ')}`);
     if(semPublicacao.length) partes.push(`Sem publicação: ${semPublicacao.join(', ')}`);
-    if(semCapituloFinalizar.length) partes.push(`Sem capítulo: ${semCapituloFinalizar.join(', ')} (toque em "+ módulo / publicação" na questão e escolha "${CAPITULO_CONFIRMADO_VAZIO}" se a fonte genuinamente não citar)`);
+    if(semCapituloFinalizar.length) partes.push(`Sem capítulo: ${semCapituloFinalizar.join(', ')} (toque em "+ módulo / publicação" na questão pra preencher)`);
     alert(`Não dá pra finalizar ainda – falta preencher:\n\n${partes.join('\n')}`);
     return;
   }
@@ -2001,7 +1999,6 @@ const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section'];
 function formatarCapituloExibicao(pubInfo,identificador){
   if(!identificador) return '';
   if(identificador==='Único') return 'Capítulo Único';
-  if(identificador===CAPITULO_CONFIRMADO_VAZIO) return identificador;
   if(ROTULOS_CAPITULO_CONHECIDOS.some(r=>identificador.startsWith(r+' '))) return identificador;
   const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
   return `${rotulo} ${identificador}`;
