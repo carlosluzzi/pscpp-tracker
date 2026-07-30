@@ -138,9 +138,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .marcacao-ref{font-size:var(--fs-b);color:#888}
 .marcacao-ref-editavel{cursor:pointer}
 .marcacao-ref-editavel:hover{color:#111}
-.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:76px;text-align:center}
+.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:88px;text-align:center}
 .marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
 .marcacao-toggle.pendente{border-color:#ccc;background:#f5f5f3;color:#888}
+.marcacao-toggle.anulada{border-color:#F5D98A;background:#FAEEDA;color:#854F0B;cursor:default}
 .marcacao-detectada{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C5D6E8;background:#E6F1FB;color:#0C447C;font-size:var(--fs-d);font-weight:600;min-width:76px;text-align:center}
 #resolucao-aviso-incompleta{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FAEEDA;color:#633806;padding:10px 14px;font-size:var(--fs-c)}
 #resolucao-aviso-incompleta.hidden{display:none}
@@ -1409,7 +1410,9 @@ function renderizarListaMarcacao(){
     const ref=refPartes.join(' · ');
     const detectada=!!q.suaResposta;
     let controleHtml;
-    if(detectada){
+    if(q.gabarito==='Anulada'){
+      controleHtml=`<span class="marcacao-toggle anulada">ANULADA</span>`;
+    }else if(detectada){
       controleHtml=`<span class="marcacao-detectada">Detectado: ${q.suaResposta.toUpperCase()}</span>`;
     }else if(modoManualPuro){
       // 2 estados só: certa (padrão, inclusive null) <-> errada
