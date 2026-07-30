@@ -619,6 +619,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="excluir-sessao-modal" style="display:none;z-index:1000000">
+  <div class="modal-box">
+    <div class="config-title">Excluir sessão</div>
+    <p id="excluir-sessao-texto" style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharExcluirSessaoModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarExcluirSessao()">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="edicao-modulo-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharEdicaoModuloQuestao()">
   <div class="modal-box">
     <div class="config-title">Módulo / Publicação / Capítulo</div>
@@ -1776,7 +1787,7 @@ function renderAprovado(){
         <span class="prox-nome">${s.modulo}${refCompleta?' – '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
       </div>
-      <span class="historico-excluir" onclick="excluirSessaoEstudo('${s.id}')">✕</span>
+      <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
     </div>`;
   }).join('');
 
@@ -2279,11 +2290,23 @@ async function salvarConfigMetas(){
   }
 }
 
-async function excluirSessaoEstudo(id){
-  if(!confirm('Excluir essa sessão do histórico? Isso não pode ser desfeito.')) return;
+let sessaoParaExcluirId=null;
+function abrirExcluirSessaoModal(id,tipo,modulo,dataFormatada){
+  sessaoParaExcluirId=id;
+  document.getElementById('excluir-sessao-texto').textContent=`Excluir a sessão de ${tipo} em ${modulo} (${dataFormatada})? Isso não pode ser desfeito.`;
+  document.getElementById('excluir-sessao-modal').style.display='flex';
+}
+function fecharExcluirSessaoModal(){
+  sessaoParaExcluirId=null;
+  document.getElementById('excluir-sessao-modal').style.display='none';
+}
+async function confirmarExcluirSessao(){
+  if(!sessaoParaExcluirId) return;
+  const id=sessaoParaExcluirId;
   try{
     const {error}=await sbDados.from('sessoes_estudo').delete().eq('id',id);
     if(error) throw error;
+    fecharExcluirSessaoModal();
     await loadData();
   }catch(e){
     alert('Erro ao excluir sessão: '+e.message);
