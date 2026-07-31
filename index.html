@@ -628,6 +628,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="sessao-recuperavel-modal" style="display:none;z-index:1000002">
+  <div class="modal-box">
+    <div class="config-title">⚠ Sessão em andamento encontrada</div>
+    <p id="sessao-recuperavel-texto" style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="descartarSessaoRecuperavel()">Descartar</button>
+      <button class="modal-btn modal-btn-sim" onclick="restaurarSessaoRecuperavel()">Continuar de onde parei</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="alarme-anki-modal" style="display:none;z-index:1000001">
   <div class="modal-box">
     <div class="config-title">⏰ Tempo de Anki batido!</div>
@@ -661,7 +672,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharNomeAtividadeModal()">Cancelar</button>
-      <button class="modal-btn modal-btn-sim" onclick="confirmarNomeAtividade()">Confirmar</button>
+      <button class="modal-btn modal-btn-sim" id="confirmar-nome-atividade-btn" onclick="confirmarNomeAtividade()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1105,6 +1116,7 @@ let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
 let timerAnkiAlvoSeg=null,timerAnkiAlarmeDisparado=false;
+let primeiroCarregamentoFeito=false;
 let saudacaoSubtexto='Bora estudar';
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -1121,7 +1133,19 @@ function setSyncStatus(state){
   });
 }
 
+let loadDataEmAndamento=null;
 async function loadData(){
+  // Se já tem uma chamada em andamento, não dispara outra leva de ~15 queries em paralelo —
+  // só espera a que já está rodando terminar (evita flicker e resultado fora de ordem).
+  if(loadDataEmAndamento) return loadDataEmAndamento;
+  loadDataEmAndamento=loadDataInterno();
+  try{
+    await loadDataEmAndamento;
+  }finally{
+    loadDataEmAndamento=null;
+  }
+}
+async function loadDataInterno(){
   setSyncStatus('loading');
   try{
     const [
@@ -1284,6 +1308,7 @@ async function loadData(){
     await verificarFilaBancoPratico();
     setSyncStatus('ok');
     renderTab(tabAtual,true);
+    if(!primeiroCarregamentoFeito){ primeiroCarregamentoFeito=true; verificarSessaoRecuperavel(); }
     finalizarSplash();
   }catch(e){
     setSyncStatus('error');
@@ -1747,13 +1772,16 @@ async function finalizarCadernoPendente(){
 function fecharNomeAtividadeModal(){
   document.getElementById('nome-atividade-modal').style.display='none';
 }
+let confirmandoNomeAtividade=false;
 async function confirmarNomeAtividade(){
+  if(confirmandoNomeAtividade) return; // trava contra clique duplo, mesmo que o modal ainda não tenha sumido da tela
   const nomeAtividade=document.getElementById('nome-atividade-input').value;
   if(!nomeAtividade||!nomeAtividade.trim()) return;
+  confirmandoNomeAtividade=true;
   fecharNomeAtividadeModal();
 
   const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
-  if(!ap) return;
+  if(!ap){ confirmandoNomeAtividade=false; return; }
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   const modoManualPuro=!qs.some(q=>q.suaResposta);
 
@@ -1830,6 +1858,8 @@ async function confirmarNomeAtividade(){
     document.getElementById('caderno-finalizado-modal').style.display='flex';
   }catch(e){
     alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade — pode tentar de novo com segurança.');
+  }finally{
+    confirmandoNomeAtividade=false;
   }
 }
 
@@ -1972,7 +2002,7 @@ function renderAprovado(){
         </select>`;
       })()}
       ${timerTipo==='Anki'?`<div style="margin-top:8px">
-        <input type="number" class="filter-select" style="margin-bottom:0" placeholder="Tempo alvo em minutos (opcional, avisa quando bater)" min="1" value="${timerAnkiAlvoSeg?Math.round(timerAnkiAlvoSeg/60):''}" onchange="timerAnkiAlvoSeg=this.value?parseInt(this.value,10)*60:null;timerAnkiAlarmeDisparado=false" ${timerRodando?'disabled':''}>
+        <input type="number" class="filter-select" style="margin-bottom:0" placeholder="Tempo alvo em minutos (opcional, avisa quando bater)" min="1" value="${timerAnkiAlvoSeg?Math.round(timerAnkiAlvoSeg/60):''}" onchange="const v=parseInt(this.value,10);timerAnkiAlvoSeg=(v&&v>0)?v*60:null;timerAnkiAlarmeDisparado=false;if(this.value&&!(v&&v>0))this.value=''" ${timerRodando?'disabled':''}>
       </div>`:''}
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
@@ -2171,6 +2201,7 @@ function tickCadernoTimer(){
     cadernoTimerAcabouAvisado=true;
     tocarBeepAlarme();
   }
+  if(decorrido%10===0) salvarSnapshotSessao();
   if(!document.getElementById('caderno-timer-fullscreen').classList.contains('hidden')){
     document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   }
@@ -2218,6 +2249,7 @@ async function finalizarCadernoTimer(){
     if(error) throw error;
     if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
     cadernoTimerAtivo=null;
+    limparSnapshotSessao();
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
@@ -2266,12 +2298,78 @@ function dispensarAlarmeAnki(){
 function atualizarTickTimer(){
   const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   checarAlarmeAnki(segAtual);
+  if(segAtual%10===0) salvarSnapshotSessao();
   if(timerFullscreenAberto){
     document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   }
   if(tabAtual==='aprovado'&&!timerFullscreenAberto){
     renderTab(tabAtual,true);
   }
+}
+
+// Proteção contra perda de progresso em sessões longas (Anki sem alvo, caderno de 4h) se a aba
+// recarregar/fechar sem querer no meio do caminho — nenhum dos dois cronômetros salvava nada
+// incrementalmente antes, só no momento explícito de Finalizar. Um snapshot leve no localStorage,
+// atualizado a cada tick, permite oferecer "retomar de onde parou" ao reabrir o app.
+const SNAPSHOT_SESSAO_KEY='pscpp_sessao_ativa';
+function salvarSnapshotSessao(){
+  try{
+    if(timerRodando){
+      localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
+        tipo:'timer',timerModulo,timerPublicacao,timerCapitulo,timerTipo,
+        timerInicio,timerAcumuladoSeg,timerAnkiAlvoSeg,
+      }));
+    }else if(cadernoTimerAtivo){
+      localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
+        tipo:'caderno',cadernoTimerAtivo,cadernoTimerInicio,
+      }));
+    }
+  }catch(e){ /* localStorage indisponível (modo privado etc) — sem backup, mas não quebra nada */ }
+}
+function limparSnapshotSessao(){
+  try{ localStorage.removeItem(SNAPSHOT_SESSAO_KEY); }catch(e){}
+}
+function verificarSessaoRecuperavel(){
+  let snap;
+  try{
+    const raw=localStorage.getItem(SNAPSHOT_SESSAO_KEY);
+    if(!raw) return;
+    snap=JSON.parse(raw);
+  }catch(e){ return; }
+  if(!snap||!snap.tipo) return;
+  if(snap.tipo==='timer'){
+    const minutosDecorridos=Math.round((snap.timerAcumuladoSeg+Math.floor((Date.now()-snap.timerInicio)/1000))/60);
+    document.getElementById('sessao-recuperavel-texto').textContent=`Achei uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados — parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+  }else if(snap.tipo==='caderno'){
+    const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
+    const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
+    document.getElementById('sessao-recuperavel-texto').textContent=`Achei um cronômetro de caderno em andamento${ap&&ap.nome?' ('+ap.nome+')':''}, com ${minutosDecorridos} min decorridos — parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+  }else{
+    return;
+  }
+  window._snapshotSessaoRecuperada=snap;
+  document.getElementById('sessao-recuperavel-modal').style.display='flex';
+}
+function restaurarSessaoRecuperavel(){
+  const snap=window._snapshotSessaoRecuperada;
+  document.getElementById('sessao-recuperavel-modal').style.display='none';
+  if(!snap) return;
+  if(snap.tipo==='timer'){
+    timerModulo=snap.timerModulo||'';timerPublicacao=snap.timerPublicacao||'';timerCapitulo=snap.timerCapitulo||'';
+    timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
+    timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
+    if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
+    renderTab(tabAtual,true);
+  }else if(snap.tipo==='caderno'){
+    cadernoTimerAtivo=snap.cadernoTimerAtivo;cadernoTimerInicio=snap.cadernoTimerInicio;cadernoTimerAcabouAvisado=false;
+    if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
+    renderTab(tabAtual,true);
+  }
+}
+function descartarSessaoRecuperavel(){
+  document.getElementById('sessao-recuperavel-modal').style.display='none';
+  limparSnapshotSessao();
+  window._snapshotSessaoRecuperada=null;
 }
 
 function iniciarTimer(){
@@ -2287,6 +2385,7 @@ function pausarTimer(){
   timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
   timerRodando=false;
   timerInicio=null;
+  limparSnapshotSessao();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   else renderTab(tabAtual,true);
@@ -2303,6 +2402,7 @@ function zerarTimer(){
   timerAnkiAlvoSeg=null;
   timerAnkiAlarmeDisparado=false;
   timerFullscreenAberto=false;
+  limparSnapshotSessao();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
