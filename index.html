@@ -875,6 +875,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
       <option value="Revisão">Revisão</option>
+      <option value="Anki">Anki</option>
     </select>
     <input type="number" class="filter-select" id="registro-manual-duracao" placeholder="Duração em minutos" min="1">
     <input type="number" class="filter-select" id="registro-manual-caracteres" placeholder="Caracteres lidos (opcional)" min="0">
@@ -1816,7 +1817,7 @@ function renderAprovado(){
   const ss=segAtual%60;
   const tempoFormatado=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
 
-  const tiposEstudo=['Leitura','Exercício','Revisão'];
+  const tiposEstudo=['Leitura','Exercício','Revisão','Anki'];
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const seteDiasAtras=new Date(hoje);seteDiasAtras.setDate(seteDiasAtras.getDate()-6);
@@ -1855,7 +1856,7 @@ function renderAprovado(){
     const refCompleta=s.publicacao||'';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${s.modulo}${refCompleta?' – '+refCompleta:''}</span>
+        <span class="prox-nome">${s.modulo||s.tipo}${refCompleta?' – '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
       </div>
       <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
@@ -1914,7 +1915,7 @@ function renderAprovado(){
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
-      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
+      ${timerTipo!=='Anki'?`<select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
@@ -1940,7 +1941,7 @@ function renderAprovado(){
           <option value="">${pubInfo.rotuloCapitulo}</option>
           ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
         </select>`;
-      })()}
+      })()}`:''}
       <div class="filter-row">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -1989,6 +1990,7 @@ function usarModuloNoTimer(modulo){
 
 function setTimerTipo(t){
   timerTipo=t;
+  if(t==='Anki'){ timerModulo=''; timerPublicacao=''; timerCapitulo=''; }
   renderTab(tabAtual,true);
 }
 
@@ -2059,6 +2061,7 @@ function formatarCapituloExibicao(pubInfo,identificador){
 }
 
 function timerCamposObrigatoriosCompletos(){
+  if(timerTipo==='Anki') return true;
   if(!timerModulo||!timerPublicacao) return false;
   const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
@@ -2197,7 +2200,7 @@ async function confirmarSalvarTimer(){
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo:timerModulo,
+      modulo:timerModulo||null,
       publicacao:timerPublicacao||null,
       capitulo:timerCapitulo||null,
       tipo:timerTipo,
@@ -2274,15 +2277,17 @@ async function salvarRegistroManual(){
   const caracteresInput=document.getElementById('registro-manual-caracteres').value;
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   const data=document.getElementById('registro-manual-data').value;
-  if(!modulo){ alert('Escolhe o módulo.'); return; }
-  if(!publicacao){ alert('Escolhe a publicação.'); return; }
-  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
-  if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe o ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
+  if(tipo!=='Anki'){
+    if(!modulo){ alert('Escolhe o módulo.'); return; }
+    if(!publicacao){ alert('Escolhe a publicação.'); return; }
+    const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+    if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe o ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
+  }
   if(!duracao||duracao<1){ alert('Preenche a duração em minutos.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo,publicacao:publicacao||null,capitulo:numCapitulo||null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
+      modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
     });
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
