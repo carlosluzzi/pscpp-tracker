@@ -375,9 +375,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .q-badges{display:flex;gap:5px;flex-wrap:wrap}
 .enunciado-box{font-size:var(--fs-d);color:#111;line-height:1.6;margin-top:25px}
 .enunciado-linha{margin-top:6px}
-.enunciado-alternativa{display:flex;align-items:flex-start;gap:8px}
-.alt-bullet{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#EFEFEA;color:#5F5E5A;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px;text-transform:uppercase}
-.alt-texto{flex:1}
 .enunciado-linha-clicavel{cursor:pointer;border-radius:6px;padding:4px 6px;margin-left:-6px;margin-right:-6px}
 @media(hover:hover){
   /* Só aplica em dispositivos com mouse/trackpad de verdade — em touch, :hover gruda depois
@@ -4178,16 +4175,12 @@ function formatQuestaoCompleta(texto,q){
   // Se o contexto da questão for passado (q), cada alternativa vira clicável — pra anotar
   // insights específicos daquela alternativa (ex: discussão com colegas de estudo), salvos
   // ligados ao capítulo pra poder puxar de novo no futuro quando estudar aquele assunto.
-  // A letra "(a)" é separada do resto do texto pra virar um bullet visual de verdade (círculo
-  // com a letra dentro), em vez de ficar escrita corrida junto do texto.
   const linhasAlt=partesAlt.map(p=>{
-    const letraMatch=p.match(/^\(([a-e])\)\s*/);
+    const letraMatch=p.match(/^\(([a-e])\)/);
     const letra=letraMatch?letraMatch[1]:null;
-    const textoSemLetra=letraMatch?p.slice(letraMatch[0].length):p;
-    const conteudoBullet=`<span class="alt-bullet">${letra||''}</span><span class="alt-texto">${textoSemLetra}</span>`;
-    if(!q||!letra) return `<div class="enunciado-linha enunciado-alternativa">${conteudoBullet}</div>`;
+    if(!q||!letra) return `<div class="enunciado-linha">${p}</div>`;
     const temNota=anotacoesAlternativas.some(an=>an.bancoQuestaoId===q.id&&an.alternativa===letra);
-    return `<div class="enunciado-linha enunciado-alternativa enunciado-linha-clicavel${temNota?' tem-nota':''}" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">${conteudoBullet}${temNota?' <span class=\"nota-marcador\">📝</span>':''}</div>`;
+    return `<div class="enunciado-linha enunciado-linha-clicavel${temNota?' tem-nota':''}" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">${p}${temNota?' <span class=\"nota-marcador\">📝</span>':''}</div>`;
   });
 
   const linhas=[
