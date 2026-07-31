@@ -127,7 +127,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(92px + env(safe-area-inset-bottom, 0px))}
+@media(min-width:768px){
+  /* Nesses breakpoints o menu vira sidebar lateral, não tem mais barra inferior — o pop-up
+     fica só a um respiro do canto real da tela, sem precisar desviar de nenhuma barra. */
+  #timer-flutuante{bottom:24px}
+}
 #timer-flutuante.hidden{display:none}
 #timer-flutuante-fechar{position:absolute;top:2px;right:6px;font-size:13px;color:#9BA3B7;padding:6px;cursor:pointer}
 #timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
@@ -2152,14 +2157,12 @@ function abrirTimerFullscreen(){
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
-  // Tenta tela cheia real do navegador (cobre até a barra de status do sistema, quando suportado).
-  const el=document.getElementById('timer-fullscreen');
-  try{
-    const pedir=el.requestFullscreen||el.webkitRequestFullscreen;
-    if(pedir) pedir.call(el).catch(()=>{});
-  }catch(e){}
   // Ativa viewport-fit=cover só enquanto o timer está aberto — estende o fundo escuro por baixo da
   // barra de status. Revertido ao fechar, então não afeta o resto do app (onde isso causava um bug antigo).
+  // Não usa requestFullscreen() do navegador de propósito — em alguns sistemas (principalmente
+  // macOS) isso dispara uma animação nativa do próprio sistema operacional, fora do nosso controle,
+  // que deixa a abertura lenta/chamativa. Nosso overlay (position:fixed;inset:0) já cobre a tela
+  // inteira instantaneamente, sem depender de nenhuma API do sistema.
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
@@ -2170,10 +2173,6 @@ function fecharTimerFullscreen(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
-  try{
-    const sair=document.exitFullscreen||document.webkitExitFullscreen;
-    if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
-  }catch(e){}
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2203,14 +2202,9 @@ function abrirCadernoTimerFullscreen(atividadeId){
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
-  // Tenta tela cheia real do navegador (cobre até a barra de status do sistema, quando suportado).
-  const el=document.getElementById('caderno-timer-fullscreen');
-  try{
-    const pedir=el.requestFullscreen||el.webkitRequestFullscreen;
-    if(pedir) pedir.call(el).catch(()=>{});
-  }catch(e){}
   // Ativa viewport-fit=cover só enquanto essa tela está aberta — estende o fundo escuro por baixo da
-  // barra de status. Revertido ao fechar, mesmo padrão já usado no timer normal.
+  // barra de status. Revertido ao fechar, mesmo padrão já usado no timer normal. Sem requestFullscreen()
+  // de propósito — evita a animação nativa de tela cheia do sistema operacional.
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
@@ -2250,10 +2244,6 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
-  try{
-    const sair=document.exitFullscreen||document.webkitExitFullscreen;
-    if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
-  }catch(e){}
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2298,10 +2288,6 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
-    try{
-      const sair=document.exitFullscreen||document.webkitExitFullscreen;
-      if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
-    }catch(e){}
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2319,11 +2305,13 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
   const el=document.getElementById('timer-flutuante');
   if(el.classList.contains('hidden')){
-    // Posição inicial: canto inferior direito, com folga da barra de navegação
-    el.style.right='16px';
-    el.style.left='auto';
-    el.style.bottom='calc(var(--nav-clear, 76px) + 16px)';
-    el.style.top='auto';
+    // Posição inicial: canto inferior direito — controlado por CSS puro (com breakpoint próprio
+    // pra tablet/desktop, onde não tem barra de navegação inferior), não por medição em JS. Só
+    // limpa qualquer posição de arraste anterior, deixando o CSS assumir de novo.
+    el.style.right='';
+    el.style.left='';
+    el.style.bottom='';
+    el.style.top='';
   }
   el.classList.remove('hidden');
 }
@@ -2571,10 +2559,6 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
-  try{
-    const sair=document.exitFullscreen||document.webkitExitFullscreen;
-    if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
-  }catch(e){}
   renderTab(tabAtual,true);
 }
 
@@ -4191,18 +4175,18 @@ function toggleErrada(i){
   if(!open) requestAnimationFrame(()=>{ d.scrollIntoView({block:'nearest',behavior:'smooth'}); });
 }
 
-function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual);}
-function setFiltDataInicio(v){filtDataInicio=v;renderTab(tabAtual);}
-function limparFiltroData(){filtDataInicio='';filtDataFim='';renderTab(tabAtual);}
-function setFiltDataFim(v){filtDataFim=v;renderTab(tabAtual);}
-function setFiltCurso(v){filtCurso=v;renderTab(tabAtual);}
-function setFiltTipo(v){filtTipo=v;renderTab(tabAtual);}
-function setFiltStatus(v){filtStatus=v;renderTab(tabAtual);}
-function setFiltModulo(v){filtModulo=v;filtQQuestao='todos';renderTab(tabAtual);}
-function setFiltQCurso(v){filtQCurso=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual);}
-function setFiltQTipo(v){filtQTipo=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual);}
-function setFiltQAtividade(v){filtQAtividade=v;filtQQuestao='todos';renderTab(tabAtual);}
-function setFiltQQuestao(v){filtQQuestao=v;renderTab(tabAtual);}
+function setFiltPeriodo(v){filtPeriodo=v;renderTab(tabAtual,true);}
+function setFiltDataInicio(v){filtDataInicio=v;renderTab(tabAtual,true);}
+function limparFiltroData(){filtDataInicio='';filtDataFim='';renderTab(tabAtual,true);}
+function setFiltDataFim(v){filtDataFim=v;renderTab(tabAtual,true);}
+function setFiltCurso(v){filtCurso=v;renderTab(tabAtual,true);}
+function setFiltTipo(v){filtTipo=v;renderTab(tabAtual,true);}
+function setFiltStatus(v){filtStatus=v;renderTab(tabAtual,true);}
+function setFiltModulo(v){filtModulo=v;filtQQuestao='todos';renderTab(tabAtual,true);}
+function setFiltQCurso(v){filtQCurso=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual,true);}
+function setFiltQTipo(v){filtQTipo=v;filtQAtividade='todos';filtQQuestao='todos';renderTab(tabAtual,true);}
+function setFiltQAtividade(v){filtQAtividade=v;filtQQuestao='todos';renderTab(tabAtual,true);}
+function setFiltQQuestao(v){filtQQuestao=v;renderTab(tabAtual,true);}
 
 // Filtros do Banco — em cascata: Curso -> Módulo -> Publicação -> Tags.
 // Trocar um filtro de cima reseta os de baixo, porque a seleção anterior pode não existir mais no novo contexto.
