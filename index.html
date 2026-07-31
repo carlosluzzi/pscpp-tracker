@@ -4158,9 +4158,28 @@ function renderQuestoes(){
       </div>`;
     }
     const qsDessa=questoesPendentes.filter(q=>q.atividadePendenteId===ap.id);
-    const modoManualPuroCard=!qsDessa.some(q=>q.suaResposta);
-    const faltando=modoManualPuroCard?0:qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
-    const respondidas=qsDessa.length-faltando;
+    // 3 estados possíveis pra cada caderno pendente:
+    // - "fresco": acabou de cair, ninguém mexeu ainda (nem detecção, nem toque manual) — 0/total, sem badge
+    // - "detectado": pelo menos 1 questão tem letra vinda da leitura do PDF — tem prioridade sobre
+    //   manual, mesmo que ele já tenha mexido manualmente antes sem confirmar (se o PDF for marcado
+    //   e detectado depois, o caderno "volta" a ser detectado automaticamente, sem travar em manual)
+    // - "manual": nenhuma detecção, mas pelo menos 1 questão já foi tocada no modo manual (mesmo
+    //   sem ter confirmado o caderno ainda) — aqui sim vale a regra de "tudo Verdadeiro por padrão,
+    //   só marca as erradas"
+    const temDeteccaoCard=qsDessa.some(q=>q.suaResposta);
+    const algumaTocadaCard=qsDessa.some(q=>q.acertouSimplificado!=null);
+    const modoCard=temDeteccaoCard?'detectado':(algumaTocadaCard?'manual':'fresco');
+    let faltando,respondidas;
+    if(modoCard==='fresco'){
+      faltando=qsDessa.length;
+      respondidas=0;
+    }else if(modoCard==='manual'){
+      faltando=0;
+      respondidas=qsDessa.length;
+    }else{
+      faltando=qsDessa.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).length;
+      respondidas=qsDessa.length-faltando;
+    }
     const incompletas=qsDessa.filter(q=>q.statusExtracao==='incompleta').length;
     const semModulo=qsDessa.filter(q=>!q.modulo&&q.gabarito!=='Anulada').length;
     const semPublicacao=qsDessa.filter(q=>!q.publicacao&&q.gabarito!=='Anulada').length;
@@ -4170,7 +4189,8 @@ function renderQuestoes(){
     return `<div class="cadernos-item-leve" onclick="abrirMarcacaoPendente('${ap.id}')">
       <div class="prox-left">
         <span class="prox-nome">${tipoAbrev}${ap.nome?' '+ap.nome:''}</span>
-        ${modoManualPuroCard?`<span class="prox-modalidade" style="color:#854F0B">Modo manual</span>`:''}
+        ${modoCard==='detectado'?`<span class="prox-modalidade" style="color:#888">Detectado</span>`:''}
+        ${modoCard==='manual'?`<span class="prox-modalidade" style="color:#854F0B">Manual</span>`:''}
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
