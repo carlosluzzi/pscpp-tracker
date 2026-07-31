@@ -350,7 +350,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 /* QUESTOES ERRADAS */
 .ec{border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:10px;overflow:hidden;margin-bottom:8px;background:#fff}
-.er{display:grid;grid-template-columns:44px 1fr auto auto;align-items:start;gap:10px;padding:12px 14px;cursor:pointer}
+.er{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-radius:10px}
 .er .eq,.er .em,.er .chev{margin-top:1px}
 .eq{font-size:16px;font-weight:500}
 .ep{font-size:var(--fs-c);color:#888}
@@ -3860,18 +3860,23 @@ function voltarLista(){
 }
 
 function renderDetalhe(a){
-  const qs=questoes.filter(q=>q.idAtividade===a.nome);
-  const erradas=qs.filter(q=>q.status==='Errei').sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
+  const qs=questoes.filter(q=>q.idAtividade===a.nome).sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
   const modsHtml=renderModsCards(qs);
-  const erradasHtml=erradas.map((e,i)=>{
-    const cor=modCores[e.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+  const todasHtml=qs.map((e,i)=>{
+    // Mesma paleta de cor por status já usada em outros lugares do app (Questões etc):
+    // erro=vermelho, dúvida/anulada=âmbar, acerto limpo=verde. Aplicada no CARD inteiro agora
+    // (borda + leve tingimento de fundo), não só num badge — já que .ec já tem border-radius,
+    // isso já cria a "curvinha" ao redor do card inteiro.
+    const corStatus=e.status==='Errei'?{borda:'#F7C1C1',bg:'#FCEBEB'}
+      :e.status==='Acertei com dúvida'?{borda:'#F5D98A',bg:'#FAEEDA'}
+      :e.status==='Anulada'?{borda:'#F5D98A',bg:'#FAEEDA'}
+      :{borda:'#C0DD97',bg:'#EAF3DE'};
     const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
-    return `<div class="ec">
-      <div class="er" onclick="toggleErrada(${i})">
+    return `<div class="ec" style="border-color:${corStatus.borda}">
+      <div class="er" onclick="toggleErrada(${i})" style="background:${corStatus.bg}">
         <span class="eq">${e.questao||'–'}</span>
         <span class="ep">${e.publicacao?nomePub(e.publicacao):"–"}</span>
-        <span class="em" style="background:${cor.bg};color:${cor.tx}">${e.modulo||'–'}</span>
         <span class="chev" id="echev${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
       </div>
       <div class="ed" id="ed${i}">
@@ -3896,7 +3901,7 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','pormodulo','#E6F1FB','#202A45')}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{noBg:true,corTexto:'#A32D2D'})}${erradasHtml}`:''}
+    ${todasHtml?`${sectionTitle('Todas as questões','lista','#E6F1FB','#202A45')}${todasHtml}`:''}
   `;
 }
 
