@@ -158,7 +158,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .marcacao-ref{font-size:var(--fs-b);color:#888}
 .marcacao-ref-editavel{cursor:pointer}
 .marcacao-ref-editavel:hover{color:#111}
-.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:88px;text-align:center}
+.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:88px;min-height:38px;text-align:center;display:flex;align-items:center;justify-content:center}
 .marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
 .marcacao-toggle.pendente{border-color:#ccc;background:#f5f5f3;color:#888}
 .marcacao-toggle.anulada{border-color:#F5D98A;background:#FAEEDA;color:#854F0B;cursor:default}
@@ -172,7 +172,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 #resolucao-toast.errado{background:rgba(163,45,45,0.92)}
 #resolucao-finalizar-wrap{flex-shrink:0;padding:10px 16px calc(env(safe-area-inset-bottom, 0px) + 14px) 16px;border-top:0.5px solid #e0e0e0}
 #resolucao-finalizar-wrap.hidden{display:none}
-.resolucao-finalizar-btn{width:100%;padding:12px;border-radius:8px;border:none;background:#3B6D11;color:#fff;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
+.resolucao-finalizar-btn{width:100%;min-height:38px;padding:12px;border-radius:8px;border:none;background:#3B6D11;color:#fff;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref-wrap{margin-bottom:32px}
@@ -527,7 +527,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .status-feito{background:#EAF3DE;color:#3B6D11}
 .status-atrasado{background:#E24B4A;color:#fff}
 .prox-confirm-btn{font-size:12px;padding:6px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
-.cadernos-btn-largura{min-width:160px;text-align:center}
+.cadernos-btn-largura{min-width:160px;min-height:38px;text-align:center;font-size:var(--fs-d);display:flex;align-items:center;justify-content:center}
 .prox-confirm-btn:active{opacity:0.8}
 
 /* NOTAS DE ESTUDO */
@@ -661,6 +661,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="descartarSessaoRecuperavel()">Descartar</button>
       <button class="modal-btn modal-btn-sim" onclick="restaurarSessaoRecuperavel()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cancelar-caderno-timer-modal" style="display:none;z-index:1000002">
+  <div class="modal-box">
+    <div class="config-title">Cancelar cronômetro?</div>
+    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo cronometrado até agora vai ser descartado — não fica salvo em lugar nenhum. Tem certeza?</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="document.getElementById('cancelar-caderno-timer-modal').style.display='none'">Voltar</button>
+      <button class="modal-btn modal-btn-sim" onclick="cancelarCadernoTimer()">Cancelar cronômetro</button>
     </div>
   </div>
 </div>
@@ -2325,11 +2336,28 @@ function renderCadernoTimerFullscreenConteudo(){
       <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
       <div class="tf-tipo">${restante===0?'tempo máximo esgotado — pode continuar até finalizar':'tempo restante pra responder'}</div>
       <div class="tf-btns">
+        <button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="abrirCancelarCadernoTimer()">Cancelar</button>
         <button class="tf-btn" style="background:#fff;color:#202A45" onclick="finalizarCadernoTimer()">Finalizar</button>
       </div>
     </div>`;
 }
 
+function abrirCancelarCadernoTimer(){
+  document.getElementById('cancelar-caderno-timer-modal').style.display='flex';
+}
+function cancelarCadernoTimer(){
+  document.getElementById('cancelar-caderno-timer-modal').style.display='none';
+  // Cancelar é diferente de finalizar — não salva nada em atividades_pendentes, só para o
+  // cronômetro e limpa tudo, como se a sessão nunca tivesse existido.
+  if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
+  cadernoTimerAtivo=null;
+  limparSnapshotSessao();
+  esconderTimerFlutuante();
+  document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
+  document.body.classList.remove('timer-fullscreen-ativo');
+  restaurarViewportOriginal();
+  renderTab(tabAtual,true);
+}
 async function finalizarCadernoTimer(){
   if(!cadernoTimerAtivo) return;
   const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
