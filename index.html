@@ -2309,6 +2309,7 @@ async function finalizarCadernoTimer(){
 // caderno) mas o cronômetro continua rodando em background. Arrastável, e pode ser escondido
 // manualmente (fica escondido até o próximo fullscreen fechar de novo).
 let timerFlutuanteFechadoManualmente=false;
+let timerFlutuanteArrastadoManualmente=false;
 function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   if(timerFlutuanteFechadoManualmente) return;
   document.getElementById('timer-flutuante-nome').textContent=nome;
@@ -2316,13 +2317,25 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
   const el=document.getElementById('timer-flutuante');
   if(el.classList.contains('hidden')){
-    // Posição inicial: canto inferior direito — controlado por CSS puro (com breakpoint próprio
-    // pra tablet/desktop, onde não tem barra de navegação inferior), não por medição em JS. Só
-    // limpa qualquer posição de arraste anterior, deixando o CSS assumir de novo.
-    el.style.right='';
-    el.style.left='';
-    el.style.bottom='';
-    el.style.top='';
+    // Posição inicial: canto inferior direito, definida de forma 100% explícita aqui (não confia
+    // em "limpar" propriedades inline e deixar o CSS assumir sozinho — isso já causou o widget
+    // aparecendo no topo em vez de embaixo no desktop). O valor de "bottom" ainda respeita a
+    // barra de navegação: com barra embaixo (mobile/tablet, abaixo de 1100px) reserva o espaço
+    // dela; a partir de 1100px (sidebar lateral, sem barra embaixo) só um respiro pequeno.
+    el.style.left='auto';
+    el.style.top='auto';
+    el.style.right='16px';
+    timerFlutuanteArrastadoManualmente=false;
+    if(window.innerWidth>=1100){
+      // Desktop/iPad paisagem em telas maiores: menu já é sidebar lateral, sem barra embaixo.
+      el.style.bottom='24px';
+    }else if(window.innerWidth>=768){
+      // Tablet (iPad retrato e boa parte do paisagem): barra AINDA fica embaixo aqui.
+      el.style.bottom='calc(78px + env(safe-area-inset-bottom, 0px) + 16px)';
+    }else{
+      // Mobile: barra embaixo, altura medida de verdade via --nav-clear.
+      el.style.bottom='calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)';
+    }
   }
   el.classList.remove('hidden');
 }
@@ -2389,6 +2402,7 @@ function fecharTimerFlutuante(){
     el.style.bottom='auto';
     el.style.left=rect.left+'px';
     el.style.top=rect.top+'px';
+    timerFlutuanteArrastadoManualmente=true;
     document.addEventListener('mousemove',moverMouse);
     document.addEventListener('mouseup',soltar);
     document.addEventListener('touchmove',moverToque,{passive:true});
@@ -4270,7 +4284,7 @@ window.addEventListener('resize',()=>{
 // limites; não mexe em nada se estiver usando a posição padrão (via CSS, right/bottom).
 function reposicionarTimerFlutuanteSeForaDaTela(){
   const el=document.getElementById('timer-flutuante');
-  if(!el||el.classList.contains('hidden')||!el.style.left) return;
+  if(!el||el.classList.contains('hidden')||!timerFlutuanteArrastadoManualmente) return;
   const margem=8;
   const rect=el.getBoundingClientRect();
   let novoLeft=parseFloat(el.style.left);
