@@ -2373,7 +2373,13 @@ function fecharTimerFlutuante(){
     elCache.style.top=novoTop+'px';
   }
   function moverMouse(e){ mover(e.clientX,e.clientY); }
-  function moverToque(e){ const t=e.touches[0]; if(t) mover(t.clientX,t.clientY); }
+  function moverToque(e){
+    // passive:false + preventDefault aqui, igual o pull-to-refresh já faz — sem isso, o Safari
+    // processa o gesto em paralelo como se fosse rolar/mover a página por baixo, competindo com
+    // a atualização de posição do widget e dando a sensação de "ficar pra trás" do dedo.
+    e.preventDefault();
+    const t=e.touches[0]; if(t) mover(t.clientX,t.clientY);
+  }
   function soltar(){
     document.removeEventListener('mousemove',moverMouse);
     document.removeEventListener('mouseup',soltar);
@@ -2399,14 +2405,18 @@ function fecharTimerFlutuante(){
     timerFlutuanteArrastadoManualmente=true;
     document.addEventListener('mousemove',moverMouse);
     document.addEventListener('mouseup',soltar);
-    document.addEventListener('touchmove',moverToque,{passive:true});
+    document.addEventListener('touchmove',moverToque,{passive:false});
     document.addEventListener('touchend',soltar);
   }
   document.addEventListener('DOMContentLoaded',()=>{
     const el=document.getElementById('timer-flutuante');
     if(!el) return;
     el.addEventListener('mousedown',e=>{ if(e.target.id==='timer-flutuante-fechar') return; iniciar(e.clientX,e.clientY); });
-    el.addEventListener('touchstart',e=>{ if(e.target.id==='timer-flutuante-fechar') return; const t=e.touches[0]; iniciar(t.clientX,t.clientY); },{passive:true});
+    el.addEventListener('touchstart',e=>{
+      if(e.target.id==='timer-flutuante-fechar') return;
+      e.preventDefault();
+      const t=e.touches[0]; iniciar(t.clientX,t.clientY);
+    },{passive:false});
   });
 })();
 function reabrirFullscreenAtivo(){
