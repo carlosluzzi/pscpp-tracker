@@ -4102,8 +4102,13 @@ function quebrarEnunciado(zonaEnunciado,temRomanos){
   if(temRomanos){
     return zonaEnunciado.split(/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/).map(p=>p.trim()).filter(Boolean);
   }
+  // "A. " sozinho não basta pra confirmar uma lista de assertivas alfabéticas — nomes de autor
+  // com iniciais (ex: "SILVA, G. A. M, 2017") batem nesse mesmo padrão por coincidência e
+  // quebravam a linha bem no meio do nome. Só considera lista de verdade se "B. " também
+  // aparecer depois de "A. " no texto, confirmando que é mesmo uma sequência A/B/C, não uma inicial.
   const anchorMatch=zonaEnunciado.match(/\bA\.\s/);
-  if(!anchorMatch){
+  const temSequenciaRealDeAssertivas=anchorMatch&&/\bB\.\s/.test(zonaEnunciado.slice(anchorMatch.index));
+  if(!temSequenciaRealDeAssertivas){
     return zonaEnunciado.split(/(?=\s\(\s*\))/).map(p=>p.trim()).filter(Boolean);
   }
   const idxAncora=anchorMatch.index;
