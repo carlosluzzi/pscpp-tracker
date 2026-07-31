@@ -375,6 +375,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .q-badges{display:flex;gap:5px;flex-wrap:wrap}
 .enunciado-box{font-size:var(--fs-d);color:#111;line-height:1.6;margin-top:25px}
 .enunciado-linha{margin-top:6px}
+.enunciado-linha-clicavel{cursor:pointer;border-radius:6px;padding:4px 6px;margin-left:-6px;margin-right:-6px}
+.enunciado-linha-clicavel:hover{background:#F5F5F3}
+.enunciado-linha-clicavel.tem-nota{background:#FFFBEB}
+.nota-marcador{font-size:var(--fs-b)}
 .banco-note{font-size:var(--fs-d);color:#888;background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-combine-toggle{font-size:var(--fs-b);font-weight:500;color:#888;border:0.5px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:8px}
 .banco-alternativas{display:flex;flex-direction:column;gap:8px;margin-top:14px}
@@ -661,6 +665,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="descartarSessaoRecuperavel()">Descartar</button>
       <button class="modal-btn modal-btn-sim" onclick="restaurarSessaoRecuperavel()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="anotar-alternativa-modal" style="display:none;z-index:1000002">
+  <div class="modal-box">
+    <div class="config-title">Anotação — alternativa (<span id="anotar-alt-letra"></span>)</div>
+    <div id="anotar-alt-texto-original" style="font-size:var(--fs-c);color:#5F5E5A;margin-bottom:12px;line-height:1.4"></div>
+    <textarea id="anotar-alt-textarea" class="nota-questao-textarea" placeholder="Escreve aqui o que quiser lembrar dessa alternativa — insight, discussão com colega, o que confundiu, etc." rows="4"></textarea>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="modal-btn modal-btn-nao" onclick="document.getElementById('anotar-alternativa-modal').style.display='none'">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarAnotacaoAlternativa()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1188,7 +1204,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
@@ -1230,7 +1246,8 @@ async function loadDataInterno(){
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
       {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
-      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig}
+      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
+      {data:anotacoesRes,error:eAnotacoes}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -1248,8 +1265,9 @@ async function loadDataInterno(){
       sbDados.from('atividades_pendentes').select('*'),
       sbDados.from('questoes_pendentes').select('*'),
       sbDados.from('app_config').select('*'),
+      sbDados.from('anotacoes_alternativas').select('*'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
     saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
 
@@ -1382,6 +1400,11 @@ async function loadDataInterno(){
       zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
       acertouSimplificado:p.acertou_simplificado,
     })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
+    anotacoesAlternativas=anotacoesRes.map(p=>({
+      id:p.id,bancoQuestaoId:p.banco_questao_id,numeroQuestao:p.numero_questao,idAtividade:p.id_atividade,
+      alternativa:p.alternativa,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
+      texto:p.texto,criadoEm:p.criado_em,
+    }));
     await verificarFilaBancoPratico();
     setSyncStatus('ok');
     renderTab(tabAtual,true);
@@ -3884,7 +3907,7 @@ function renderDetalhe(a){
           <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'–'}</span>
         </div>
         ${tags?`<div class="tr">${tags}</div>`:''}
-        ${e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo)}</div>`:''}
+        ${e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -4089,7 +4112,60 @@ function formatApenasEnunciado(texto){
   return [partesEnun[0]||'', ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`)].join('');
 }
 
-function formatQuestaoCompleta(texto){
+// Extrai só o texto de UMA alternativa específica (ex: "c") do texto completo salvo, pra
+// mostrar de contexto no modal de anotação — reaproveita a mesma lógica de corte que já
+// separa enunciado de alternativas em formatQuestaoCompleta.
+function extrairTextoAlternativa(textoCompleto,letra){
+  if(!textoCompleto) return '';
+  const altMatch=textoCompleto.match(/\s\([a-e]\)/);
+  const idxAlt=altMatch?altMatch.index:-1;
+  if(idxAlt===-1) return '';
+  const zonaAlternativas=textoCompleto.slice(idxAlt).trim();
+  const partes=zonaAlternativas.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean);
+  const parte=partes.find(p=>p.startsWith(`(${letra})`));
+  return parte||'';
+}
+let anotarAltContexto=null;
+function abrirAnotarAlternativa(questaoId,letra){
+  const q=questoes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  anotarAltContexto={questaoId,letra,q};
+  document.getElementById('anotar-alt-letra').textContent=letra.toUpperCase();
+  document.getElementById('anotar-alt-texto-original').textContent=extrairTextoAlternativa(q.motivo,letra);
+  const existente=anotacoesAlternativas.find(an=>an.bancoQuestaoId===questaoId&&an.alternativa===letra);
+  document.getElementById('anotar-alt-textarea').value=existente?existente.texto:'';
+  document.getElementById('anotar-alternativa-modal').style.display='flex';
+}
+async function salvarAnotacaoAlternativa(){
+  if(!anotarAltContexto) return;
+  const {questaoId,letra,q}=anotarAltContexto;
+  const texto=document.getElementById('anotar-alt-textarea').value.trim();
+  const existente=anotacoesAlternativas.find(an=>an.bancoQuestaoId===questaoId&&an.alternativa===letra);
+  try{
+    if(!texto){
+      // Texto vazio = apagar a anotação, se existir
+      if(existente){
+        const {error}=await sbDados.from('anotacoes_alternativas').delete().eq('id',existente.id);
+        if(error) throw error;
+      }
+    }else if(existente){
+      const {error}=await sbDados.from('anotacoes_alternativas').update({texto,atualizado_em:new Date().toISOString()}).eq('id',existente.id);
+      if(error) throw error;
+    }else{
+      const {error}=await sbDados.from('anotacoes_alternativas').insert({
+        banco_questao_id:questaoId,numero_questao:q.questao,id_atividade:q.idAtividade,
+        alternativa:letra,modulo_pscpp:q.modulo,publicacao:q.publicacao,capitulo:q.capitulo,texto,
+      });
+      if(error) throw error;
+    }
+    document.getElementById('anotar-alternativa-modal').style.display='none';
+    anotarAltContexto=null;
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar anotação: '+e.message);
+  }
+}
+function formatQuestaoCompleta(texto,q){
   if(!texto) return '';
   const escaped=escapeHtml(texto);
   // acha onde começam as alternativas de resposta (a)-(e) — tudo antes é enunciado/assertivas, tudo depois são as alternativas
@@ -4105,10 +4181,22 @@ function formatQuestaoCompleta(texto){
   // então nunca confunde com um "(C)" ou "(E)" de conteúdo (ex: questões de marcação Certo/Errado)
   const partesAlt=zonaAlternativas?zonaAlternativas.split(/(?=\([a-e]\))/).map(p=>p.trim()).filter(Boolean):[];
 
+  // Se o contexto da questão for passado (q), cada alternativa vira clicável — pra anotar
+  // insights específicos daquela alternativa (ex: discussão com colegas de estudo), salvos
+  // ligados ao capítulo pra poder puxar de novo no futuro quando estudar aquele assunto.
+  const linhasAlt=partesAlt.map(p=>{
+    if(!q) return `<div class="enunciado-linha">${p}</div>`;
+    const letraMatch=p.match(/^\(([a-e])\)/);
+    const letra=letraMatch?letraMatch[1]:null;
+    if(!letra) return `<div class="enunciado-linha">${p}</div>`;
+    const temNota=anotacoesAlternativas.some(an=>an.bancoQuestaoId===q.id&&an.alternativa===letra);
+    return `<div class="enunciado-linha enunciado-linha-clicavel${temNota?' tem-nota':''}" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">${p}${temNota?' <span class=\"nota-marcador\">📝</span>':''}</div>`;
+  });
+
   const linhas=[
     partesEnun[0]||'',
     ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`),
-    ...partesAlt.map(p=>`<div class="enunciado-linha">${p}</div>`)
+    ...linhasAlt
   ];
   return linhas.join('');
 }
@@ -4315,7 +4403,7 @@ function renderQuestoes(){
             <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
           </div>
           ${tags?`<div class="tr">${tags}</div>`:''}
-          ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo)}</div>`:''}
+          ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:''}
         </div>
       </div>`;
     }).join('')}`:'<div class="empty">Nenhuma questão encontrada.</div>'}
