@@ -492,7 +492,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-pratico-top{display:flex;justify-content:space-between;align-items:center}
-.fila-item{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-top:none;position:relative}
+.fila-item{display:flex;align-items:flex-start;gap:6px;padding:12px 0;border-top:none;position:relative}
+.fila-item .foco-icone{width:20px;height:20px}
 .fila-item+.fila-item::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,#e6e6e3 12%,#e6e6e3 88%,transparent 100%)}
 .fila-item .foco-icone{margin-top:1px}
 .fila-item .foco-materia-feito{align-self:center}
@@ -644,11 +645,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div class="modal-overlay" id="sessao-recuperavel-modal" style="display:none;z-index:1000002">
   <div class="modal-box">
-    <div class="config-title">⚠ Sessão em andamento encontrada</div>
+    <div class="config-title">⚠ Sessão em andamento</div>
     <p id="sessao-recuperavel-texto" style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="descartarSessaoRecuperavel()">Descartar</button>
-      <button class="modal-btn modal-btn-sim" onclick="restaurarSessaoRecuperavel()">Continuar de onde parei</button>
+      <button class="modal-btn modal-btn-sim" onclick="restaurarSessaoRecuperavel()">Continuar</button>
     </div>
   </div>
 </div>
@@ -2492,11 +2493,11 @@ function verificarSessaoRecuperavel(){
   if(!snap||!snap.tipo) return;
   if(snap.tipo==='timer'){
     const minutosDecorridos=Math.round((snap.timerAcumuladoSeg+Math.floor((Date.now()-snap.timerInicio)/1000))/60);
-    document.getElementById('sessao-recuperavel-texto').textContent=`Achei uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados — parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+    document.getElementById('sessao-recuperavel-texto').textContent=`Existe uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else if(snap.tipo==='caderno'){
     const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
     const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
-    document.getElementById('sessao-recuperavel-texto').textContent=`Achei um cronômetro de caderno em andamento${ap&&ap.nome?' ('+ap.nome+')':''}, com ${minutosDecorridos} min decorridos — parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+    document.getElementById('sessao-recuperavel-texto').textContent=`Existe um cronômetro em andamento do Caderno${ap&&ap.nome?' '+ap.nome:''}${ap&&ap.curso?' do '+ap.curso:''}, com ${minutosDecorridos} min decorridos – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else{
     return;
   }
