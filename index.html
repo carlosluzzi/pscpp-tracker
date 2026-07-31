@@ -1019,6 +1019,7 @@ const secIcons={
   nota:'<path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/>',
   filtro:'<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/>',
   grafico:'<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3" height="8"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="3" width="3" height="17"/>',
+  pormodulo:'<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
   evolucao:'<polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/>',
   etiqueta:'<path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   leme:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>',
@@ -1106,8 +1107,13 @@ function sectionTitle(texto,icone,bg,tx,opts){
   const iconBg=opts.noBg?'transparent':bg;
   const svgHtml=opts.customSvg||`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${secIcons[icone]}</svg>`;
   const sizeStyle=opts.fontSize?`font-size:${opts.fontSize};`:'';
-  const corTexto=opts.corTexto||tx;
-  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="color:${corTexto};${sizeStyle}">${texto}</span></div>`;
+  // Cor do texto agora é independente da cor do ícone por padrão (sempre o cinza da classe
+  // .section-title) — só muda se explicitamente pedido via opts.corTexto. Antes herdava a cor
+  // do ícone (tx) por padrão, o que mudava sem querer o texto de vários títulos ao trocar
+  // só a cor do ícone.
+  const corTexto=opts.corTexto||'';
+  const styleTexto=(corTexto?`color:${corTexto};`:'')+sizeStyle;
+  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="${styleTexto}">${texto}</span></div>`;
 }
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
@@ -1986,7 +1992,7 @@ function renderAprovado(){
 
 
     <div class="card-inicio">
-      ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
+      ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
@@ -2040,19 +2046,19 @@ function renderAprovado(){
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center">
-      ${sectionTitle('Metas da semana','alvo','#EEEDFE','#202A45',{noBg:true})}
+      ${sectionTitle('Metas da semana','alvo','#E6F1FB','#202A45')}
       <span class="info-icone" onclick="abrirConfigMetas()">${iconeInfo()} configurar</span>
     </div>
     <div class="card-inicio">
       ${metasHtml||'<div class="empty" style="padding:16px 8px">Nenhuma meta configurada ainda.</div>'}
     </div>
 
-    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#EEEDFE','#202A45',{noBg:true})}
+    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
     <div class="card-inicio">
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
-    ${sectionTitle('Histórico','lista','#EEEDFE','#202A45',{noBg:true})}
+    ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
       <div class="prox-list">
         ${historicoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
@@ -3697,10 +3703,10 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Evolução no tempo','evolucao','#F1EFE8','#5F5E5A',{noBg:true})}${renderEvolucaoChart(lista)}`:''}
-    ${lista.length?`${sectionTitle('Desempenho por módulo','grafico','#F1EFE8','#5F5E5A',{noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
-    ${lista.length?`${sectionTitle('Por tipo de questão','etiqueta','#F1EFE8','#5F5E5A',{noBg:true})}${renderTiposCards(questoesFiltradas)}`:''}
-    ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{noBg:true})}
+    ${lista.length?`${sectionTitle('Evolução no tempo','evolucao','#E6F1FB','#202A45')}${renderEvolucaoChart(lista)}`:''}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','pormodulo','#E6F1FB','#202A45')}${renderModsCards(questoesFiltradas)}`:''}
+    ${lista.length?`${sectionTitle('Por tipo de questão','etiqueta','#E6F1FB','#202A45')}${renderTiposCards(questoesFiltradas)}`:''}
+    ${sectionTitle('Atividades','lista','#E6F1FB','#202A45')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
@@ -3752,8 +3758,8 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'–'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','grafico','#F1EFE8','#5F5E5A',{noBg:true})}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true})}${erradasHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','pormodulo','#E6F1FB','#202A45')}${modsHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{noBg:true,corTexto:'#A32D2D'})}${erradasHtml}`:''}
   `;
 }
 
@@ -4086,7 +4092,7 @@ function renderQuestoes(){
   }
 
   const cardPendentesHtml=pendentesAtivas.length?`
-    ${sectionTitle('Cadernos pendentes','lista','#202A45','#202A45',{noBg:true})}
+    ${sectionTitle('Cadernos pendentes','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
     ${gruposPorCurso.map(g=>{
       const logoMaiorGrupo=g.curso==='Catavento'||g.curso==='Curso Prático';
@@ -4108,7 +4114,7 @@ function renderQuestoes(){
 
   return `
     ${cardPendentesHtml}
-    ${sectionTitle('Filtros','filtro','#F1EFE8','#5F5E5A',{noBg:true})}
+    ${sectionTitle('Filtros','filtro','#E6F1FB','#202A45')}
     <select class="filter-select" onchange="setFiltQCurso(this.value)">
       <option value="todos">Todos os cursos</option>
       ${cursosDisp.map(c=>`<option value="${c}"${filtQCurso===c?' selected':''}>${c}</option>`).join('')}
