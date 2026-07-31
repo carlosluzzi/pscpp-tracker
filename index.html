@@ -480,6 +480,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #cfcfcb}
 .card-header-left{display:flex;align-items:center;gap:6px;min-width:0;line-height:1}
 .prox-logo-curso{height:16px;width:auto;max-width:100%;object-fit:contain;display:block}
+.ativ-logo-curso{height:16px;width:auto;object-fit:contain;display:block;margin-bottom:10px}
 .prox-logo-curso-18{height:18px;width:auto;max-width:100%;object-fit:contain;display:block}
 .card-header-row-compacto{padding-bottom:8px}
 .calendario-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
@@ -2997,21 +2998,15 @@ function atividadesFiltradas(){
   return lista;
 }
 
-function badgesCursoTipo(a){
-  const cc=cursoCores[a.curso]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-  const tc=tipoCores[a.tipo]||{bg:'#F1EFE8',tx:'#5F5E5A'};
-  return `
-    ${a.curso?`<span class="ativ-badge" style="background:${cc.bg};color:${cc.tx}">${a.curso}</span>`:''}
-    ${a.tipo?`<span class="ativ-badge" style="background:${tc.bg};color:${tc.tx}">${a.tipo}</span>`:''}
-    ${a.data?`<span class="ativ-badge" style="background:#F1EFE8;color:#5F5E5A">${fmtData(a.data)}</span>`:''}
-  `;
-}
-
 function ativCard(a,clicavel=true){
   const onclick=clicavel?`onclick="abrirDetalhe('${a.id}')" `:'';
+  const tipoAbrev=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `<div class="ativ-card" ${onclick}>
-    <div class="ativ-top"><span class="ativ-title">${a.nome}</span></div>
-    <div class="ativ-badges">${badgesCursoTipo(a)}</div>
+    <div class="ativ-top">
+      <span class="ativ-title">${tipoAbrev}${a.nome?' '+a.nome:''}</span>
+      ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
+    </div>
+    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso">`:''}
     <div class="ativ-metrics">
       <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
@@ -3920,9 +3915,14 @@ function renderDetalhe(a){
     </div>`;
   }).join('');
 
+  const tipoAbrevDet=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `
     <div class="detail-back" onclick="voltarLista()">← Atividades</div>
-    <div class="ativ-badges">${badgesCursoTipo(a)}</div>
+    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px">`:''}
+    <div class="ativ-top" style="margin-top:0">
+      <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
+      ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
+    </div>
     ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
       <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'–'}</span></div></div>
