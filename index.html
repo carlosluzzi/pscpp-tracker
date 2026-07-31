@@ -4170,7 +4170,7 @@ function renderQuestoes(){
     return `<div class="cadernos-item-leve" onclick="abrirMarcacaoPendente('${ap.id}')">
       <div class="prox-left">
         <span class="prox-nome">${tipoAbrev}${ap.nome?' '+ap.nome:''}</span>
-        <span class="prox-modalidade" style="${modoManualPuroCard?'color:#854F0B;font-weight:600':'color:#888'}">${modoManualPuroCard?'✋ Modo manual — confira as respostas':'🔍 Detectado automaticamente'}</span>
+        ${modoManualPuroCard?`<span class="prox-modalidade" style="color:#854F0B">Modo manual</span>`:''}
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
