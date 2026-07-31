@@ -126,6 +126,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#caderno-timer-fullscreen.hidden{display:none}
 #marcacao-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999998;background:#FBFBFA;display:flex;flex-direction:column;box-sizing:border-box}
 #marcacao-fullscreen.hidden{display:none}
 #marcacao-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px 16px;border-bottom:0.5px solid #e0e0e0}
@@ -584,6 +586,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="timer-fullscreen-conteudo"></div>
 </div>
 
+<div id="caderno-timer-fullscreen" class="hidden">
+  <div id="caderno-timer-fullscreen-conteudo"></div>
+</div>
+
 <div id="timer-aviso-curto-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
   <div class="modal-box" style="max-width:340px">
     <div class="modal-text">Sessão muito curta pra salvar (menos de 1 minuto).</div>
@@ -617,6 +623,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="resolucao-toast" class="hidden"></div>
   <div id="resolucao-finalizar-wrap" class="hidden">
     <button class="resolucao-finalizar-btn" onclick="finalizarCadernoPendente()">✓ Finalizar caderno</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="alarme-anki-modal" style="display:none;z-index:1000001">
+  <div class="modal-box">
+    <div class="config-title">⏰ Tempo de Anki batido!</div>
+    <p style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo que você definiu já passou. O cronômetro continua contando — soneca ou finaliza quando quiser.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(5)">+5 min</button>
+      <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(10)">+10 min</button>
+      <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(20)">+20 min</button>
+      <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(30)">+30 min</button>
+    </div>
+    <button class="modal-btn modal-btn-sim" style="width:100%" onclick="dispensarAlarmeAnki()">Dispensar</button>
   </div>
 </div>
 
@@ -1082,6 +1102,7 @@ let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+let timerAnkiAlvoSeg=null,timerAnkiAlarmeDisparado=false;
 let saudacaoSubtexto='Bora estudar';
 let bancoCadernosAndamentoAberto=false;
 let bancoCadernosConcluidosAberto=false;
@@ -1158,6 +1179,7 @@ async function loadData(){
       erros:p.erros_efetivos||null,
       anuladas:p.anuladas||null,
       total:p.total_questoes||null,
+      tempoGastoMinutos:p.tempo_gasto_minutos||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
     questoes=qRaw.map(p=>({
       id:p.id,
@@ -1247,7 +1269,7 @@ async function loadData(){
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
       reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
-      excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,
+      excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,tempoGastoSegundos:p.tempo_gasto_segundos,
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
@@ -1768,6 +1790,7 @@ async function confirmarNomeAtividade(){
       erros_efetivos:erros,
       anuladas:anuladas,
       total_questoes:qs.length,
+      tempo_gasto_minutos:ap.tempoGastoSegundos?Math.round(ap.tempoGastoSegundos/60):null,
     });
     if(eAtiv) throw eAtiv;
 
@@ -1912,19 +1935,23 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
-      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
+      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 20px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
-      ${timerTipo!=='Anki'?`<select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
+      <div class="filter-row periodo-row" style="margin-bottom:10px">
+        ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
+      </div>
+      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando||timerTipo==='Anki'?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
-      <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo?'disabled':''}>
+      <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo||timerTipo==='Anki'?'disabled':''}>
         <option value="">Publicação</option>
         ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt')).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
+        const desabilitaAnki=timerTipo==='Anki'?'disabled':'';
         if(!timerPublicacao){
           return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
@@ -1937,14 +1964,14 @@ function renderAprovado(){
         if(pubInfo.capitulosValidos.length===1){
           return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo} ${pubInfo.capitulosValidos[0]}</option></select>`;
         }
-        return `<select class="filter-select" onchange="timerCapitulo=this.value;renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
+        return `<select class="filter-select" onchange="timerCapitulo=this.value;renderTab(tabAtual,true)" ${timerRodando||desabilitaAnki?'disabled':''}>
           <option value="">${pubInfo.rotuloCapitulo}</option>
           ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
         </select>`;
-      })()}`:''}
-      <div class="filter-row">
-        ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
-      </div>
+      })()}
+      ${timerTipo==='Anki'?`<div style="margin-top:8px">
+        <input type="number" class="filter-select" style="margin-bottom:0" placeholder="Tempo alvo em minutos (opcional, avisa quando bater)" min="1" value="${timerAnkiAlvoSeg?Math.round(timerAnkiAlvoSeg/60):''}" onchange="timerAnkiAlvoSeg=this.value?parseInt(this.value,10)*60:null;timerAnkiAlarmeDisparado=false" ${timerRodando?'disabled':''}>
+      </div>`:''}
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
           `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="abrirTimerFullscreen()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
@@ -1991,6 +2018,7 @@ function usarModuloNoTimer(modulo){
 function setTimerTipo(t){
   timerTipo=t;
   if(t==='Anki'){ timerModulo=''; timerPublicacao=''; timerCapitulo=''; }
+  else{ timerAnkiAlvoSeg=null; timerAnkiAlarmeDisparado=false; }
   renderTab(tabAtual,true);
 }
 
@@ -2106,7 +2134,98 @@ function restaurarViewportOriginal(){
   if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
 }
 
+let cadernoTimerAtivo=null,cadernoTimerInicio=null,cadernoTimerIntervalId=null,cadernoTimerAcabouAvisado=false;
+const CADERNO_TIMER_MAXIMO_SEG=4*3600;
+
+function abrirCadernoTimerFullscreen(atividadeId){
+  cadernoTimerAtivo=atividadeId;
+  cadernoTimerInicio=Date.now();
+  cadernoTimerAcabouAvisado=false;
+  document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+  document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
+  document.body.classList.add('timer-fullscreen-ativo');
+  if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
+}
+
+function tickCadernoTimer(){
+  const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+  const restante=CADERNO_TIMER_MAXIMO_SEG-decorrido;
+  if(restante<=0&&!cadernoTimerAcabouAvisado){
+    cadernoTimerAcabouAvisado=true;
+    tocarBeepAlarme();
+  }
+  document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+}
+
+function renderCadernoTimerFullscreenConteudo(){
+  const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
+  const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+  const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
+  const tipoAbrev=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
+  return `
+    <div>
+      <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
+      <div class="tf-ref-wrap"></div>
+      <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
+      <div class="tf-tipo">${restante===0?'tempo máximo esgotado — pode continuar até finalizar':'tempo restante pra responder'}</div>
+      <div class="tf-btns">
+        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="finalizarCadernoTimer()">Finalizar</button>
+      </div>
+    </div>`;
+}
+
+async function finalizarCadernoTimer(){
+  if(!cadernoTimerAtivo) return;
+  const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+  const id=cadernoTimerAtivo;
+  try{
+    const {error}=await sbDados.from('atividades_pendentes').update({tempo_gasto_segundos:decorrido}).eq('id',id);
+    if(error) throw error;
+    if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
+    cadernoTimerAtivo=null;
+    document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
+    document.body.classList.remove('timer-fullscreen-ativo');
+    await loadData();
+  }catch(e){
+    alert('Erro ao salvar o tempo do caderno: '+e.message);
+  }
+}
+
+function tocarBeepAlarme(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    // 3 beeps curtos em sequência, mais perceptível que 1 só
+    [0,0.35,0.7].forEach(offset=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type='sine'; osc.frequency.value=880;
+      gain.gain.setValueAtTime(0.3,ctx.currentTime+offset);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+offset+0.3);
+      osc.start(ctx.currentTime+offset);
+      osc.stop(ctx.currentTime+offset+0.3);
+    });
+  }catch(e){ /* navegador sem suporte a áudio — segue só com o aviso visual */ }
+}
+function checarAlarmeAnki(segAtual){
+  if(timerTipo==='Anki'&&timerAnkiAlvoSeg&&segAtual>=timerAnkiAlvoSeg&&!timerAnkiAlarmeDisparado){
+    timerAnkiAlarmeDisparado=true;
+    tocarBeepAlarme();
+    document.getElementById('alarme-anki-modal').style.display='flex';
+  }
+}
+function sonecaAlarmeAnki(minutos){
+  timerAnkiAlvoSeg+=minutos*60;
+  timerAnkiAlarmeDisparado=false;
+  document.getElementById('alarme-anki-modal').style.display='none';
+}
+function dispensarAlarmeAnki(){
+  document.getElementById('alarme-anki-modal').style.display='none';
+}
+
 function atualizarTickTimer(){
+  const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+  checarAlarmeAnki(segAtual);
   if(timerFullscreenAberto){
     document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   }
@@ -2141,6 +2260,8 @@ function zerarTimer(){
   timerPublicacao='';
   timerCapitulo='';
   timerTipo='Leitura';
+  timerAnkiAlvoSeg=null;
+  timerAnkiAlarmeDisparado=false;
   timerFullscreenAberto=false;
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
@@ -3334,6 +3455,7 @@ function renderDetalhe(a){
   return `
     <div class="detail-back" onclick="voltarLista()">← Atividades</div>
     <div class="ativ-badges">${badgesCursoTipo(a)}</div>
+    ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
       <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'–'}</span></div></div>
       <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div></div>
@@ -3604,6 +3726,7 @@ function renderQuestoes(){
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
+        ${ap.tempoGastoSegundos?`<span class="prox-modalidade" style="color:#5F5E5A">⏱ ${formatarTempoTimer(ap.tempoGastoSegundos)} pra responder</span>`:''}
         ${(()=>{
           const partes=[];
           if(semModulo) partes.push(`${semModulo} sem módulo`);
@@ -3612,6 +3735,7 @@ function renderQuestoes(){
           return partes.length?`<span class="prox-modalidade" style="color:#5F5E5A">${partes.join(' · ')}</span>`:'';
         })()}
       </div>
+      <button class="prox-confirm-btn" style="flex-shrink:0" onclick="event.stopPropagation();abrirCadernoTimerFullscreen('${ap.id}')">${ap.tempoGastoSegundos?'Refazer':'Iniciar'} caderno</button>
     </div>`;
   }
 
