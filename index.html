@@ -302,7 +302,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .mod-pct{font-size:var(--fs-c);font-weight:500;width:32px;text-align:right;flex-shrink:0}
 
 /* DETALHE ATIVIDADE */
-.detail-back{display:flex;align-items:center;gap:6px;margin-bottom:16px;cursor:pointer;color:#888;font-size:var(--fs-e)}
+.detail-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:#888;font-size:var(--fs-e)}
 .mtr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
 .mtr-card{background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .mtr-label{font-size:var(--fs-c);color:#888;margin-bottom:3px}
@@ -3091,7 +3091,9 @@ function renderHeaderZone(){
   return `
     <div class="header-zone">
       <div class="hero-toprow">
-        <span class="appname"><img class="logo-completa" src="assets/logo-completa.png" alt="PSCPP Tracker"></span>
+        ${atividadeAtual
+          ?`<span class="detail-back" onclick="voltarLista()">← Atividades</span>`
+          :`<span class="appname"><img class="logo-completa" src="assets/logo-completa.png" alt="PSCPP Tracker"></span>`}
         <span class="topbar-right topbar-pill">
           <span class="gear-btn" onclick="abrirConfig()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
@@ -3922,7 +3924,6 @@ function renderDetalhe(a){
 
   const tipoAbrevDet=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `
-    <div class="detail-back" onclick="voltarLista()">← Atividades</div>
     ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px;height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
