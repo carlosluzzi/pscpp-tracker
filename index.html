@@ -121,8 +121,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 .section-title{font-size:16px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
 .content>.section-title:first-child{margin-top:0}
-.section-icon{width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.section-icon svg{width:18px;height:18px;display:block}
+.section-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-icon svg{width:15px;height:15px;display:block}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
@@ -1014,6 +1014,8 @@ const secIcons={
   nota:'<path d="M4 4h13l3 3v13H4z"/><path d="M17 4v5h3"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/>',
   filtro:'<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/>',
   grafico:'<line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="12" width="3" height="8"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="3" width="3" height="17"/>',
+  evolucao:'<polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/>',
+  etiqueta:'<path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   leme:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>',
   ancora:'<circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="21"/><path d="M5 12a7 7 0 0 0 7 9 7 7 0 0 0 7-9"/><line x1="5" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="19" y2="12"/>',
   livro:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2z"/><path d="M20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z"/>',
@@ -1044,7 +1046,6 @@ function iconeSecao(nome){
 const iconFocoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="m256,202.7c-29.4,0-53.3,23.9-53.3,53.3s23.9,53.3 53.3,53.3 53.3-23.9 53.3-53.3-23.9-53.3-53.3-53.3zm0,85.7c-17.9,0-32.4-14.5-32.4-32.4s14.5-32.4 32.4-32.4 32.4,14.5 32.4,32.4-14.5,32.4-32.4,32.4z"/><path d="m490.6,245.6h-29.6c-5.3-104.9-89.7-189.3-194.6-194.6v-29.6c0-5.8-4.7-10.4-10.4-10.4s-10.4,4.7-10.4,10.4v29.6c-104.9,5.3-189.3,89.7-194.6,194.6h-29.6c-5.8,0-10.4,4.7-10.4,10.4s4.7,10.4 10.4,10.4h29.6c5.3,104.9 89.7,189.3 194.6,194.6v29.6c0,5.8 4.7,10.4 10.4,10.4s10.4-4.7 10.4-10.4v-29.6c104.9-5.3 189.3-89.7 194.6-194.6h29.6c5.8,0 10.4-4.7 10.4-10.4s-4.7-10.4-10.4-10.4zm-50.5,0h-42.7c-5.1-69.9-61.1-125.9-131-131v-42.7c93.4,5.2 168.5,80.3 173.7,173.7zm-184.1,131.4c-66.7,0-121-54.3-121-121s54.3-121 121-121 121,54.3 121,121-54.3,121-121,121zm-10.4-305.1v42.7c-69.9,5.1-125.9,61.1-131,131h-42.7c5.2-93.4 80.3-168.5 173.7-173.7zm-173.7,194.5h42.7c5.1,69.9 61.1,125.9 131,131v42.7c-93.4-5.2-168.5-80.3-173.7-173.7zm194.5,173.7v-42.7c69.9-5.1 125.9-61.1 131-131h42.7c-5.2,93.4-80.3,168.5-173.7,173.7z"/></svg>`;
 const iconComplementaresSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="M512,19.25c0-10.1-8.195-18.279-18.287-18.279H308.866v73.652c4.586-2.558,9.865-4.008,15.481-4.008c17.623,0,31.919,14.287,31.919,31.923c0,17.619-14.288,31.914-31.919,31.914c-5.616,0-10.895-1.458-15.481-3.999v73.644h73.652c-2.549,4.586-4.008,9.864-4.008,15.476c0,17.635,14.288,31.923,31.923,31.923c17.627,0,31.914-14.288,31.914-31.923c0-5.612-1.458-10.89-3.999-15.476H512V19.25z"/><path d="M429.616,275.37h-92.794c-3.25,0-6.256,1.718-7.901,4.504l0.09-0.154l-0.106,0.171c-0.839,1.426-1.263,3.038-1.263,4.643c0,1.531,0.391,3.078,1.157,4.464l5.849,10.532c1.311,2.37,1.954,4.863,1.963,7.583c-0.008,4.203-1.621,8.08-4.586,11.062c-2.981,2.965-6.866,4.578-11.062,4.594c-4.203-0.017-8.088-1.629-11.078-4.594l0.012,0.017c-2.974-2.998-4.582-6.883-4.59-11.078c0.008-2.713,0.651-5.213,1.958-7.591l5.853-10.524c0.77-1.386,1.157-2.924,1.157-4.464c0-1.605-0.424-3.217-1.276-4.66c-1.649-2.793-4.655-4.504-7.9-4.504h-69.432v-37.184c12.548-0.196,24.4-5.14,33.278-14.035c9.09-9.066,14.125-21.227,14.116-34.072c0.008-12.862-5.03-25.023-14.116-34.081c-8.871-8.896-20.726-13.832-33.278-14.027V81.416c-0.004-5.066-4.11-9.172-9.176-9.172H34.548c-9.204-0.007-17.94,3.601-24.432,10.109C3.669,88.805,0.008,97.659,0,106.798v369.686c-0.008,9.196,3.608,17.928,10.116,24.428c6.452,6.443,15.293,10.108,24.432,10.117h369.726c9.115-0.008,17.961-3.674,24.404-10.117c6.509-6.5,10.117-15.224,10.109-24.428V284.542C438.788,279.476,434.682,275.37,429.616,275.37z M28.37,106.798c0-2.118,0.986-3.559,1.792-4.366c0.835-0.831,2.272-1.825,4.386-1.825h172.747v73.603c0,1.776,0.941,3.413,2.468,4.317c0.782,0.456,1.657,0.685,2.537,0.685c0.839,0,1.674-0.204,2.432-0.627l10.528-5.849c2.969-1.646,6.203-2.485,9.608-2.485c5.29,0,10.271,2.061,14.014,5.8c3.747,3.755,5.808,8.74,5.808,14.027c0,5.286-2.061,10.264-5.8,14.01c-3.751,3.747-8.732,5.808-14.022,5.808c-3.409,0-6.639-0.839-9.604-2.485l-10.536-5.849c-0.753-0.423-1.592-0.627-2.427-0.627c-0.88,0-1.756,0.228-2.537,0.693c-1.527,0.896-2.468,2.533-2.468,4.309v73.603h-45.575c0.09-1.133,0.134-2.264,0.134-3.38c0-11.77-4.582-22.824-12.894-31.124c-8.304-8.317-19.358-12.894-31.128-12.894c-11.766,0-22.819,4.578-31.12,12.886c-8.32,8.3-12.902,19.362-12.898,31.124c0,1.124,0.044,2.249,0.134,3.389H28.37V106.798z M207.296,482.666H34.548c-2.114,0-3.551-0.994-4.366-1.8c-0.826-0.831-1.812-2.273-1.812-4.382V303.725h73.599c1.772,0,3.413-0.937,4.313-2.46c0.9-1.532,0.925-3.422,0.062-4.969l-5.844-10.532c-1.65-2.974-2.485-6.207-2.489-9.604c0.004-5.287,2.07-10.271,5.8-14.019c3.758-3.738,8.74-5.808,14.022-5.808c5.282,0,10.264,2.07,14.01,5.8c3.743,3.755,5.808,8.74,5.812,14.018c-0.004,3.413-0.844,6.647-2.477,9.604l-5.857,10.532c-0.864,1.556-0.838,3.446,0.062,4.969c0.9,1.531,2.542,2.468,4.313,2.468h73.599v45.59c-1.133-0.089-2.26-0.13-3.376-0.13c-11.774,0-22.828,4.578-31.12,12.886c-8.324,8.308-12.902,19.362-12.894,31.124c-0.008,11.762,4.57,22.824,12.887,31.124c8.3,8.317,19.354,12.894,31.128,12.894c1.124,0,2.252-0.041,3.376-0.13V482.666z M410.424,476.484c0,2.109-0.993,3.543-1.808,4.366c-0.831,0.823-2.265,1.817-4.374,1.817H231.496v-73.603c0-1.776-0.936-3.413-2.468-4.309c-0.782-0.465-1.658-0.692-2.537-0.692c-0.835,0-1.674,0.204-2.428,0.627l-10.544,5.849c-2.961,1.645-6.191,2.484-9.6,2.484c-5.282,0-10.264-2.068-14.01-5.8c-3.743-3.747-5.808-8.732-5.812-14.019c0.004-5.294,2.07-10.271,5.808-14.018c3.744-3.739,8.724-5.808,14.015-5.816c3.385,0,6.618,0.839,9.6,2.484l10.54,5.857c0.758,0.424,1.592,0.628,2.432,0.628c0.879,0,1.755-0.229,2.537-0.684c1.527-0.904,2.468-2.542,2.468-4.318v-73.611h45.578c-0.089,1.132-0.134,2.265-0.134,3.388c-0.004,11.754,4.574,22.808,12.886,31.116c8.308,8.325,19.366,12.903,31.132,12.903c11.766,0,22.82-4.578,31.129-12.894c8.316-8.3,12.886-19.354,12.886-31.124c0-1.124-0.041-2.248-0.13-3.388h45.582V476.484z"/></svg>`;
 const iconNotasSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><path d="M504.499,171.7l-36.207-36.207c-10.001-10.001-26.206-10.001-36.207,0L232.969,334.618c-2.807,2.807-4.924,6.238-6.187,10.01l-18.099,54.306c-0.887,2.662-1.195,5.393-1.186,8.107H76.8v25.6h153.6c0,0,7.159-0.154,10.667-1.323l54.306-18.099c3.772-1.254,7.194-3.379,10.01-6.187l199.125-199.117C514.5,197.906,514.5,181.701,504.499,171.7z M232.969,407.023l18.099-54.306l36.207,36.207L232.969,407.023z M305.382,370.825l-36.207-36.207l181.018-181.018l36.207,36.207L305.382,370.825z"/><path d="M409.6,121.797v-19.396c0-14.14-11.46-25.6-25.6-25.6h-51.2c0-14.14-11.46-25.6-25.6-25.6h-25.6v-25.6c0-14.14-11.46-25.6-25.6-25.6H153.6c-14.14,0-25.6,11.46-25.6,25.6v25.6h-25.6c-14.14,0-25.6,11.46-25.6,25.6H25.6c-14.14,0-25.6,11.46-25.6,25.6v384c0,14.14,11.46,25.6,25.6,25.6H384c14.14,0,25.6-11.46,25.6-25.6V339.004l-25.6,25.6v121.796H25.6v-384h51.2c0,14.14,11.46,25.6,25.6,25.6h204.8c14.14,0,25.6-11.46,25.6-25.6H384v44.996L409.6,121.797z M307.2,102.401H102.4v-25.6h51.2v-51.2H256v51.2h51.2V102.401z"/><polygon points="76.8,281.601 76.8,307.201 224.196,307.201 249.796,281.601"/><polygon points="76.8,179.201 76.8,204.801 326.596,204.801 352.196,179.201"/><polygon points="76.8,230.401 76.8,256.001 275.396,256.001 300.996,230.401"/></svg>`;
-const iconErradasSvg=`<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12.8984 3.61441C12.5328 2.86669 11.4672 2.86669 11.1016 3.61441L3.30562 19.5608C2.98083 20.2251 3.46451 21 4.204 21H19.796C20.5355 21 21.0192 20.2251 20.6944 19.5608L12.8984 3.61441ZM9.30485 2.73599C10.4015 0.492834 13.5985 0.492825 14.6952 2.73599L22.4912 18.6824C23.4655 20.6754 22.0145 23 19.796 23H4.204C1.98555 23 0.534479 20.6754 1.50885 18.6824L9.30485 2.73599Z"/><path d="M11 8.49999C11 7.94771 11.4477 7.49999 12 7.49999C12.5523 7.49999 13 7.94771 13 8.49999V14C13 14.5523 12.5523 15 12 15C11.4477 15 11 14.5523 11 14V8.49999Z"/><path d="M13.5 18C13.5 18.8284 12.8285 19.5 12 19.5C11.1716 19.5 10.5 18.8284 10.5 18C10.5 17.1716 11.1716 16.5 12 16.5C12.8285 16.5 13.5 17.1716 13.5 18Z"/></svg>`;
 // Revela/esconde o texto digitado no campo de senha (alterna type="password"/"text")
 function toggleSenhaVisivel(idCampo, botao){
   const campo=document.getElementById(idCampo);
@@ -1103,7 +1104,6 @@ function sectionTitle(texto,icone,bg,tx,opts){
   const corTexto=opts.corTexto||tx;
   return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="color:${corTexto};${sizeStyle}">${texto}</span></div>`;
 }
-const iconDesempenhoSvg=`<svg viewBox="0 0 512 512" fill="currentColor"><rect x="56" y="317.484" width="80" height="146.516"/><rect x="176" y="237.484" width="80" height="226.516"/><rect x="296" y="141.484" width="80" height="322.516"/><rect x="416" y="45.484" width="80" height="418.516"/><polygon points="16,496 16,0 0,0 0,496 0,512 16,512 512,512 512,496"/></svg>`;
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
@@ -3713,7 +3713,9 @@ function renderAtividades(){
       <div class="stat-card"><div class="stat-val"><span style="color:#3B6D11">${acertosQ}</span> <span style="color:#111">/</span> <span style="color:#A32D2D">${errosQ}</span></div><div class="stat-lbl">Acertos / Erros</div></div>
       <div class="stat-card"><div class="stat-val">${mediaAprv}%</div><div class="stat-lbl">Aproveitamento médio</div></div>
     </div>
-    ${lista.length?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
+    ${lista.length?`${sectionTitle('Evolução no tempo','evolucao','#F1EFE8','#5F5E5A',{noBg:true})}${renderEvolucaoChart(lista)}`:''}
+    ${lista.length?`${sectionTitle('Desempenho por módulo','grafico','#F1EFE8','#5F5E5A',{noBg:true})}${renderModsCards(questoesFiltradas)}`:''}
+    ${lista.length?`${sectionTitle('Por tipo de questão','etiqueta','#F1EFE8','#5F5E5A',{noBg:true})}${renderTiposCards(questoesFiltradas)}`:''}
     ${sectionTitle('Atividades','ativlist','#F1EFE8','#5F5E5A',{noBg:true})}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
@@ -3766,11 +3768,67 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'–'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
     </div>
-    ${modsHtml?`${sectionTitle('Desempenho por módulo','','#F1EFE8','#5F5E5A',{customSvg:iconDesempenhoSvg,noBg:true})}${modsHtml}`:''}
-    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true,customSvg:iconErradasSvg})}${erradasHtml}`:''}
+    ${modsHtml?`${sectionTitle('Desempenho por módulo','grafico','#F1EFE8','#5F5E5A',{noBg:true})}${modsHtml}`:''}
+    ${erradasHtml?`${sectionTitle('Questões erradas','alerta','#FCEBEB','#A32D2D',{fontSize:'14px',noBg:true})}${erradasHtml}`:''}
   `;
 }
 
+// Mesmo padrão visual do card de módulo (barra + %), mas sem expandir/colapsar — tipo de
+// questão não tem uma hierarquia natural de "sub-itens" dentro dele, então fica só a barra.
+function renderTiposCards(qs){
+  const tipos=['Conceitual','Cálculo','Número','Lista','Identificação'];
+  return tipos.map(t=>{
+    const tqs=qs.filter(q=>q.tipoQuestao===t);
+    if(!tqs.length) return '';
+    const ac=tqs.filter(isAcerto).length;
+    const pct=Math.round(ac/tqs.length*100);
+    const c=fc(pct);
+    return `<div class="mod-card">
+      <div class="mod-header" style="cursor:default">
+        <div class="mod-top">
+          <span class="mod-nm">${t}</span>
+          <div class="mod-right"><span class="mod-p" style="color:${c};background:${fcBg(pct)}">${pct}%</span></div>
+        </div>
+        <div class="bbg"><div class="bf" style="width:${pct}%;background:${c}"></div></div>
+        <span class="mac">${ac}/${tqs.length} acertos</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+// Gráfico de linha simples (SVG puro, sem lib externa) do aproveitamento % ao longo do tempo,
+// respeitando os mesmos filtros já aplicados na tela (curso/tipo/período).
+function renderEvolucaoChart(lista){
+  const comData=lista.filter(a=>a.aproveitamento&&a.data).slice().sort((a,b)=>a.data.localeCompare(b.data));
+  if(comData.length<2){
+    return `<div class="empty">Precisa de pelo menos 2 atividades com data e aproveitamento no período pra mostrar evolução.</div>`;
+  }
+  const larguraSvg=320,alturaSvg=110,margemY=14;
+  const passoX=comData.length>1?(larguraSvg-20)/(comData.length-1):0;
+  const pontos=comData.map((a,i)=>{
+    const pct=Math.max(0,Math.min(100,parseFloat(a.aproveitamento)||0));
+    const x=10+i*passoX;
+    const y=margemY+(100-pct)/100*(alturaSvg-margemY*2);
+    return {x,y,pct,data:a.data};
+  });
+  const pathPontos=pontos.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const primeira=fmtDataCurta(comData[0].data),ultima=fmtDataCurta(comData[comData.length-1].data);
+  return `<div class="card-questao" style="padding:14px">
+    <svg viewBox="0 0 ${larguraSvg} ${alturaSvg}" style="width:100%;height:auto;display:block">
+      <polyline points="${pathPontos}" fill="none" stroke="#202A45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${pontos.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#202A45"/>`).join('')}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:var(--fs-b);color:#888;margin-top:4px">
+      <span>${primeira}</span>
+      <span>${ultima}</span>
+    </div>
+  </div>`;
+}
+function fmtDataCurta(d){
+  if(!d) return '';
+  const [,m,day]=d.split('-');
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return `${day}/${meses[parseInt(m,10)-1]}`;
+}
 function renderModsCards(qs){
   const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
   return mods.map((m,i)=>{
