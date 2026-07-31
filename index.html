@@ -665,6 +665,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="escolher-resposta-modal" style="display:none;z-index:1000001">
+  <div class="modal-box">
+    <div class="config-title">Qual foi sua resposta?</div>
+    <p id="escolher-resposta-texto" style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('a')">A</button>
+      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('b')">B</button>
+      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('c')">C</button>
+      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('d')">D</button>
+      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('e')">E</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="alarme-anki-modal" style="display:none;z-index:1000001">
   <div class="modal-box">
     <div class="config-title">⏰ Tempo de Anki batido!</div>
@@ -1525,10 +1539,11 @@ function renderizarListaMarcacao(){
       const errada=q.acertouSimplificado===false;
       controleHtml=`<button class="marcacao-toggle${errada?' errada':''}" onclick="toggleMarcacaoQuestao('${q.id}')">${errada?'Errado':'Certo'}</button>`;
     }else{
-      // 3 estados: falta (null) -> certa -> errada -> falta
-      const estado=q.acertouSimplificado===true?'certa':q.acertouSimplificado===false?'errada':'pendente';
-      const rotulo=estado==='certa'?'Certo':estado==='errada'?'Errado':'Falta';
-      controleHtml=`<button class="marcacao-toggle ${estado}" onclick="toggleMarcacaoQuestao('${q.id}')">${rotulo}</button>`;
+      // Sem detecção automática, mas outras questões da atividade têm — em vez do modo
+      // simplificado (Certo/Errado, sem saber a letra), deixa escolher a letra de verdade. Grava
+      // direto em sua_resposta (o mesmo campo que a extração automática usa) — depois de escolher,
+      // a questão passa a cair no ramo "detectada" acima, igual as que vieram do PDF.
+      controleHtml=`<button class="marcacao-toggle" onclick="abrirEscolherRespostaManual('${q.id}')">Escolher</button>`;
     }
     return `<div class="marcacao-item">
       <div class="marcacao-item-esq" style="cursor:pointer" onclick="abrirEdicaoModuloQuestao('${q.id}')">
@@ -1679,6 +1694,33 @@ async function salvarEdicaoModuloQuestao(){
   }
 }
 
+let escolherRespostaQuestaoId=null;
+function abrirEscolherRespostaManual(questaoId){
+  const q=questoesPendentes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  escolherRespostaQuestaoId=questaoId;
+  document.getElementById('escolher-resposta-texto').textContent=`Questão ${q.numeroQuestao}`;
+  document.getElementById('escolher-resposta-modal').style.display='flex';
+}
+async function confirmarRespostaManual(letra){
+  if(!escolherRespostaQuestaoId) return;
+  const questaoId=escolherRespostaQuestaoId;
+  document.getElementById('escolher-resposta-modal').style.display='none';
+  escolherRespostaQuestaoId=null;
+  const q=questoesPendentes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  try{
+    const {error}=await sbDados.from('questoes_pendentes').update({sua_resposta:letra,respondida:true}).eq('id',questaoId);
+    if(error) throw error;
+    // Atualiza localmente também, sem precisar recarregar tudo do banco — a partir de agora essa
+    // questão cai no mesmo ramo visual das que vieram detectadas automaticamente do PDF.
+    q.suaResposta=letra;
+    q.respondida=true;
+    renderizarListaMarcacao();
+  }catch(e){
+    alert('Erro ao salvar resposta: '+e.message);
+  }
+}
 async function toggleMarcacaoQuestao(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
