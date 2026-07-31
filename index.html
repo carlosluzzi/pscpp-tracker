@@ -125,8 +125,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-icon svg{width:15px;height:15px;display:block}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
-#timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
   /* Aqui a barra de navegação AINDA fica embaixo (só vira sidebar lateral a partir de 1100px) —
@@ -2160,8 +2160,11 @@ function timerCamposObrigatoriosCompletos(){
   return true;
 }
 
-function abrirTimerFullscreen(){
-  if(!timerCamposObrigatoriosCompletos()) return;
+function abrirTimerFullscreen(pulandoValidacao){
+  // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
+  // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
+  // salva, então não precisa (e não deve) ser barrada de novo aqui.
+  if(!pulandoValidacao&&!timerCamposObrigatoriosCompletos()) return;
   if(!timerRodando) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
@@ -2421,7 +2424,7 @@ function fecharTimerFlutuante(){
 })();
 function reabrirFullscreenAtivo(){
   if(cadernoTimerAtivo) abrirCadernoTimerFullscreen(cadernoTimerAtivo);
-  else if(timerRodando) abrirTimerFullscreen();
+  else if(timerRodando) abrirTimerFullscreen(true);
 }
 
 function tocarBeepAlarme(){
@@ -2531,7 +2534,7 @@ function restaurarSessaoRecuperavel(){
     timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
     timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
     if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
-    abrirTimerFullscreen();
+    abrirTimerFullscreen(true);
   }else if(snap.tipo==='caderno'){
     cadernoTimerAtivo=snap.cadernoTimerAtivo;cadernoTimerInicio=snap.cadernoTimerInicio;cadernoTimerAcabouAvisado=false;
     if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
