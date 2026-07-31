@@ -127,10 +127,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(92px + env(safe-area-inset-bottom, 0px))}
-@media(min-width:768px){
-  /* Nesses breakpoints o menu vira sidebar lateral, não tem mais barra inferior — o pop-up
-     fica só a um respiro do canto real da tela, sem precisar desviar de nenhuma barra. */
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
+@media(min-width:768px) and (max-width:1099px){
+  /* Aqui a barra de navegação AINDA fica embaixo (só vira sidebar lateral a partir de 1100px) —
+     usa o mesmo espaço reservado que o conteúdo da página já usa nesse breakpoint, pra não tapar
+     a barra. É exatamente o breakpoint do iPad em retrato, onde esse bug apareceu. */
+  #timer-flutuante{bottom:calc(78px + env(safe-area-inset-bottom, 0px) + 16px)}
+}
+@media(min-width:1100px){
+  /* Só a partir daqui o menu vira sidebar lateral, sem barra inferior — o pop-up fica só a um
+     respiro do canto real da tela, sem precisar desviar de nenhuma barra. */
   #timer-flutuante{bottom:24px}
 }
 #timer-flutuante.hidden{display:none}
