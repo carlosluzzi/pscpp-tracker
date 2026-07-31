@@ -4478,6 +4478,10 @@ function finalizarSplash(){
     const delta=e.clientY-yInicial;
     if(delta<=0){ resetVisual(); return; }
     if(contentEl.scrollTop>0){ arrastando=false; finalizarArrasteMouse(); return; }
+    // Sem isso, o navegador entra em modo de seleção de texto ao clicar+arrastar (comportamento
+    // padrão dele), competindo com o gesto customizado — só chama depois de confirmar que é
+    // arraste de verdade (delta>0, no topo), pra não atrapalhar cliques normais em botões/links.
+    e.preventDefault();
     const distancia=Math.min(delta*0.5,MAX_ARRASTO);
     indicador.classList.add('ativo');
     indicador.style.height=distancia+'px';
@@ -4515,6 +4519,50 @@ function finalizarSplash(){
       document.addEventListener('mouseup',aoSoltarMouse);
     }
   });
+
+  // Trackpad (2 dedos rolando pra baixo no topo da página) — gesto diferente de clicar+arrastar,
+  // é o equivalente de mouse mais parecido com o gesto de 1 dedo no touch. Usa o evento "wheel",
+  // que não tem um "soltar" natural (ao contrário de touchend/mouseup) — por isso acumula a
+  // distância a cada evento, e considera o gesto encerrado quando passa um tempo sem nenhum
+  // evento novo (o trackpad para de mandar eventos assim que os dedos saem da superfície).
+  let acumuladoWheel=0,timeoutFimWheel=null;
+  function finalizarGestoWheel(){
+    if(passouLimiar&&!atualizando){
+      atualizando=true;
+      indicador.classList.remove('ativo');
+      indicador.style.height='44px';
+      seta.classList.add('escondida');
+      spinner.classList.add('girando');
+      loadData().catch(()=>{}).then(()=>{
+        finalizarCarregamento();
+        atualizando=false;
+      });
+    }else{
+      resetVisual();
+    }
+    acumuladoWheel=0;
+    passouLimiar=false;
+  }
+  contentEl.addEventListener('wheel',(e)=>{
+    if(atualizando||algumaTelaFullscreenAberta()) return;
+    // deltaY negativo = rolando pra cima (gesto de "puxar pra baixo" a página) — só conta isso
+    // quando já está no topo do scroll, senão é rolagem normal do conteúdo.
+    if(contentEl.scrollTop>0||e.deltaY>=0){
+      if(acumuladoWheel>0){ clearTimeout(timeoutFimWheel); finalizarGestoWheel(); }
+      return;
+    }
+    e.preventDefault();
+    acumuladoWheel=Math.min(acumuladoWheel+Math.abs(e.deltaY)*0.5,MAX_ARRASTO);
+    indicador.classList.add('ativo');
+    indicador.style.height=acumuladoWheel+'px';
+    const cruzouAgora=acumuladoWheel>=LIMIAR;
+    if(cruzouAgora!==passouLimiar){
+      passouLimiar=cruzouAgora;
+      seta.classList.toggle('pronta',passouLimiar);
+    }
+    clearTimeout(timeoutFimWheel);
+    timeoutFimWheel=setTimeout(finalizarGestoWheel,150);
+  },{passive:false});
 })();
 
 // Trava o bounce nativo na lista de questões dentro do caderno — nem no topo (não tem pull-to-
