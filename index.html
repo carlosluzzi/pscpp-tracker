@@ -127,6 +127,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none}
+#timer-flutuante.hidden{display:none}
+#timer-flutuante-fechar{position:absolute;top:2px;right:6px;font-size:13px;color:#9BA3B7;padding:6px;cursor:pointer}
+#timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+#timer-flutuante-tempo{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
 #caderno-timer-fullscreen.hidden{display:none}
 #marcacao-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999998;background:#FBFBFA;display:flex;flex-direction:column;box-sizing:border-box}
 #marcacao-fullscreen.hidden{display:none}
@@ -626,6 +631,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div id="resolucao-finalizar-wrap" class="hidden">
     <button class="resolucao-finalizar-btn" onclick="finalizarCadernoPendente()">✓ Finalizar caderno</button>
   </div>
+</div>
+
+<div id="timer-flutuante" class="hidden">
+  <span id="timer-flutuante-fechar" onclick="fecharTimerFlutuante()">✕</span>
+  <div id="timer-flutuante-nome"></div>
+  <div id="timer-flutuante-tempo"></div>
 </div>
 
 <div class="modal-overlay" id="sessao-recuperavel-modal" style="display:none;z-index:1000002">
@@ -2133,6 +2144,7 @@ function abrirTimerFullscreen(){
   if(!timerCamposObrigatoriosCompletos()) return;
   if(!timerRodando) iniciarTimer();
   timerFullscreenAberto=true;
+  esconderTimerFlutuante();
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2158,6 +2170,11 @@ function fecharTimerFullscreen(){
     const sair=document.exitFullscreen||document.webkitExitFullscreen;
     if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
   }catch(e){}
+  if(timerRodando){
+    timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
+    const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
+    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual));
+  }
   renderTab(tabAtual,true);
 }
 
@@ -2177,6 +2194,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerInicio=Date.now();
     cadernoTimerAcabouAvisado=false;
   }
+  esconderTimerFlutuante();
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2214,6 +2232,8 @@ function tickCadernoTimer(){
       if(elTempo) elTempo.textContent=formatarTempoTimer(Math.max(0,restante));
       else document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
     }
+  }else{
+    atualizarTextoTimerFlutuante(formatarTempoTimer(Math.max(0,restante)));
   }
   // A lista de Cadernos não mostra o tempo em tempo real (só o texto fixo "Voltar ao cronômetro"),
   // então não precisa re-renderizar a aba inteira a cada segundo — só quando o timer inicia/finaliza,
@@ -2230,6 +2250,13 @@ function fecharCadernoTimerFullscreen(){
     const sair=document.exitFullscreen||document.webkitExitFullscreen;
     if(sair&&(document.fullscreenElement||document.webkitFullscreenElement)) sair.call(document).catch(()=>{});
   }catch(e){}
+  if(cadernoTimerAtivo){
+    timerFlutuanteFechadoManualmente=false;
+    const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
+    const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+    const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
+    mostrarTimerFlutuante(ap&&ap.nome?ap.nome:'Caderno',formatarTempoTimer(restante));
+  }
   renderTab(tabAtual,true);
 }
 
@@ -2262,6 +2289,7 @@ async function finalizarCadernoTimer(){
     if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
     cadernoTimerAtivo=null;
     limparSnapshotSessao();
+    esconderTimerFlutuante();
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
@@ -2274,6 +2302,73 @@ async function finalizarCadernoTimer(){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
   }
 }
+
+// Pop-up flutuante do cronômetro — aparece quando o usuário fecha o fullscreen (timer normal ou
+// caderno) mas o cronômetro continua rodando em background. Arrastável, e pode ser escondido
+// manualmente (fica escondido até o próximo fullscreen fechar de novo).
+let timerFlutuanteFechadoManualmente=false;
+function mostrarTimerFlutuante(nome,tempoTexto){
+  if(timerFlutuanteFechadoManualmente) return;
+  document.getElementById('timer-flutuante-nome').textContent=nome;
+  document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
+  const el=document.getElementById('timer-flutuante');
+  if(el.classList.contains('hidden')){
+    // Posição inicial: canto inferior direito, com folga da barra de navegação
+    el.style.right='16px';
+    el.style.left='auto';
+    el.style.bottom='calc(var(--nav-clear, 76px) + 16px)';
+    el.style.top='auto';
+  }
+  el.classList.remove('hidden');
+}
+function atualizarTextoTimerFlutuante(tempoTexto){
+  if(document.getElementById('timer-flutuante').classList.contains('hidden')) return;
+  document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
+}
+function esconderTimerFlutuante(){
+  document.getElementById('timer-flutuante').classList.add('hidden');
+}
+function fecharTimerFlutuante(){
+  timerFlutuanteFechadoManualmente=true;
+  esconderTimerFlutuante();
+}
+(function(){
+  // Arrastar o pop-up flutuante — funciona com mouse e touch, sem depender de nenhuma lib externa.
+  let arrastando=false,offsetX=0,offsetY=0;
+  function iniciar(clientX,clientY){
+    const el=document.getElementById('timer-flutuante');
+    const rect=el.getBoundingClientRect();
+    arrastando=true;
+    offsetX=clientX-rect.left;
+    offsetY=clientY-rect.top;
+    el.style.right='auto';
+    el.style.bottom='auto';
+    el.style.left=rect.left+'px';
+    el.style.top=rect.top+'px';
+  }
+  function mover(clientX,clientY){
+    if(!arrastando) return;
+    const el=document.getElementById('timer-flutuante');
+    const margem=8;
+    let novoLeft=clientX-offsetX;
+    let novoTop=clientY-offsetY;
+    novoLeft=Math.max(margem,Math.min(window.innerWidth-el.offsetWidth-margem,novoLeft));
+    novoTop=Math.max(margem,Math.min(window.innerHeight-el.offsetHeight-margem,novoTop));
+    el.style.left=novoLeft+'px';
+    el.style.top=novoTop+'px';
+  }
+  function soltar(){ arrastando=false; }
+  document.addEventListener('DOMContentLoaded',()=>{
+    const el=document.getElementById('timer-flutuante');
+    if(!el) return;
+    el.addEventListener('mousedown',e=>{ if(e.target.id==='timer-flutuante-fechar') return; iniciar(e.clientX,e.clientY); });
+    document.addEventListener('mousemove',e=>mover(e.clientX,e.clientY));
+    document.addEventListener('mouseup',soltar);
+    el.addEventListener('touchstart',e=>{ if(e.target.id==='timer-flutuante-fechar') return; const t=e.touches[0]; iniciar(t.clientX,t.clientY); },{passive:true});
+    document.addEventListener('touchmove',e=>{ if(arrastando){ const t=e.touches[0]; mover(t.clientX,t.clientY); } },{passive:true});
+    document.addEventListener('touchend',soltar);
+  });
+})();
 
 function tocarBeepAlarme(){
   try{
@@ -2312,6 +2407,7 @@ function atualizarTickTimer(){
   checarAlarmeAnki(segAtual);
   if(segAtual%10===0) salvarSnapshotSessao();
   const tempoTexto=formatarTempoTimer(segAtual);
+  atualizarTextoTimerFlutuante(tempoTexto);
   if(timerFullscreenAberto){
     // Atualiza só o texto do tempo, sem reconstruir a tela inteira a cada segundo — bem mais
     // leve, e o resto do fullscreen (botões, referência) só muda em eventos discretos (iniciar,
@@ -2375,15 +2471,22 @@ function restaurarSessaoRecuperavel(){
   const snap=window._snapshotSessaoRecuperada;
   document.getElementById('sessao-recuperavel-modal').style.display='none';
   if(!snap) return;
+  timerFlutuanteFechadoManualmente=false;
   if(snap.tipo==='timer'){
     timerModulo=snap.timerModulo||'';timerPublicacao=snap.timerPublicacao||'';timerCapitulo=snap.timerCapitulo||'';
     timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
     timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
     if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
+    const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
+    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual));
     renderTab(tabAtual,true);
   }else if(snap.tipo==='caderno'){
     cadernoTimerAtivo=snap.cadernoTimerAtivo;cadernoTimerInicio=snap.cadernoTimerInicio;cadernoTimerAcabouAvisado=false;
     if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
+    const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
+    const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+    const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
+    mostrarTimerFlutuante(ap&&ap.nome?ap.nome:'Caderno',formatarTempoTimer(restante));
     renderTab(tabAtual,true);
   }
 }
@@ -2407,6 +2510,7 @@ function pausarTimer(){
   timerRodando=false;
   timerInicio=null;
   limparSnapshotSessao();
+  esconderTimerFlutuante();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   else renderTab(tabAtual,true);
@@ -2424,6 +2528,7 @@ function zerarTimer(){
   timerAnkiAlarmeDisparado=false;
   timerFullscreenAberto=false;
   limparSnapshotSessao();
+  esconderTimerFlutuante();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
