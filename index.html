@@ -1967,7 +1967,7 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#EEEDFE','#202A45',{noBg:true})}
-      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative">${tempoFormatado}
+      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
         ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -2197,15 +2197,27 @@ function abrirCadernoTimerFullscreen(atividadeId){
 function tickCadernoTimer(){
   const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
   const restante=CADERNO_TIMER_MAXIMO_SEG-decorrido;
+  const eraAvisadoAntes=cadernoTimerAcabouAvisado;
   if(restante<=0&&!cadernoTimerAcabouAvisado){
     cadernoTimerAcabouAvisado=true;
     tocarBeepAlarme();
   }
   if(decorrido%10===0) salvarSnapshotSessao();
-  if(!document.getElementById('caderno-timer-fullscreen').classList.contains('hidden')){
-    document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+  const fullscreenAberto=!document.getElementById('caderno-timer-fullscreen').classList.contains('hidden');
+  if(fullscreenAberto){
+    // No momento exato que o tempo esgota, a tela muda de cor/mensagem — precisa do render
+    // completo só nesse instante. Nos outros ~14399 segundos, só troca o texto do número.
+    if(cadernoTimerAcabouAvisado&&!eraAvisadoAntes){
+      document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+    }else{
+      const elTempo=document.querySelector('#caderno-timer-fullscreen-conteudo .tf-tempo');
+      if(elTempo) elTempo.textContent=formatarTempoTimer(Math.max(0,restante));
+      else document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+    }
   }
-  if(tabAtual==='questoes') renderTab(tabAtual,true);
+  // A lista de Cadernos não mostra o tempo em tempo real (só o texto fixo "Voltar ao cronômetro"),
+  // então não precisa re-renderizar a aba inteira a cada segundo — só quando o timer inicia/finaliza,
+  // que já disparam renderTab por conta própria nos pontos certos.
 }
 
 function fecharCadernoTimerFullscreen(){
@@ -2299,11 +2311,20 @@ function atualizarTickTimer(){
   const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   checarAlarmeAnki(segAtual);
   if(segAtual%10===0) salvarSnapshotSessao();
+  const tempoTexto=formatarTempoTimer(segAtual);
   if(timerFullscreenAberto){
-    document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
-  }
-  if(tabAtual==='aprovado'&&!timerFullscreenAberto){
-    renderTab(tabAtual,true);
+    // Atualiza só o texto do tempo, sem reconstruir a tela inteira a cada segundo — bem mais
+    // leve, e o resto do fullscreen (botões, referência) só muda em eventos discretos (iniciar,
+    // pausar, trocar tipo), que já chamam o render completo por conta própria.
+    const elTempo=document.querySelector('#timer-fullscreen-conteudo .tf-tempo');
+    if(elTempo) elTempo.textContent=tempoTexto;
+    else document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  }else if(tabAtual==='aprovado'){
+    // Mesma ideia pro card normal — só troca o número, não recalcula a aba Aprovado inteira
+    // (Ciclo de Estudos, Metas, Horas por matéria, Histórico) a cada segundo.
+    const elTempo=document.getElementById('timer-card-tempo');
+    if(elTempo) elTempo.textContent=tempoTexto;
+    else renderTab(tabAtual,true);
   }
 }
 
