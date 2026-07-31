@@ -127,10 +127,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none}
 #timer-flutuante.hidden{display:none}
 #timer-flutuante-fechar{position:absolute;top:2px;right:6px;font-size:13px;color:#9BA3B7;padding:6px;cursor:pointer}
-#timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+#timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+#timer-flutuante-subtitulo{font-size:12px;color:#fff;font-weight:600;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+#timer-flutuante-subtitulo:empty{display:none}
 #timer-flutuante-tempo{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
 #caderno-timer-fullscreen.hidden{display:none}
 #marcacao-fullscreen{position:fixed;inset:0;width:100%;height:100%;height:100dvh;z-index:999998;background:#FBFBFA;display:flex;flex-direction:column;box-sizing:border-box}
@@ -636,6 +638,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div id="timer-flutuante" class="hidden">
   <span id="timer-flutuante-fechar" onclick="fecharTimerFlutuante()">✕</span>
   <div id="timer-flutuante-nome"></div>
+  <div id="timer-flutuante-subtitulo"></div>
   <div id="timer-flutuante-tempo"></div>
 </div>
 
@@ -2173,7 +2176,7 @@ function fecharTimerFullscreen(){
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
-    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual));
+    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
   }
   renderTab(tabAtual,true);
 }
@@ -2255,7 +2258,8 @@ function fecharCadernoTimerFullscreen(){
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
     const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
     const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
-    mostrarTimerFlutuante(ap&&ap.nome?ap.nome:'Caderno',formatarTempoTimer(restante));
+    const tipoAbrevFlut=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
+    mostrarTimerFlutuante(ap?ap.curso:'',formatarTempoTimer(restante),ap?`${tipoAbrevFlut}${ap.nome?' '+ap.nome:''}`:'Caderno');
   }
   renderTab(tabAtual,true);
 }
@@ -2307,9 +2311,10 @@ async function finalizarCadernoTimer(){
 // caderno) mas o cronômetro continua rodando em background. Arrastável, e pode ser escondido
 // manualmente (fica escondido até o próximo fullscreen fechar de novo).
 let timerFlutuanteFechadoManualmente=false;
-function mostrarTimerFlutuante(nome,tempoTexto){
+function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   if(timerFlutuanteFechadoManualmente) return;
   document.getElementById('timer-flutuante-nome').textContent=nome;
+  document.getElementById('timer-flutuante-subtitulo').textContent=subtitulo||'';
   document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
   const el=document.getElementById('timer-flutuante');
   if(el.classList.contains('hidden')){
@@ -2334,41 +2339,72 @@ function fecharTimerFlutuante(){
 }
 (function(){
   // Arrastar o pop-up flutuante — funciona com mouse e touch, sem depender de nenhuma lib externa.
-  let arrastando=false,offsetX=0,offsetY=0;
+  // Os listeners de mover/soltar só ficam ativos ENQUANTO o arraste está de fato acontecendo —
+  // anexados no início do gesto, removidos assim que solta. Evita ficar processando todo movimento
+  // de mouse/dedo em qualquer lugar do app, o tempo inteiro, sem necessidade.
+  let offsetX=0,offsetY=0,larguraEl=0,alturaEl=0,rafPendente=null,ultimaPos=null;
+  let distanciaPercorrida=0,ultimoX=0,ultimoY=0;
+  function aplicarPosicao(){
+    rafPendente=null;
+    if(!ultimaPos) return;
+    const el=document.getElementById('timer-flutuante');
+    el.style.left=ultimaPos.left+'px';
+    el.style.top=ultimaPos.top+'px';
+  }
+  function mover(clientX,clientY){
+    distanciaPercorrida+=Math.abs(clientX-ultimoX)+Math.abs(clientY-ultimoY);
+    ultimoX=clientX; ultimoY=clientY;
+    const margem=8;
+    let novoLeft=clientX-offsetX;
+    let novoTop=clientY-offsetY;
+    novoLeft=Math.max(margem,Math.min(window.innerWidth-larguraEl-margem,novoLeft));
+    novoTop=Math.max(margem,Math.min(window.innerHeight-alturaEl-margem,novoTop));
+    ultimaPos={left:novoLeft,top:novoTop};
+    // Sincroniza a escrita no DOM com o ciclo de repintura da tela, em vez de escrever a cada
+    // evento — evita trabalho redundante quando o dedo/mouse dispara eventos mais rápido do
+    // que a tela consegue repintar (era a causa real do atraso ao mover rápido).
+    if(!rafPendente) rafPendente=requestAnimationFrame(aplicarPosicao);
+  }
+  function moverMouse(e){ mover(e.clientX,e.clientY); }
+  function moverToque(e){ const t=e.touches[0]; if(t) mover(t.clientX,t.clientY); }
+  function soltar(){
+    document.removeEventListener('mousemove',moverMouse);
+    document.removeEventListener('mouseup',soltar);
+    document.removeEventListener('touchmove',moverToque);
+    document.removeEventListener('touchend',soltar);
+    if(rafPendente){ cancelAnimationFrame(rafPendente); aplicarPosicao(); }
+    // Se o gesto inteiro moveu muito pouco (poucos pixels), trata como um clique/toque simples —
+    // não como arraste — e reabre a tela cheia do que estiver rodando.
+    if(distanciaPercorrida<6) reabrirFullscreenAtivo();
+  }
   function iniciar(clientX,clientY){
     const el=document.getElementById('timer-flutuante');
     const rect=el.getBoundingClientRect();
-    arrastando=true;
     offsetX=clientX-rect.left;
     offsetY=clientY-rect.top;
+    larguraEl=el.offsetWidth;
+    alturaEl=el.offsetHeight;
+    distanciaPercorrida=0; ultimoX=clientX; ultimoY=clientY;
     el.style.right='auto';
     el.style.bottom='auto';
     el.style.left=rect.left+'px';
     el.style.top=rect.top+'px';
+    document.addEventListener('mousemove',moverMouse);
+    document.addEventListener('mouseup',soltar);
+    document.addEventListener('touchmove',moverToque,{passive:true});
+    document.addEventListener('touchend',soltar);
   }
-  function mover(clientX,clientY){
-    if(!arrastando) return;
-    const el=document.getElementById('timer-flutuante');
-    const margem=8;
-    let novoLeft=clientX-offsetX;
-    let novoTop=clientY-offsetY;
-    novoLeft=Math.max(margem,Math.min(window.innerWidth-el.offsetWidth-margem,novoLeft));
-    novoTop=Math.max(margem,Math.min(window.innerHeight-el.offsetHeight-margem,novoTop));
-    el.style.left=novoLeft+'px';
-    el.style.top=novoTop+'px';
-  }
-  function soltar(){ arrastando=false; }
   document.addEventListener('DOMContentLoaded',()=>{
     const el=document.getElementById('timer-flutuante');
     if(!el) return;
     el.addEventListener('mousedown',e=>{ if(e.target.id==='timer-flutuante-fechar') return; iniciar(e.clientX,e.clientY); });
-    document.addEventListener('mousemove',e=>mover(e.clientX,e.clientY));
-    document.addEventListener('mouseup',soltar);
     el.addEventListener('touchstart',e=>{ if(e.target.id==='timer-flutuante-fechar') return; const t=e.touches[0]; iniciar(t.clientX,t.clientY); },{passive:true});
-    document.addEventListener('touchmove',e=>{ if(arrastando){ const t=e.touches[0]; mover(t.clientX,t.clientY); } },{passive:true});
-    document.addEventListener('touchend',soltar);
   });
 })();
+function reabrirFullscreenAtivo(){
+  if(cadernoTimerAtivo) abrirCadernoTimerFullscreen(cadernoTimerAtivo);
+  else if(timerRodando) abrirTimerFullscreen();
+}
 
 function tocarBeepAlarme(){
   try{
@@ -2478,7 +2514,7 @@ function restaurarSessaoRecuperavel(){
     timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
     if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
-    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual));
+    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
     renderTab(tabAtual,true);
   }else if(snap.tipo==='caderno'){
     cadernoTimerAtivo=snap.cadernoTimerAtivo;cadernoTimerInicio=snap.cadernoTimerInicio;cadernoTimerAcabouAvisado=false;
@@ -2486,7 +2522,8 @@ function restaurarSessaoRecuperavel(){
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
     const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
     const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
-    mostrarTimerFlutuante(ap&&ap.nome?ap.nome:'Caderno',formatarTempoTimer(restante));
+    const tipoAbrevFlut2=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
+    mostrarTimerFlutuante(ap?ap.curso:'',formatarTempoTimer(restante),ap?`${tipoAbrevFlut2}${ap.nome?' '+ap.nome:''}`:'Caderno');
     renderTab(tabAtual,true);
   }
 }
