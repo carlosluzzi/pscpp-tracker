@@ -350,9 +350,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 /* QUESTOES ERRADAS */
 .ec{border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:10px;overflow:hidden;margin-bottom:8px;background:#fff}
-.er{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-radius:10px}
-.er .eq,.er .em,.er .chev{margin-top:1px}
-.eq{font-size:16px;font-weight:500}
+.er{display:flex;cursor:pointer}
+.er-conteudo{flex:1;display:flex;align-items:center;gap:10px;padding:9px 14px;min-width:0}
+.eq{flex-shrink:0;width:44px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500}
 .ep{font-size:var(--fs-c);color:#888}
 .em{font-size:var(--fs-b);padding:2px 7px;border-radius:4px;font-weight:500;white-space:nowrap}
 .ed{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -3897,9 +3897,11 @@ function renderDetalhe(a){
     const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
     return `<div class="ec">
       <div class="er" onclick="toggleErrada(${i})">
-        <span class="eq" style="background:${corStatus.bg};border:0.5px solid ${corStatus.borda};color:${corStatus.tx};border-radius:7px;padding:4px 8px;text-align:center">${e.questao||'–'}</span>
-        <span class="ep">${e.publicacao?nomePub(e.publicacao):"–"}</span>
-        <span class="chev" id="echev${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="eq" style="background:${corStatus.bg};color:${corStatus.tx}">${e.questao||'–'}</span>
+        <div class="er-conteudo">
+          <span class="ep">${e.publicacao?nomePub(e.publicacao):"–"}</span>
+          <span class="chev" id="echev${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </div>
       </div>
       <div class="ed" id="ed${i}">
         <div class="rs">
