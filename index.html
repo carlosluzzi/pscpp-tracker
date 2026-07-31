@@ -4421,6 +4421,58 @@ function finalizarSplash(){
       resetVisual();
     }
   },{passive:true});
+
+  // Mouse (computador, sem tela de toque) — mesma lógica exata acima, só trocando a origem do
+  // gesto. touchstart/touchmove/touchend nunca disparam sem tela touch, então no computador o
+  // pull-to-refresh simplesmente não existia antes. mousedown só é registrado no próprio content
+  // (como o touchstart); mousemove/mouseup vão pro document, já que o botão pode ser solto fora
+  // da área do content sem o gesto "quebrar".
+  function finalizarArrasteMouse(){
+    document.removeEventListener('mousemove',aoMoverMouse);
+    document.removeEventListener('mouseup',aoSoltarMouse);
+  }
+  function aoMoverMouse(e){
+    if(!arrastando||yInicial===null||atualizando||algumaTelaFullscreenAberta()){ resetVisual(); arrastando=false; finalizarArrasteMouse(); return; }
+    const delta=e.clientY-yInicial;
+    if(delta<=0){ resetVisual(); return; }
+    if(contentEl.scrollTop>0){ arrastando=false; finalizarArrasteMouse(); return; }
+    const distancia=Math.min(delta*0.5,MAX_ARRASTO);
+    indicador.classList.add('ativo');
+    indicador.style.height=distancia+'px';
+    const cruzouAgora=distancia>=LIMIAR;
+    if(cruzouAgora!==passouLimiar){
+      passouLimiar=cruzouAgora;
+      seta.classList.toggle('pronta',passouLimiar);
+    }
+  }
+  async function aoSoltarMouse(){
+    finalizarArrasteMouse();
+    if(!arrastando||yInicial===null){ yInicial=null; return; }
+    arrastando=false;
+    yInicial=null;
+    if(passouLimiar&&!atualizando){
+      atualizando=true;
+      indicador.classList.remove('ativo');
+      indicador.style.height='44px';
+      seta.classList.add('escondida');
+      spinner.classList.add('girando');
+      try{ await loadData(); }catch(e){}
+      finalizarCarregamento();
+      atualizando=false;
+    }else{
+      resetVisual();
+    }
+  }
+  contentEl.addEventListener('mousedown',(e)=>{
+    if(atualizando||algumaTelaFullscreenAberta()) return;
+    if(contentEl.scrollTop<=0){
+      yInicial=e.clientY;
+      arrastando=true;
+      passouLimiar=false;
+      document.addEventListener('mousemove',aoMoverMouse);
+      document.addEventListener('mouseup',aoSoltarMouse);
+    }
+  });
 })();
 
 // Trava o bounce nativo na lista de questões dentro do caderno — nem no topo (não tem pull-to-
