@@ -158,7 +158,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .marcacao-ref{font-size:var(--fs-b);color:#888}
 .marcacao-ref-editavel{cursor:pointer}
 .marcacao-ref-editavel:hover{color:#111}
-.marcacao-toggle{flex-shrink:0;padding:8px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;min-width:88px;min-height:38px;text-align:center;display:flex;align-items:center;justify-content:center}
+.marcacao-toggle{flex-shrink:0;padding:4px 16px;border-radius:8px;border:0.5px solid #C0DD97;background:#EAF3DE;color:#3B6D11;font-size:var(--fs-c);font-weight:600;cursor:pointer;font-family:inherit;min-width:88px;min-height:26px;text-align:center;display:flex;align-items:center;justify-content:center}
 .marcacao-toggle.errada{border-color:#F7C1C1;background:#FCEBEB;color:#A32D2D}
 .marcacao-toggle.pendente{border-color:#ccc;background:#f5f5f3;color:#888}
 .marcacao-toggle.anulada{border-color:#F5D98A;background:#FAEEDA;color:#854F0B;cursor:default}
@@ -172,7 +172,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 #resolucao-toast.errado{background:rgba(163,45,45,0.92)}
 #resolucao-finalizar-wrap{flex-shrink:0;padding:10px 16px calc(env(safe-area-inset-bottom, 0px) + 14px) 16px;border-top:0.5px solid #e0e0e0}
 #resolucao-finalizar-wrap.hidden{display:none}
-.resolucao-finalizar-btn{width:100%;min-height:38px;padding:12px;border-radius:8px;border:none;background:#3B6D11;color:#fff;font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.resolucao-finalizar-btn{width:100%;min-height:26px;padding:4px 12px;border-radius:8px;border:none;background:#3B6D11;color:#fff;font-size:var(--fs-c);font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
 #timer-fullscreen.hidden{display:none}
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref-wrap{margin-bottom:32px}
@@ -527,7 +527,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .status-feito{background:#EAF3DE;color:#3B6D11}
 .status-atrasado{background:#E24B4A;color:#fff}
 .prox-confirm-btn{font-size:12px;padding:6px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
-.cadernos-btn-largura{min-width:160px;min-height:38px;text-align:center;font-size:var(--fs-d);display:flex;align-items:center;justify-content:center}
+.cadernos-btn-largura{min-width:160px;min-height:26px;text-align:center;font-size:var(--fs-c);display:flex;align-items:center;justify-content:center}
 .prox-confirm-btn:active{opacity:0.8}
 
 /* NOTAS DE ESTUDO */
@@ -668,10 +668,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="cancelar-caderno-timer-modal" style="display:none;z-index:1000002">
   <div class="modal-box">
     <div class="config-title">Cancelar cronômetro?</div>
-    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo cronometrado até agora vai ser descartado — não fica salvo em lugar nenhum. Tem certeza?</p>
+    <p style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo cronometrado até agora vai ser descartado, sem salvar. Tem certeza?</p>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="document.getElementById('cancelar-caderno-timer-modal').style.display='none'">Voltar</button>
-      <button class="modal-btn modal-btn-sim" onclick="cancelarCadernoTimer()">Cancelar cronômetro</button>
+      <button class="modal-btn modal-btn-sim" onclick="cancelarCadernoTimer()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -4170,6 +4170,7 @@ function renderQuestoes(){
     return `<div class="cadernos-item-leve" onclick="abrirMarcacaoPendente('${ap.id}')">
       <div class="prox-left">
         <span class="prox-nome">${tipoAbrev}${ap.nome?' '+ap.nome:''}</span>
+        <span class="prox-modalidade" style="${modoManualPuroCard?'color:#854F0B;font-weight:600':'color:#888'}">${modoManualPuroCard?'✋ Modo manual — confira as respostas':'🔍 Detectado automaticamente'}</span>
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
         <span class="prox-modalidade">${respondidas}/${qsDessa.length} respondidas${incompletas?` · ${incompletas} incompleta${incompletas>1?'s':''}`:''}</span>
         ${faltando?`<span class="prox-modalidade" style="color:#854F0B;font-weight:600">⚠ ${faltando} falta${faltando>1?'m':''} responder</span>`:''}
