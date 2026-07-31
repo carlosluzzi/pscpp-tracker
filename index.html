@@ -3006,7 +3006,7 @@ function ativCard(a,clicavel=true){
       <span class="ativ-title">${tipoAbrev}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
     </div>
-    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso">`:''}
+    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-metrics">
       <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
@@ -3312,6 +3312,11 @@ const logosCursos={
   'MPX':'assets/logo-mpx.png',
   'Catavento':'assets/logo-catavento.png',
 };
+// Proporção real (largura/altura) de cada logo — usada com aspect-ratio no CSS pra reservar o
+// espaço exato ANTES da imagem carregar. Sem isso, o navegador só sabe a largura real depois de
+// baixar a imagem, causando um salto de layout bem na hora que ela chega — se isso coincidir com
+// o momento em que a pessoa começa a rolar a tela, trava o primeiro gesto de scroll.
+const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025};
 function renderCardCalendario(){
   const cursos=['Curso H','Curso Prático','MPX','Catavento'];
   const cards=cursos.map(curso=>{
@@ -3918,7 +3923,7 @@ function renderDetalhe(a){
   const tipoAbrevDet=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `
     <div class="detail-back" onclick="voltarLista()">← Atividades</div>
-    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px">`:''}
+    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px;height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
