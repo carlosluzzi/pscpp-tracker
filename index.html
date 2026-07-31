@@ -2355,15 +2355,8 @@ function fecharTimerFlutuante(){
   // Os listeners de mover/soltar só ficam ativos ENQUANTO o arraste está de fato acontecendo —
   // anexados no início do gesto, removidos assim que solta. Evita ficar processando todo movimento
   // de mouse/dedo em qualquer lugar do app, o tempo inteiro, sem necessidade.
-  let offsetX=0,offsetY=0,larguraEl=0,alturaEl=0,rafPendente=null,ultimaPos=null;
+  let offsetX=0,offsetY=0,larguraEl=0,alturaEl=0,elCache=null;
   let distanciaPercorrida=0,ultimoX=0,ultimoY=0;
-  function aplicarPosicao(){
-    rafPendente=null;
-    if(!ultimaPos) return;
-    const el=document.getElementById('timer-flutuante');
-    el.style.left=ultimaPos.left+'px';
-    el.style.top=ultimaPos.top+'px';
-  }
   function mover(clientX,clientY){
     distanciaPercorrida+=Math.abs(clientX-ultimoX)+Math.abs(clientY-ultimoY);
     ultimoX=clientX; ultimoY=clientY;
@@ -2372,11 +2365,12 @@ function fecharTimerFlutuante(){
     let novoTop=clientY-offsetY;
     novoLeft=Math.max(margem,Math.min(window.innerWidth-larguraEl-margem,novoLeft));
     novoTop=Math.max(margem,Math.min(window.innerHeight-alturaEl-margem,novoTop));
-    ultimaPos={left:novoLeft,top:novoTop};
-    // Sincroniza a escrita no DOM com o ciclo de repintura da tela, em vez de escrever a cada
-    // evento — evita trabalho redundante quando o dedo/mouse dispara eventos mais rápido do
-    // que a tela consegue repintar (era a causa real do atraso ao mover rápido).
-    if(!rafPendente) rafPendente=requestAnimationFrame(aplicarPosicao);
+    // Escreve direto a cada movimento — a causa real do atraso anterior era ler offsetWidth/Height
+    // do elemento a cada evento (forçava recálculo de layout); isso já está resolvido (medido só
+    // uma vez, no início do arraste), então a escrita direta agora já é barata e responde na hora,
+    // sem precisar esperar o próximo ciclo de repintura da tela.
+    elCache.style.left=novoLeft+'px';
+    elCache.style.top=novoTop+'px';
   }
   function moverMouse(e){ mover(e.clientX,e.clientY); }
   function moverToque(e){ const t=e.touches[0]; if(t) mover(t.clientX,t.clientY); }
@@ -2385,13 +2379,13 @@ function fecharTimerFlutuante(){
     document.removeEventListener('mouseup',soltar);
     document.removeEventListener('touchmove',moverToque);
     document.removeEventListener('touchend',soltar);
-    if(rafPendente){ cancelAnimationFrame(rafPendente); aplicarPosicao(); }
     // Se o gesto inteiro moveu muito pouco (poucos pixels), trata como um clique/toque simples —
     // não como arraste — e reabre a tela cheia do que estiver rodando.
     if(distanciaPercorrida<6) reabrirFullscreenAtivo();
   }
   function iniciar(clientX,clientY){
     const el=document.getElementById('timer-flutuante');
+    elCache=el;
     const rect=el.getBoundingClientRect();
     offsetX=clientX-rect.left;
     offsetY=clientY-rect.top;
@@ -2527,18 +2521,11 @@ function restaurarSessaoRecuperavel(){
     timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
     timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
     if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
-    const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
-    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
-    renderTab(tabAtual,true);
+    abrirTimerFullscreen();
   }else if(snap.tipo==='caderno'){
     cadernoTimerAtivo=snap.cadernoTimerAtivo;cadernoTimerInicio=snap.cadernoTimerInicio;cadernoTimerAcabouAvisado=false;
     if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
-    const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
-    const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
-    const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
-    const tipoAbrevFlut2=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
-    mostrarTimerFlutuante(ap?ap.curso:'',formatarTempoTimer(restante),ap?`${tipoAbrevFlut2}${ap.nome?' '+ap.nome:''}`:'Caderno');
-    renderTab(tabAtual,true);
+    abrirCadernoTimerFullscreen(cadernoTimerAtivo);
   }
 }
 function descartarSessaoRecuperavel(){
