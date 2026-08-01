@@ -340,6 +340,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .pub-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden}
 .pub-bar-fill{height:4px;border-radius:4px}
 .caps{display:flex;flex-direction:column;gap:3px;margin-top:3px;padding-left:8px;border-left:2px solid #e0e0e0}
+.cap-group{display:flex;flex-direction:column}
+.cap-group-header{display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer;padding:4px 0}
+.cap-group-right{display:flex;align-items:center;gap:8px}
+.cap-group-resumo{font-size:var(--fs-c);color:#888}
+.cap-group-detail{display:none;flex-direction:column;gap:6px;padding:4px 0 6px 10px}
+.cap-group-detail.open{display:flex}
 .cap-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
 .cap-ref{display:flex;flex-direction:column;gap:1px}
 .cap-loc{font-size:var(--fs-c);font-weight:500}
@@ -4014,33 +4020,57 @@ function renderModsCards(qs){
         <span class="mac">${ac}/${mqs.length} acertos</span>
       </div>
       <div class="mod-detail" id="mdet${i}">
-        ${renderPubsCards(mqs)}
+        ${renderPubsCards(mqs,'m'+i)}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderPubsCards(qs){
+function renderPubsCards(qs,prefixoId){
   const pubs=[...new Set(qs.map(q=>q.publicacao).filter(Boolean))];
-  return pubs.map(pub=>{
+  return pubs.map((pub,pubIdx)=>{
     const pqs=qs.filter(q=>q.publicacao===pub);
     const ac=pqs.filter(isAcerto).length;
     const pp=Math.round(ac/pqs.length*100);
     const pc=fc(pp);
-    const caps=pqs.map(q=>{
-      const si=statusInfo(q);
+    // Agrupa por capítulo — antes cada questão virava uma linha própria, repetindo o mesmo
+    // capítulo várias vezes quando tinha muitas questões dali. Agora é 1 linha por capítulo,
+    // fechada por padrão com o resumo (X/Y acertos); expande só se clicar, mostrando questão
+    // por questão (com assunto principal de cada uma) — como era antes, só que 1 nível mais fundo.
+    const capsAgrupados=new Map();
+    pqs.forEach(q=>{
       const pubInfoCap=bibliografia.find(b=>b.nome===pub&&b.modulo===q.modulo);
       const capitulo=formatarCapituloExibicao(pubInfoCap,q.capitulo)||'–';
-      const assuntoHtml=q.assuntoPrincipal
-        ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
-        :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
-      return `<div class="cap-row">
-      <div class="cap-ref">
-        <span class="cap-loc">${capitulo}</span>
-        ${assuntoHtml}
-      </div>
-      <span class="cap-res" style="color:${si.color}">${si.label}</span>
-    </div>`;
+      if(!capsAgrupados.has(capitulo)) capsAgrupados.set(capitulo,[]);
+      capsAgrupados.get(capitulo).push(q);
+    });
+    const caps=[...capsAgrupados.entries()].map(([capitulo,capQs],capIdx)=>{
+      const capId=`${prefixoId}-p${pubIdx}-c${capIdx}`;
+      const acCap=capQs.filter(isAcerto).length;
+      const errCap=capQs.length-acCap;
+      const questoesHtml=capQs.map(q=>{
+        const si=statusInfo(q);
+        const assuntoHtml=q.assuntoPrincipal
+          ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
+          :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
+        return `<div class="cap-row">
+        <div class="cap-ref">
+          <span class="cap-loc">Q${q.questao||'–'}</span>
+          ${assuntoHtml}
+        </div>
+        <span class="cap-res" style="color:${si.color}">${si.label}</span>
+      </div>`;
+      }).join('');
+      return `<div class="cap-group">
+        <div class="cap-group-header" onclick="toggleCap('${capId}')">
+          <span class="cap-loc">${capitulo}</span>
+          <div class="cap-group-right">
+            <span class="cap-group-resumo">${acCap}/${capQs.length}${errCap?` · ${errCap} errada${errCap>1?'s':''}`:''}</span>
+            <span class="chev" id="cchev-${capId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          </div>
+        </div>
+        <div class="cap-group-detail" id="cdet-${capId}">${questoesHtml}</div>
+      </div>`;
     }).join('');
     return `<div class="pub-block">
       <div class="pub-top">
@@ -4051,6 +4081,13 @@ function renderPubsCards(qs){
       <div class="caps">${caps}</div>
     </div>`;
   }).join('');
+}
+function toggleCap(capId){
+  const d=document.getElementById('cdet-'+capId);
+  const c=document.getElementById('cchev-'+capId);
+  const open=d.classList.contains('open');
+  d.classList.toggle('open',!open);
+  if(c) c.classList.toggle('open',!open);
 }
 
 async function adicionarAssuntoPrincipal(questaoId){
