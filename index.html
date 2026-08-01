@@ -2314,7 +2314,8 @@ function liberarWakeLock(){
 document.addEventListener('visibilitychange',()=>{
   const cadernoAberto=cadernoTimerAtivo&&!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
   if(document.visibilityState==='visible'&&(timerFullscreenAberto||cadernoAberto)){
-    solicitarWakeLock();
+    // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
+    // solicitarWakeLock();
   }
 });
 
@@ -2341,7 +2342,8 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  solicitarWakeLock();
+  // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
+  // solicitarWakeLock();
 }
 
 function fecharTimerFullscreen(){
@@ -2385,7 +2387,8 @@ function abrirCadernoTimerFullscreen(atividadeId){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  solicitarWakeLock();
+  // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
+  // solicitarWakeLock();
 }
 
 function tickCadernoTimer(){
