@@ -2123,8 +2123,8 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
-        ${timerModulo?`<span class="info-icone" style="position:absolute;right:-4px;top:2px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
+      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span></div>`:''}
+      <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
@@ -4661,6 +4661,16 @@ window.addEventListener('resize',()=>{
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   reposicionarTimerFlutuanteSeForaDaTela();
+  // Ao girar o dispositivo com algum fullscreen do cronômetro aberto, o Safari pode não
+  // recalcular corretamente os safe-areas (env(safe-area-inset-bottom)) na volta pra retrato,
+  // deixando uma faixa branca embaixo — a barra de status muda de comportamento durante a
+  // rotação. Reafirmar viewport-fit=cover depois que a rotação assentar força o recálculo.
+  if(timerFullscreenAberto||(cadernoTimerAtivo&&!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden'))){
+    setTimeout(()=>{
+      const metaViewport=document.getElementById('meta-viewport');
+      metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+    },300);
+  }
 });
 // Se o pop-up do cronômetro foi arrastado manualmente (tem left/top fixos em px) e a tela mudar
 // de tamanho depois — rotação de dispositivo, por exemplo — ele pode ficar fora da área visível,
