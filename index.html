@@ -312,7 +312,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .mod-card{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px}
 .mod-card-unico{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px}
 .mod-linha+.mod-linha{border-top:0.5px solid #e0e0e0}
-.mod-detail{padding:10px 14px 10px 20px;display:none;flex-direction:column;gap:10px;border-left:3px solid #EEEDFE;margin-left:14px}
+.mod-detail{padding:10px 14px 18px 24px;display:none;flex-direction:column;gap:10px}
 .mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
 .mod-top{display:flex;justify-content:space-between;align-items:center}
 .mod-nm{font-size:16px;font-weight:400}
@@ -350,7 +350,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cap-group-resumo{font-size:var(--fs-c);color:#888}
 .cap-group-detail{display:none;flex-direction:column;gap:6px;padding:4px 0 6px 10px}
 .cap-group-detail.open{display:flex}
-.cap-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.cap-row{display:flex;align-items:flex-start;gap:8px}
+.cap-row .cap-res{margin-left:auto}
 .cap-ref{display:flex;flex-direction:column;gap:1px}
 .cap-loc{font-size:var(--fs-c);font-weight:500}
 .cap-tit{font-size:var(--fs-c);color:#888}
@@ -699,10 +700,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 
 <div class="modal-overlay" id="ver-questao-modal" style="display:none;z-index:1000002">
-  <div class="modal-box" style="max-width:560px;width:92%;max-height:80vh;overflow-y:auto">
-    <div class="config-title" id="ver-questao-titulo"></div>
-    <div id="ver-questao-conteudo"></div>
-    <div class="modal-actions" style="margin-top:16px">
+  <div class="modal-box" style="max-width:680px;width:92%;max-height:85vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div class="config-title" id="ver-questao-titulo" style="padding:24px 24px 0 24px;flex-shrink:0"></div>
+    <div id="ver-questao-conteudo" style="padding:12px 24px;overflow-y:auto;flex:1"></div>
+    <div class="modal-actions" style="padding:16px 24px 24px 24px;flex-shrink:0;margin-top:0;border-top:0.5px solid #eee">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('ver-questao-modal').style.display='none'">Fechar</button>
     </div>
   </div>
@@ -4111,15 +4112,33 @@ function renderPubsCards(qs,prefixoId){
     const caps=capsOrdenados.map(([capitulo,capQs],capIdx)=>{
       const capId=`${pubId}-c${capIdx}`;
       const acCap=capQs.filter(isAcerto).length;
+      // Ordena as questões: erro sempre antes de acerto (nunca misturado). Quando várias
+      // questões compartilham o mesmo assunto principal, ficam agrupadas juntas, e o assunto
+      // que mais errou aparece primeiro — mesma lógica de prioridade usada em livro/capítulo.
+      const gruposAssunto=new Map();
+      capQs.forEach(q=>{
+        const chave=q.assuntoPrincipal||`__solo_${q.id}`;
+        if(!gruposAssunto.has(chave)) gruposAssunto.set(chave,[]);
+        gruposAssunto.get(chave).push(q);
+      });
+      const capQsOrdenadas=[...gruposAssunto.values()]
+        .sort((a,b)=>{
+          const errA=(a.length-a.filter(isAcerto).length)/a.length;
+          const errB=(b.length-b.filter(isAcerto).length)/b.length;
+          return errB-errA;
+        })
+        .flatMap(grupo=>[...grupo].sort((a,b)=>(isAcerto(a)?1:0)-(isAcerto(b)?1:0)));
       // Sem "Q42" aqui — essa tela junta várias atividades de uma vez (pode ter vários cadernos
       // diferentes, cada um com sua própria "Q42"), então o número da questão original não tem
-      // significado nenhum aqui. Só faz sentido dentro de um caderno específico.
-      const questoesHtml=capQs.map(q=>{
+      // significado nenhum aqui. Usa só a posição na lista (1, 2, 3...) pra distinguir uma linha
+      // da outra visualmente — não é o número real, só uma contagem local.
+      const questoesHtml=capQsOrdenadas.map((q,qIdx)=>{
         const si=statusInfo(q);
         const assuntoHtml=q.assuntoPrincipal
           ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
           :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
         return `<div class="cap-row" onclick="abrirVerQuestaoCompleta('${q.id}')" style="cursor:pointer">
+        <span class="cap-loc" style="flex-shrink:0">${qIdx+1}</span>
         ${assuntoHtml}
         <span class="cap-res" style="color:${si.color}">${si.label}</span>
       </div>`;
