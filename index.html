@@ -338,6 +338,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .pub-ac{font-size:var(--fs-c);color:#888}
 .pub-pp{font-size:var(--fs-c);font-weight:500;min-width:28px;text-align:right}
 .pub-bar-bg{background:#f0f0ee;border-radius:4px;height:4px;overflow:hidden}
+.caps.pub-detail{display:none}
+.caps.pub-detail.open{display:flex}
 .pub-bar-fill{height:4px;border-radius:4px}
 .caps{display:flex;flex-direction:column;gap:3px;margin-top:3px;padding-left:8px;border-left:2px solid #e0e0e0}
 .cap-group{display:flex;flex-direction:column}
@@ -690,6 +692,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="modal-actions" style="margin-top:14px">
       <button class="modal-btn modal-btn-nao" onclick="document.getElementById('anotar-alternativa-modal').style.display='none'">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarAnotacaoAlternativa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ver-questao-modal" style="display:none;z-index:1000002">
+  <div class="modal-box" style="max-width:560px;width:92%;max-height:80vh;overflow-y:auto">
+    <div class="config-title" id="ver-questao-titulo"></div>
+    <div id="ver-questao-conteudo"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('ver-questao-modal').style.display='none'">Fechar</button>
     </div>
   </div>
 </div>
@@ -4028,15 +4040,21 @@ function renderModsCards(qs){
 
 function renderPubsCards(qs,prefixoId){
   const pubs=[...new Set(qs.map(q=>q.publicacao).filter(Boolean))];
-  return pubs.map((pub,pubIdx)=>{
+  // Livros ordenados do que mais errou pro que menos errou — cada um fechado por padrão,
+  // mostrando só o resumo. Clica pra ver os capítulos; clica no capítulo pra ver as questões;
+  // clica na questão pra abrir ela completa num popup.
+  const pubsComStats=pubs.map(pub=>{
     const pqs=qs.filter(q=>q.publicacao===pub);
     const ac=pqs.filter(isAcerto).length;
+    const err=pqs.length-ac;
+    return {pub,pqs,ac,err};
+  }).sort((a,b)=>b.err-a.err);
+
+  return pubsComStats.map(({pub,pqs,ac,err},pubIdx)=>{
     const pp=Math.round(ac/pqs.length*100);
     const pc=fc(pp);
-    // Agrupa por capítulo — antes cada questão virava uma linha própria, repetindo o mesmo
-    // capítulo várias vezes quando tinha muitas questões dali. Agora é 1 linha por capítulo,
-    // fechada por padrão com o resumo (X/Y acertos); expande só se clicar, mostrando questão
-    // por questão (com assunto principal de cada uma) — como era antes, só que 1 nível mais fundo.
+    const pubId=`${prefixoId}-p${pubIdx}`;
+    // Agrupa por capítulo — 1 linha por capítulo (fechada, com resumo), não 1 por questão.
     const capsAgrupados=new Map();
     pqs.forEach(q=>{
       const pubInfoCap=bibliografia.find(b=>b.nome===pub&&b.modulo===q.modulo);
@@ -4045,7 +4063,7 @@ function renderPubsCards(qs,prefixoId){
       capsAgrupados.get(capitulo).push(q);
     });
     const caps=[...capsAgrupados.entries()].map(([capitulo,capQs],capIdx)=>{
-      const capId=`${prefixoId}-p${pubIdx}-c${capIdx}`;
+      const capId=`${pubId}-c${capIdx}`;
       const acCap=capQs.filter(isAcerto).length;
       const errCap=capQs.length-acCap;
       const questoesHtml=capQs.map(q=>{
@@ -4053,7 +4071,7 @@ function renderPubsCards(qs,prefixoId){
         const assuntoHtml=q.assuntoPrincipal
           ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
           :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
-        return `<div class="cap-row">
+        return `<div class="cap-row" onclick="abrirVerQuestaoCompleta('${q.id}')" style="cursor:pointer">
         <div class="cap-ref">
           <span class="cap-loc">Q${q.questao||'–'}</span>
           ${assuntoHtml}
@@ -4073,14 +4091,35 @@ function renderPubsCards(qs,prefixoId){
       </div>`;
     }).join('');
     return `<div class="pub-block">
-      <div class="pub-top">
-        <span class="pub-nm pub-nm-edit" onclick="editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
-        <div class="pub-stats"><span class="pub-ac">${ac}/${pqs.length}</span><span class="pub-pp" style="color:${pc}">${pp}%</span></div>
+      <div class="pub-top" onclick="togglePub('${pubId}')" style="cursor:pointer">
+        <span class="pub-nm pub-nm-edit" onclick="event.stopPropagation();editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
+        <div class="pub-stats">
+          <span class="pub-ac">${ac}/${pqs.length}</span><span class="pub-pp" style="color:${pc}">${pp}%</span>
+          <span class="chev" id="pchev-${pubId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </div>
       </div>
       <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${pp}%;background:${pc}"></div></div>
-      <div class="caps">${caps}</div>
+      <div class="caps pub-detail" id="pdet-${pubId}">${caps}</div>
     </div>`;
   }).join('');
+}
+function togglePub(pubId){
+  const d=document.getElementById('pdet-'+pubId);
+  const c=document.getElementById('pchev-'+pubId);
+  const open=d.classList.contains('open');
+  d.classList.toggle('open',!open);
+  if(c) c.classList.toggle('open',!open);
+}
+function abrirVerQuestaoCompleta(questaoId){
+  const q=questoes.find(qq=>qq.id===questaoId);
+  if(!q||!q.motivo) return;
+  const si=statusInfo(q);
+  document.getElementById('ver-questao-titulo').textContent=`Questão ${q.questao||'–'}`;
+  document.getElementById('ver-questao-conteudo').innerHTML=`
+    <div style="margin-bottom:10px"><span class="cap-res" style="color:${si.color};font-weight:600">${si.label}</span></div>
+    <div class="enunciado-box" style="margin-top:0">${formatQuestaoCompleta(q.motivo,q)}</div>
+  `;
+  document.getElementById('ver-questao-modal').style.display='flex';
 }
 function toggleCap(capId){
   const d=document.getElementById('cdet-'+capId);
