@@ -2124,7 +2124,7 @@ function renderAprovado(){
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
-        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(false,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
+        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
@@ -2314,8 +2314,7 @@ function liberarWakeLock(){
 document.addEventListener('visibilitychange',()=>{
   const cadernoAberto=cadernoTimerAtivo&&!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
   if(document.visibilityState==='visible'&&(timerFullscreenAberto||cadernoAberto)){
-    // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
-    // solicitarWakeLock();
+    solicitarWakeLock();
   }
 });
 
@@ -2342,8 +2341,7 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
-  // solicitarWakeLock();
+  solicitarWakeLock();
 }
 
 function fecharTimerFullscreen(){
@@ -2387,8 +2385,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  // TESTE DIAGNÓSTICO: desativado temporariamente pra descartar como causa do travamento no iPhone
-  // solicitarWakeLock();
+  solicitarWakeLock();
 }
 
 function tickCadernoTimer(){
