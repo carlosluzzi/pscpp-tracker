@@ -310,6 +310,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 /* MODULOS EXPANDIVEIS */
 .mod-card{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.mod-card-unico{background:#fff;border:0.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.mod-linha+.mod-linha{border-top:0.5px solid #e0e0e0}
+.mod-detail{padding:10px 14px 10px 20px;display:none;flex-direction:column;gap:10px;border-left:3px solid #EEEDFE;margin-left:14px}
 .mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
 .mod-top{display:flex;justify-content:space-between;align-items:center}
 .mod-nm{font-size:16px;font-weight:400}
@@ -321,7 +324,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .bbg{background:#f0f0ee;border-radius:6px;height:6px;overflow:hidden}
 .bf{height:6px;border-radius:6px}
 .mac{font-size:var(--fs-c);color:#888}
-.mod-detail{border-top:0.5px solid #e0e0e0;padding:10px 14px;display:none;flex-direction:column;gap:10px}
 .carrossel-cadernos{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .carrossel-cadernos::-webkit-scrollbar{display:none}
 .carrossel-pagina{flex:0 0 100%;scroll-snap-align:start;display:flex;flex-direction:column;min-width:0}
@@ -393,7 +395,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   .enunciado-linha-clicavel:hover{background:#F5F5F3}
 }
 .enunciado-linha-clicavel.tem-nota{background:#FFFBEB}
-.nota-marcador{font-size:var(--fs-b)}
+.alt-nota-inline{font-size:var(--fs-c);color:#633806;background:#FFFBEB;border-radius:6px;padding:6px 10px;margin:2px 0 6px 26px;cursor:pointer;line-height:1.4}
 .banco-note{font-size:var(--fs-d);color:#888;background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .banco-combine-toggle{font-size:var(--fs-b);font-weight:500;color:#888;border:0.5px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;text-transform:none;letter-spacing:0;margin-left:8px}
 .banco-alternativas{display:flex;flex-direction:column;gap:8px;margin-top:14px}
@@ -4016,13 +4018,13 @@ function fmtDataCurta(d){
 }
 function renderModsCards(qs){
   const mods=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  return mods.map((m,i)=>{
+  const linhas=mods.map((m,i)=>{
     const mqs=qs.filter(q=>q.modulo===m);
     if(!mqs.length) return '';
     const ac=mqs.filter(isAcerto).length;
     const pct=Math.round(ac/mqs.length*100);
     const c=fc(pct);
-    return `<div class="mod-card">
+    return `<div class="mod-linha">
       <div class="mod-header" onclick="toggleMod(${i})">
         <div class="mod-top">
           <span class="mod-nm">${m}</span>
@@ -4036,46 +4038,53 @@ function renderModsCards(qs){
       </div>
     </div>`;
   }).join('');
+  return linhas?`<div class="mod-card-unico">${linhas}</div>`:'';
 }
 
 function renderPubsCards(qs,prefixoId){
   const pubs=[...new Set(qs.map(q=>q.publicacao).filter(Boolean))];
-  // Livros ordenados do que mais errou pro que menos errou — cada um fechado por padrão,
-  // mostrando só o resumo. Clica pra ver os capítulos; clica no capítulo pra ver as questões;
-  // clica na questão pra abrir ela completa num popup.
+  // Livros ordenados pela PROPORÇÃO de erro (não quantidade absoluta) — um livro com 1/1 errada
+  // fica acima de um com 3/10 erradas, mesmo tendo menos erros no total, já que proporcionalmente
+  // é pior. Cada um fechado por padrão, mostrando só o resumo. Clica pra ver os capítulos; clica
+  // no capítulo pra ver as questões; clica na questão pra abrir ela completa num popup.
   const pubsComStats=pubs.map(pub=>{
     const pqs=qs.filter(q=>q.publicacao===pub);
     const ac=pqs.filter(isAcerto).length;
     const err=pqs.length-ac;
-    return {pub,pqs,ac,err};
-  }).sort((a,b)=>b.err-a.err);
+    return {pub,pqs,ac,err,taxaErro:err/pqs.length};
+  }).sort((a,b)=>b.taxaErro-a.taxaErro);
 
   return pubsComStats.map(({pub,pqs,ac,err},pubIdx)=>{
     const pp=Math.round(ac/pqs.length*100);
     const pc=fc(pp);
     const pubId=`${prefixoId}-p${pubIdx}`;
     // Agrupa por capítulo — 1 linha por capítulo (fechada, com resumo), não 1 por questão.
-    const capsAgrupados=new Map();
+    // Também ordenado por proporção de erro, mesmo critério do livro — não alfabética.
+    const capsAgrupadosMap=new Map();
     pqs.forEach(q=>{
       const pubInfoCap=bibliografia.find(b=>b.nome===pub&&b.modulo===q.modulo);
       const capitulo=formatarCapituloExibicao(pubInfoCap,q.capitulo)||'–';
-      if(!capsAgrupados.has(capitulo)) capsAgrupados.set(capitulo,[]);
-      capsAgrupados.get(capitulo).push(q);
+      if(!capsAgrupadosMap.has(capitulo)) capsAgrupadosMap.set(capitulo,[]);
+      capsAgrupadosMap.get(capitulo).push(q);
     });
-    const caps=[...capsAgrupados.entries()].map(([capitulo,capQs],capIdx)=>{
+    const capsOrdenados=[...capsAgrupadosMap.entries()].sort((a,b)=>{
+      const errA=(a[1].length-a[1].filter(isAcerto).length)/a[1].length;
+      const errB=(b[1].length-b[1].filter(isAcerto).length)/b[1].length;
+      return errB-errA;
+    });
+    const caps=capsOrdenados.map(([capitulo,capQs],capIdx)=>{
       const capId=`${pubId}-c${capIdx}`;
       const acCap=capQs.filter(isAcerto).length;
-      const errCap=capQs.length-acCap;
+      // Sem "Q42" aqui — essa tela junta várias atividades de uma vez (pode ter vários cadernos
+      // diferentes, cada um com sua própria "Q42"), então o número da questão original não tem
+      // significado nenhum aqui. Só faz sentido dentro de um caderno específico.
       const questoesHtml=capQs.map(q=>{
         const si=statusInfo(q);
         const assuntoHtml=q.assuntoPrincipal
           ?`<span class="cap-tit">${q.assuntoPrincipal}</span>`
           :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
         return `<div class="cap-row" onclick="abrirVerQuestaoCompleta('${q.id}')" style="cursor:pointer">
-        <div class="cap-ref">
-          <span class="cap-loc">Q${q.questao||'–'}</span>
-          ${assuntoHtml}
-        </div>
+        ${assuntoHtml}
         <span class="cap-res" style="color:${si.color}">${si.label}</span>
       </div>`;
       }).join('');
@@ -4083,7 +4092,7 @@ function renderPubsCards(qs,prefixoId){
         <div class="cap-group-header" onclick="toggleCap('${capId}')">
           <span class="cap-loc">${capitulo}</span>
           <div class="cap-group-right">
-            <span class="cap-group-resumo">${acCap}/${capQs.length}${errCap?` · ${errCap} errada${errCap>1?'s':''}`:''}</span>
+            <span class="cap-group-resumo">${acCap}/${capQs.length}</span>
             <span class="chev" id="cchev-${capId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
           </div>
         </div>
@@ -4092,7 +4101,7 @@ function renderPubsCards(qs,prefixoId){
     }).join('');
     return `<div class="pub-block">
       <div class="pub-top" onclick="togglePub('${pubId}')" style="cursor:pointer">
-        <span class="pub-nm pub-nm-edit" onclick="event.stopPropagation();editarApelidoPublicacao('${pub.replace(/'/g,"\\'")}')">${nomePub(pub)}</span>
+        <span class="pub-nm">${nomePub(pub)}</span>
         <div class="pub-stats">
           <span class="pub-ac">${ac}/${pqs.length}</span><span class="pub-pp" style="color:${pc}">${pp}%</span>
           <span class="chev" id="pchev-${pubId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -4273,8 +4282,12 @@ function formatQuestaoCompleta(texto,q){
     const textoSemLetra=letraMatch?p.slice(letraMatch[0].length):p;
     const conteudoBullet=`<span class="alt-bullet">${marcador}</span><span class="alt-texto">${textoSemLetra}</span>`;
     if(!q||!letra) return `<div class="enunciado-linha enunciado-alternativa">${conteudoBullet}</div>`;
-    const temNota=anotacoesAlternativas.some(an=>an.bancoQuestaoId===q.id&&an.alternativa===letra);
-    return `<div class="enunciado-linha enunciado-alternativa enunciado-linha-clicavel${temNota?' tem-nota':''}" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">${conteudoBullet}${temNota?' <span class=\"nota-marcador\">📝</span>':''}</div>`;
+    const notaExistente=anotacoesAlternativas.find(an=>an.bancoQuestaoId===q.id&&an.alternativa===letra);
+    const linhaAlt=`<div class="enunciado-linha enunciado-alternativa enunciado-linha-clicavel${notaExistente?' tem-nota':''}" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">${conteudoBullet}</div>`;
+    // Se já tem anotação salva pra essa alternativa, mostra o texto dela direto abaixo — sem
+    // precisar abrir outro popup só pra ler o que já foi escrito.
+    const notaHtml=notaExistente?`<div class="alt-nota-inline" onclick="abrirAnotarAlternativa('${q.id}','${letra}')">📝 ${escapeHtml(notaExistente.texto)}</div>`:'';
+    return linhaAlt+notaHtml;
   });
 
   const linhas=[
