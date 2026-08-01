@@ -2293,6 +2293,11 @@ async function solicitarWakeLock(){
   // não é crítico o suficiente pra atrapalhar o resto do cronômetro.
   try{
     if('wakeLock' in navigator){
+      // Libera o lock anterior antes de pedir um novo — sem isso, cada vez que o iOS dispara
+      // visibilitychange (acontece bastante: Centro de Controle, notificações, trocar de app),
+      // um lock novo era pedido sem nunca soltar o de antes, acumulando handles pendurados ao
+      // longo de uma sessão longa (tipo um caderno de 4h) — isso pode ter sido a causa de lentidão.
+      if(wakeLockAtivo){ wakeLockAtivo.release().catch(()=>{}); wakeLockAtivo=null; }
       wakeLockAtivo=await navigator.wakeLock.request('screen');
     }
   }catch(e){}
