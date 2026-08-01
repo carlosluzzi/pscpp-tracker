@@ -2284,6 +2284,34 @@ function timerCamposObrigatoriosCompletos(){
   return true;
 }
 
+let wakeLockAtivo=null;
+async function solicitarWakeLock(){
+  // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
+  // apaga a tela sozinho no meio de uma sessão de estudo/prova. Suportado no Safari 16.4+
+  // (iOS/iPadOS). Se não for suportado ou for recusado (bateria baixa, etc.), falha em silêncio —
+  // não é crítico o suficiente pra atrapalhar o resto do cronômetro.
+  try{
+    if('wakeLock' in navigator){
+      wakeLockAtivo=await navigator.wakeLock.request('screen');
+    }
+  }catch(e){}
+}
+function liberarWakeLock(){
+  if(wakeLockAtivo){
+    wakeLockAtivo.release().catch(()=>{});
+    wakeLockAtivo=null;
+  }
+}
+// O sistema libera o wake lock sozinho quando o app vai pro background (troca de app, tela
+// bloqueada manualmente) — ao voltar a ficar visível, se algum fullscreen com cronômetro ainda
+// estiver aberto, pede o wake lock de novo.
+document.addEventListener('visibilitychange',()=>{
+  const cadernoAberto=cadernoTimerAtivo&&!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
+  if(document.visibilityState==='visible'&&(timerFullscreenAberto||cadernoAberto)){
+    solicitarWakeLock();
+  }
+});
+
 function abrirTimerFullscreen(pulandoValidacao){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
@@ -2304,6 +2332,7 @@ function abrirTimerFullscreen(pulandoValidacao){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  solicitarWakeLock();
 }
 
 function fecharTimerFullscreen(){
@@ -2311,6 +2340,7 @@ function fecharTimerFullscreen(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  liberarWakeLock();
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2346,6 +2376,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  solicitarWakeLock();
 }
 
 function tickCadernoTimer(){
@@ -2382,6 +2413,7 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  liberarWakeLock();
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2448,6 +2480,7 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  liberarWakeLock();
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2464,6 +2497,7 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
+    liberarWakeLock();
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2746,6 +2780,7 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  liberarWakeLock();
   renderTab(tabAtual,true);
 }
 
@@ -2758,6 +2793,7 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
+    liberarWakeLock();
     renderTab(tabAtual,true);
   }
 }
