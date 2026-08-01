@@ -409,7 +409,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
-.info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px}
+.info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -2124,7 +2124,7 @@ function renderAprovado(){
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
-        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
+        ${timerModulo?`<span class="info-icone" style="position:absolute;right:-4px;top:2px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
