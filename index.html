@@ -2124,7 +2124,7 @@ function renderAprovado(){
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:14px 0 30px 0;font-variant-numeric:tabular-nums;position:relative" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
-        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen()">⛶ tela cheia</span>`:''}
+        ${timerModulo?`<span class="info-icone" style="position:absolute;right:0;top:8px;font-size:var(--fs-a)" onclick="abrirTimerFullscreen(false,${timerAcumuladoSeg>0})">⛶ tela cheia</span>`:''}
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
@@ -2313,12 +2313,15 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
-function abrirTimerFullscreen(pulandoValidacao){
+function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
   // salva, então não precisa (e não deve) ser barrada de novo aqui.
   if(!pulandoValidacao&&!timerCamposObrigatoriosCompletos()) return;
-  if(!timerRodando) iniciarTimer();
+  // naoRetomarSePausado: usado pelo botãozinho "⛶ tela cheia" — ele só deve REABRIR a tela cheia
+  // do que já está acontecendo, nunca mudar o estado. Se o timer estava pausado de propósito, tem
+  // que continuar pausado ao reabrir; só o botão "Retomar" explícito deve voltar a contar o tempo.
+  if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
