@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#202A45">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -49,7 +49,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.content{position:relative;z-index:1;padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
+/* --nav-clear é a altura REAL medida do .bottom-nav (offsetHeight), e .nav-item já inclui
+   env(safe-area-inset-bottom) no próprio padding — ou seja, a safe area já está contabilizada
+   dentro desse valor. Somar env(safe-area-inset-bottom) de novo aqui seria contar duas vezes
+   (foi exatamente o que quebrou o layout do menu numa tentativa anterior). */
+.content{position:relative;z-index:1;padding:16px;padding-bottom:var(--nav-clear, 76px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
 #ptr-indicator{display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height 0.2s ease;flex-shrink:0;position:relative}
 #ptr-indicator.ativo{transition:none}
 #ptr-seta{width:20px;height:20px;color:#999;transition:transform 0.25s ease,opacity 0.15s ease;transform:rotate(0deg);position:absolute}
@@ -127,7 +131,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
   /* Aqui a barra de navegação AINDA fica embaixo (só vira sidebar lateral a partir de 1100px) —
      usa o mesmo espaço reservado que o conteúdo da página já usa nesse breakpoint, pra não tapar
@@ -2337,33 +2341,6 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
-// A área visível real da tela no Safari muda de forma ANIMADA (não instantânea) quando a barra
-// de endereço esconde/aparece — isso é controlado pelo próprio sistema operacional. IMPORTANTE:
-// não definimos altura/posição explícitas aqui (isso já foi tentado e piorou o problema — a
-// medida do Visual Viewport pode não incluir a faixa de gestos/home indicator, deixando uma
-// sobra fixa embaixo). Em vez disso, o CSS `inset:0` (que sempre cobre 100% da tela de verdade)
-// continua sendo a fonte confiável — usamos o evento do Visual Viewport só como um GATILHO pra
-// forçar o navegador a reprocessar/repintar o layout existente sempre que o espaço disponível
-// mudar de verdade (barra escondendo/aparecendo, rotação assentando).
-function sincronizarAlturaFullscreenReal(){
-  void document.body.offsetHeight;
-}
-function iniciarSincroniaViewportReal(){
-  if(!window.visualViewport) return;
-  window.visualViewport.addEventListener('resize',sincronizarAlturaFullscreenReal);
-  window.visualViewport.addEventListener('scroll',sincronizarAlturaFullscreenReal);
-}
-function pararSincroniaViewportReal(){
-  // Só para de verdade quando NENHUM dos dois fullscreens estiver mais aberto — evita desligar
-  // a sincronia de um por engano enquanto o outro ainda está usando.
-  if(!window.visualViewport) return;
-  const timerAindaAberto=!document.getElementById('timer-fullscreen')?.classList.contains('hidden');
-  const cadernoAindaAberto=!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
-  if(timerAindaAberto||cadernoAindaAberto) return;
-  window.visualViewport.removeEventListener('resize',sincronizarAlturaFullscreenReal);
-  window.visualViewport.removeEventListener('scroll',sincronizarAlturaFullscreenReal);
-}
-
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
@@ -2375,53 +2352,28 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
-  // Muda a configuração de área segura ANTES de desenhar/mostrar o conteúdo — não depois. A
-  // ordem aqui importa: se os botões forem pintados primeiro (com a configuração antiga) e a
-  // mudança só acontecer depois, o navegador reajusta o layout DEPOIS da primeira pintura,
-  // podendo deixar a área de toque temporariamente desalinhada da posição visual nova.
-  const metaViewport=document.getElementById('meta-viewport');
-  metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  void document.body.offsetHeight;
+  // viewport-fit=cover agora é PERMANENTE (fica na meta tag desde o carregamento da página) — não
+  // é mais ligado/desligado aqui. Esse liga-desliga repetido era a causa raiz comum de todos os
+  // problemas: cada troca obrigava o Safari a recalcular os safe-area-insets, e é justamente
+  // nesse recálculo que ele se perdia (topo deslocado 62px, faixa branca, área de toque fora do
+  // lugar). Sem trocas, não há recálculo, não há inconsistência.
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
-  iniciarSincroniaViewportReal();
-  // NADA de altura/topo manual aqui — a abertura normal (sem rotação envolvida) sempre funcionou
-  // certinho confiando só no CSS puro (inset:0). Mexer nisso via JS bem na abertura foi o que
-  // causou a própria faixa branca aparecendo/sumindo (confirmado: sem essa correção aqui antes,
-  // a faixa nunca aparecia na abertura — só depois de girar). A correção via JS fica reservada
-  // só pra depois de girar de verdade, onde ela é comprovadamente necessária.
 }
 
-// Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
-// vez que o fullscreen abrir, ficaria "preso" numa altura de uma sessão/orientação anterior.
-function limparAlturaFullscreenManual(){
-  const timerEl=document.getElementById('timer-fullscreen');
-  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
-  if(timerEl){ timerEl.style.height=''; timerEl.style.top=''; }
-  if(cadernoEl){ cadernoEl.style.height=''; cadernoEl.style.top=''; }
-}
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
-  limparAlturaFullscreenManual();
   liberarWakeLock();
-  pararSincroniaViewportReal();
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
     mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
   }
   renderTab(tabAtual,true);
-}
-
-function restaurarViewportOriginal(){
-  const metaViewport=document.getElementById('meta-viewport');
-  if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
 }
 
 let cadernoTimerAtivo=null,cadernoTimerInicio=null,cadernoTimerIntervalId=null,cadernoTimerAcabouAvisado=false;
@@ -2436,18 +2388,14 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerAcabouAvisado=false;
   }
   esconderTimerFlutuante();
-  const metaViewport2=document.getElementById('meta-viewport');
-  metaViewport2.dataset.original=metaViewport2.getAttribute('content');
-  metaViewport2.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  void document.body.offsetHeight;
+  // Sem troca de viewport aqui — viewport-fit=cover é permanente (ver comentário em
+  // abrirTimerFullscreen). Nada de mexer em altura/topo via JS também: o CSS (inset:0) resolve
+  // sozinho quando o viewport não fica mudando debaixo dele.
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
-  iniciarSincroniaViewportReal();
-  // NADA de altura/topo manual aqui — mesmo raciocínio do timer normal: a abertura sempre
-  // funcionou certinho só com CSS puro, mexer nisso via JS foi o que causou a faixa aparecer.
 }
 
 function tickCadernoTimer(){
@@ -2483,10 +2431,7 @@ function fecharCadernoTimerFullscreen(){
   // como o timer normal já faz (fechar não é parar).
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
-  limparAlturaFullscreenManual();
   liberarWakeLock();
-  pararSincroniaViewportReal();
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2552,10 +2497,7 @@ function cancelarCadernoTimer(){
   esconderTimerFlutuante();
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
-  limparAlturaFullscreenManual();
   liberarWakeLock();
-  pararSincroniaViewportReal();
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2571,10 +2513,7 @@ async function finalizarCadernoTimer(){
     esconderTimerFlutuante();
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
-    restaurarViewportOriginal();
-    limparAlturaFullscreenManual();
     liberarWakeLock();
-    pararSincroniaViewportReal();
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2610,7 +2549,7 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
       el.style.bottom='calc(78px + env(safe-area-inset-bottom, 0px) + 16px)';
     }else{
       // Mobile: barra embaixo, altura medida de verdade via --nav-clear.
-      el.style.bottom='calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)';
+      el.style.bottom='calc(var(--nav-clear, 76px) + 16px)';
     }
   }
   el.classList.remove('hidden');
@@ -2877,10 +2816,7 @@ function zerarTimer(){
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
-  limparAlturaFullscreenManual();
   liberarWakeLock();
-  pararSincroniaViewportReal();
   renderTab(tabAtual,true);
 }
 
@@ -2892,10 +2828,7 @@ function saiuDoFullscreenReal(){
     timerFullscreenAberto=false;
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
-    restaurarViewportOriginal();
-    limparAlturaFullscreenManual();
     liberarWakeLock();
-    pararSincroniaViewportReal();
     renderTab(tabAtual,true);
   }
 }
@@ -4748,81 +4681,13 @@ function restaurarPadraoFonte(){
 // — mas ignora resize que só muda a ALTURA (barra de endereço do Safari expandindo/retraindo
 // durante o scroll, que dispara resize repetidamente sem a tela ter mudado de verdade).
 let larguraAnteriorResize=window.innerWidth;
-let timeoutsRotacaoPendentes=[];
-// O mesmo problema de área segura não recalculando direito depois de voltar pra retrato afeta
-// QUALQUER elemento que dependa dela — não só a tela cheia do cronômetro. O menu de navegação
-// de baixo também usa isso (pra reservar o espaço da barra de gestos do sistema), e sua altura
-// real (--nav-clear) é medida via JS uma vez só — se ficar desatualizada depois da rotação, a
-// área de toque do menu fica desalinhada da posição visual, exatamente como acontecia nos
-// botões do fullscreen (parecia "travado", mas era só a área de toque no lugar errado).
-function recalcularTudoAposRotacao(){
+window.addEventListener('resize',()=>{
+  if(window.innerWidth===larguraAnteriorResize) return;
+  larguraAnteriorResize=window.innerWidth;
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
-  recalcularFullscreenAposRotacao();
-}
-window.addEventListener('resize',()=>{
-  // Só a parte de reposicionar o widget flutuante (e trocar a escala de fonte) fica atrás dessa
-  // barreira — faz sentido só reagir quando a LARGURA muda de verdade pra essas duas coisas.
-  if(window.innerWidth!==larguraAnteriorResize){
-    larguraAnteriorResize=window.innerWidth;
-    const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
-    aplicarFontScale(scaleAtual,false);
-    reposicionarTimerFlutuanteSeForaDaTela();
-  }
-  // As tentativas de recalcular a rotação NÃO ficam atrás dessa barreira — o evento "orientationchange"
-  // é oficialmente obsoleto (documentação alerta que "pode deixar de funcionar a qualquer momento" em
-  // qualquer navegador), então abandonado. "resize" sempre dispara de forma confiável em qualquer
-  // mudança de tamanho, incluindo rotação — mas o sistema pode disparar ele MAIS DE UMA VEZ durante uma
-  // única rotação, às vezes com a MESMA largura final já na primeira vez (só a altura ainda "assentando"
-  // fisicamente depois). Rodar as tentativas em TODO resize, sem depender da largura ter mudado,
-  // garante que a gente não perca justamente os disparos que trariam o estado já assentado.
-  // Cancela tentativas agendadas por um disparo anterior antes de agendar novas — sem isso, um scroll
-  // rápido (que dispara resize repetidamente por causa da barra de endereço) acumularia dezenas de
-  // tentativas pendentes ao mesmo tempo, à toa.
-  timeoutsRotacaoPendentes.forEach(id=>clearTimeout(id));
-  timeoutsRotacaoPendentes=[100,250,450,700].map(atraso=>setTimeout(recalcularTudoAposRotacao,atraso));
+  reposicionarTimerFlutuanteSeForaDaTela();
 });
-// Mede a altura REAL disponível direto via JavaScript (window.innerHeight sempre reflete o
-// tamanho real da janela no momento exato da medição) e aplica isso explicitamente na tela —
-// usado tanto na abertura inicial quanto depois de girar o dispositivo.
-function aplicarAlturaFullscreenReal(){
-  const timerEl=document.getElementById('timer-fullscreen');
-  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
-  const alturaReal=window.innerHeight;
-  // Descoberta real (via diagnóstico no dispositivo, não suposição): mesmo com inset:0 no CSS,
-  // que deveria sempre grudar top:0 sem exceção, o Safari mostrou o elemento com o TOPO deslocado
-  // 62px pra baixo durante a transição de ativar a área segura — o valor batia exatamente com o
-  // tamanho da área reservada em cima. Não dá pra confiar só no CSS nesse momento; define os dois
-  // (top e height) explicitamente via JS, sempre, sobrescrevendo esse comportamento inconsistente.
-  if(timerEl&&!timerEl.classList.contains('hidden')){ timerEl.style.top='0px'; timerEl.style.height=alturaReal+'px'; }
-  if(cadernoEl&&!cadernoEl.classList.contains('hidden')){ cadernoEl.style.top='0px'; cadernoEl.style.height=alturaReal+'px'; }
-}
-// Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
-// cheia aberto: o problema é ESPECÍFICO de voltar pra retrato (ir pra paisagem sempre funcionou
-// bem só com CSS puro — não precisa de ajuda nenhuma) — então só entra em ação nesse caso
-// específico, medindo a altura REAL disponível direto via JavaScript e aplicando isso
-// explicitamente. Em paisagem, não mexe em nada, deixa o CSS cuidar sozinho como já fazia bem.
-function recalcularFullscreenAposRotacao(){
-  const timerEl=document.getElementById('timer-fullscreen');
-  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
-  const timerAberto=timerEl&&!timerEl.classList.contains('hidden');
-  const cadernoAberto=cadernoEl&&!cadernoEl.classList.contains('hidden');
-  if(!timerAberto&&!cadernoAberto) return;
-  const voltouParaRetrato=window.innerHeight>window.innerWidth;
-  if(voltouParaRetrato){
-    aplicarAlturaFullscreenReal();
-  }else{
-    // Paisagem: limpa qualquer altura manual de uma rotação anterior, volta a confiar 100% no
-    // CSS (inset:0), que já é confiável nesse caso.
-    limparAlturaFullscreenManual();
-  }
-  if(timerAberto){
-    document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
-  }
-  if(cadernoAberto){
-    document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
-  }
-}
 // Se o pop-up do cronômetro foi arrastado manualmente (tem left/top fixos em px) e a tela mudar
 // de tamanho depois — rotação de dispositivo, por exemplo — ele pode ficar fora da área visível,
 // inacessível. Só reajusta se realmente estiver posicionado manualmente e realmente fora dos
