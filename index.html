@@ -2388,7 +2388,6 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
-  aplicarAlturaFullscreenReal();
 }
 
 // Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
@@ -2442,7 +2441,6 @@ function abrirCadernoTimerFullscreen(atividadeId){
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
-  aplicarAlturaFullscreenReal();
 }
 
 function tickCadernoTimer(){
