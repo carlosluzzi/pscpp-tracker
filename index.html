@@ -4756,6 +4756,27 @@ window.addEventListener('resize',()=>{
   // estado já assentado, mesmo sem saber exatamente quanto tempo a animação leva.
   [100,250,450,700].forEach(atraso=>setTimeout(recalcularFullscreenAposRotacao,atraso));
 });
+// A guarda acima ("só reage se a LARGURA mudar") ignora de propósito eventos de resize que só
+// mudam a altura — pensada pra ignorar a barra de endereço do Safari escondendo/aparecendo
+// durante scroll. Só que isso pode estar escondendo justamente os eventos que mais importam
+// durante uma rotação: se a largura final já bate logo no primeiro disparo (mesmo com a altura
+// ainda "assentando" fisicamente), os disparos seguintes — que trariam a altura já correta —
+// ficavam sendo ignorados por essa mesma guarda. orientationchange é um evento dedicado, que só
+// dispara em rotação de verdade (nunca durante scroll), então aqui não precisa de guarda nenhuma.
+function recalcularTudoAposRotacao(){
+  // O mesmo problema de área segura não recalculando direito depois de voltar pra retrato afeta
+  // QUALQUER elemento que dependa dela — não só a tela cheia do cronômetro. O menu de navegação
+  // de baixo também usa isso (pra reservar o espaço da barra de gestos do sistema), e sua altura
+  // real (--nav-clear) é medida via JS uma vez só — se ficar desatualizada depois da rotação, a
+  // área de toque do menu fica desalinhada da posição visual, exatamente como acontecia nos
+  // botões do fullscreen (parecia "travado", mas era só a área de toque no lugar errado).
+  const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
+  aplicarFontScale(scaleAtual,false);
+  recalcularFullscreenAposRotacao();
+}
+window.addEventListener('orientationchange',()=>{
+  [50,150,300,500,800].forEach(atraso=>setTimeout(recalcularTudoAposRotacao,atraso));
+});
 // Mede a altura REAL disponível direto via JavaScript (window.innerHeight sempre reflete o
 // tamanho real da janela no momento exato da medição) e aplica isso explicitamente na tela —
 // usado tanto na abertura inicial quanto depois de girar o dispositivo.
