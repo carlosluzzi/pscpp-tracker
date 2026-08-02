@@ -4665,6 +4665,19 @@ function restaurarPadraoFonte(){
   if(slider) slider.value=100;
   aplicarFontScale(100);
 }
+// Remede --nav-clear (altura real da barra de baixo). Precisa acontecer DEPOIS do layout assentar:
+// com viewport-fit=cover permanente, o .nav-item ganha env(safe-area-inset-bottom) no padding, e a
+// barra fica ~34px mais alta. Se a medição roda cedo demais (antes do Safari aplicar as safe areas),
+// --nav-clear fica preso no valor antigo e o .content reserva menos espaço do que a barra ocupa —
+// era exatamente isso que empurrava o layout e deixava a faixa sobrando. Medido no dispositivo real:
+// barra=111.3px vs --nav-clear=77px, diferença de 34px = o safe-area-inset-bottom.
+function remedirNavClear(){
+  const navEl=document.querySelector('.bottom-nav');
+  if(!navEl) return;
+  const escala=(parseFloat(localStorage.getItem('pscpp_font_scale'))||100)/100;
+  const alturaReal=navEl.offsetHeight;
+  if(alturaReal>0) document.documentElement.style.setProperty('--nav-clear',(alturaReal/escala)+'px');
+}
 (function initConfig(){
   const savedScale=localStorage.getItem('pscpp_font_scale');
   if(savedScale){
@@ -4675,6 +4688,11 @@ function restaurarPadraoFonte(){
   // seja medido de verdade no carregamento, não fique só no chute do CSS —
   // salvar=false porque isso não é uma escolha do usuário, é só medição automática
   aplicarFontScale(savedScale||100,false);
+  // Remedições escalonadas: a primeira medição pode pegar o layout antes das safe areas entrarem.
+  // Várias tentativas cobrem o tempo variável que o Safari leva pra assentar, sem custo relevante
+  // (offsetHeight é barato quando chamado 4 vezes, não 60 por segundo).
+  [100,400,1000,2000].forEach(ms=>setTimeout(remedirNavClear,ms));
+  window.addEventListener('load',remedirNavClear);
   const savedTheme=localStorage.getItem('pscpp_theme');
   if(savedTheme){
     const sel=document.getElementById('theme-select');
@@ -4692,6 +4710,9 @@ window.addEventListener('resize',()=>{
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   reposicionarTimerFlutuanteSeForaDaTela();
+  // Rotação muda o safe-area-inset-bottom (em paisagem costuma ser menor ou zero), então a altura
+  // real da barra muda junto. Remede escalonado, mesmo motivo do carregamento inicial.
+  [100,400,1000].forEach(ms=>setTimeout(remedirNavClear,ms));
 });
 // Se o pop-up do cronômetro foi arrastado manualmente (tem left/top fixos em px) e a tela mudar
 // de tamanho depois — rotação de dispositivo, por exemplo — ele pode ficar fora da área visível,
