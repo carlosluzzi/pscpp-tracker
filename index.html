@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#202A45">
+<!-- Sem theme-color estático de propósito: no PWA instalado o iOS ignora essa tag na carga inicial
+     e usa o cinza padrão da barra de status — que é justamente o visual desejado no app normal.
+     A cor só é aplicada dinamicamente (via aplicarThemeColor) enquanto a tela cheia do cronômetro
+     está aberta, pra barra de status combinar com o fundo escuro dela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- "default" (barra de status sólida) em vez de "black-translucent": com black-translucent o
@@ -2324,6 +2327,22 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
+// Aplica ou remove o theme-color (cor da barra de status do iOS) dinamicamente. No app normal a
+// tag não existe, e o iOS usa o cinza padrão — que é o visual desejado. Ao abrir a tela cheia do
+// cronômetro, a tag é criada com a mesma cor do fundo dela (#0B0F19), fazendo a barra de status
+// se integrar em vez de destoar. Ao fechar, a tag é removida e o cinza volta.
+// A tag é criada/removida do zero (em vez de só trocar o content) porque foi assim que o iOS
+// reagiu de forma confiável nos testes — trocar o valor de uma tag existente nem sempre pega.
+function aplicarThemeColor(cor){
+  document.querySelectorAll('meta[name="theme-color"]').forEach(el=>el.remove());
+  if(!cor) return;
+  const meta=document.createElement('meta');
+  meta.name='theme-color';
+  meta.content=cor;
+  document.head.appendChild(meta);
+}
+const COR_FUNDO_FULLSCREEN='#0B0F19';
+
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
@@ -2345,6 +2364,7 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
+  aplicarThemeColor(COR_FUNDO_FULLSCREEN);
 }
 
 function fecharTimerFullscreen(){
@@ -2352,6 +2372,7 @@ function fecharTimerFullscreen(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  aplicarThemeColor(null);
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2378,6 +2399,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
+  aplicarThemeColor(COR_FUNDO_FULLSCREEN);
 }
 
 function tickCadernoTimer(){
@@ -2414,6 +2436,7 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  aplicarThemeColor(null);
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2480,6 +2503,7 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  aplicarThemeColor(null);
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2496,6 +2520,7 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
+    aplicarThemeColor(null);
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2799,6 +2824,7 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  aplicarThemeColor(null);
   renderTab(tabAtual,true);
 }
 
@@ -2811,6 +2837,7 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
+    aplicarThemeColor(null);
     renderTab(tabAtual,true);
   }
 }
