@@ -188,7 +188,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    desalinhamento, estende a área CLICÁVEL de cada botão 62px pra cima — cobrindo exatamente a
    faixa onde o toque real estava caindo, sem mudar a aparência visual do botão (o ::before é
    invisível, só amplia a zona que responde ao toque). */
-.tf-fechar::before,.tf-btn::before,.btn-tela-cheia::before{content:'';position:absolute;left:0;right:0;top:-62px;height:62px}
+/* Desloca a área de toque de verdade pra cima (não estende — a posição visual original não deve
+   mais responder ao toque). O elemento clicável inteiro sobe 62px (afetando tanto a aparência
+   quanto a área de toque), e um span interno desce os mesmos 62px pra compensar, mantendo o
+   texto/ícone exatamente onde já estava visualmente. Resultado: só a área nova (mais alta)
+   responde ao toque — a posição antiga (mais embaixo) para de funcionar. */
+.tf-fechar,.tf-btn,.btn-tela-cheia{transform:translateY(-62px)}
+.tf-fechar-conteudo,.tf-btn-conteudo,.btn-tela-cheia-conteudo{display:inline-flex;align-items:center;gap:4px;transform:translateY(62px)}
 .tf-btn-toggle{min-width:150px}
 .tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:20px;color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:8px}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
@@ -418,7 +424,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px}
-.btn-tela-cheia{position:relative}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -2132,7 +2137,7 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone btn-tela-cheia" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></div>`:''}
+      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone btn-tela-cheia" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><span class="btn-tela-cheia-conteudo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></span></div>`:''}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -2231,7 +2236,7 @@ function renderTimerFullscreenConteudo(){
   const pubInfoTf=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const capituloFormatadoTf=formatarCapituloExibicao(pubInfoTf,timerCapitulo);
   return `
-    <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
+    <button class="tf-fechar" onclick="fecharTimerFullscreen()"><span class="tf-fechar-conteudo">✕</span></button>
     <div>
       <div class="tf-modulo">${timerModulo||'–'}</div>
       <div class="tf-ref-wrap">
@@ -2242,9 +2247,9 @@ function renderTimerFullscreenConteudo(){
       <div class="tf-tipo">${timerTipo}</div>
       <div class="tf-btns">
         ${!timerRodando?
-          `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
-          :`<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Finalizar</button>
+          `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()"><span class="tf-btn-conteudo">Continuar</span></button>`
+          :`<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()"><span class="tf-btn-conteudo">Pausar</span></button>`}
+        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()"><span class="tf-btn-conteudo">Finalizar</span></button>
       </div>
     </div>
   `;
@@ -2477,7 +2482,7 @@ function renderCadernoTimerFullscreenConteudo(){
   const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
   const tipoAbrev=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
   return `
-    <button class="tf-fechar" onclick="fecharCadernoTimerFullscreen()">✕</button>
+    <button class="tf-fechar" onclick="fecharCadernoTimerFullscreen()"><span class="tf-fechar-conteudo">✕</span></button>
     <div>
       <div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>
       <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
@@ -2485,8 +2490,8 @@ function renderCadernoTimerFullscreenConteudo(){
       <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
       <div class="tf-tipo">${restante===0?'tempo máximo esgotado — pode continuar até finalizar':'tempo restante pra responder'}</div>
       <div class="tf-btns">
-        <button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="abrirCancelarCadernoTimer()">Cancelar</button>
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="abrirFinalizarCadernoTimer()">Finalizar</button>
+        <button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="abrirCancelarCadernoTimer()"><span class="tf-btn-conteudo">Cancelar</span></button>
+        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="abrirFinalizarCadernoTimer()"><span class="tf-btn-conteudo">Finalizar</span></button>
       </div>
     </div>`;
 }
@@ -4723,7 +4728,14 @@ window.addEventListener('resize',()=>{
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   reposicionarTimerFlutuanteSeForaDaTela();
-  recalcularFullscreenAposRotacao();
+  // A rotação física do dispositivo é uma animação real, que leva um tempo de verdade pra
+  // assentar — principalmente voltando de paisagem pra retrato, onde a área reservada embaixo
+  // (home indicator) passa a existir de verdade (em paisagem ela costuma ser zero, o indicador
+  // fica na lateral). Tentar recalcular no exato instante do evento de resize pode ser cedo
+  // demais, antes do sistema operacional ter terminado de processar a rotação — e como esse
+  // tempo pode variar, várias tentativas espaçadas garantem que pelo menos uma delas capture o
+  // estado já assentado, mesmo sem saber exatamente quanto tempo a animação leva.
+  [100,250,450,700].forEach(atraso=>setTimeout(recalcularFullscreenAposRotacao,atraso));
 });
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
 // cheia aberto, refaz a mesma sequência usada pra ABRIR a tela — reafirma a configuração da área
