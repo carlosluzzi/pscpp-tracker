@@ -2335,29 +2335,23 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
-  // Ativa viewport-fit=cover só enquanto a tela cheia está aberta — assim o fundo escuro se
-  // estende sob a barra de status. É revertido ao fechar. NÃO deixar isso permanente: já foi
-  // testado e o iOS não honra viewport-fit=cover na navegação normal, o que quebra o layout do
-  // menu de baixo (barra esticada + faixa cinza sobrando na área da barra de gestos).
-  const metaViewport=document.getElementById('meta-viewport');
-  metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  // SEM viewport-fit=cover. Medido no dispositivo real (PWA instalado, iPhone): mesmo com o cover
+  // declarado, innerHeight continuava 812 numa tela de 874 — o iOS simplesmente NÃO honra o cover
+  // neste contexto. O resultado é o pior dos mundos: o app desenha numa referência de 812px
+  // enquanto o toque é registrado na camada física de 874px, deslocando os botões em 62px (=
+  // safe-area-inset-top) e deixando faixa branca depois de girar. Sem pedir o cover, as duas
+  // camadas ficam na mesma referência e tudo alinha.
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
 }
 
-function restaurarViewportOriginal(){
-  const metaViewport=document.getElementById('meta-viewport');
-  if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
-}
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  restaurarViewportOriginal();
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2378,10 +2372,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerAcabouAvisado=false;
   }
   esconderTimerFlutuante();
-  // Mesma lógica do timer normal: viewport-fit=cover só enquanto a tela cheia está aberta.
-  const metaViewport2=document.getElementById('meta-viewport');
-  metaViewport2.dataset.original=metaViewport2.getAttribute('content');
-  metaViewport2.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  // Sem viewport-fit=cover — mesma razão do timer normal (ver comentário lá).
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2423,7 +2414,6 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  restaurarViewportOriginal();
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2490,7 +2480,6 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  restaurarViewportOriginal();
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2507,7 +2496,6 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
-    restaurarViewportOriginal();
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2811,7 +2799,6 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  restaurarViewportOriginal();
   renderTab(tabAtual,true);
 }
 
@@ -2824,7 +2811,6 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
-    restaurarViewportOriginal();
     renderTab(tabAtual,true);
   }
 }
