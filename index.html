@@ -2389,11 +2389,10 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
   // Aplica imediatamente E de novo com um pequeno atraso — o comportamento inconsistente do
-  // Safari (visto no diagnóstico real) pode persistir por um tempinho mesmo depois da primeira
-  // pintura, antes de se corrigir sozinho; a segunda tentativa garante que a gente não perca essa
-  // janela de tempo.
-  aplicarAlturaFullscreenReal();
-  setTimeout(aplicarAlturaFullscreenReal,150);
+  // Safari (visto no diagnóstico real) pode persistir por mais de 1 segundo mesmo depois da
+  // primeira pintura — garantirTopoCorreto mede a posição de verdade e continua tentando até
+  // confirmar, em vez de confiar que um número fixo de tentativas seria suficiente.
+  garantirTopoCorreto();
 }
 
 // Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
@@ -2447,8 +2446,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
-  aplicarAlturaFullscreenReal();
-  setTimeout(aplicarAlturaFullscreenReal,150);
+  garantirTopoCorreto();
 }
 
 function tickCadernoTimer(){
@@ -4797,6 +4795,25 @@ function aplicarAlturaFullscreenReal(){
   // (top e height) explicitamente via JS, sempre, sobrescrevendo esse comportamento inconsistente.
   if(timerEl&&!timerEl.classList.contains('hidden')){ timerEl.style.top='0px'; timerEl.style.height=alturaReal+'px'; }
   if(cadernoEl&&!cadernoEl.classList.contains('hidden')){ cadernoEl.style.top='0px'; cadernoEl.style.height=alturaReal+'px'; }
+}
+// O style.top='0px' é escrito corretamente na hora (confirmado via diagnóstico), mas o Safari pode
+// demorar mais de 1 segundo pra realmente REPINTAR isso na tela na abertura (não é instantâneo —
+// medido no dispositivo real, o atraso passou de 1,3s numa das medições). Uma única tentativa (ou
+// mesmo duas, com pouco intervalo) não é suficiente pra cobrir isso. Essa função MEDE a posição
+// real (não só confia que escrever o style já bastou) e continua tentando até confirmar que
+// funcionou de verdade, ou até um tempo máximo de segurança.
+function garantirTopoCorreto(tentativa){
+  tentativa=tentativa||0;
+  aplicarAlturaFullscreenReal();
+  const timerEl=document.getElementById('timer-fullscreen');
+  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
+  const elAtivo=(timerEl&&!timerEl.classList.contains('hidden'))?timerEl:
+                (cadernoEl&&!cadernoEl.classList.contains('hidden'))?cadernoEl:null;
+  if(!elAtivo) return;
+  const topoReal=elAtivo.getBoundingClientRect().top;
+  if(topoReal===0) return; // confirmado certo, não precisa tentar mais
+  if(tentativa>=15) return; // ~2s de tentativas (15 x ~130ms) — segurança contra loop infinito
+  setTimeout(()=>garantirTopoCorreto(tentativa+1),130);
 }
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
 // cheia aberto: o problema é ESPECÍFICO de voltar pra retrato (ir pra paisagem sempre funcionou
