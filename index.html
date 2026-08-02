@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#202A45">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2319,27 +2319,18 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 // A área visível real da tela no Safari muda de forma ANIMADA (não instantânea) quando a barra
-// de endereço esconde/aparece — isso é controlado pelo próprio sistema operacional, fora do
-// alcance de qualquer truque de "forçar reflow" via JavaScript. A solução de verdade é medir o
-// espaço REALMENTE visível em tempo real (Visual Viewport API) e sincronizar o tamanho da tela
-// cheia com isso continuamente — em vez de confiar numa medição única que pode ficar "atrasada"
-// em relação à animação nativa do sistema, causando o efeito de "a tela sobe/desce sozinha" e a
-// faixa branca depois de girar o dispositivo.
+// de endereço esconde/aparece — isso é controlado pelo próprio sistema operacional. IMPORTANTE:
+// não definimos altura/posição explícitas aqui (isso já foi tentado e piorou o problema — a
+// medida do Visual Viewport pode não incluir a faixa de gestos/home indicator, deixando uma
+// sobra fixa embaixo). Em vez disso, o CSS `inset:0` (que sempre cobre 100% da tela de verdade)
+// continua sendo a fonte confiável — usamos o evento do Visual Viewport só como um GATILHO pra
+// forçar o navegador a reprocessar/repintar o layout existente sempre que o espaço disponível
+// mudar de verdade (barra escondendo/aparecendo, rotação assentando).
 function sincronizarAlturaFullscreenReal(){
-  if(!window.visualViewport) return;
-  const altura=window.visualViewport.height;
-  const offsetTop=window.visualViewport.offsetTop;
-  ['timer-fullscreen','caderno-timer-fullscreen'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el&&!el.classList.contains('hidden')){
-      el.style.height=altura+'px';
-      el.style.top=offsetTop+'px';
-    }
-  });
+  void document.body.offsetHeight;
 }
 function iniciarSincroniaViewportReal(){
   if(!window.visualViewport) return;
-  sincronizarAlturaFullscreenReal();
   window.visualViewport.addEventListener('resize',sincronizarAlturaFullscreenReal);
   window.visualViewport.addEventListener('scroll',sincronizarAlturaFullscreenReal);
 }
@@ -2352,10 +2343,6 @@ function pararSincroniaViewportReal(){
   if(timerAindaAberto||cadernoAindaAberto) return;
   window.visualViewport.removeEventListener('resize',sincronizarAlturaFullscreenReal);
   window.visualViewport.removeEventListener('scroll',sincronizarAlturaFullscreenReal);
-  ['timer-fullscreen','caderno-timer-fullscreen'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){ el.style.height=''; el.style.top=''; }
-  });
 }
 
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
@@ -2369,19 +2356,6 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
-  // Ativa viewport-fit=cover ANTES de desenhar o conteúdo e mostrar a tela — não depois. A ordem
-  // aqui importa de verdade: se os botões forem pintados primeiro (com o viewport antigo, sem
-  // reservar a área da barra de status) e a mudança de viewport só acontecer depois, o Safari faz
-  // um reajuste de layout DEPOIS da primeira pintura — a tela "sobe" pra acomodar o novo espaço
-  // reservado embaixo, mas o toque (hit-test) pode ficar temporariamente desalinhado da nova
-  // posição visual, sendo necessário tocar abaixo do botão pra acertar. Trocando a ordem, o
-  // conteúdo já nasce desenhado no lugar final, sem nenhum salto depois.
-  const metaViewport=document.getElementById('meta-viewport');
-  metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  // Força o navegador a processar essa mudança de verdade (reflow síncrono) antes de continuar —
-  // sem isso, o Safari pode adiar o recálculo do safe-area pra depois da tela já estar visível.
-  void document.body.offsetHeight;
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2393,7 +2367,6 @@ function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
   liberarWakeLock();
   pararSincroniaViewportReal();
   if(timerRodando){
@@ -2402,11 +2375,6 @@ function fecharTimerFullscreen(){
     mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
   }
   renderTab(tabAtual,true);
-}
-
-function restaurarViewportOriginal(){
-  const metaViewport=document.getElementById('meta-viewport');
-  if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
 }
 
 let cadernoTimerAtivo=null,cadernoTimerInicio=null,cadernoTimerIntervalId=null,cadernoTimerAcabouAvisado=false;
@@ -2421,14 +2389,6 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerAcabouAvisado=false;
   }
   esconderTimerFlutuante();
-  // Ativa viewport-fit=cover ANTES de desenhar/mostrar — mesma correção do timer normal. Sem
-  // isso, os botões nascem pintados com o viewport antigo, e o Safari reajusta o layout depois
-  // que a tela já está visível, deixando a área de toque temporariamente desalinhada da posição
-  // visual (obriga a tocar abaixo do botão pra acertar).
-  const metaViewport=document.getElementById('meta-viewport');
-  metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  void document.body.offsetHeight;
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2470,7 +2430,6 @@ function fecharCadernoTimerFullscreen(){
   // como o timer normal já faz (fechar não é parar).
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
   liberarWakeLock();
   pararSincroniaViewportReal();
   if(cadernoTimerAtivo){
@@ -2538,7 +2497,6 @@ function cancelarCadernoTimer(){
   esconderTimerFlutuante();
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
   liberarWakeLock();
   pararSincroniaViewportReal();
   renderTab(tabAtual,true);
@@ -2556,7 +2514,6 @@ async function finalizarCadernoTimer(){
     esconderTimerFlutuante();
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
-    restaurarViewportOriginal();
     liberarWakeLock();
     pararSincroniaViewportReal();
     await loadData();
@@ -2840,7 +2797,6 @@ function zerarTimer(){
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
-  restaurarViewportOriginal();
   liberarWakeLock();
   pararSincroniaViewportReal();
   renderTab(tabAtual,true);
@@ -2854,7 +2810,6 @@ function saiuDoFullscreenReal(){
     timerFullscreenAberto=false;
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
-    restaurarViewportOriginal();
     liberarWakeLock();
     pararSincroniaViewportReal();
     renderTab(tabAtual,true);
