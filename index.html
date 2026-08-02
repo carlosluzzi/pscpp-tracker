@@ -193,8 +193,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    quanto a área de toque), e um span interno desce os mesmos 62px pra compensar, mantendo o
    texto/ícone exatamente onde já estava visualmente. Resultado: só a área nova (mais alta)
    responde ao toque — a posição antiga (mais embaixo) para de funcionar. */
-.tf-fechar,.tf-btn,.btn-tela-cheia{transform:translateY(-62px)}
-.tf-fechar-conteudo,.tf-btn-conteudo,.btn-tela-cheia-conteudo{display:inline-flex;align-items:center;gap:4px;transform:translateY(62px)}
+/* Camada invisível de toque, posicionada 62px ACIMA do botão visual — o botão em si fica 100%
+   intocado (aparência normal), e essa camada extra é quem realmente responde ao toque nessa
+   posição deslocada. Precisa de um container "position:relative" envolvendo o botão + a camada,
+   pra essa camada conseguir se posicionar de forma absoluta em relação a ele. */
+.wrap-toque-deslocado{position:relative}
+.camada-toque-deslocada{position:absolute;top:-62px;left:0;right:0;height:62px;cursor:pointer}
+.camada-tf-fechar-deslocada{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px - 62px);right:20px;width:40px;height:40px;cursor:pointer}
 .tf-btn-toggle{min-width:150px}
 .tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:20px;color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:8px}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
@@ -2137,7 +2142,7 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone btn-tela-cheia" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><span class="btn-tela-cheia-conteudo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></span></div>`:''}
+      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><div class="wrap-toque-deslocado"><span class="info-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span><div class="camada-toque-deslocada" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"></div></div></div>`:''}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -2236,7 +2241,7 @@ function renderTimerFullscreenConteudo(){
   const pubInfoTf=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const capituloFormatadoTf=formatarCapituloExibicao(pubInfoTf,timerCapitulo);
   return `
-    <button class="tf-fechar" onclick="fecharTimerFullscreen()"><span class="tf-fechar-conteudo">✕</span></button>
+    <button class="tf-fechar">✕</button><div class="camada-tf-fechar-deslocada" onclick="fecharTimerFullscreen()"></div>
     <div>
       <div class="tf-modulo">${timerModulo||'–'}</div>
       <div class="tf-ref-wrap">
@@ -2247,9 +2252,9 @@ function renderTimerFullscreenConteudo(){
       <div class="tf-tipo">${timerTipo}</div>
       <div class="tf-btns">
         ${!timerRodando?
-          `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()"><span class="tf-btn-conteudo">Continuar</span></button>`
-          :`<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()"><span class="tf-btn-conteudo">Pausar</span></button>`}
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()"><span class="tf-btn-conteudo">Finalizar</span></button>
+          `<div class="wrap-toque-deslocado"><button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff">Continuar</button><div class="camada-toque-deslocada" onclick="iniciarTimer()"></div></div>`
+          :`<div class="wrap-toque-deslocado"><button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff">Pausar</button><div class="camada-toque-deslocada" onclick="pausarTimer()"></div></div>`}
+        <div class="wrap-toque-deslocado"><button class="tf-btn" style="background:#fff;color:#202A45">Finalizar</button><div class="camada-toque-deslocada" onclick="pararESalvarTimer()"></div></div>
       </div>
     </div>
   `;
@@ -2383,13 +2388,23 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
+  aplicarAlturaFullscreenReal();
 }
 
+// Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
+// vez que o fullscreen abrir, ficaria "preso" numa altura de uma sessão/orientação anterior.
+function limparAlturaFullscreenManual(){
+  const timerEl=document.getElementById('timer-fullscreen');
+  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
+  if(timerEl) timerEl.style.height='';
+  if(cadernoEl) cadernoEl.style.height='';
+}
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  limparAlturaFullscreenManual();
   liberarWakeLock();
   pararSincroniaViewportReal();
   if(timerRodando){
@@ -2427,6 +2442,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
+  aplicarAlturaFullscreenReal();
 }
 
 function tickCadernoTimer(){
@@ -2463,6 +2479,7 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  limparAlturaFullscreenManual();
   liberarWakeLock();
   pararSincroniaViewportReal();
   if(cadernoTimerAtivo){
@@ -2482,7 +2499,7 @@ function renderCadernoTimerFullscreenConteudo(){
   const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
   const tipoAbrev=ap?(tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase())):'';
   return `
-    <button class="tf-fechar" onclick="fecharCadernoTimerFullscreen()"><span class="tf-fechar-conteudo">✕</span></button>
+    <button class="tf-fechar">✕</button><div class="camada-tf-fechar-deslocada" onclick="fecharCadernoTimerFullscreen()"></div>
     <div>
       <div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>
       <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
@@ -2490,8 +2507,8 @@ function renderCadernoTimerFullscreenConteudo(){
       <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
       <div class="tf-tipo">${restante===0?'tempo máximo esgotado — pode continuar até finalizar':'tempo restante pra responder'}</div>
       <div class="tf-btns">
-        <button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="abrirCancelarCadernoTimer()"><span class="tf-btn-conteudo">Cancelar</span></button>
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="abrirFinalizarCadernoTimer()"><span class="tf-btn-conteudo">Finalizar</span></button>
+        <div class="wrap-toque-deslocado"><button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff">Cancelar</button><div class="camada-toque-deslocada" onclick="abrirCancelarCadernoTimer()"></div></div>
+        <div class="wrap-toque-deslocado"><button class="tf-btn" style="background:#fff;color:#202A45">Finalizar</button><div class="camada-toque-deslocada" onclick="abrirFinalizarCadernoTimer()"></div></div>
       </div>
     </div>`;
 }
@@ -2531,6 +2548,7 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  limparAlturaFullscreenManual();
   liberarWakeLock();
   pararSincroniaViewportReal();
   renderTab(tabAtual,true);
@@ -2549,6 +2567,7 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
+    limparAlturaFullscreenManual();
     liberarWakeLock();
     pararSincroniaViewportReal();
     await loadData();
@@ -2854,6 +2873,7 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
+  limparAlturaFullscreenManual();
   liberarWakeLock();
   pararSincroniaViewportReal();
   renderTab(tabAtual,true);
@@ -2868,6 +2888,7 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
+    limparAlturaFullscreenManual();
     liberarWakeLock();
     pararSincroniaViewportReal();
     renderTab(tabAtual,true);
@@ -4737,19 +4758,29 @@ window.addEventListener('resize',()=>{
   // estado já assentado, mesmo sem saber exatamente quanto tempo a animação leva.
   [100,250,450,700].forEach(atraso=>setTimeout(recalcularFullscreenAposRotacao,atraso));
 });
+// Mede a altura REAL disponível direto via JavaScript (window.innerHeight sempre reflete o
+// tamanho real da janela no momento exato da medição) e aplica isso explicitamente na tela —
+// usado tanto na abertura inicial quanto depois de girar o dispositivo.
+function aplicarAlturaFullscreenReal(){
+  const timerEl=document.getElementById('timer-fullscreen');
+  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
+  const alturaReal=window.innerHeight;
+  if(timerEl&&!timerEl.classList.contains('hidden')) timerEl.style.height=alturaReal+'px';
+  if(cadernoEl&&!cadernoEl.classList.contains('hidden')) cadernoEl.style.height=alturaReal+'px';
+}
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
-// cheia aberto, refaz a mesma sequência usada pra ABRIR a tela — reafirma a configuração da área
-// segura e desenha o conteúdo de novo do zero — exatamente como se tivesse fechado e reaberto,
-// em vez de só deixar o CSS reajustar sozinho (que é onde os problemas de alinhamento apareciam).
+// cheia aberto: em vez de continuar tentando convencer o Safari a recalcular a área segura
+// sozinho (env(safe-area-inset-bottom) provou não se atualizar de forma confiável na volta de
+// paisagem pra retrato, mesmo forçando reflow e tentando várias vezes), mede a altura REAL
+// disponível direto via JavaScript e aplica isso explicitamente — garantido, sem "adivinhação".
+// Também re-renderiza o conteúdo, exatamente como se tivesse fechado e reaberto a tela.
 function recalcularFullscreenAposRotacao(){
-  const metaViewport=document.getElementById('meta-viewport');
-  const timerAberto=!document.getElementById('timer-fullscreen')?.classList.contains('hidden');
-  const cadernoAberto=!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
+  const timerEl=document.getElementById('timer-fullscreen');
+  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
+  const timerAberto=timerEl&&!timerEl.classList.contains('hidden');
+  const cadernoAberto=cadernoEl&&!cadernoEl.classList.contains('hidden');
   if(!timerAberto&&!cadernoAberto) return;
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0');
-  void document.body.offsetHeight;
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-  void document.body.offsetHeight;
+  aplicarAlturaFullscreenReal();
   if(timerAberto){
     document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   }
