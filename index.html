@@ -2388,6 +2388,12 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
+  // Aplica imediatamente E de novo com um pequeno atraso — o comportamento inconsistente do
+  // Safari (visto no diagnóstico real) pode persistir por um tempinho mesmo depois da primeira
+  // pintura, antes de se corrigir sozinho; a segunda tentativa garante que a gente não perca essa
+  // janela de tempo.
+  aplicarAlturaFullscreenReal();
+  setTimeout(aplicarAlturaFullscreenReal,150);
 }
 
 // Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
@@ -2395,8 +2401,8 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
 function limparAlturaFullscreenManual(){
   const timerEl=document.getElementById('timer-fullscreen');
   const cadernoEl=document.getElementById('caderno-timer-fullscreen');
-  if(timerEl) timerEl.style.height='';
-  if(cadernoEl) cadernoEl.style.height='';
+  if(timerEl){ timerEl.style.height=''; timerEl.style.top=''; }
+  if(cadernoEl){ cadernoEl.style.height=''; cadernoEl.style.top=''; }
 }
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
@@ -2441,6 +2447,8 @@ function abrirCadernoTimerFullscreen(atividadeId){
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
+  aplicarAlturaFullscreenReal();
+  setTimeout(aplicarAlturaFullscreenReal,150);
 }
 
 function tickCadernoTimer(){
@@ -4782,8 +4790,13 @@ function aplicarAlturaFullscreenReal(){
   const timerEl=document.getElementById('timer-fullscreen');
   const cadernoEl=document.getElementById('caderno-timer-fullscreen');
   const alturaReal=window.innerHeight;
-  if(timerEl&&!timerEl.classList.contains('hidden')) timerEl.style.height=alturaReal+'px';
-  if(cadernoEl&&!cadernoEl.classList.contains('hidden')) cadernoEl.style.height=alturaReal+'px';
+  // Descoberta real (via diagnóstico no dispositivo, não suposição): mesmo com inset:0 no CSS,
+  // que deveria sempre grudar top:0 sem exceção, o Safari mostrou o elemento com o TOPO deslocado
+  // 62px pra baixo durante a transição de ativar a área segura — o valor batia exatamente com o
+  // tamanho da área reservada em cima. Não dá pra confiar só no CSS nesse momento; define os dois
+  // (top e height) explicitamente via JS, sempre, sobrescrevendo esse comportamento inconsistente.
+  if(timerEl&&!timerEl.classList.contains('hidden')){ timerEl.style.top='0px'; timerEl.style.height=alturaReal+'px'; }
+  if(cadernoEl&&!cadernoEl.classList.contains('hidden')){ cadernoEl.style.top='0px'; cadernoEl.style.height=alturaReal+'px'; }
 }
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
 // cheia aberto: o problema é ESPECÍFICO de voltar pra retrato (ir pra paisagem sempre funcionou
