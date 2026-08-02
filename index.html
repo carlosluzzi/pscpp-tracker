@@ -4741,41 +4741,39 @@ function restaurarPadraoFonte(){
 // — mas ignora resize que só muda a ALTURA (barra de endereço do Safari expandindo/retraindo
 // durante o scroll, que dispara resize repetidamente sem a tela ter mudado de verdade).
 let larguraAnteriorResize=window.innerWidth;
-window.addEventListener('resize',()=>{
-  if(window.innerWidth===larguraAnteriorResize) return;
-  larguraAnteriorResize=window.innerWidth;
-  const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
-  aplicarFontScale(scaleAtual,false);
-  reposicionarTimerFlutuanteSeForaDaTela();
-  // A rotação física do dispositivo é uma animação real, que leva um tempo de verdade pra
-  // assentar — principalmente voltando de paisagem pra retrato, onde a área reservada embaixo
-  // (home indicator) passa a existir de verdade (em paisagem ela costuma ser zero, o indicador
-  // fica na lateral). Tentar recalcular no exato instante do evento de resize pode ser cedo
-  // demais, antes do sistema operacional ter terminado de processar a rotação — e como esse
-  // tempo pode variar, várias tentativas espaçadas garantem que pelo menos uma delas capture o
-  // estado já assentado, mesmo sem saber exatamente quanto tempo a animação leva.
-  [100,250,450,700].forEach(atraso=>setTimeout(recalcularFullscreenAposRotacao,atraso));
-});
-// A guarda acima ("só reage se a LARGURA mudar") ignora de propósito eventos de resize que só
-// mudam a altura — pensada pra ignorar a barra de endereço do Safari escondendo/aparecendo
-// durante scroll. Só que isso pode estar escondendo justamente os eventos que mais importam
-// durante uma rotação: se a largura final já bate logo no primeiro disparo (mesmo com a altura
-// ainda "assentando" fisicamente), os disparos seguintes — que trariam a altura já correta —
-// ficavam sendo ignorados por essa mesma guarda. orientationchange é um evento dedicado, que só
-// dispara em rotação de verdade (nunca durante scroll), então aqui não precisa de guarda nenhuma.
+let timeoutsRotacaoPendentes=[];
+// O mesmo problema de área segura não recalculando direito depois de voltar pra retrato afeta
+// QUALQUER elemento que dependa dela — não só a tela cheia do cronômetro. O menu de navegação
+// de baixo também usa isso (pra reservar o espaço da barra de gestos do sistema), e sua altura
+// real (--nav-clear) é medida via JS uma vez só — se ficar desatualizada depois da rotação, a
+// área de toque do menu fica desalinhada da posição visual, exatamente como acontecia nos
+// botões do fullscreen (parecia "travado", mas era só a área de toque no lugar errado).
 function recalcularTudoAposRotacao(){
-  // O mesmo problema de área segura não recalculando direito depois de voltar pra retrato afeta
-  // QUALQUER elemento que dependa dela — não só a tela cheia do cronômetro. O menu de navegação
-  // de baixo também usa isso (pra reservar o espaço da barra de gestos do sistema), e sua altura
-  // real (--nav-clear) é medida via JS uma vez só — se ficar desatualizada depois da rotação, a
-  // área de toque do menu fica desalinhada da posição visual, exatamente como acontecia nos
-  // botões do fullscreen (parecia "travado", mas era só a área de toque no lugar errado).
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   recalcularFullscreenAposRotacao();
 }
-window.addEventListener('orientationchange',()=>{
-  [50,150,300,500,800].forEach(atraso=>setTimeout(recalcularTudoAposRotacao,atraso));
+window.addEventListener('resize',()=>{
+  // Só a parte de reposicionar o widget flutuante (e trocar a escala de fonte) fica atrás dessa
+  // barreira — faz sentido só reagir quando a LARGURA muda de verdade pra essas duas coisas.
+  if(window.innerWidth!==larguraAnteriorResize){
+    larguraAnteriorResize=window.innerWidth;
+    const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
+    aplicarFontScale(scaleAtual,false);
+    reposicionarTimerFlutuanteSeForaDaTela();
+  }
+  // As tentativas de recalcular a rotação NÃO ficam atrás dessa barreira — o evento "orientationchange"
+  // é oficialmente obsoleto (documentação alerta que "pode deixar de funcionar a qualquer momento" em
+  // qualquer navegador), então abandonado. "resize" sempre dispara de forma confiável em qualquer
+  // mudança de tamanho, incluindo rotação — mas o sistema pode disparar ele MAIS DE UMA VEZ durante uma
+  // única rotação, às vezes com a MESMA largura final já na primeira vez (só a altura ainda "assentando"
+  // fisicamente depois). Rodar as tentativas em TODO resize, sem depender da largura ter mudado,
+  // garante que a gente não perca justamente os disparos que trariam o estado já assentado.
+  // Cancela tentativas agendadas por um disparo anterior antes de agendar novas — sem isso, um scroll
+  // rápido (que dispara resize repetidamente por causa da barra de endereço) acumularia dezenas de
+  // tentativas pendentes ao mesmo tempo, à toa.
+  timeoutsRotacaoPendentes.forEach(id=>clearTimeout(id));
+  timeoutsRotacaoPendentes=[100,250,450,700].map(atraso=>setTimeout(recalcularTudoAposRotacao,atraso));
 });
 // Mede a altura REAL disponível direto via JavaScript (window.innerHeight sempre reflete o
 // tamanho real da janela no momento exato da medição) e aplica isso explicitamente na tela —
