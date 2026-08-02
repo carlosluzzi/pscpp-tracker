@@ -4767,18 +4767,24 @@ function aplicarAlturaFullscreenReal(){
   if(cadernoEl&&!cadernoEl.classList.contains('hidden')) cadernoEl.style.height=alturaReal+'px';
 }
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
-// cheia aberto: em vez de continuar tentando convencer o Safari a recalcular a área segura
-// sozinho (env(safe-area-inset-bottom) provou não se atualizar de forma confiável na volta de
-// paisagem pra retrato, mesmo forçando reflow e tentando várias vezes), mede a altura REAL
-// disponível direto via JavaScript e aplica isso explicitamente — garantido, sem "adivinhação".
-// Também re-renderiza o conteúdo, exatamente como se tivesse fechado e reaberto a tela.
+// cheia aberto: o problema é ESPECÍFICO de voltar pra retrato (ir pra paisagem sempre funcionou
+// bem só com CSS puro — não precisa de ajuda nenhuma) — então só entra em ação nesse caso
+// específico, medindo a altura REAL disponível direto via JavaScript e aplicando isso
+// explicitamente. Em paisagem, não mexe em nada, deixa o CSS cuidar sozinho como já fazia bem.
 function recalcularFullscreenAposRotacao(){
   const timerEl=document.getElementById('timer-fullscreen');
   const cadernoEl=document.getElementById('caderno-timer-fullscreen');
   const timerAberto=timerEl&&!timerEl.classList.contains('hidden');
   const cadernoAberto=cadernoEl&&!cadernoEl.classList.contains('hidden');
   if(!timerAberto&&!cadernoAberto) return;
-  aplicarAlturaFullscreenReal();
+  const voltouParaRetrato=window.innerHeight>window.innerWidth;
+  if(voltouParaRetrato){
+    aplicarAlturaFullscreenReal();
+  }else{
+    // Paisagem: limpa qualquer altura manual de uma rotação anterior, volta a confiar 100% no
+    // CSS (inset:0), que já é confiável nesse caso.
+    limparAlturaFullscreenManual();
+  }
   if(timerAberto){
     document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   }
