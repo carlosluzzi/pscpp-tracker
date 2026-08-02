@@ -2123,7 +2123,7 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})">⛶ tela cheia</span></div>`:''}
+      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></div>`:''}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -2329,18 +2329,22 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
-  document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
-  document.getElementById('timer-fullscreen').classList.remove('hidden');
-  document.body.classList.add('timer-fullscreen-ativo');
-  // Ativa viewport-fit=cover só enquanto o timer está aberto — estende o fundo escuro por baixo da
-  // barra de status. Revertido ao fechar, então não afeta o resto do app (onde isso causava um bug antigo).
-  // Não usa requestFullscreen() do navegador de propósito — em alguns sistemas (principalmente
-  // macOS) isso dispara uma animação nativa do próprio sistema operacional, fora do nosso controle,
-  // que deixa a abertura lenta/chamativa. Nosso overlay (position:fixed;inset:0) já cobre a tela
-  // inteira instantaneamente, sem depender de nenhuma API do sistema.
+  // Ativa viewport-fit=cover ANTES de desenhar o conteúdo e mostrar a tela — não depois. A ordem
+  // aqui importa de verdade: se os botões forem pintados primeiro (com o viewport antigo, sem
+  // reservar a área da barra de status) e a mudança de viewport só acontecer depois, o Safari faz
+  // um reajuste de layout DEPOIS da primeira pintura — a tela "sobe" pra acomodar o novo espaço
+  // reservado embaixo, mas o toque (hit-test) pode ficar temporariamente desalinhado da nova
+  // posição visual, sendo necessário tocar abaixo do botão pra acertar. Trocando a ordem, o
+  // conteúdo já nasce desenhado no lugar final, sem nenhum salto depois.
   const metaViewport=document.getElementById('meta-viewport');
   metaViewport.dataset.original=metaViewport.getAttribute('content');
   metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  // Força o navegador a processar essa mudança de verdade (reflow síncrono) antes de continuar —
+  // sem isso, o Safari pode adiar o recálculo do safe-area pra depois da tela já estar visível.
+  void document.body.offsetHeight;
+  document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  document.getElementById('timer-fullscreen').classList.remove('hidden');
+  document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
 }
 
@@ -2375,16 +2379,18 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerAcabouAvisado=false;
   }
   esconderTimerFlutuante();
+  // Ativa viewport-fit=cover ANTES de desenhar/mostrar — mesma correção do timer normal. Sem
+  // isso, os botões nascem pintados com o viewport antigo, e o Safari reajusta o layout depois
+  // que a tela já está visível, deixando a área de toque temporariamente desalinhada da posição
+  // visual (obriga a tocar abaixo do botão pra acertar).
+  const metaViewport=document.getElementById('meta-viewport');
+  metaViewport.dataset.original=metaViewport.getAttribute('content');
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  void document.body.offsetHeight;
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
-  // Ativa viewport-fit=cover só enquanto essa tela está aberta — estende o fundo escuro por baixo da
-  // barra de status. Revertido ao fechar, mesmo padrão já usado no timer normal. Sem requestFullscreen()
-  // de propósito — evita a animação nativa de tela cheia do sistema operacional.
-  const metaViewport=document.getElementById('meta-viewport');
-  metaViewport.dataset.original=metaViewport.getAttribute('content');
-  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
   solicitarWakeLock();
 }
 
@@ -4669,6 +4675,7 @@ window.addEventListener('resize',()=>{
     setTimeout(()=>{
       const metaViewport=document.getElementById('meta-viewport');
       metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+      void document.body.offsetHeight;
     },300);
   }
 });
