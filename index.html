@@ -2318,6 +2318,46 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
+// A área visível real da tela no Safari muda de forma ANIMADA (não instantânea) quando a barra
+// de endereço esconde/aparece — isso é controlado pelo próprio sistema operacional, fora do
+// alcance de qualquer truque de "forçar reflow" via JavaScript. A solução de verdade é medir o
+// espaço REALMENTE visível em tempo real (Visual Viewport API) e sincronizar o tamanho da tela
+// cheia com isso continuamente — em vez de confiar numa medição única que pode ficar "atrasada"
+// em relação à animação nativa do sistema, causando o efeito de "a tela sobe/desce sozinha" e a
+// faixa branca depois de girar o dispositivo.
+function sincronizarAlturaFullscreenReal(){
+  if(!window.visualViewport) return;
+  const altura=window.visualViewport.height;
+  const offsetTop=window.visualViewport.offsetTop;
+  ['timer-fullscreen','caderno-timer-fullscreen'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.classList.contains('hidden')){
+      el.style.height=altura+'px';
+      el.style.top=offsetTop+'px';
+    }
+  });
+}
+function iniciarSincroniaViewportReal(){
+  if(!window.visualViewport) return;
+  sincronizarAlturaFullscreenReal();
+  window.visualViewport.addEventListener('resize',sincronizarAlturaFullscreenReal);
+  window.visualViewport.addEventListener('scroll',sincronizarAlturaFullscreenReal);
+}
+function pararSincroniaViewportReal(){
+  // Só para de verdade quando NENHUM dos dois fullscreens estiver mais aberto — evita desligar
+  // a sincronia de um por engano enquanto o outro ainda está usando.
+  if(!window.visualViewport) return;
+  const timerAindaAberto=!document.getElementById('timer-fullscreen')?.classList.contains('hidden');
+  const cadernoAindaAberto=!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
+  if(timerAindaAberto||cadernoAindaAberto) return;
+  window.visualViewport.removeEventListener('resize',sincronizarAlturaFullscreenReal);
+  window.visualViewport.removeEventListener('scroll',sincronizarAlturaFullscreenReal);
+  ['timer-fullscreen','caderno-timer-fullscreen'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.style.height=''; el.style.top=''; }
+  });
+}
+
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
@@ -2346,6 +2386,7 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
+  iniciarSincroniaViewportReal();
 }
 
 function fecharTimerFullscreen(){
@@ -2354,6 +2395,7 @@ function fecharTimerFullscreen(){
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
   liberarWakeLock();
+  pararSincroniaViewportReal();
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2392,6 +2434,7 @@ function abrirCadernoTimerFullscreen(atividadeId){
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
+  iniciarSincroniaViewportReal();
 }
 
 function tickCadernoTimer(){
@@ -2429,6 +2472,7 @@ function fecharCadernoTimerFullscreen(){
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
   liberarWakeLock();
+  pararSincroniaViewportReal();
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2496,6 +2540,7 @@ function cancelarCadernoTimer(){
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
   liberarWakeLock();
+  pararSincroniaViewportReal();
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2513,6 +2558,7 @@ async function finalizarCadernoTimer(){
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
     liberarWakeLock();
+    pararSincroniaViewportReal();
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2796,6 +2842,7 @@ function zerarTimer(){
   document.body.classList.remove('timer-fullscreen-ativo');
   restaurarViewportOriginal();
   liberarWakeLock();
+  pararSincroniaViewportReal();
   renderTab(tabAtual,true);
 }
 
@@ -2809,6 +2856,7 @@ function saiuDoFullscreenReal(){
     document.body.classList.remove('timer-fullscreen-ativo');
     restaurarViewportOriginal();
     liberarWakeLock();
+    pararSincroniaViewportReal();
     renderTab(tabAtual,true);
   }
 }
@@ -4667,17 +4715,6 @@ window.addEventListener('resize',()=>{
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   reposicionarTimerFlutuanteSeForaDaTela();
-  // Ao girar o dispositivo com algum fullscreen do cronômetro aberto, o Safari pode não
-  // recalcular corretamente os safe-areas (env(safe-area-inset-bottom)) na volta pra retrato,
-  // deixando uma faixa branca embaixo — a barra de status muda de comportamento durante a
-  // rotação. Reafirmar viewport-fit=cover depois que a rotação assentar força o recálculo.
-  if(timerFullscreenAberto||(cadernoTimerAtivo&&!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden'))){
-    setTimeout(()=>{
-      const metaViewport=document.getElementById('meta-viewport');
-      metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
-      void document.body.offsetHeight;
-    },300);
-  }
 });
 // Se o pop-up do cronômetro foi arrastado manualmente (tem left/top fixos em px) e a tela mudar
 // de tamanho depois — rotação de dispositivo, por exemplo — ele pode ficar fora da área visível,
