@@ -2388,11 +2388,11 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
-  // Aplica imediatamente E de novo com um pequeno atraso — o comportamento inconsistente do
-  // Safari (visto no diagnóstico real) pode persistir por mais de 1 segundo mesmo depois da
-  // primeira pintura — garantirTopoCorreto mede a posição de verdade e continua tentando até
-  // confirmar, em vez de confiar que um número fixo de tentativas seria suficiente.
-  garantirTopoCorreto();
+  // NADA de altura/topo manual aqui — a abertura normal (sem rotação envolvida) sempre funcionou
+  // certinho confiando só no CSS puro (inset:0). Mexer nisso via JS bem na abertura foi o que
+  // causou a própria faixa branca aparecendo/sumindo (confirmado: sem essa correção aqui antes,
+  // a faixa nunca aparecia na abertura — só depois de girar). A correção via JS fica reservada
+  // só pra depois de girar de verdade, onde ela é comprovadamente necessária.
 }
 
 // Limpa a altura definida manualmente via JS (usada pra corrigir rotação) — sem isso, a próxima
@@ -2446,7 +2446,8 @@ function abrirCadernoTimerFullscreen(atividadeId){
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
   iniciarSincroniaViewportReal();
-  garantirTopoCorreto();
+  // NADA de altura/topo manual aqui — mesmo raciocínio do timer normal: a abertura sempre
+  // funcionou certinho só com CSS puro, mexer nisso via JS foi o que causou a faixa aparecer.
 }
 
 function tickCadernoTimer(){
@@ -4795,25 +4796,6 @@ function aplicarAlturaFullscreenReal(){
   // (top e height) explicitamente via JS, sempre, sobrescrevendo esse comportamento inconsistente.
   if(timerEl&&!timerEl.classList.contains('hidden')){ timerEl.style.top='0px'; timerEl.style.height=alturaReal+'px'; }
   if(cadernoEl&&!cadernoEl.classList.contains('hidden')){ cadernoEl.style.top='0px'; cadernoEl.style.height=alturaReal+'px'; }
-}
-// O style.top='0px' é escrito corretamente na hora (confirmado via diagnóstico), mas o Safari pode
-// demorar mais de 1 segundo pra realmente REPINTAR isso na tela na abertura (não é instantâneo —
-// medido no dispositivo real, o atraso passou de 1,3s numa das medições). Uma única tentativa (ou
-// mesmo duas, com pouco intervalo) não é suficiente pra cobrir isso. Essa função MEDE a posição
-// real (não só confia que escrever o style já bastou) e continua tentando até confirmar que
-// funcionou de verdade, ou até um tempo máximo de segurança.
-function garantirTopoCorreto(tentativa){
-  tentativa=tentativa||0;
-  aplicarAlturaFullscreenReal();
-  const timerEl=document.getElementById('timer-fullscreen');
-  const cadernoEl=document.getElementById('caderno-timer-fullscreen');
-  const elAtivo=(timerEl&&!timerEl.classList.contains('hidden'))?timerEl:
-                (cadernoEl&&!cadernoEl.classList.contains('hidden'))?cadernoEl:null;
-  if(!elAtivo) return;
-  const topoReal=elAtivo.getBoundingClientRect().top;
-  if(topoReal===0) return; // confirmado certo, não precisa tentar mais
-  if(tentativa>=15) return; // ~2s de tentativas (15 x ~130ms) — segurança contra loop infinito
-  setTimeout(()=>garantirTopoCorreto(tentativa+1),130);
 }
 // Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
 // cheia aberto: o problema é ESPECÍFICO de voltar pra retrato (ir pra paisagem sempre funcionou
