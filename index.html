@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#202A45">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -31,12 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#F9F9F7;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-position:0 0;background-size:auto;pointer-events:none;transform:translateZ(0);will-change:transform}
 
 /* MOBILE — shell fixo: topbar/header-zone não rolam, só #content rola por dentro */
-/* Altura vem de height:100% (que herda do body, que é position:fixed;inset:0 e portanto já é
-   exatamente o viewport). NÃO usar 100dvh aqui: com viewport-fit=cover permanente, 100dvh passa a
-   incluir a área sob a barra de gestos, ficando MAIOR que o body fixo — o .app sobra pra baixo e o
-   .bottom-nav (que é position:fixed;bottom:0, colado no viewport real) aparece deslocado, com faixa
-   sobrando embaixo. Seguindo o body, os dois ficam sempre na mesma referência. */
-.app{max-width:480px;margin:0 auto;height:100%;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
+.app{max-width:480px;margin:0 auto;height:100%;height:100svh;height:100dvh;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 /* camada única e estática da imagem do header — mesmo tamanho/zoom sempre, cada aba só corta na sua própria altura */
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
@@ -54,11 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-/* --nav-clear é a altura REAL medida do .bottom-nav (offsetHeight), e .nav-item já inclui
-   env(safe-area-inset-bottom) no próprio padding — ou seja, a safe area já está contabilizada
-   dentro desse valor. Somar env(safe-area-inset-bottom) de novo aqui seria contar duas vezes
-   (foi exatamente o que quebrou o layout do menu numa tentativa anterior). */
-.content{position:relative;z-index:1;padding:16px;padding-bottom:var(--nav-clear, 76px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
+.content{position:relative;z-index:1;padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
 #ptr-indicator{display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height 0.2s ease;flex-shrink:0;position:relative}
 #ptr-indicator.ativo{transition:none}
 #ptr-seta{width:20px;height:20px;color:#999;transition:transform 0.25s ease,opacity 0.15s ease;transform:rotate(0deg);position:absolute}
@@ -136,7 +127,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + 16px)}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
   /* Aqui a barra de navegação AINDA fica embaixo (só vira sidebar lateral a partir de 1100px) —
      usa o mesmo espaço reservado que o conteúdo da página já usa nesse breakpoint, pra não tapar
@@ -2357,22 +2348,29 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   if(!timerRodando&&!naoRetomarSePausado) iniciarTimer();
   timerFullscreenAberto=true;
   esconderTimerFlutuante();
-  // viewport-fit=cover agora é PERMANENTE (fica na meta tag desde o carregamento da página) — não
-  // é mais ligado/desligado aqui. Esse liga-desliga repetido era a causa raiz comum de todos os
-  // problemas: cada troca obrigava o Safari a recalcular os safe-area-insets, e é justamente
-  // nesse recálculo que ele se perdia (topo deslocado 62px, faixa branca, área de toque fora do
-  // lugar). Sem trocas, não há recálculo, não há inconsistência.
+  // Ativa viewport-fit=cover só enquanto a tela cheia está aberta — assim o fundo escuro se
+  // estende sob a barra de status. É revertido ao fechar. NÃO deixar isso permanente: já foi
+  // testado e o iOS não honra viewport-fit=cover na navegação normal, o que quebra o layout do
+  // menu de baixo (barra esticada + faixa cinza sobrando na área da barra de gestos).
+  const metaViewport=document.getElementById('meta-viewport');
+  metaViewport.dataset.original=metaViewport.getAttribute('content');
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
   document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
 }
 
+function restaurarViewportOriginal(){
+  const metaViewport=document.getElementById('meta-viewport');
+  if(metaViewport.dataset.original) metaViewport.setAttribute('content',metaViewport.dataset.original);
+}
 function fecharTimerFullscreen(){
   timerFullscreenAberto=false;
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  restaurarViewportOriginal();
   if(timerRodando){
     timerFlutuanteFechadoManualmente=false; // toda vez que fecha de novo, dá outra chance de mostrar
     const segAtual=timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000);
@@ -2393,9 +2391,10 @@ function abrirCadernoTimerFullscreen(atividadeId){
     cadernoTimerAcabouAvisado=false;
   }
   esconderTimerFlutuante();
-  // Sem troca de viewport aqui — viewport-fit=cover é permanente (ver comentário em
-  // abrirTimerFullscreen). Nada de mexer em altura/topo via JS também: o CSS (inset:0) resolve
-  // sozinho quando o viewport não fica mudando debaixo dele.
+  // Mesma lógica do timer normal: viewport-fit=cover só enquanto a tela cheia está aberta.
+  const metaViewport2=document.getElementById('meta-viewport');
+  metaViewport2.dataset.original=metaViewport2.getAttribute('content');
+  metaViewport2.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
   document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
   document.getElementById('caderno-timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
@@ -2437,6 +2436,7 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  restaurarViewportOriginal();
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -2503,6 +2503,7 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  restaurarViewportOriginal();
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -2519,6 +2520,7 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
+    restaurarViewportOriginal();
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -2554,7 +2556,7 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
       el.style.bottom='calc(78px + env(safe-area-inset-bottom, 0px) + 16px)';
     }else{
       // Mobile: barra embaixo, altura medida de verdade via --nav-clear.
-      el.style.bottom='calc(var(--nav-clear, 76px) + 16px)';
+      el.style.bottom='calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)';
     }
   }
   el.classList.remove('hidden');
@@ -2822,6 +2824,7 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
+  restaurarViewportOriginal();
   renderTab(tabAtual,true);
 }
 
@@ -2834,6 +2837,7 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
+    restaurarViewportOriginal();
     renderTab(tabAtual,true);
   }
 }
@@ -4665,12 +4669,10 @@ function restaurarPadraoFonte(){
   if(slider) slider.value=100;
   aplicarFontScale(100);
 }
-// Remede --nav-clear (altura real da barra de baixo). Precisa acontecer DEPOIS do layout assentar:
-// com viewport-fit=cover permanente, o .nav-item ganha env(safe-area-inset-bottom) no padding, e a
-// barra fica ~34px mais alta. Se a medição roda cedo demais (antes do Safari aplicar as safe areas),
-// --nav-clear fica preso no valor antigo e o .content reserva menos espaço do que a barra ocupa —
-// era exatamente isso que empurrava o layout e deixava a faixa sobrando. Medido no dispositivo real:
-// barra=111.3px vs --nav-clear=77px, diferença de 34px = o safe-area-inset-bottom.
+// Remede --nav-clear (altura real da barra de baixo) depois do layout assentar. A medição original
+// roda uma vez só no carregamento, e pode pegar a barra antes de todos os estilos/fontes aplicarem —
+// deixando --nav-clear defasado e o .content reservando menos espaço do que a barra realmente ocupa.
+// Remedições escalonadas são baratas (offsetHeight chamado 4x, não 60x/s) e evitam esse desalinhamento.
 function remedirNavClear(){
   const navEl=document.querySelector('.bottom-nav');
   if(!navEl) return;
