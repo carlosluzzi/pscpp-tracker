@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- Sem theme-color estático de propósito: no PWA instalado o iOS ignora essa tag na carga inicial
      e usa o cinza padrão da barra de status — que é justamente o visual desejado no app normal.
      A cor só é aplicada dinamicamente (via aplicarThemeColor) enquanto a tela cheia do cronômetro
@@ -15,7 +15,7 @@
      mesma área e o iOS se perde: innerHeight passa a reportar 812 numa tela de 874 (62px a menos,
      exatamente o safe-area-inset-top), o que desloca a área de toque dos botões e deixa faixa
      sobrando embaixo depois de girar. Medido no dispositivo real via Web Inspector. -->
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
@@ -36,6 +36,10 @@ button:active{transform:scale(0.96)}
   --fs-e:16px; --fs-f:18px; --fs-g:19px; --fs-h:24px;
 }
 html{height:100%;overflow:hidden;overscroll-behavior:none}
+/* Faixa atras da barra de status. z-index altissimo pra ficar acima ate da tela cheia.
+   pointer-events:none pra nunca capturar toque. A cor default e a do app; muda pra cor do
+   fullscreen quando ele abre. Altura zero em aparelhos sem notch (env retorna 0). */
+#status-bar-bg{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top, 0px);background:var(--cor-status-bar, #202A45);z-index:1000001;pointer-events:none}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background-color:#F9F9F7;color:#111;height:100%;position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
 #bg-fixed{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-color:#F9F9F7;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='none' stroke='%230C447C' stroke-width='0.5' opacity='0.045'%3E%3Cline x1='0' y1='0' x2='140' y2='0'/%3E%3Cline x1='0' y1='0' x2='0' y2='140'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-position:0 0;background-size:auto;pointer-events:none;transform:translateZ(0);will-change:transform}
 
@@ -58,7 +62,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#EF9F27;animation:pulse 1s infinite}
 .sync-dot.error{background:#E24B4A}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.content{position:relative;z-index:1;padding:16px;padding-bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px));flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
+.content{position:relative;z-index:1;padding:16px;padding-bottom:var(--nav-clear, 76px);flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background-color:#F9F9F7;overscroll-behavior-y:contain}
 #ptr-indicator{display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height 0.2s ease;flex-shrink:0;position:relative}
 #ptr-indicator.ativo{transition:none}
 #ptr-seta{width:20px;height:20px;color:#999;transition:transform 0.25s ease,opacity 0.15s ease;transform:rotate(0deg);position:absolute}
@@ -136,7 +140,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
 #timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
-#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
+#timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
   /* Aqui a barra de navegação AINDA fica embaixo (só vira sidebar lateral a partir de 1100px) —
      usa o mesmo espaço reservado que o conteúdo da página já usa nesse breakpoint, pra não tapar
@@ -615,6 +619,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </style>
 </head>
 <body>
+<!-- Faixa que pinta a area da barra de status. Com black-translucent a barra fica transparente e
+     o app aparece por tras dela — entao a cor vem daqui, do nosso CSS, e nao de nenhuma API do iOS
+     (que so aceita default/black/black-translucent, sem cor customizada). A altura vem de
+     env(safe-area-inset-top), que so reporta valor real com viewport-fit=cover ligado.
+     A cor muda via --cor-status-bar quando a tela cheia abre/fecha. -->
+<div id="status-bar-bg"></div>
 <div id="view-login" class="hidden">
 <div class="login-inner">
   <div style="text-align:center;margin-bottom:16px">
@@ -2333,12 +2343,17 @@ document.addEventListener('visibilitychange',()=>{
 // se integrar em vez de destoar. Ao fechar, a tag é removida e o cinza volta.
 // A tag é criada/removida do zero (em vez de só trocar o content) porque foi assim que o iOS
 // reagiu de forma confiável nos testes — trocar o valor de uma tag existente nem sempre pega.
+const COR_STATUS_BAR_APP='#202A45';
+// Troca a cor da faixa que fica atras da barra de status (#status-bar-bg). Isso funciona porque
+// com black-translucent a barra e transparente e mostra o que esta atras dela — ou seja, a cor vem
+// do nosso CSS, nao do iOS (que so aceita 3 estilos fixos, sem cor customizada). Tambem mantem a
+// meta theme-color atualizada, que e o que o Android/Chrome usam.
 function aplicarThemeColor(cor){
+  document.documentElement.style.setProperty('--cor-status-bar', cor || COR_STATUS_BAR_APP);
   document.querySelectorAll('meta[name="theme-color"]').forEach(el=>el.remove());
-  if(!cor) return;
   const meta=document.createElement('meta');
   meta.name='theme-color';
-  meta.content=cor;
+  meta.content=cor || COR_STATUS_BAR_APP;
   document.head.appendChild(meta);
 }
 const COR_FUNDO_FULLSCREEN='#0B0F19';
@@ -2556,7 +2571,7 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
       el.style.bottom='calc(78px + env(safe-area-inset-bottom, 0px) + 16px)';
     }else{
       // Mobile: barra embaixo, altura medida de verdade via --nav-clear.
-      el.style.bottom='calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)';
+      el.style.bottom='calc(var(--nav-clear, 76px) + 16px)';
     }
   }
   el.classList.remove('hidden');
