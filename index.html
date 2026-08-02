@@ -418,7 +418,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
-.info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px}
+.info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -1217,7 +1217,11 @@ function sectionTitle(texto,icone,bg,tx,opts){
   // só a cor do ícone.
   const corTexto=opts.corTexto||'';
   const styleTexto=(corTexto?`color:${corTexto};`:'')+sizeStyle;
-  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="${styleTexto}">${texto}</span></div>`;
+  // opts.direita: HTML opcional encostado na direita da MESMA linha do titulo (ex: botao "tela
+  // cheia" do timer). Fica sempre no DOM — quando nao ha nada, entra uma string vazia — pra que
+  // aparecer/sumir nunca crie uma linha nova e empurre o layout pra baixo.
+  const direita=opts.direita?`<span style="margin-left:auto;flex-shrink:0">${opts.direita}</span>`:'';
+  return `<div class="section-title"><span class="section-icon" style="background:${iconBg};color:${tx}">${svgHtml}</span><span style="${styleTexto}">${texto}</span>${direita}</div>`;
 }
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
@@ -2055,7 +2059,7 @@ function renderAprovado(){
         <span class="prox-nome">${r.modulo}${r.publicacao?' – '+r.publicacao:''}</span>
         <span class="prox-modalidade" style="color:${cc.tx}">Nível ${r.nivel+1} da sequência</span>
       </div>
-      <button class="prox-confirm-btn" onclick="concluirRevisao('${r.id}')">concluí</button>
+      <button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${(r.modulo+(r.publicacao?' – '+r.publicacao:'')).replace(/'/g,"\\'")}&quot; como feita?')">feito</button>
     </div>`;
   }).join('');
 
@@ -2131,8 +2135,7 @@ function renderAprovado(){
 
 
     <div class="card-inicio">
-      ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></div>`:''}
+      ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45',{direita:timerModulo?`<span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span>`:''})}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -3833,6 +3836,7 @@ function confirmarFeitoSim(){
   else if(tipo==='filaBanco') marcarFilaBancoFeito(id);
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
+  else if(tipo==='revisao') concluirRevisao(id);
 }
 
 async function marcarEventoFeito(eventoId){
