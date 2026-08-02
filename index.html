@@ -180,7 +180,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-tempo{font-size:88px;font-weight:700;color:#fff;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
 .tf-btns{display:flex;gap:10px;justify-content:center}
-.tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit}
+.tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
+/* Compensação direta do deslocamento entre onde os botões aparecem visualmente e onde o toque
+   registra de verdade dentro do fullscreen do cronômetro — medido com precisão a partir de um
+   vídeo real (187px físicos = 62px em pontos de tela, sempre o mesmo valor, constante). Em vez
+   de continuar tentando (sem sucesso, em várias tentativas) corrigir a causa raiz do
+   desalinhamento, estende a área CLICÁVEL de cada botão 62px pra cima — cobrindo exatamente a
+   faixa onde o toque real estava caindo, sem mudar a aparência visual do botão (o ::before é
+   invisível, só amplia a zona que responde ao toque). */
+.tf-fechar::before,.tf-btn::before,.btn-tela-cheia::before{content:'';position:absolute;left:0;right:0;top:-62px;height:62px}
 .tf-btn-toggle{min-width:150px}
 .tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:20px;color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:8px}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
@@ -410,6 +418,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px}
+.btn-tela-cheia{position:relative}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
@@ -2123,7 +2132,7 @@ function renderAprovado(){
 
     <div class="card-inicio">
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45')}
-      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></div>`:''}
+      ${timerModulo?`<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="info-icone btn-tela-cheia" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span></div>`:''}
       <div style="text-align:center;font-size:36px;font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
@@ -2593,11 +2602,28 @@ function fecharTimerFlutuante(){
   // Os listeners de mover/soltar só ficam ativos ENQUANTO o arraste está de fato acontecendo —
   // anexados no início do gesto, removidos assim que solta. Evita ficar processando todo movimento
   // de mouse/dedo em qualquer lugar do app, o tempo inteiro, sem necessidade.
-  let offsetX=0,offsetY=0,larguraEl=0,alturaEl=0,elCache=null;
+  let offsetX=0,offsetY=0,larguraEl=0,alturaEl=0,elCache=null,conversaoParaLivreFeita=false;
   let distanciaPercorrida=0,ultimoX=0,ultimoY=0;
   function mover(clientX,clientY){
     distanciaPercorrida+=Math.abs(clientX-ultimoX)+Math.abs(clientY-ultimoY);
     ultimoX=clientX; ultimoY=clientY;
+    // Só converte de "ancorado no canto" (right/bottom) pra "posição livre" (left/top) na PRIMEIRA
+    // vez que detecta movimento de verdade — nunca no toque inicial. Antes essa conversão
+    // acontecia assim que o dedo tocava a tela, mesmo num simples clique sem arrastar nada, e
+    // podia causar um pequeno salto visual (a posição calculada e "congelada" num valor fixo
+    // podia ficar sutilmente diferente da posição via CSS dinâmico que estava sendo usada até
+    // então). Um toque parado nunca deve mexer na posição do balãozinho.
+    if(!conversaoParaLivreFeita){
+      conversaoParaLivreFeita=true;
+      const rect=elCache.getBoundingClientRect();
+      elCache.style.right='auto';
+      elCache.style.bottom='auto';
+      elCache.style.left=rect.left+'px';
+      elCache.style.top=rect.top+'px';
+      offsetX=clientX-rect.left;
+      offsetY=clientY-rect.top;
+      timerFlutuanteArrastadoManualmente=true;
+    }
     const margem=8;
     let novoLeft=clientX-offsetX;
     let novoTop=clientY-offsetY;
@@ -2636,16 +2662,20 @@ function fecharTimerFlutuante(){
     larguraEl=el.offsetWidth;
     alturaEl=el.offsetHeight;
     distanciaPercorrida=0; ultimoX=clientX; ultimoY=clientY;
-    el.style.right='auto';
-    el.style.bottom='auto';
-    el.style.left=rect.left+'px';
-    el.style.top=rect.top+'px';
-    timerFlutuanteArrastadoManualmente=true;
+    conversaoParaLivreFeita=false;
     document.addEventListener('mousemove',moverMouse);
     document.addEventListener('mouseup',soltar);
     document.addEventListener('touchmove',moverToque,{passive:false});
     document.addEventListener('touchend',soltar);
   }
+  // Se o app perder foco/visibilidade NO MEIO de um arraste (troca de app rápida, notificação
+  // aparecendo, etc.), o touchend/mouseup nativo pode nunca chegar a disparar — sem essa
+  // proteção, os listeners de movimento ficavam presos ativos pra sempre no documento inteiro,
+  // competindo com qualquer toque futuro em qualquer lugar da tela (o widget "travava",
+  // parando de responder a clique/arraste). Força a limpeza mesmo sem o fim natural do gesto.
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden') soltar();
+  });
   document.addEventListener('DOMContentLoaded',()=>{
     const el=document.getElementById('timer-flutuante');
     if(!el) return;
@@ -4693,7 +4723,28 @@ window.addEventListener('resize',()=>{
   const scaleAtual=localStorage.getItem('pscpp_font_scale')||100;
   aplicarFontScale(scaleAtual,false);
   reposicionarTimerFlutuanteSeForaDaTela();
+  recalcularFullscreenAposRotacao();
 });
+// Ao girar o dispositivo de vertical pra horizontal (ou o contrário) com o cronômetro em tela
+// cheia aberto, refaz a mesma sequência usada pra ABRIR a tela — reafirma a configuração da área
+// segura e desenha o conteúdo de novo do zero — exatamente como se tivesse fechado e reaberto,
+// em vez de só deixar o CSS reajustar sozinho (que é onde os problemas de alinhamento apareciam).
+function recalcularFullscreenAposRotacao(){
+  const metaViewport=document.getElementById('meta-viewport');
+  const timerAberto=!document.getElementById('timer-fullscreen')?.classList.contains('hidden');
+  const cadernoAberto=!document.getElementById('caderno-timer-fullscreen')?.classList.contains('hidden');
+  if(!timerAberto&&!cadernoAberto) return;
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0');
+  void document.body.offsetHeight;
+  metaViewport.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover');
+  void document.body.offsetHeight;
+  if(timerAberto){
+    document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+  }
+  if(cadernoAberto){
+    document.getElementById('caderno-timer-fullscreen-conteudo').innerHTML=renderCadernoTimerFullscreenConteudo();
+  }
+}
 // Se o pop-up do cronômetro foi arrastado manualmente (tem left/top fixos em px) e a tela mudar
 // de tamanho depois — rotação de dispositivo, por exemplo — ele pode ficar fora da área visível,
 // inacessível. Só reajusta se realmente estiver posicionado manualmente e realmente fora dos
