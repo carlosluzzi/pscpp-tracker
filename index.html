@@ -130,6 +130,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 .section-title{font-size:var(--fs-e);font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
 .content>.section-title:first-child{margin-top:0}
+/* Quando a faixa de voltar e o primeiro elemento, o titulo logo apos ela tambem nao deve ter a
+   margem de 32px — senao abre um vao grande entre os dois. */
+.detail-back-sticky+.section-title{margin-top:0}
 .section-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .section-icon svg{width:15px;height:15px;display:block}
 .section-title:first-child{margin-top:0}
@@ -347,6 +350,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 /* DETALHE ATIVIDADE */
 .detail-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:#888;font-size:var(--fs-e);margin-top:10px}
+/* Voltar dentro da propria aba (nao no cabecalho): sticky gruda no topo da area rolavel, entao
+   continua sempre visivel sem ocupar espaco do header. Os margins negativos compensam o padding
+   do .content pra faixa cobrir a largura toda e o fundo esconder o conteudo que passa por tras. */
+.detail-back-sticky{position:sticky;top:0;z-index:5;margin:-16px -16px 4px -16px;padding:12px 16px 10px 16px;background:#F9F9F7;margin-top:0}
 .mtr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
 .mtr-card{background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
 .mtr-label{font-size:var(--fs-c);color:#888;margin-bottom:3px}
@@ -2357,6 +2364,7 @@ function renderAnalise(){
   // ---------- montagem ----------
   const periodos=[['dia','Hoje'],['semana','Semana'],['mes','Mês'],['tudo','Tudo']];
   return `
+    <div class="detail-back detail-back-sticky" onclick="fecharAnalise()">← Aprovado</div>
     ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.002 19.732L16.351 22h-1.004l.982-2.143H15V17h3.002zm3.998 0L20.349 22h-1.003l.982-2.143H19V17h3zM13 20H2v-2h11zm9-7H2v-2h20zM3.672 4.143H5V7H2V4.268L3.651 2h1.003zm3.999 0H9V7H5.998V4.268L7.649 2h1.004zM22 6H11V4h11z"/></svg>`})}
     <div class="filter-row periodo-row" style="margin-bottom:12px">
       ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
@@ -3616,7 +3624,6 @@ function renderHeaderZone(){
         </span>
       </div>
       ${atividadeAtual?`<div class="detail-back" onclick="voltarLista()">← Atividades</div>`:''}
-      ${telaAnalise?`<div class="detail-back" onclick="fecharAnalise()">← Aprovado</div>`:''}
     </div>
   `;
 }
