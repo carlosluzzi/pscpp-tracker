@@ -262,6 +262,41 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 }
 .hidden{display:none}
 .empty{text-align:center;padding:40px 20px;color:#aaa;font-size:var(--fs-e)}
+/* ===== Pagina Analise ===== */
+/* Heatmap: 5 niveis de intensidade em vez de aceso/apagado. A literatura de habit tracking
+   mostra que o modelo binario gera "ansiedade de streak" (34% dos usuarios) e ate check-in
+   falso (19%); o gradiente reconhece que 15min e 3h sao ambos estudo, com pesos diferentes. */
+.hm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.hm-diasem{font-size:var(--fs-a);color:#aaa;text-align:center;padding-bottom:2px}
+.hm-cel{aspect-ratio:1;border-radius:5px;background:#F1F0EC;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:var(--fs-a);color:#bbb;transition:transform 0.12s ease}
+.hm-cel.n1{background:#DDE8F5;color:#5A7DA8}
+.hm-cel.n2{background:#B9CFEA;color:#37587E}
+.hm-cel.n3{background:#7FA5D4;color:#fff}
+.hm-cel.n4{background:#4A7AB8;color:#fff}
+.hm-cel.n5{background:#202A45;color:#fff}
+.hm-cel.vazio{background:transparent;cursor:default}
+.hm-cel.sel{outline:2px solid #202A45;outline-offset:1px}
+.hm-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hm-nav-btn{cursor:pointer;color:#888;padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;font-size:var(--fs-c);user-select:none}
+.hm-nav-btn.off{opacity:0.3;pointer-events:none}
+.hm-mes{font-size:var(--fs-d);font-weight:600;color:#333}
+.hm-legenda{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px;font-size:var(--fs-a);color:#aaa}
+.hm-legenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
+/* Barra de cobertura da bibliografia */
+.cob-item{display:flex;flex-direction:column;gap:5px;padding:9px 0}
+.cob-item+.cob-item{border-top:0.5px solid #f0f0ee}
+.cob-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cob-nome{font-size:var(--fs-c);color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cob-num{font-size:var(--fs-b);color:#888;flex-shrink:0}
+.cob-bar{background:#f0f0ee;border-radius:4px;height:5px;overflow:hidden}
+.cob-fill{height:5px;border-radius:4px}
+/* Quadrante tempo x erro */
+.quad-item{display:flex;align-items:center;gap:9px;padding:9px 0}
+.quad-item+.quad-item{border-top:0.5px solid #f0f0ee}
+.quad-tag{font-size:var(--fs-a);font-weight:600;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap}
+.quad-txt{flex:1;min-width:0}
+.quad-nome{font-size:var(--fs-c);color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quad-det{font-size:var(--fs-a);color:#999}
 .empty::before{content:'○';display:block;font-size:22px;color:#ddd;margin-bottom:8px}
 
 /* STATS */
@@ -1245,6 +1280,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
+let telaAnalise=false,analisePeriodo='mes',analiseMesRef=null;
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -1462,6 +1498,7 @@ async function loadDataInterno(){
 function showTab(tab){
   tabAtual=tab;
   atividadeAtual=null;
+  telaAnalise=false;
   ['inicio','atividades','questoes','aprovado'].forEach(t=>{
     document.getElementById('nav-'+t).classList.toggle('active',t===tab);
   });
@@ -1471,10 +1508,11 @@ function showTab(tab){
 function renderTab(tab,preservarScroll){
   const c=document.getElementById('content');
   const scrollAnterior=preservarScroll?c.scrollTop:0;
-  const isInicio=tab==='inicio'&&!atividadeAtual;
+  const isInicio=tab==='inicio'&&!atividadeAtual&&!telaAnalise;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
+  if(telaAnalise){c.innerHTML=renderAnalise();c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
@@ -2033,6 +2071,317 @@ async function confirmarNomeAtividade(){
   }
 }
 
+// ============================================================================
+// PAGINA ANALISE — estatisticas de estudo (acessada pelo Aprovado)
+// ============================================================================
+function abrirAnalise(){ telaAnalise=true; analiseMesRef=null; renderTab(tabAtual); }
+function fecharAnalise(){ telaAnalise=false; renderTab(tabAtual); }
+function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
+function navegarMesAnalise(delta){
+  const base=analiseMesRef?new Date(analiseMesRef+'T12:00:00'):new Date();
+  base.setMonth(base.getMonth()+delta);
+  analiseMesRef=base.toISOString().slice(0,7);
+  renderTab(tabAtual,true);
+}
+
+// Clique num dia do calendario: mostra o que foi estudado naquele dia. Usa o mesmo toast do
+// resto do app em vez de alert() nativo, que quebraria o visual.
+function mostrarDiaAnalise(key){
+  const doDia=(sessoesEstudo||[]).filter(s=>s.data===key);
+  document.getElementById('ver-questao-titulo').textContent=fmtData(key);
+  const corpo=document.getElementById('ver-questao-conteudo');
+  if(!doDia.length){
+    corpo.innerHTML=`<div class="empty" style="padding:20px 8px">Sem estudo registrado neste dia.</div>`;
+  }else{
+    const total=doDia.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+    const itens=doDia.map(s=>{
+      const r=(s.caracteresLidos>0&&s.duracaoMinutos>0)?Math.round(s.caracteresLidos/s.duracaoMinutos):null;
+      const cc=modCores[s.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+      return `<div class="quad-item">
+        <span class="quad-tag" style="color:${cc.tx};background:${cc.bg}">${fmtDur(s.duracaoMinutos)}</span>
+        <div class="quad-txt">
+          <div class="quad-nome">${s.modulo||s.tipo}${s.publicacao?' – '+nomePub(s.publicacao):''}</div>
+          <div class="quad-det">${s.tipo}${s.capitulo?' • Cap. '+s.capitulo:''}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    corpo.innerHTML=`<div style="font-size:var(--fs-d);color:#333;margin-bottom:8px">Total: <strong>${fmtDur(total)}</strong></div>${itens}`;
+  }
+  document.getElementById('ver-questao-modal').style.display='flex';
+}
+
+function fmtDur(min){
+  if(!min) return '0min';
+  const h=Math.floor(min/60), m=Math.round(min%60);
+  return h>0?`${h}h${m>0?' '+m+'min':''}`:`${m}min`;
+}
+// Chave YYYY-MM-DD local (sem passar por UTC, que desloca o dia no nosso fuso)
+function chaveDia(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderAnalise(){
+  const sessoes=sessoesEstudo||[];
+  if(!sessoes.length){
+    return `<div class="empty" style="padding:60px 20px">Nenhuma sessão de estudo registrada ainda.<br><span style="font-size:var(--fs-c)">Use o cronômetro na aba Aprovado para começar.</span></div>`;
+  }
+
+  // ---------- minutos por dia ----------
+  const porDia=new Map();
+  sessoes.forEach(s=>{
+    if(!s.data) return;
+    porDia.set(s.data,(porDia.get(s.data)||0)+(s.duracaoMinutos||0));
+  });
+
+  // ---------- niveis do heatmap por PERCENTIL das proprias sessoes ----------
+  // Escala fixa nao serve: 160min hoje e muito, daqui a 3 meses pode ser rotina. Usando os
+  // proprios dados, a escala acompanha a evolucao do Carlos.
+  const valores=[...porDia.values()].filter(v=>v>0).sort((a,b)=>a-b);
+  // (n-1)*q em vez de n*q: com n*q o percentil 0.8 aponta pro proprio maximo em amostras
+  // pequenas, e o nivel 5 (mais escuro) nunca era atingido — o melhor dia ficava no nivel 4.
+  const pct=q=>valores.length?valores[Math.max(0,Math.floor((valores.length-1)*q))]:0;
+  const c1=pct(0.20),c2=pct(0.40),c3=pct(0.60),c4=pct(0.80);
+  const nivelDe=min=>{
+    if(!min) return 0;
+    if(min<=c1) return 1;
+    if(min<=c2) return 2;
+    if(min<=c3) return 3;
+    if(min<=c4) return 4;
+    return 5;
+  };
+
+  // ---------- consistencia: X dos ultimos 21 dias ----------
+  // 21 dias equilibra: janela menor oscila demais a cada dia bom/ruim; maior demora a reagir.
+  // Preferido a "streak" porque streak binario gera ansiedade e nao tolera um dia ruim — e antes
+  // de uma prova longa, dias ruins acontecem.
+  const JANELA=21;
+  let diasComEstudo=0, minutosJanela=0;
+  const hoje=new Date(); hoje.setHours(12,0,0,0);
+  for(let i=0;i<JANELA;i++){
+    const d=new Date(hoje); d.setDate(d.getDate()-i);
+    const m=porDia.get(chaveDia(d))||0;
+    if(m>0){ diasComEstudo++; minutosJanela+=m; }
+  }
+  const consistPct=Math.round(diasComEstudo/JANELA*100);
+  const corConsist=consistPct>=70?'#639922':consistPct>=40?'#EF9F27':'#E24B4A';
+
+  // ---------- totais do periodo selecionado ----------
+  const hojeKey=chaveDia(hoje);
+  const inicioSemana=new Date(hoje); inicioSemana.setDate(hoje.getDate()-hoje.getDay());
+  const mesRef=analiseMesRef||hojeKey.slice(0,7);
+  const filtraPeriodo=s=>{
+    if(analisePeriodo==='dia') return s.data===hojeKey;
+    if(analisePeriodo==='semana') return s.data>=chaveDia(inicioSemana)&&s.data<=hojeKey;
+    if(analisePeriodo==='mes') return (s.data||'').slice(0,7)===mesRef;
+    return true;
+  };
+  const sessPeriodo=sessoes.filter(filtraPeriodo);
+  const totalMinP=sessPeriodo.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+  const totalCarP=sessPeriodo.reduce((a,s)=>a+(s.caracteresLidos||0),0);
+  const diasDistintosP=new Set(sessPeriodo.map(s=>s.data)).size;
+  const ritmoP=totalCarP>0&&totalMinP>0?Math.round(totalCarP/totalMinP):null;
+
+  // ---------- calendario do mes ----------
+  const [anoM,mesM]=mesRef.split('-').map(Number);
+  const primeiroDia=new Date(anoM,mesM-1,1);
+  const diasNoMes=new Date(anoM,mesM,0).getDate();
+  const offset=primeiroDia.getDay();
+  const nomesMes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let celulas='';
+  for(let i=0;i<offset;i++) celulas+='<div class="hm-cel vazio"></div>';
+  for(let d=1;d<=diasNoMes;d++){
+    const key=`${anoM}-${String(mesM).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const min=porDia.get(key)||0;
+    const sel=key===hojeKey?' sel':'';
+    const titulo=min>0?`${fmtDur(min)} em ${d}/${mesM}`:`Sem estudo em ${d}/${mesM}`;
+    celulas+=`<div class="hm-cel n${nivelDe(min)}${sel}" title="${titulo}" onclick="mostrarDiaAnalise('${key}')">${d}</div>`;
+  }
+  const mesAtualKey=hojeKey.slice(0,7);
+  const podeAvancar=mesRef<mesAtualKey;
+  const calendarioHtml=`
+    <div class="hm-nav">
+      <span class="hm-nav-btn" onclick="navegarMesAnalise(-1)">‹</span>
+      <span class="hm-mes">${nomesMes[mesM-1]} ${anoM}</span>
+      <span class="hm-nav-btn${podeAvancar?'':' off'}" onclick="navegarMesAnalise(1)">›</span>
+    </div>
+    <div class="hm-grid">
+      ${['D','S','T','Q','Q','S','S'].map(x=>`<div class="hm-diasem">${x}</div>`).join('')}
+      ${celulas}
+    </div>
+    <div class="hm-legenda">
+      menos <i style="background:#F1F0EC"></i><i style="background:#DDE8F5"></i><i style="background:#B9CFEA"></i><i style="background:#7FA5D4"></i><i style="background:#4A7AB8"></i><i style="background:#202A45"></i> mais
+    </div>`;
+
+  // ---------- modulo -> publicacao -> capitulo -> passagens ----------
+  const porModulo=new Map();
+  sessPeriodo.forEach(s=>{
+    const mod=s.modulo||s.tipo||'Sem módulo';
+    if(!porModulo.has(mod)) porModulo.set(mod,new Map());
+    const pubs=porModulo.get(mod);
+    const pub=s.publicacao||'Sem publicação';
+    if(!pubs.has(pub)) pubs.set(pub,new Map());
+    const caps=pubs.get(pub);
+    const cap=s.capitulo||'—';
+    if(!caps.has(cap)) caps.set(cap,[]);
+    caps.get(cap).push(s);
+  });
+  const somaMin=arr=>arr.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+  const detalheHtml=[...porModulo.entries()].map(([mod,pubs],mi)=>{
+    const todasSess=[...pubs.values()].flatMap(caps=>[...caps.values()].flat());
+    const minMod=somaMin(todasSess);
+    const cc=modCores[mod]||{bg:'#F1EFE8',tx:'#444441'};
+    const pubsHtml=[...pubs.entries()].sort((a,b)=>{
+      const ma=somaMin([...a[1].values()].flat()), mb=somaMin([...b[1].values()].flat());
+      return mb-ma;
+    }).map(([pub,caps],pi)=>{
+      const sessPub=[...caps.values()].flat();
+      const minPub=somaMin(sessPub);
+      const capsHtml=[...caps.entries()].sort((a,b)=>somaMin(b[1])-somaMin(a[1])).map(([cap,arr],ci)=>{
+        const id=`an${mi}-${pi}-${ci}`;
+        const minCap=somaMin(arr);
+        const carCap=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
+        const ritmoCap=carCap>0&&minCap>0?Math.round(carCap/minCap):null;
+        const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
+          const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
+          return `<div class="cap-row">
+            <span class="cap-loc" style="flex-shrink:0">${arr.length-n}ª</span>
+            <span class="cap-tit">${fmtData(x.data)} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+          </div>`;
+        }).join('');
+        return `<div class="cap-group">
+          <div class="cap-group-header" onclick="toggleCap('${id}')">
+            <span class="cap-loc">${cap==='—'?'Sem capítulo':'Cap. '+cap}</span>
+            <div class="cap-group-right">
+              <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
+              <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+            </div>
+          </div>
+          <div class="cap-group-detail" id="cdet-${id}">${passagens}</div>
+        </div>`;
+      }).join('');
+      return `<div class="pub-block">
+        <div class="pub-top">
+          <span class="pub-nm">${pub==='Sem publicação'?pub:nomePub(pub)}</span>
+          <div class="pub-stats"><span class="pub-ac">${fmtDur(minPub)}</span></div>
+        </div>
+        <div class="caps">${capsHtml}</div>
+      </div>`;
+    }).join('');
+    return `<div class="mod-linha">
+      <div class="mod-header" onclick="toggleMod('an${mi}')">
+        <div class="mod-top">
+          <span class="mod-nm">${mod}</span>
+          <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
+        </div>
+        <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
+        <span class="mac">${todasSess.length} sessõe${todasSess.length===1?'':'s'}</span>
+      </div>
+      <div class="mod-detail" id="mdetan${mi}">${pubsHtml}</div>
+    </div>`;
+  }).join('');
+
+  // ---------- cobertura da bibliografia ----------
+  // Usa capitulos_validos do edital real — por isso mede cobertura de verdade, nao estimativa.
+  const capsEstudados=new Map();
+  sessoes.forEach(s=>{
+    if(!s.publicacao||!s.capitulo) return;
+    if(!capsEstudados.has(s.publicacao)) capsEstudados.set(s.publicacao,new Set());
+    capsEstudados.get(s.publicacao).add(String(s.capitulo));
+  });
+  const coberturaMods=new Map();
+  (bibliografia||[]).forEach(b=>{
+    const total=b.capituloUnico?1:(b.capitulosValidos||[]).length;
+    if(!total) return;
+    const feitos=b.capituloUnico
+      ? (capsEstudados.has(b.nome)?1:0)
+      : (b.capitulosValidos||[]).filter(c=>capsEstudados.get(b.nome)?.has(String(c))).length;
+    if(!coberturaMods.has(b.modulo)) coberturaMods.set(b.modulo,{total:0,feitos:0});
+    const m=coberturaMods.get(b.modulo);
+    m.total+=total; m.feitos+=feitos;
+  });
+  const coberturaHtml=[...coberturaMods.entries()].sort((a,b)=>(b[1].feitos/b[1].total)-(a[1].feitos/a[1].total)).map(([mod,m])=>{
+    const p=Math.round(m.feitos/m.total*100);
+    const cc=modCores[mod]||{tx:'#888'};
+    return `<div class="cob-item">
+      <div class="cob-top">
+        <span class="cob-nome">${mod}</span>
+        <span class="cob-num">${m.feitos}/${m.total} cap. • ${p}%</span>
+      </div>
+      <div class="cob-bar"><div class="cob-fill" style="width:${p}%;background:${cc.tx}"></div></div>
+    </div>`;
+  }).join('');
+
+  // ---------- tempo investido x taxa de erro ----------
+  // Cruza duas fontes que ate agora viviam separadas: tempo (sessoes) e acerto (questoes).
+  // O que interessa nao e o numero isolado, e o QUADRANTE: muito tempo + muito erro pede mudar o
+  // metodo de estudo; pouco tempo + muito erro pede simplesmente estudar mais.
+  const tempoPorMod=new Map();
+  sessoes.forEach(s=>{ if(s.modulo) tempoPorMod.set(s.modulo,(tempoPorMod.get(s.modulo)||0)+(s.duracaoMinutos||0)); });
+  const qPorMod=new Map();
+  (questoes||[]).forEach(q=>{
+    if(!q.modulo) return;
+    if(!qPorMod.has(q.modulo)) qPorMod.set(q.modulo,{t:0,a:0});
+    const o=qPorMod.get(q.modulo); o.t++; if(isAcerto(q)) o.a++;
+  });
+  const modsCruzados=[...qPorMod.keys()].filter(m=>qPorMod.get(m).t>0);
+  const medianaTempo=(()=>{
+    const v=modsCruzados.map(m=>tempoPorMod.get(m)||0).sort((a,b)=>a-b);
+    return v.length?v[Math.floor(v.length/2)]:0;
+  })();
+  const quadHtml=modsCruzados.map(m=>{
+    const o=qPorMod.get(m), tm=tempoPorMod.get(m)||0;
+    const aprov=Math.round(o.a/o.t*100);
+    const muitoErro=aprov<85.71;            // mesmo corte de cor ja usado no app (fc)
+    const muitoTempo=tm>=medianaTempo;
+    let tag,cor,bg,dica;
+    if(muitoErro&&muitoTempo){ tag='Rever método'; cor='#791F1F'; bg='#FCEBEB'; dica='muito tempo investido e ainda erra'; }
+    else if(muitoErro&&!muitoTempo){ tag='Estudar mais'; cor='#633806'; bg='#FAEEDA'; dica='pouco tempo investido, erro alto'; }
+    else if(!muitoErro&&muitoTempo){ tag='Consolidado'; cor='#27500A'; bg='#EAF3DE'; dica='tempo investido virou acerto'; }
+    else { tag='Eficiente'; cor='#202A45'; bg='#E6F1FB'; dica='pouco tempo e já acerta'; }
+    return {m,tm,aprov,tag,cor,bg,dica,ordem:(muitoErro?0:2)+(muitoTempo?0:1)};
+  }).sort((a,b)=>a.ordem-b.ordem||a.aprov-b.aprov).map(x=>`
+    <div class="quad-item">
+      <span class="quad-tag" style="color:${x.cor};background:${x.bg}">${x.tag}</span>
+      <div class="quad-txt">
+        <div class="quad-nome">${x.m}</div>
+        <div class="quad-det">${fmtDur(x.tm)} • ${x.aprov}% de acerto — ${x.dica}</div>
+      </div>
+    </div>`).join('');
+
+  // ---------- montagem ----------
+  const periodos=[['dia','Hoje'],['semana','Semana'],['mes','Mês'],['tudo','Tudo']];
+  return `
+    ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45')}
+    <div class="filter-row periodo-row" style="margin-bottom:12px">
+      ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
+    </div>
+    <div class="stat-grid" style="margin-top:0">
+      <div class="stat-card"><div class="stat-val">${fmtDur(totalMinP)}</div><div class="stat-lbl">Tempo estudado</div></div>
+      <div class="stat-card"><div class="stat-val">${diasDistintosP}</div><div class="stat-lbl">Dias com estudo</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (21 dias)</div></div>
+      <div class="stat-card"><div class="stat-val">${ritmoP?ritmoP.toLocaleString('pt-BR'):'—'}</div><div class="stat-lbl">Caracteres por minuto</div></div>
+    </div>
+
+    ${sectionTitle('Calendário','calendario','#E6F1FB','#202A45')}
+    <div class="card-inicio">${calendarioHtml}</div>
+
+    ${sectionTitle('Onde investi o tempo','pormodulo','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${detalheHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão no período selecionado.</div>'}
+    </div>
+
+    ${sectionTitle('Cobertura da bibliografia','lista','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${coberturaHtml||'<div class="empty" style="padding:16px 8px">Bibliografia não carregada.</div>'}
+    </div>
+
+    ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${quadHtml||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
+    </div>
+  `;
+}
+
 function renderAprovado(){
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
 
@@ -2249,7 +2598,7 @@ function renderAprovado(){
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
-    ${sectionTitle('Leitura por capítulo','lista','#E6F1FB','#202A45')}
+    ${sectionTitle('Leitura por capítulo','lista','#E6F1FB','#202A45',{direita:`<span class="info-icone" onclick="abrirAnalise()">ver análise completa →</span>`})}
     <div class="card-inicio">
       <div class="caps" style="border-left:none;padding-left:0;margin-top:0">
         ${leituraHtml||'<div class="empty" style="padding:16px 8px">Nenhuma leitura com publicação registrada ainda.</div>'}
@@ -3261,6 +3610,7 @@ function renderHeaderZone(){
         </span>
       </div>
       ${atividadeAtual?`<div class="detail-back" onclick="voltarLista()">← Atividades</div>`:''}
+      ${telaAnalise?`<div class="detail-back" onclick="fecharAnalise()">← Aprovado</div>`:''}
     </div>
   `;
 }
