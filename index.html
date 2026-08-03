@@ -2155,12 +2155,14 @@ function renderAnalise(){
   // Preferido a "streak" porque streak binario gera ansiedade e nao tolera um dia ruim — e antes
   // de uma prova longa, dias ruins acontecem.
   const hoje=new Date(); hoje.setHours(12,0,0,0);
-  // Marco zero da consistencia. As sessoes anteriores a essa data foram testes de
-  // desenvolvimento e nao representam rotina real de estudo — continuam no historico, mas nao
-  // entram nesse indicador. A janela e o MENOR entre 21 dias e o tempo desde esse marco: comparar
-  // contra 21 desde o inicio puniria por dias que sequer existiam como possibilidade.
-  const DATA_INICIO_CONSISTENCIA='2026-08-03';
-  const diasDesdeInicio=Math.floor((hoje-new Date(DATA_INICIO_CONSISTENCIA+'T12:00:00'))/86400000)+1;
+  // A janela e o MENOR entre 21 dias e o tempo desde a primeira sessao registrada. Comparar
+  // sempre contra 21 puniria quem acabou de comecar por dias que sequer existiam como
+  // possibilidade (dava "2/21" em vez do real "2/3"). Conforme o historico cresce, a janela
+  // cresce junto ate travar em 21.
+  const primeiraData=[...porDia.keys()].sort()[0];
+  const diasDesdeInicio=primeiraData
+    ? Math.floor((hoje-new Date(primeiraData+'T12:00:00'))/86400000)+1
+    : 1;
   const JANELA=Math.min(21,Math.max(1,diasDesdeInicio));
   let diasComEstudo=0, minutosJanela=0;
   for(let i=0;i<JANELA;i++){
