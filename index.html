@@ -2154,9 +2154,15 @@ function renderAnalise(){
   // 21 dias equilibra: janela menor oscila demais a cada dia bom/ruim; maior demora a reagir.
   // Preferido a "streak" porque streak binario gera ansiedade e nao tolera um dia ruim — e antes
   // de uma prova longa, dias ruins acontecem.
-  const JANELA=21;
-  let diasComEstudo=0, minutosJanela=0;
   const hoje=new Date(); hoje.setHours(12,0,0,0);
+  // Marco zero da consistencia. As sessoes anteriores a essa data foram testes de
+  // desenvolvimento e nao representam rotina real de estudo — continuam no historico, mas nao
+  // entram nesse indicador. A janela e o MENOR entre 21 dias e o tempo desde esse marco: comparar
+  // contra 21 desde o inicio puniria por dias que sequer existiam como possibilidade.
+  const DATA_INICIO_CONSISTENCIA='2026-08-03';
+  const diasDesdeInicio=Math.floor((hoje-new Date(DATA_INICIO_CONSISTENCIA+'T12:00:00'))/86400000)+1;
+  const JANELA=Math.min(21,Math.max(1,diasDesdeInicio));
+  let diasComEstudo=0, minutosJanela=0;
   for(let i=0;i<JANELA;i++){
     const d=new Date(hoje); d.setDate(d.getDate()-i);
     const m=porDia.get(chaveDia(d))||0;
@@ -2177,9 +2183,7 @@ function renderAnalise(){
   };
   const sessPeriodo=sessoes.filter(filtraPeriodo);
   const totalMinP=sessPeriodo.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
-  const totalCarP=sessPeriodo.reduce((a,s)=>a+(s.caracteresLidos||0),0);
   const diasDistintosP=new Set(sessPeriodo.map(s=>s.data)).size;
-  const ritmoP=totalCarP>0&&totalMinP>0?Math.round(totalCarP/totalMinP):null;
 
   // ---------- calendario do mes ----------
   const [anoM,mesM]=mesRef.split('-').map(Number);
@@ -2351,15 +2355,15 @@ function renderAnalise(){
   // ---------- montagem ----------
   const periodos=[['dia','Hoje'],['semana','Semana'],['mes','Mês'],['tudo','Tudo']];
   return `
-    ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45')}
+    ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.002 19.732L16.351 22h-1.004l.982-2.143H15V17h3.002zm3.998 0L20.349 22h-1.003l.982-2.143H19V17h3zM13 20H2v-2h11zm9-7H2v-2h20zM3.672 4.143H5V7H2V4.268L3.651 2h1.003zm3.999 0H9V7H5.998V4.268L7.649 2h1.004zM22 6H11V4h11z"/></svg>`})}
     <div class="filter-row periodo-row" style="margin-bottom:12px">
       ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
     </div>
     <div class="stat-grid" style="margin-top:0">
       <div class="stat-card"><div class="stat-val">${fmtDur(totalMinP)}</div><div class="stat-lbl">Tempo estudado</div></div>
       <div class="stat-card"><div class="stat-val">${diasDistintosP}</div><div class="stat-lbl">Dias com estudo</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (21 dias)</div></div>
-      <div class="stat-card"><div class="stat-val">${ritmoP?ritmoP.toLocaleString('pt-BR'):'—'}</div><div class="stat-lbl">Caracteres por minuto</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (${JANELA} dia${JANELA===1?'':'s'})</div></div>
+      <div class="stat-card"><div class="stat-val">${diasDistintosP?fmtDur(Math.round(totalMinP/diasDistintosP)):'—'}</div><div class="stat-lbl">Média por dia estudado</div></div>
     </div>
 
     ${sectionTitle('Calendário','calendario','#E6F1FB','#202A45')}
