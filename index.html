@@ -1422,6 +1422,7 @@ async function loadDataInterno(){
       tipo:p.tipo,
       duracaoMinutos:p.duracao_minutos||0,
       data:p.data,
+      caracteresLidos:p.caracteres_lidos||0,
       criadoEm:p.criado_em,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
@@ -2078,12 +2079,60 @@ function renderAprovado(){
 
   const historicoHtml=sessoesEstudo.slice(0,20).map(s=>{
     const refCompleta=s.publicacao||'';
+    // Capítulo e ritmo de leitura entram na 2a linha quando existem — o dado já era salvo no
+    // banco desde sempre, só não estava sendo exibido.
+    const capTexto=s.capitulo?` • Cap. ${s.capitulo}`:'';
+    const ritmoTexto=(s.caracteresLidos>0&&s.duracaoMinutos>0)
+      ? ` • ${Math.round(s.caracteresLidos/s.duracaoMinutos).toLocaleString('pt-BR')} car/min`
+      : '';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
         <span class="prox-nome">${s.modulo||s.tipo}${refCompleta?' – '+refCompleta:''}</span>
-        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min • ${fmtData(s.data)}</span>
+        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto} • ${fmtData(s.data)}</span>
       </div>
       <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
+    </div>`;
+  }).join('');
+
+  // ===== Leitura por capítulo =====
+  // Agrupa TODAS as sessões por publicação -> capítulo, pra responder "quantas vezes estudei
+  // Meteorologia cap. 1, quanto tempo em cada passagem e a que ritmo". O dado (capitulo e
+  // caracteres_lidos) já existia no banco desde sempre; só não era exposto em lugar nenhum.
+  const leituraPorCap=new Map();
+  sessoesEstudo.forEach(s=>{
+    if(!s.publicacao) return;
+    const chave=s.publicacao+'||'+(s.capitulo||'—');
+    if(!leituraPorCap.has(chave)) leituraPorCap.set(chave,{publicacao:s.publicacao,capitulo:s.capitulo||'',modulo:s.modulo,sessoes:[]});
+    leituraPorCap.get(chave).sessoes.push(s);
+  });
+  const gruposLeitura=[...leituraPorCap.values()].map(g=>{
+    const totalMin=g.sessoes.reduce((a,x)=>a+(x.duracaoMinutos||0),0);
+    const totalCar=g.sessoes.reduce((a,x)=>a+(x.caracteresLidos||0),0);
+    return {...g, totalMin, totalCar, vezes:g.sessoes.length,
+            ritmo: (totalCar>0&&totalMin>0)?Math.round(totalCar/totalMin):null};
+  }).sort((a,b)=>b.totalMin-a.totalMin);
+
+  const leituraHtml=gruposLeitura.map((g,i)=>{
+    const cc=modCores[g.modulo]||{tx:'#555'};
+    const horas=Math.floor(g.totalMin/60), mins=g.totalMin%60;
+    const tempoFmt=horas>0?`${horas}h${mins>0?' '+mins+'min':''}`:`${mins}min`;
+    // Cada passagem individual, da mais recente pra mais antiga
+    const passagens=[...g.sessoes].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
+      const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
+      return `<div class="cap-row">
+        <span class="cap-loc" style="flex-shrink:0">${g.sessoes.length-n}ª</span>
+        <span class="cap-tit">${fmtData(x.data)} • ${x.duracaoMinutos}min${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+      </div>`;
+    }).join('');
+    return `<div class="cap-group">
+      <div class="cap-group-header" onclick="toggleCap('leit${i}')">
+        <span class="cap-loc">${nomePub(g.publicacao)}${g.capitulo?' – Cap. '+g.capitulo:''}</span>
+        <div class="cap-group-right">
+          <span class="cap-group-resumo">${g.vezes}x • ${tempoFmt}${g.ritmo?' • '+g.ritmo.toLocaleString('pt-BR')+' car/min':''}</span>
+          <span class="chev" id="cchev-leit${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </div>
+      </div>
+      <div class="cap-group-detail" id="cdet-leit${i}">${passagens}</div>
     </div>`;
   }).join('');
 
@@ -2198,6 +2247,13 @@ function renderAprovado(){
     ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
     <div class="card-inicio">
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
+    </div>
+
+    ${sectionTitle('Leitura por capítulo','lista','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      <div class="caps" style="border-left:none;padding-left:0;margin-top:0">
+        ${leituraHtml||'<div class="empty" style="padding:16px 8px">Nenhuma leitura com publicação registrada ainda.</div>'}
+      </div>
     </div>
 
     ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
