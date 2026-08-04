@@ -542,6 +542,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .hist-cap-resumo{font-size:var(--fs-b);color:#888;flex-shrink:0}
 .hist-limpar{font-size:var(--fs-b);color:#888;cursor:pointer;text-align:right;margin:-4px 0 8px}
 @media(hover:hover){.hist-limpar:hover{color:#202A45}}
+/* Selo discreto de app externo — mesma família visual dos badges de módulo, porém neutro
+   pra não competir com as cores que já identificam matéria. */
+.selo-origem{display:inline-block;font-size:var(--fs-a);font-weight:600;color:#2D6A53;
+  background:#EDF4F0;border:0.5px solid #B8D9CC;border-radius:5px;padding:1px 6px;
+  margin-left:6px;vertical-align:middle;white-space:nowrap;letter-spacing:0.01em}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1451,7 +1456,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let abaAprovado='nova',analisePeriodo='mes',analiseMesRef=null;
+let abaAprovado='nova',abaDesempenho='provas',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
@@ -1631,6 +1636,7 @@ async function loadDataInterno(){
       duracaoMinutos:p.duracao_minutos||0,
       data:p.data,
       caracteresLidos:p.caracteres_lidos||0,
+      origem:p.origem||'',
       criadoEm:p.criado_em,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
@@ -2301,6 +2307,14 @@ function atualizarDotsHistorico(){
   paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
+function setAbaDesempenho(qual){
+  abaDesempenho=qual;
+  filtCurso='todos'; filtTipo='todos';  // filtros da outra sub-aba não fazem sentido aqui
+  atividadeAtual=null;
+  const c=document.getElementById('content');
+  if(c) c.scrollTop=0;
+  renderTab(tabAtual);
+}
 function setAbaAprovado(qual){
   abaAprovado=qual;
   if(qual==='historico') analiseMesRef=null;
@@ -2337,7 +2351,7 @@ function mostrarDiaAnalise(key){
       return `<div class="quad-item">
         <span class="quad-tag tag-tempo">${fmtDur(s.duracaoMinutos)}</span>
         <div class="quad-txt">
-          <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}</div>
+          <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}${seloOrigem(s)}</div>
           <div class="quad-det">${s.tipo}${s.capitulo?' • Cap. '+s.capitulo:''}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
         </div>
       </div>`;
@@ -2348,6 +2362,12 @@ function mostrarDiaAnalise(key){
 }
 
 const ROTULO_SEM_MODULO='PSCPP';
+// Selo de origem: só aparece quando a sessão veio de fora do Tracker (hoje, do Pilotquest).
+// Sessões criadas aqui têm origem vazia e não ganham selo — o padrão continua limpo.
+function seloOrigem(s){
+  if(!s.origem) return '';
+  return ` <span class="selo-origem">${s.origem}</span>`;
+}
 function nomeModuloSessao(s){ return s.modulo||ROTULO_SEM_MODULO; }
 
 function fmtDur(min){
@@ -2782,7 +2802,7 @@ function renderAprovado(){
       : '';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}</span>
+        <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}${seloOrigem(s)}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto} • ${fmtData(s.data)}</span>
       </div>
       <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
@@ -3828,8 +3848,14 @@ function filtrarPorPeriodo(lista){
   });
 }
 
+const CURSO_PILOTQUEST='Pilotquest';
 function atividadesFiltradas(){
-  let lista=atividades;
+  // A separação Provas x Pilotquest acontece AQUI, no único ponto por onde toda a aba passa.
+  // Assim resumo, gráficos por módulo e lista de atividades se ajustam sozinhos, sem duplicar
+  // a lógica de desempenho — que é justamente o motivo de o Pilotquest viver nas mesmas tabelas.
+  let lista=abaDesempenho==='pilotquest'
+    ? atividades.filter(a=>a.curso===CURSO_PILOTQUEST)
+    : atividades.filter(a=>a.curso!==CURSO_PILOTQUEST);
   if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
   if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
   lista=filtrarPorPeriodo(lista);
@@ -4672,10 +4698,20 @@ function renderAtividades(){
   const totalQ=questoesFiltradas.length;
   const acertosQ=questoesFiltradas.filter(q=>isAcerto(q)||q.status==='Acertei com dúvida').length;
   const errosQ=questoesFiltradas.filter(q=>q.status==='Errei').length;
-  const cursos=[...new Set(atividades.map(a=>a.curso).filter(Boolean))];
-  const tipos=[...new Set(atividades.map(a=>a.tipo).filter(Boolean))];
+  // O dropdown de curso lista só o que existe DENTRO da sub-aba atual — oferecer "Pilotquest"
+  // na aba de Provas (ou o contrário) daria sempre lista vazia.
+  const escopo=abaDesempenho==='pilotquest'
+    ? atividades.filter(a=>a.curso===CURSO_PILOTQUEST)
+    : atividades.filter(a=>a.curso!==CURSO_PILOTQUEST);
+  const cursos=[...new Set(escopo.map(a=>a.curso).filter(Boolean))];
+  const tipos=[...new Set(escopo.map(a=>a.tipo).filter(Boolean))];
+  const temPilotquest=atividades.some(a=>a.curso===CURSO_PILOTQUEST);
 
   return `
+    ${temPilotquest?`<div class="sub-abas">
+      <div class="sub-aba${abaDesempenho==='provas'?' ativa':''}" onclick="setAbaDesempenho('provas')"><span>Provas</span></div>
+      <div class="sub-aba${abaDesempenho==='pilotquest'?' ativa':''}" onclick="setAbaDesempenho('pilotquest')"><span>Pilotquest</span></div>
+    </div>`:''}
     <div class="filter-row">
       <select class="filter-select" onchange="setFiltCurso(this.value)" style="flex:1;margin-bottom:0">
         <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
