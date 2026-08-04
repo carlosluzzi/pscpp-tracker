@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <!-- Sem theme-color estático de propósito: no PWA instalado o iOS ignora essa tag na carga inicial
      e usa o cinza padrão da barra de status – que é justamente o visual desejado no app normal.
      A cor só é aplicada dinamicamente (via aplicarThemeColor) enquanto a tela cheia do cronômetro
@@ -508,8 +508,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   border:1px solid #e0e0d8;border-radius:8px 8px 6px 6px;
   transform:perspective(7px) rotateX(1.3deg);transform-origin:bottom;z-index:-1;
   transition:background .15s ease,border-color .15s ease}
+/* Também 6px nos cantos de baixo: sem isso a lateral inclinada encontrava a linha de base numa
+   quina seca. Agora a transição é curva nas quatro dobras — 6px onde a linha vira inclinada,
+   8px onde a inclinada vira o topo horizontal, e o espelho disso do outro lado. */
 .sub-aba.ativa::before{background:#F9F9F7;border-color:#cfcfc6;
-  border-bottom:none;border-radius:8px 8px 0 0}
+  border-bottom:none;border-radius:8px 8px 6px 6px}
 /* O padding-top de 4px compensa o deslocamento do fundo: o transform (perspective+rotateX com
    origem na base) empurra o fundo visual ~2px pra baixo em relação à caixa lógica, então um
    texto centralizado por flex ficava 2px acima do centro real da aba. Medido em render. */
