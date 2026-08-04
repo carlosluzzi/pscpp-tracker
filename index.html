@@ -466,6 +466,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
+.info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
+.info-btn svg{width:13px;height:13px}
+@media(hover:hover){.info-btn:hover{color:#888}}
+/* Texto das explicacoes dentro do modal */
+.explicacao{font-size:var(--fs-c);color:#444;line-height:1.55}
+.explicacao p{margin:0 0 10px 0}
+.explicacao p:last-child{margin-bottom:0}
+.explicacao ul{margin:0 0 10px 0;padding-left:18px}
+.explicacao li{margin-bottom:5px}
+.explicacao strong{color:#222;font-weight:600}
+.explicacao em{color:#666}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
 .nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
 .banco-combine-toggle:hover{color:#111;border-color:#999}
@@ -1248,6 +1259,69 @@ async function posLogin(){
   // trava de segurança: não importa o que dê errado no carregamento (banco travado, erro
   // silencioso, o que for), a splash nunca fica presa na tela pra sempre — some sozinha
   setTimeout(()=>{ finalizarSplash(); }, 6000);
+}
+
+// ============================================================================
+// EXPLICACOES — cada indicador tem um "i" que abre como ele e calculado. Centralizado aqui pra
+// que a explicacao viva ao lado da formula: se a formula mudar, e obvio que o texto muda junto.
+// ============================================================================
+const EXPLICACOES={
+  consistencia:{titulo:'Consistência',corpo:`
+    <p><strong>O que é:</strong> em quantos dos últimos dias você teve pelo menos uma sessão registrada.</p>
+    <p><strong>Como é calculado:</strong> a janela é o menor valor entre <strong>21 dias</strong> e o tempo desde a sua primeira sessão. Se você começou há 3 dias, mostra sobre 3 — comparar contra 21 puniria por dias em que o registro nem existia.</p>
+    <p><strong>Por que 21 dias:</strong> janela menor oscila demais a cada dia bom ou ruim; maior demora a refletir mudanças de rotina.</p>
+    <p><strong>Por que não "streak":</strong> sequência que zera ao falhar um dia gera ansiedade e não tolera imprevistos. Aqui um dia perdido reduz a porcentagem, mas não apaga o histórico.</p>`},
+  mediaDia:{titulo:'Média por dia estudado',corpo:`
+    <p><strong>Como é calculado:</strong> tempo total do período ÷ número de dias em que houve estudo.</p>
+    <p><strong>Atenção:</strong> divide pelos dias <em>com</em> estudo, não pelos dias do período. Mede a intensidade típica de uma sessão sua, não a média diluída incluindo dias parados — para isso existe o card de Consistência.</p>`},
+  calendario:{titulo:'Calendário',corpo:`
+    <p><strong>O que mostra:</strong> cada quadrado é um dia; quanto mais escuro, mais tempo estudado. Toque em um dia para ver o detalhe.</p>
+    <p><strong>Como a intensidade é definida:</strong> são 5 níveis, calculados por <strong>percentil dos seus próprios dias</strong> — não por valores fixos.</p>
+    <p><strong>Por quê:</strong> uma escala fixa envelhece. Se 2h fosse "nível máximo", daqui a alguns meses todos os dias ficariam iguais. Usando seus dados, a escala acompanha sua evolução.</p>`},
+  ondeInvesti:{titulo:'Onde investi o tempo',corpo:`
+    <p><strong>O que mostra:</strong> seu tempo dividido em Módulo → Publicação → Capítulo, e dentro de cada capítulo, cada passagem que você fez por ele.</p>
+    <p><strong>Ritmo (car/min):</strong> caracteres lidos ÷ minutos. Só aparece quando você informa os caracteres ao registrar a leitura.</p>
+    <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso — e antecipa a revisão daquele capítulo.</p>`},
+  cobertura:{titulo:'Cobertura da bibliografia',corpo:`
+    <p><strong>Como é calculado:</strong> capítulos distintos que você já estudou ÷ total de capítulos previstos na bibliografia oficial.</p>
+    <p><strong>De onde vem o total:</strong> do campo <em>capítulos válidos</em> da tabela de bibliografia — a lista do edital, não uma estimativa.</p>
+    <p><strong>Importante:</strong> conta <em>cobertura</em>, não domínio. Um capítulo lido uma vez conta igual a um capítulo revisado cinco vezes. Para saber se o conteúdo ficou, veja Tempo × desempenho.</p>`},
+  quadrante:{titulo:'Tempo investido × desempenho',corpo:`
+    <p><strong>O que faz:</strong> cruza duas fontes que viviam separadas — quanto tempo você investiu (sessões) e quanto você acerta (questões).</p>
+    <p><strong>Como classifica:</strong> compara seu tempo no módulo com a <strong>mediana</strong> entre os módulos, e o aproveitamento com o corte de <strong>85,7%</strong> (o mesmo usado nas cores do app).</p>
+    <ul>
+      <li><strong>Rever método</strong> — muito tempo e ainda erra: o problema não é falta de horas, é a forma de estudar.</li>
+      <li><strong>Estudar mais</strong> — pouco tempo e erro alto: falta exposição ao conteúdo.</li>
+      <li><strong>Consolidado</strong> — muito tempo e acerta: o investimento virou resultado.</li>
+      <li><strong>Eficiente</strong> — pouco tempo e já acerta: conteúdo que rende sem esforço proporcional.</li>
+    </ul>
+    <p><strong>Limitação:</strong> com poucos módulos tendo questões, a mediana perde sentido — se só um módulo tiver questões, ele sempre cairá do lado "muito tempo".</p>`},
+  revisoes:{titulo:'Revisões de hoje',corpo:`
+    <p><strong>O que é:</strong> revisão espaçada por capítulo, baseada na curva do esquecimento. Cada leitura registrada agenda a primeira revisão automaticamente.</p>
+    <p><strong>Sequência base:</strong> 1 dia → 7 dias → 30 dias → 90 dias. A cada revisão concluída, sobe um nível.</p>
+    <p><strong>Como o intervalo é ajustado:</strong></p>
+    <ul>
+      <li><strong>Taxa de erro</strong> (sinal forte): acima de 50% de erro, o intervalo cai pela metade; abaixo de 20%, aumenta 50%. Usa o dado mais específico que existir — do capítulo, senão da publicação, senão do módulo.</li>
+      <li><strong>Ritmo de leitura</strong> (sinal fraco): seu ritmo naquele capítulo ÷ seu ritmo médio geral, limitado entre 0,75 e 1,25. Ler mais devagar que o seu normal antecipa a revisão.</li>
+    </ul>
+    <p><strong>Por que o ritmo é limitado:</strong> ler devagar é ambíguo — pode ser conteúdo difícil, leitura cuidadosa ou apenas um dia cansado. Serve para ajustar na margem, nunca para dominar a decisão.</p>
+    <p><strong>Observação:</strong> só sessões do tipo <em>Leitura</em> geram revisão.</p>`},
+  ciclo:{titulo:'Ciclo de estudos',corpo:`
+    <p><strong>O que faz:</strong> sugere qual módulo estudar em seguida, garantindo que nenhum fique esquecido.</p>
+    <p><strong>Como é calculado:</strong> cada módulo acumula crédito = <strong>peso × dias sem ser estudado</strong>. Vence quem tiver mais crédito.</p>
+    <p><strong>Peso:</strong> configurável por módulo. Peso maior faz o módulo voltar mais rápido à fila.</p>
+    <p><strong>Módulos nunca estudados</strong> recebem valor alto de propósito, para entrarem na frente. Havendo empate entre eles, decide a ordem da lista de módulos.</p>`},
+};
+function abrirExplicacao(chave){
+  const e=EXPLICACOES[chave];
+  if(!e) return;
+  document.getElementById('ver-questao-titulo').textContent=e.titulo;
+  document.getElementById('ver-questao-conteudo').innerHTML=`<div class="explicacao">${e.corpo}</div>`;
+  document.getElementById('ver-questao-modal').style.display='flex';
+}
+// "i" clicavel, do mesmo tamanho e cor dos outros icones auxiliares do app
+function botaoInfo(chave){
+  return `<span class="info-btn" onclick="event.stopPropagation();abrirExplicacao('${chave}')">${iconeInfo()}</span>`;
 }
 
 function iconeInfo(){
@@ -2418,24 +2492,24 @@ function renderAnalise(){
     <div class="stat-grid" style="margin-top:0">
       <div class="stat-card"><div class="stat-val">${fmtDur(totalMinP)}</div><div class="stat-lbl">Tempo estudado</div></div>
       <div class="stat-card"><div class="stat-val">${diasDistintosP}</div><div class="stat-lbl">Dias com estudo</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (${JANELA} dia${JANELA===1?'':'s'})</div></div>
-      <div class="stat-card"><div class="stat-val">${diasDistintosP?fmtDur(Math.round(totalMinP/diasDistintosP)):'—'}</div><div class="stat-lbl">Média por dia estudado</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (${JANELA} dia${JANELA===1?'':'s'}) ${botaoInfo('consistencia')}</div></div>
+      <div class="stat-card"><div class="stat-val">${diasDistintosP?fmtDur(Math.round(totalMinP/diasDistintosP)):'—'}</div><div class="stat-lbl">Média por dia estudado ${botaoInfo('mediaDia')}</div></div>
     </div>
 
-    ${sectionTitle('Calendário','calendario','#E6F1FB','#202A45')}
+    ${sectionTitle('Calendário','calendario','#E6F1FB','#202A45',{direita:botaoInfo('calendario')})}
     <div class="card-inicio">${calendarioHtml}</div>
 
-    ${sectionTitle('Onde investi o tempo','pormodulo','#E6F1FB','#202A45')}
+    ${sectionTitle('Onde investi o tempo','pormodulo','#E6F1FB','#202A45',{direita:botaoInfo('ondeInvesti')})}
     <div class="card-inicio">
       ${detalheHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão no período selecionado.</div>'}
     </div>
 
-    ${sectionTitle('Cobertura da bibliografia','lista','#E6F1FB','#202A45')}
+    ${sectionTitle('Cobertura da bibliografia','lista','#E6F1FB','#202A45',{direita:botaoInfo('cobertura')})}
     <div class="card-inicio">
       ${coberturaHtml||'<div class="empty" style="padding:16px 8px">Bibliografia não carregada.</div>'}
     </div>
 
-    ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45')}
+    ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45',{direita:botaoInfo('quadrante')})}
     <div class="card-inicio">
       ${quadHtml||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
     </div>
@@ -2568,7 +2642,7 @@ function renderAprovado(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span>${botaoInfo('ciclo')}</div>
         <span class="info-icone" onclick="abrirConfigCiclo()">${iconeInfo()} configurar</span>
       </div>
       ${semDadoCiclo?`
@@ -2587,7 +2661,7 @@ function renderAprovado(){
 
     ${revisoesVencidas.length?`<div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões de hoje</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões de hoje</span>${botaoInfo('revisoes')}</div>
       </div>
       <div class="prox-list">
         ${revisoesHtml}
