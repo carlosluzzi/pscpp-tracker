@@ -1592,6 +1592,7 @@ async function loadDataInterno(){
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
       reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
+      arquivoComFalha:p.arquivo_com_falha||'',motivoFalha:p.motivo_falha||'',
       excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,tempoGastoSegundos:p.tempo_gasto_segundos,
     }));
     questoesPendentes=questPendRes.map(p=>({
@@ -2500,7 +2501,6 @@ function renderAnalise(){
       if(!porCap.has(c)) porCap.set(c,[]);
       porCap.get(c).push(s);
     });
-    const varosCapitulos=porCap.size>1;
     const blocos=[...porCap.entries()].sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)).map(([cap,arr])=>{
       const min=arr.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
       const car=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
@@ -2518,7 +2518,7 @@ function renderAnalise(){
       return `<div class="hist-cap-bloco">
         <div class="hist-cap-topo">
           <span class="hist-cap-nome">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
-          ${varosCapitulos?`<span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>`:''}
+          ${arr.length>1?`<span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>`:''}
         </div>
         ${passagens}
       </div>`;
@@ -5140,7 +5140,8 @@ function renderQuestoes(){
       return `<div class="cadernos-item-leve problema">
         <div class="prox-left">
           <span class="prox-nome" style="color:#A32D2D">${tipoAbrevFalha}${ap.nome?' '+ap.nome:''}</span>
-          <span class="prox-modalidade" style="color:#A32D2D">⚠ Falha ao ler este arquivo</span>
+          <span class="prox-modalidade" style="color:#A32D2D">⚠ Falha ao ler ${ap.arquivoComFalha||ap.nomeArquivoOriginal||'este arquivo'}</span>
+          ${ap.motivoFalha?`<span class="prox-modalidade" style="color:#A32D2D;opacity:.8">${ap.motivoFalha}</span>`:''}
         </div>
         <button class="prox-confirm-btn cadernos-btn-largura" style="background:#A32D2D;color:#fff;border-color:#A32D2D;flex-shrink:0" ${ap.reextracaoSolicitada?'disabled':''} onclick="event.stopPropagation();solicitarReextracaoAtividade('${ap.id}')">${ap.reextracaoSolicitada?'Já solicitado':'Tentar de novo'}</button>
       </div>`;
