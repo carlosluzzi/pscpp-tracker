@@ -1476,7 +1476,7 @@ async function loadDataInterno(){
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
-    revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
+    revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',capitulo:p.capitulo||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
@@ -1590,11 +1590,20 @@ function calcularProgressoMetas(periodo){
   }).filter(Boolean);
 }
 
-// REVISÃO ESPAÇADA — sequência clássica de intervalos, ajustada pela taxa de erro real do módulo/publicação
+// REVISÃO ESPAÇADA — sequência clássica de intervalos, modulada por dois sinais reais:
+//  (1) taxa de erro nas questões  — sinal FORTE, mas só existe depois de responder questões
+//  (2) ritmo de leitura do capítulo — sinal FRACO, porém disponível no instante em que termina a
+//      leitura, muito antes de haver qualquer questão respondida daquele conteúdo
 const SEQUENCIA_REVISAO_DIAS=[1,7,30,90];
-function calcularTaxaErroModulo(modulo,publicacao){
-  let qs=publicacao?questoes.filter(q=>q.modulo===modulo&&q.publicacao===publicacao&&q.status):[];
-  if(!qs.length) qs=questoes.filter(q=>q.modulo===modulo&&q.status);
+
+// Taxa de erro na granularidade mais fina que houver dado: capítulo > publicação > módulo.
+// Sem isso, um capítulo específico herdava a média do módulo inteiro e o ajuste ficava grosseiro.
+function calcularTaxaErroModulo(modulo,publicacao,capitulo){
+  const comStatus=q=>q.status;
+  let qs=[];
+  if(capitulo) qs=questoes.filter(q=>q.modulo===modulo&&q.publicacao===publicacao&&String(q.capitulo)===String(capitulo)&&comStatus(q));
+  if(!qs.length&&publicacao) qs=questoes.filter(q=>q.modulo===modulo&&q.publicacao===publicacao&&comStatus(q));
+  if(!qs.length) qs=questoes.filter(q=>q.modulo===modulo&&comStatus(q));
   if(!qs.length) return 30; // sem dado suficiente, usa taxa neutra (intervalo normal)
   const erros=qs.filter(q=>q.status==='Errei').length;
   return Math.round(erros/qs.length*100);
@@ -1604,23 +1613,53 @@ function fatorAjusteRevisao(taxaErroPct){
   if(taxaErroPct>=20) return 1;
   return 1.5;
 }
-function calcularProximaDataRevisao(nivel,taxaErroPct,hoje){
+
+// Ritmo (caracteres/minuto) de um capítulo específico, somando todas as sessões dele.
+function ritmoDoCapitulo(modulo,publicacao,capitulo){
+  const sess=(sessoesEstudo||[]).filter(s=>s.modulo===modulo&&s.publicacao===publicacao
+    &&String(s.capitulo||'')===String(capitulo||'')&&s.caracteresLidos>0&&s.duracaoMinutos>0);
+  if(!sess.length) return null;
+  const car=sess.reduce((a,s)=>a+s.caracteresLidos,0);
+  const min=sess.reduce((a,s)=>a+s.duracaoMinutos,0);
+  return min>0?car/min:null;
+}
+// Ritmo médio geral do usuário — a referência é ELE MESMO, não um padrão externo de leitura.
+function ritmoMedioUsuario(){
+  const sess=(sessoesEstudo||[]).filter(s=>s.caracteresLidos>0&&s.duracaoMinutos>0);
+  if(sess.length<2) return null; // com 1 sessão só, a "média" seria a própria sessão: sem sinal
+  const car=sess.reduce((a,s)=>a+s.caracteresLidos,0);
+  const min=sess.reduce((a,s)=>a+s.duracaoMinutos,0);
+  return min>0?car/min:null;
+}
+// Ler mais devagar que o próprio normal sugere conteúdo mais denso/difícil → antecipa a revisão.
+// LIMITADO entre 0.75 e 1.25 de propósito: ritmo é ambíguo (pode ser leitura cuidadosa, cansaço
+// ou só um dia ruim), então serve para ajustar na margem, nunca para dominar a decisão. Quem
+// manda continua sendo a taxa de erro, que é sinal direto de retenção.
+function fatorRitmoRevisao(modulo,publicacao,capitulo){
+  const rc=ritmoDoCapitulo(modulo,publicacao,capitulo);
+  const rm=ritmoMedioUsuario();
+  if(!rc||!rm) return 1;
+  return Math.max(0.75,Math.min(1.25,rc/rm));
+}
+function calcularProximaDataRevisao(nivel,taxaErroPct,hoje,fatorRitmo){
   const nivelClamp=Math.min(nivel,SEQUENCIA_REVISAO_DIAS.length-1);
   const diasBase=SEQUENCIA_REVISAO_DIAS[nivelClamp];
-  const dias=Math.max(1,Math.round(diasBase*fatorAjusteRevisao(taxaErroPct)));
+  const dias=Math.max(1,Math.round(diasBase*fatorAjusteRevisao(taxaErroPct)*(fatorRitmo||1)));
   const proxima=new Date(hoje);
   proxima.setDate(proxima.getDate()+dias);
   return proxima.toISOString().slice(0,10);
 }
-async function agendarRevisaoSeLeitura(modulo,publicacao,tipo){
+async function agendarRevisaoSeLeitura(modulo,publicacao,tipo,capitulo){
   if(tipo!=='Leitura') return;
-  const taxaErro=calcularTaxaErroModulo(modulo,publicacao||'');
+  const cap=capitulo||'';
+  const taxaErro=calcularTaxaErroModulo(modulo,publicacao||'',cap);
+  const fr=fatorRitmoRevisao(modulo,publicacao||'',cap);
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const proximaData=calcularProximaDataRevisao(0,taxaErro,hoje);
+  const proximaData=calcularProximaDataRevisao(0,taxaErro,hoje,fr);
   try{
     await sbDados.from('revisoes_espacadas').upsert({
-      modulo,publicacao:publicacao||'',nivel:0,proxima_data:proximaData,atualizado_em:new Date().toISOString(),
-    },{onConflict:'modulo,publicacao'});
+      modulo,publicacao:publicacao||'',capitulo:cap,nivel:0,proxima_data:proximaData,atualizado_em:new Date().toISOString(),
+    },{onConflict:'modulo,publicacao,capitulo'});
   }catch(e){
     console.error('Erro ao agendar revisão:',e);
   }
@@ -1628,10 +1667,11 @@ async function agendarRevisaoSeLeitura(modulo,publicacao,tipo){
 async function concluirRevisao(id){
   const rev=revisoesEspacadas.find(r=>r.id===id);
   if(!rev) return;
-  const taxaErro=calcularTaxaErroModulo(rev.modulo,rev.publicacao);
+  const taxaErro=calcularTaxaErroModulo(rev.modulo,rev.publicacao,rev.capitulo);
+  const fr=fatorRitmoRevisao(rev.modulo,rev.publicacao,rev.capitulo);
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const novoNivel=rev.nivel+1;
-  const proximaData=calcularProximaDataRevisao(novoNivel,taxaErro,hoje);
+  const proximaData=calcularProximaDataRevisao(novoNivel,taxaErro,hoje,fr);
   try{
     const {error}=await sbDados.from('revisoes_espacadas').update({nivel:novoNivel,proxima_data:proximaData,atualizado_em:new Date().toISOString()}).eq('id',id);
     if(error) throw error;
@@ -2424,12 +2464,15 @@ function renderAprovado(){
   const revisoesVencidas=revisoesEspacadas.filter(r=>r.proximaData<=hojeStr).sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
   const revisoesHtml=revisoesVencidas.map(r=>{
     const cc=modCores[r.modulo];
+    // Nome completo até o capítulo: sem isso o lembrete dizia só "revisar o livro X", sem apontar
+    // o que exatamente rever. O capítulo é o que torna a revisão acionável.
+    const nomeRev=r.modulo+(r.publicacao?' – '+nomePub(r.publicacao):'')+(r.capitulo?' – Cap. '+r.capitulo:'');
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${r.modulo}${r.publicacao?' – '+r.publicacao:''}</span>
+        <span class="prox-nome">${nomeRev}</span>
         <span class="prox-modalidade" style="color:${cc.tx}">Nível ${r.nivel+1} da sequência</span>
       </div>
-      <button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${(r.modulo+(r.publicacao?' – '+r.publicacao:'')).replace(/'/g,"\\'")}&quot; como feita?')">feito</button>
+      <button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')">feito</button>
     </div>`;
   }).join('');
 
@@ -3313,7 +3356,7 @@ async function confirmarSalvarTimer(){
       caracteres_lidos:caracteresLidos,
     });
     if(error) throw error;
-    await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo);
+    await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
     fecharConfirmarSalvarTimer();
     zerarTimer();
     await loadData();
@@ -3394,7 +3437,7 @@ async function salvarRegistroManual(){
       modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
     });
     if(error) throw error;
-    await agendarRevisaoSeLeitura(modulo,publicacao,tipo);
+    await agendarRevisaoSeLeitura(modulo,publicacao,tipo,numCapitulo);
     fecharRegistroManual();
     await loadData();
   }catch(e){
