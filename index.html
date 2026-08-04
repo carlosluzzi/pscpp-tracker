@@ -45,6 +45,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
+/* Quando existe a faixa de voltar logo abaixo do header, a sombra do header cairia SOBRE ela.
+   Nesse caso o header nao projeta sombra — quem projeta e a propria faixa, que e o elemento mais
+   baixo do conjunto fixo. */
+.app.tem-faixa-voltar.scrolled .header-zone{box-shadow:none}
+.app.tem-faixa-voltar.scrolled .detail-back-sticky{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
@@ -296,7 +301,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Quadrante tempo x erro */
 .quad-item{display:flex;align-items:center;gap:9px;padding:9px 0}
 .quad-item+.quad-item{border-top:0.5px solid #f0f0ee}
-.quad-tag{font-size:var(--fs-a);font-weight:600;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap}
+/* Largura minima fixa: sem isso "1h 30min" e "30min" (ou "Rever método" e "Eficiente") tinham
+   larguras diferentes e o texto ao lado comecava em pontos distintos a cada linha. Centralizado
+   pra que a badge fique equilibrada dentro da largura reservada. */
+.quad-tag{font-size:var(--fs-a);font-weight:600;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;width:112px;text-align:center;box-sizing:border-box}
+.quad-tag.tag-tempo{width:78px;color:#202A45;background:#E6F1FB}
 .quad-txt{flex:1;min-width:0}
 .quad-nome{font-size:var(--fs-c);color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quad-det{font-size:var(--fs-a);color:#999}
@@ -466,6 +475,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
+/* Botao de entrada da Analise — card clicavel inteiro, primeiro item da aba */
+.btn-analise{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.btn-analise-left{display:flex;align-items:center;gap:10px;min-width:0}
+.btn-analise-titulo{font-size:var(--fs-e);font-weight:600;color:#111;display:block}
+.btn-analise-sub{font-size:var(--fs-b);color:#888;display:block;margin-top:1px}
+.btn-analise-seta{font-size:22px;color:#bbb;flex-shrink:0;line-height:1}
+@media(hover:hover){.btn-analise:hover{background:#fcfcfb}}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1600,6 +1616,7 @@ function renderTab(tab,preservarScroll){
   const scrollAnterior=preservarScroll?c.scrollTop:0;
   const isInicio=tab==='inicio'&&!atividadeAtual&&!telaAnalise;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
+  document.querySelector('.app').classList.toggle('tem-faixa-voltar',!!telaAnalise);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
   if(telaAnalise){c.innerHTML=renderAnalise();c.scrollTop=scrollAnterior;return;}
@@ -2204,6 +2221,14 @@ async function confirmarNomeAtividade(){
 // ============================================================================
 // PAGINA ANALISE — estatisticas de estudo (acessada pelo Aprovado)
 // ============================================================================
+// Sincroniza os pontinhos do carrossel do histórico com a página visível.
+function atualizarDotsHistorico(){
+  const c=document.getElementById('hist-carrossel');
+  const dots=document.getElementById('hist-dots');
+  if(!c||!dots) return;
+  const idx=Math.round(c.scrollLeft/c.clientWidth);
+  [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
+}
 function abrirAnalise(){ telaAnalise=true; analiseMesRef=null; renderTab(tabAtual); }
 function fecharAnalise(){ telaAnalise=false; renderTab(tabAtual); }
 function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
@@ -2226,9 +2251,8 @@ function mostrarDiaAnalise(key){
     const total=doDia.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
     const itens=doDia.map(s=>{
       const r=(s.caracteresLidos>0&&s.duracaoMinutos>0)?Math.round(s.caracteresLidos/s.duracaoMinutos):null;
-      const cc=modCores[s.modulo]||{bg:'#F1EFE8',tx:'#444441'};
       return `<div class="quad-item">
-        <span class="quad-tag" style="color:${cc.tx};background:${cc.bg}">${fmtDur(s.duracaoMinutos)}</span>
+        <span class="quad-tag tag-tempo">${fmtDur(s.duracaoMinutos)}</span>
         <div class="quad-txt">
           <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}</div>
           <div class="quad-det">${s.tipo}${s.capitulo?' • Cap. '+s.capitulo:''}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
@@ -2389,7 +2413,7 @@ function renderAnalise(){
         }).join('');
         return `<div class="cap-group">
           <div class="cap-group-header" onclick="toggleCap('${id}')">
-            <span class="cap-loc">${cap==='—'?'Sem capítulo':'Cap. '+cap}</span>
+            <span class="cap-loc">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
             <div class="cap-group-right">
               <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
               <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -2569,7 +2593,9 @@ function renderAprovado(){
     </div>`;
   }).join('');
 
-  const historicoHtml=sessoesEstudo.slice(0,20).map(s=>{
+  // Histórico paginado de 5 em 5, deslizando pro lado — mantém o card curto sem esconder o
+  // histórico. Reaproveita o carrossel com scroll-snap que já existia no CSS.
+  const historicoItens=sessoesEstudo.slice(0,20).map(s=>{
     const refCompleta=s.publicacao||'';
     // Capítulo e ritmo de leitura entram na 2a linha quando existem — o dado já era salvo no
     // banco desde sempre, só não estava sendo exibido.
@@ -2584,49 +2610,16 @@ function renderAprovado(){
       </div>
       <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
     </div>`;
-  }).join('');
-
-  // ===== Leitura por capítulo =====
-  // Agrupa TODAS as sessões por publicação -> capítulo, pra responder "quantas vezes estudei
-  // Meteorologia cap. 1, quanto tempo em cada passagem e a que ritmo". O dado (capitulo e
-  // caracteres_lidos) já existia no banco desde sempre; só não era exposto em lugar nenhum.
-  const leituraPorCap=new Map();
-  sessoesEstudo.forEach(s=>{
-    if(!s.publicacao) return;
-    const chave=s.publicacao+'||'+(s.capitulo||'—');
-    if(!leituraPorCap.has(chave)) leituraPorCap.set(chave,{publicacao:s.publicacao,capitulo:s.capitulo||'',modulo:s.modulo,sessoes:[]});
-    leituraPorCap.get(chave).sessoes.push(s);
   });
-  const gruposLeitura=[...leituraPorCap.values()].map(g=>{
-    const totalMin=g.sessoes.reduce((a,x)=>a+(x.duracaoMinutos||0),0);
-    const totalCar=g.sessoes.reduce((a,x)=>a+(x.caracteresLidos||0),0);
-    return {...g, totalMin, totalCar, vezes:g.sessoes.length,
-            ritmo: (totalCar>0&&totalMin>0)?Math.round(totalCar/totalMin):null};
-  }).sort((a,b)=>b.totalMin-a.totalMin);
-
-  const leituraHtml=gruposLeitura.map((g,i)=>{
-    const cc=modCores[g.modulo]||{tx:'#555'};
-    const horas=Math.floor(g.totalMin/60), mins=g.totalMin%60;
-    const tempoFmt=horas>0?`${horas}h${mins>0?' '+mins+'min':''}`:`${mins}min`;
-    // Cada passagem individual, da mais recente pra mais antiga
-    const passagens=[...g.sessoes].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
-      const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
-      return `<div class="cap-row">
-        <span class="cap-loc" style="flex-shrink:0">${g.sessoes.length-n}ª</span>
-        <span class="cap-tit">${fmtData(x.data)} • ${x.duracaoMinutos}min${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
-      </div>`;
-    }).join('');
-    return `<div class="cap-group">
-      <div class="cap-group-header" onclick="toggleCap('leit${i}')">
-        <span class="cap-loc">${nomePub(g.publicacao)}${g.capitulo?' – Cap. '+g.capitulo:''}</span>
-        <div class="cap-group-right">
-          <span class="cap-group-resumo">${g.vezes}x • ${tempoFmt}${g.ritmo?' • '+g.ritmo.toLocaleString('pt-BR')+' car/min':''}</span>
-          <span class="chev" id="cchev-leit${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-        </div>
-      </div>
-      <div class="cap-group-detail" id="cdet-leit${i}">${passagens}</div>
-    </div>`;
-  }).join('');
+  const POR_PAGINA_HIST=5;
+  const paginasHist=[];
+  for(let i=0;i<historicoItens.length;i+=POR_PAGINA_HIST) paginasHist.push(historicoItens.slice(i,i+POR_PAGINA_HIST));
+  const historicoHtml=historicoItens.length?`
+    <div class="carrossel-cadernos" id="hist-carrossel" onscroll="atualizarDotsHistorico()">
+      ${paginasHist.map(pag=>`<div class="carrossel-pagina"><div class="prox-list">${pag.join('')}</div></div>`).join('')}
+    </div>
+    ${paginasHist.length>1?`<div class="carrossel-dots" id="hist-dots">${paginasHist.map((_,i)=>`<span class="carrossel-dot${i===0?' ativo':''}"></span>`).join('')}</div>`:''}
+  `:'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>';
 
   const proxCiclo=calcularProximoDoCiclo();
   const ccCiclo=modCores[proxCiclo.modulo];
@@ -2646,6 +2639,17 @@ function renderAprovado(){
   }).join('');
 
   return `
+    <div class="card-inicio btn-analise" onclick="abrirAnalise()">
+      <div class="btn-analise-left">
+        <span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('grafico')}</span>
+        <div>
+          <span class="btn-analise-titulo">Análise completa</span>
+          <span class="btn-analise-sub">Calendário, cobertura do edital e desempenho</span>
+        </div>
+      </div>
+      <span class="btn-analise-seta">›</span>
+    </div>
+
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span>${botaoInfo('ciclo')}</div>
@@ -2741,18 +2745,9 @@ function renderAprovado(){
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
-    ${sectionTitle('Leitura por capítulo','lista','#E6F1FB','#202A45',{direita:`<span class="info-icone" onclick="abrirAnalise()">ver análise completa →</span>`})}
-    <div class="card-inicio">
-      <div class="caps" style="border-left:none;padding-left:0;margin-top:0">
-        ${leituraHtml||'<div class="empty" style="padding:16px 8px">Nenhuma leitura com publicação registrada ainda.</div>'}
-      </div>
-    </div>
-
     ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
-      <div class="prox-list">
-        ${historicoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
-      </div>
+      ${historicoHtml}
     </div>
   `;
 }
