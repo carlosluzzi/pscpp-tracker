@@ -45,11 +45,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
-/* Quando existe a faixa de voltar logo abaixo do header, a sombra do header cairia SOBRE ela.
-   Nesse caso o header nao projeta sombra – quem projeta e a propria faixa, que e o elemento mais
-   baixo do conjunto fixo. */
-.app.tem-faixa-voltar.scrolled .header-zone{box-shadow:none}
-.app.tem-faixa-voltar.scrolled .detail-back-sticky{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
+/* Nas telas com sub-abas o header nao projeta sombra: ela cairia sobre as abas, e o conjunto
+   header + abas ja se separa do conteudo pelo proprio fundo opaco. Sem sombra nenhuma aqui. */
+.app.tem-sub-abas.scrolled .header-zone,
+.app.tem-sub-abas.scrolled .topbar{box-shadow:none}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
@@ -483,37 +482,40 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;
   align-items:flex-end;
   margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 4px;
-  padding:0 var(--content-pad-x, 16px) 12px;background:#F9F9F7}
+  padding:10px var(--content-pad-x, 16px) 12px;background:#F9F9F7}
 /* A linha vira pseudo-elemento em vez de border-bottom: assim ela fica colada na base das abas,
    e os 12px de padding abaixo dela continuam sendo fundo opaco. É esse trecho opaco que impede
    o conteúdo de encostar na linha ao passar por trás durante a rolagem — margin-bottom não
    resolveria, porque o conteúdo desliza por baixo do container sticky, não depois dele. */
 .sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#cfcfc6}
-/* Aba de fichário desenhada como SVG em border-image.
-   Por que SVG e não CSS puro: a base precisa ter concavidade voltada PARA CIMA (a borda sai
-   horizontal da linha e curva pra cima antes de subir inclinada, como nas abas do Chrome).
-   border-radius só faz o contrário (concavidade pra baixo), e as tentativas com box-shadow ou
-   radial-gradient em pseudo-elementos não acompanhavam o transform do corpo, deixando as
-   "orelhas" soltas. Com o path do SVG, o contorno inteiro é uma curva só.
-   border-image-slice mantém as duas pontas sem distorção enquanto o miolo estica com a largura.
-   Percurso do contorno: sai da linha → curva côncava 6px → sobe inclinada → curva convexa 8px →
-   topo reto → e o espelho disso descendo do outro lado. */
+/* Aba de fichário. A inclinação das laterais vem de perspective+rotateX (e não de clip-path),
+   porque assim os cantos arredondados continuam funcionando — clip-path só faz bicos retos.
+   O fundo fica num ::before (que recebe o transform) e o texto num <span> por cima, fora do
+   transform — senão o texto sairia distorcido em itálico junto com a caixa.
+   As abas se sobrepõem lateralmente (margin negativo) e a ativa vem à frente pelo z-index,
+   como pastas encaixadas numa gaveta. */
 /* Altura fixa + flex centralizado: o texto fica no meio exato entre a borda de cima da aba e a
    linha de base, em vez de depender de padding calculado na mão. */
-.sub-aba{flex:1;cursor:pointer;position:relative;z-index:1;user-select:none;
-  margin-bottom:-1px;height:40px;display:flex;align-items:center;justify-content:center;
-  border-style:solid;border-color:transparent;
-  border-image-slice:0 24 0 24 fill;border-image-width:0 24px 0 24px;
-  border-image-source:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%2040%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0.5%2C39.5%20Q5%2C39.5%207%2C34%20L15%2C7%20Q17%2C0.5%2024%2C0.5%20L96%2C0.5%20Q103%2C0.5%20105%2C7%20L113%2C34%20Q115%2C39.5%20119.5%2C39.5%22%20fill%3D%22%23EFEFEA%22%20stroke%3D%22%23e0e0d8%22%20stroke-width%3D%221%22%20vector-effect%3D%22non-scaling-stroke%22%2F%3E%3C%2Fsvg%3E")}
+.sub-aba{flex:1;cursor:pointer;position:relative;z-index:1;isolation:isolate;user-select:none;
+  margin-bottom:-1px;height:40px;display:flex;align-items:center;justify-content:center}
 .sub-aba+.sub-aba{margin-left:-10px}
-.sub-aba.ativa{z-index:3;border-image-source:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%2040%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0.5%2C39.5%20Q5%2C39.5%207%2C34%20L15%2C7%20Q17%2C0.5%2024%2C0.5%20L96%2C0.5%20Q103%2C0.5%20105%2C7%20L113%2C34%20Q115%2C39.5%20119.5%2C39.5%22%20fill%3D%22%23F9F9F7%22%20stroke%3D%22%23cfcfc6%22%20stroke-width%3D%221%22%20vector-effect%3D%22non-scaling-stroke%22%2F%3E%3C%2Fsvg%3E")}
+.sub-aba.ativa{z-index:3}
+.sub-aba::before{content:'';position:absolute;inset:0;background:#EFEFEA;
+  border:1px solid #e0e0d8;border-radius:8px 8px 0 0;
+  transform:perspective(7px) rotateX(1.3deg);transform-origin:bottom;z-index:-1;
+  transition:background .15s ease,border-color .15s ease}
+.sub-aba.ativa::before{background:#F9F9F7;border-color:#cfcfc6;
+  border-bottom:none;border-radius:8px 8px 0 0}
 /* A inativa é fechada (arredondada nos 4 cantos, apoiada sobre a linha); a ativa é aberta
    embaixo — sem border-bottom e sem raio inferior — pra "cortar" a linha de base e ficar
    contínua com o conteúdo. */
+/* O padding-top de 4px compensa o deslocamento do fundo: o transform (perspective+rotateX com
+   origem na base) empurra o fundo visual ~2px pra baixo em relação à caixa lógica. Medido. */
 .sub-aba span{font-size:var(--fs-d);font-weight:500;color:#a0a4ad;line-height:1;
-  padding-top:2px;transition:color .15s ease}
+  padding-top:4px;transition:color .15s ease}
 .sub-aba.ativa span{color:#202A45;font-weight:700}
-@media(hover:hover){.sub-aba:not(.ativa):hover span{color:#8a8e97}}
+@media(hover:hover){.sub-aba:not(.ativa):hover::before{background:#e7e7e0}
+  .sub-aba:not(.ativa):hover span{color:#8a8e97}}
 /* Primeira secao logo apos as abas nao precisa da margem de 32px */
 .sub-abas+.section-title{margin-top:0}
 /* Botao de entrada da Analise — card clicavel inteiro, primeiro item da aba */
@@ -1681,6 +1683,13 @@ function renderTab(tab,preservarScroll){
   const scrollAnterior=preservarScroll?c.scrollTop:0;
   const isInicio=tab==='inicio'&&!atividadeAtual;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
+  // Telas que mostram sub-abas: nelas o header não projeta sombra (ela cairia sobre as abas).
+  // Desempenho só tem sub-abas quando existe algum registro do Pilotquest.
+  const temSubAbas = !atividadeAtual && (
+    tab==='aprovado' ||
+    (tab==='atividades' && atividades.some(a=>a.curso===CURSO_PILOTQUEST))
+  );
+  document.querySelector('.app').classList.toggle('tem-sub-abas',temSubAbas);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
