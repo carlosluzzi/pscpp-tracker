@@ -2230,7 +2230,7 @@ function mostrarDiaAnalise(key){
       return `<div class="quad-item">
         <span class="quad-tag" style="color:${cc.tx};background:${cc.bg}">${fmtDur(s.duracaoMinutos)}</span>
         <div class="quad-txt">
-          <div class="quad-nome">${s.modulo||s.tipo}${s.publicacao?' – '+nomePub(s.publicacao):''}</div>
+          <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}</div>
           <div class="quad-det">${s.tipo}${s.capitulo?' • Cap. '+s.capitulo:''}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
         </div>
       </div>`;
@@ -2239,6 +2239,9 @@ function mostrarDiaAnalise(key){
   }
   document.getElementById('ver-questao-modal').style.display='flex';
 }
+
+const ROTULO_SEM_MODULO='PSCPP';
+function nomeModuloSessao(s){ return s.modulo||ROTULO_SEM_MODULO; }
 
 function fmtDur(min){
   if(!min) return '0min';
@@ -2351,7 +2354,7 @@ function renderAnalise(){
   // ---------- modulo -> publicacao -> capitulo -> passagens ----------
   const porModulo=new Map();
   sessPeriodo.forEach(s=>{
-    const mod=s.modulo||s.tipo||'Sem módulo';
+    const mod=nomeModuloSessao(s);
     if(!porModulo.has(mod)) porModulo.set(mod,new Map());
     const pubs=porModulo.get(mod);
     const pub=s.publicacao||'Sem publicação';
@@ -2576,7 +2579,7 @@ function renderAprovado(){
       : '';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
-        <span class="prox-nome">${s.modulo||s.tipo}${refCompleta?' – '+refCompleta:''}</span>
+        <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto} • ${fmtData(s.data)}</span>
       </div>
       <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
