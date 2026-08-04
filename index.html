@@ -714,8 +714,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div class="modal-box" style="max-width:380px">
     <div class="config-title">Confirmar sessão de estudo</div>
     <div id="timer-confirmar-resumo" style="font-size:var(--fs-c);color:#5F5E5A;margin-bottom:14px"></div>
-    <div class="config-label">Quantidade de caracteres lidos (opcional)</div>
-    <input type="number" min="0" class="filter-select" id="timer-caracteres-input" placeholder="Ex: 8500" style="margin-bottom:14px">
+    <div id="timer-caracteres-wrap">
+      <div class="config-label">Quantidade de caracteres lidos (opcional)</div>
+      <input type="number" min="0" class="filter-select" id="timer-caracteres-input" placeholder="Ex: 8500" style="margin-bottom:14px">
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" id="timer-confirmar-cancelar-btn" onclick="fecharConfirmarSalvarTimer()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" id="timer-confirmar-salvar-btn" onclick="confirmarSalvarTimer()">Salvar</button>
@@ -1088,7 +1090,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <select class="filter-select" id="registro-manual-capitulo">
       <option value="">Capítulo</option>
     </select>
-    <select class="filter-select" id="registro-manual-tipo">
+    <select class="filter-select" id="registro-manual-tipo" onchange="atualizarCamposRegistroManual()">
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
       <option value="Revisão">Revisão</option>
@@ -1096,6 +1098,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     </select>
     <input type="number" class="filter-select" id="registro-manual-duracao" placeholder="Duração em minutos" min="1">
     <input type="number" class="filter-select" id="registro-manual-caracteres" placeholder="Caracteres lidos (opcional)" min="0">
+    <!-- o campo acima some fora de Leitura, via atualizarCamposRegistroManual() -->
     <input type="date" class="filter-select" id="registro-manual-data" style="width:100%;box-sizing:border-box">
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
@@ -2676,17 +2679,17 @@ function renderAprovado(){
       <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
-      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando||timerTipo==='Anki'?'disabled':''}>
+      <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
       </select>
-      <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo||timerTipo==='Anki'?'disabled':''}>
+      <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo?'disabled':''}>
         <option value="">Publicação</option>
         ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt')).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-        const desabilitaAnki=timerTipo==='Anki'?'disabled':'';
+        const desabilitaAnki=''; // Anki tambem pode ter capitulo — a materia e opcional, nao proibida
         if(!timerPublicacao){
           return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
@@ -2778,11 +2781,11 @@ function renderTimerFullscreenConteudo(){
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <div>
-      <div class="tf-modulo">${timerModulo||'–'}</div>
-      <div class="tf-ref-wrap">
-        ${timerPublicacao?`<div class="tf-ref">${timerPublicacao}</div>`:''}
+      ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
+      ${(timerPublicacao||capituloFormatadoTf)?`<div class="tf-ref-wrap">
+        ${timerPublicacao?`<div class="tf-ref">${nomePub(timerPublicacao)}</div>`:''}
         ${capituloFormatadoTf?`<div class="tf-ref">${capituloFormatadoTf}</div>`:''}
-      </div>
+      </div>`:''}
       <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
       <div class="tf-tipo">${timerTipo}</div>
       <div class="tf-btns">
@@ -3398,8 +3401,13 @@ function pararESalvarTimer(){
   }
   const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const capituloFormatado=formatarCapituloExibicao(pubInfoSalvar,timerCapitulo);
-  const partesResumo=[timerModulo,timerPublicacao,capituloFormatado].filter(Boolean);
-  document.getElementById('timer-confirmar-resumo').innerHTML=`${partesResumo.join(' · ')}<br>${formatarTempoTimer(segFinal)} de ${timerTipo.toLowerCase()}`;
+  const partesResumo=[timerModulo,timerPublicacao?nomePub(timerPublicacao):'',capituloFormatado].filter(Boolean);
+  // Só quebra a linha se houver algo antes — sem isso, uma sessão sem matéria (Anki, por exemplo)
+  // abria uma linha em branco empurrando o tempo pra baixo.
+  const linhaRef=partesResumo.length?partesResumo.join(' · ')+'<br>':'';
+  document.getElementById('timer-confirmar-resumo').innerHTML=`${linhaRef}${formatarTempoTimer(segFinal)} de ${timerTipo.toLowerCase()}`;
+  // Caracteres lidos só fazem sentido em leitura — em Anki/Exercício/Revisão o campo some.
+  document.getElementById('timer-caracteres-wrap').style.display=timerTipo==='Leitura'?'':'none';
   document.getElementById('timer-caracteres-input').value='';
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
@@ -3447,6 +3455,7 @@ function abrirRegistroManual(){
   atualizarPublicacoesRegistroManual();
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-caracteres').value='';
+  atualizarCamposRegistroManual();
   document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('registro-manual-modal').style.display='flex';
 }
@@ -3483,6 +3492,12 @@ function atualizarCapitulosRegistroManual(){
   }
   capSelect.disabled=false;
   capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
+}
+// Caracteres lidos só existem em Leitura — nos outros tipos o campo some do formulário.
+function atualizarCamposRegistroManual(){
+  const tipo=document.getElementById('registro-manual-tipo')?.value;
+  const campo=document.getElementById('registro-manual-caracteres');
+  if(campo) campo.style.display=tipo==='Leitura'?'':'none';
 }
 function fecharRegistroManual(){
   document.getElementById('registro-manual-modal').style.display='none';
