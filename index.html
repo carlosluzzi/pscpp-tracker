@@ -482,7 +482,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    contínua com o conteúdo abaixo, e as inativas permanecem fechadas acima dela. */
 .sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;
   align-items:flex-end;
-  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 16px;
+  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 12px;
   padding:14px var(--content-pad-x, 16px) 0;background:#F9F9F7;
   border-bottom:1px solid #cfcfc6}
 /* Aba de fichário. A inclinação das laterais vem de perspective+rotateX (e não de clip-path),
@@ -491,21 +491,26 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    transform — senão o texto sairia distorcido em itálico junto com a caixa.
    As abas se sobrepõem lateralmente (margin negativo) e a ativa vem à frente pelo z-index,
    como pastas encaixadas numa gaveta. */
+/* Altura fixa + flex centralizado: o texto fica no meio exato entre a borda de cima da aba e a
+   linha de base, em vez de depender de padding calculado na mão. */
 .sub-aba{flex:1;cursor:pointer;position:relative;z-index:1;isolation:isolate;user-select:none;
-  margin-bottom:-1px}
+  margin-bottom:-1px;height:48px;display:flex;align-items:center;justify-content:center}
 .sub-aba+.sub-aba{margin-left:-10px}
 .sub-aba.ativa{z-index:3}
-/* border-bottom:none deixa a aba aberta embaixo — é o que faz a ativa "cortar" a linha de base */
-.sub-aba::before{content:'';position:absolute;inset:0;background:#DEDED5;
-  border:1px solid #cfcfc6;border-bottom:none;border-radius:8px 8px 0 0;
+/* A inativa é fechada (arredondada nos 4 cantos, apoiada sobre a linha); a ativa é aberta
+   embaixo — sem border-bottom e sem raio inferior — pra "cortar" a linha de base e ficar
+   contínua com o conteúdo. */
+.sub-aba::before{content:'';position:absolute;inset:0;background:#EFEFEA;
+  border:1px solid #e0e0d8;border-radius:8px;
   transform:perspective(7px) rotateX(1.3deg);transform-origin:bottom;z-index:-1;
-  transition:background .15s ease}
-.sub-aba span{display:block;text-align:center;padding:10px 12px;
-  font-size:var(--fs-d);font-weight:500;color:#7b7f89;transition:color .15s ease}
-.sub-aba.ativa::before{background:#F9F9F7}
-.sub-aba.ativa span{color:#1a1a1a;font-weight:700}
-@media(hover:hover){.sub-aba:not(.ativa):hover::before{background:#d5d5ca}
-  .sub-aba:not(.ativa):hover span{color:#5f636c}}
+  transition:background .15s ease,border-color .15s ease}
+.sub-aba.ativa::before{background:#F9F9F7;border-color:#cfcfc6;
+  border-bottom:none;border-radius:8px 8px 0 0}
+.sub-aba span{font-size:var(--fs-d);font-weight:500;color:#a0a4ad;line-height:1;
+  transition:color .15s ease}
+.sub-aba.ativa span{color:#202A45;font-weight:700}
+@media(hover:hover){.sub-aba:not(.ativa):hover::before{background:#e7e7e0}
+  .sub-aba:not(.ativa):hover span{color:#8a8e97}}
 /* Primeira secao logo apos as abas nao precisa da margem de 32px */
 .sub-abas+.section-title{margin-top:0}
 /* Botao de entrada da Analise — card clicavel inteiro, primeiro item da aba */
