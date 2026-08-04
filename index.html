@@ -1803,7 +1803,7 @@ async function abrirMarcacaoPendente(atividadePendenteId){
   resolucaoAtividadeId=atividadePendenteId;
   const tipoAbrevTitulo=tipoLabelCurso[ap.curso]||(ap.tipo==='Caderno de Exercícios'?'CADERNO':ap.tipo==='Simulado'?'SIMULADO':(ap.tipo||'').toUpperCase());
   const logoMaiorTitulo=ap.curso==='Catavento'||ap.curso==='Curso Prático';
-  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:${logoMaiorTitulo?18:16}px;width:auto;object-fit:contain">`:'';
+  const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:${logoMaiorTitulo?18:16}px;width:auto;object-fit:contain;aspect-ratio:${proporcaoLogosCursos[ap.curso]||4.4}">`:'';
   document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tipoAbrevTitulo}${ap.nome?' '+ap.nome:''}</span>`;
   document.getElementById('marcacao-fullscreen').classList.remove('hidden');
   renderizarListaMarcacao();
@@ -2241,11 +2241,19 @@ async function confirmarNomeAtividade(){
 // PAGINA ANALISE — estatisticas de estudo (acessada pelo Aprovado)
 // ============================================================================
 // Sincroniza os pontinhos do carrossel do histórico com a página visível.
+// Roda a cada pixel de rolagem horizontal do carrossel, então precisa ser barata: guarda a
+// página atual e sai fora quando não mudou, em vez de ler clientWidth (que força recálculo de
+// layout) e repintar todos os pontinhos a cada evento.
+let paginaHistAtual=-1;
 function atualizarDotsHistorico(){
   const c=document.getElementById('hist-carrossel');
   const dots=document.getElementById('hist-dots');
   if(!c||!dots) return;
-  const idx=Math.round(c.scrollLeft/c.clientWidth);
+  const larg=c.clientWidth;
+  if(!larg) return;
+  const idx=Math.round(c.scrollLeft/larg);
+  if(idx===paginaHistAtual) return;
+  paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
 function abrirAnalise(){ telaAnalise=true; analiseMesRef=null; renderTab(tabAtual); }
@@ -4100,7 +4108,7 @@ function renderCardCalendario(){
   const cursos=['Curso H','Curso Prático','MPX','Catavento'];
   const cards=cursos.map(curso=>{
     const logoMaior=curso==='Catavento'||curso==='Curso Prático';
-    const logoCurso=`<img src="${logosCursos[curso]}" alt="${curso}" class="${logoMaior?'prox-logo-curso-18':'prox-logo-curso'}">`;
+    const logoCurso=`<img src="${logosCursos[curso]}" alt="${curso}" class="${logoMaior?'prox-logo-curso-18':'prox-logo-curso'}" style="aspect-ratio:${proporcaoLogosCursos[curso]||4.4}">`;
     const headerRowClass=logoMaior?'card-header-row card-header-row-compacto':'card-header-row';
     const ev=calcularProximoDoCurso(curso);
     if(!ev){
@@ -5223,7 +5231,7 @@ function renderQuestoes(){
       return `
       <div class="cadernos-grupo-curso">
         <div class="cadernos-grupo-header">
-          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}" class="${logoMaiorGrupo?'prox-logo-curso-18':'prox-logo-curso'}">`:`<span>${g.curso}</span>`}
+          ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}" class="${logoMaiorGrupo?'prox-logo-curso-18':'prox-logo-curso'}" style="aspect-ratio:${proporcaoLogosCursos[g.curso]||4.4}">`:`<span>${g.curso}</span>`}
         </div>
         ${g.atividades.map(renderItemCaderno).join('')}
       </div>
@@ -5446,8 +5454,15 @@ function finalizarSplash(){
   const contentEl=document.getElementById('content');
   const appEl=document.querySelector('.app');
   if(!contentEl||!appEl) return;
+  // Só mexe no DOM quando o estado MUDA de verdade. Antes, classList.toggle rodava a cada evento
+  // de scroll (dezenas de vezes por segundo), obrigando o navegador a reavaliar estilos mesmo
+  // quando nada mudava — a sombra depende de .scrolled, que só tem dois estados possíveis.
+  let rolado=false;
   contentEl.addEventListener('scroll',()=>{
-    appEl.classList.toggle('scrolled',contentEl.scrollTop>2);
+    const agora=contentEl.scrollTop>2;
+    if(agora===rolado) return;
+    rolado=agora;
+    appEl.classList.toggle('scrolled',agora);
   },{passive:true});
 })();
 
