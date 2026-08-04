@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0">
 <!-- Sem theme-color estático de propósito: no PWA instalado o iOS ignora essa tag na carga inicial
-     e usa o cinza padrão da barra de status — que é justamente o visual desejado no app normal.
+     e usa o cinza padrão da barra de status – que é justamente o visual desejado no app normal.
      A cor só é aplicada dinamicamente (via aplicarThemeColor) enquanto a tela cheia do cronômetro
      está aberta, pra barra de status combinar com o fundo escuro dela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #header-slot{flex-shrink:0;position:relative;z-index:2}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 /* Quando existe a faixa de voltar logo abaixo do header, a sombra do header cairia SOBRE ela.
-   Nesse caso o header nao projeta sombra — quem projeta e a propria faixa, que e o elemento mais
+   Nesse caso o header nao projeta sombra – quem projeta e a propria faixa, que e o elemento mais
    baixo do conjunto fixo. */
 .app.tem-faixa-voltar.scrolled .header-zone{box-shadow:none}
 .app.tem-faixa-voltar.scrolled .detail-back-sticky{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
@@ -136,7 +136,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-title{font-size:var(--fs-e);font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:6px}
 .content>.section-title:first-child{margin-top:0}
 /* Quando a faixa de voltar e o primeiro elemento, o titulo logo apos ela tambem nao deve ter a
-   margem de 32px — senao abre um vao grande entre os dois. */
+   margem de 32px – senao abre um vao grande entre os dois. */
 .detail-back-sticky+.section-title{margin-top:0}
 .section-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .section-icon svg{width:15px;height:15px;display:block}
@@ -366,7 +366,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    sticky compensava sempre 16px: no tablet e desktop sobrava espaco acima (parecia flutuando) e a
    faixa nao cobria a largura toda, deixando o conteudo aparecer por tras dela ao rolar.
    O `top` tambem precisa ser negativo: num container com scroll, position:sticky gruda no limite
-   do PADDING BOX, nao do topo real — com top:0 a faixa parava sempre a padding-top de distancia
+   do PADDING BOX, nao do topo real – com top:0 a faixa parava sempre a padding-top de distancia
    do topo, mesmo com a margem negativa correta (medido no navegador: 32px sobrando no desktop). */
 .detail-back-sticky{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 14px;padding:14px var(--content-pad-x, 16px) 12px;background:#F9F9F7;border-bottom:0.5px solid #ececea}
 .mtr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
@@ -856,7 +856,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="alarme-anki-modal" style="display:none;z-index:1000001">
   <div class="modal-box">
     <div class="config-title">⏰ Tempo de Anki batido!</div>
-    <p style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo que você definiu já passou. O cronômetro continua contando — soneca ou finaliza quando quiser.</p>
+    <p style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A">O tempo que você definiu já passou. O cronômetro continua contando – soneca ou finaliza quando quiser.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(5)">+5 min</button>
       <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(10)">+10 min</button>
@@ -949,7 +949,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="config-item">
       <div class="config-label">Curso</div>
       <select class="filter-select" id="resolver-curso-select" style="margin-bottom:0">
-        <option value="">— selecione —</option>
+        <option value="">– selecione –</option>
         <option>Curso H</option>
         <option>Catavento</option>
         <option>MPX</option>
@@ -959,7 +959,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="config-item">
       <div class="config-label">Tipo</div>
       <select class="filter-select" id="resolver-tipo-select" style="margin-bottom:0">
-        <option value="">— selecione —</option>
+        <option value="">– selecione –</option>
         <option>Simulado</option>
         <option>Caderno de Exercícios</option>
       </select>
@@ -1299,48 +1299,48 @@ async function posLogin(){
 const EXPLICACOES={
   consistencia:{titulo:'Consistência',corpo:`
     <p><strong>O que é:</strong> em quantos dos últimos dias você teve pelo menos uma sessão registrada.</p>
-    <p><strong>Como é calculado:</strong> a janela é o menor valor entre <strong>21 dias</strong> e o tempo desde a sua primeira sessão. Se você começou há 3 dias, mostra sobre 3 — comparar contra 21 puniria por dias em que o registro nem existia.</p>
+    <p><strong>Como é calculado:</strong> a janela é o menor valor entre <strong>21 dias</strong> e o tempo desde a sua primeira sessão. Se você começou há 3 dias, mostra sobre 3 – comparar contra 21 puniria por dias em que o registro nem existia.</p>
     <p><strong>Por que 21 dias:</strong> janela menor oscila demais a cada dia bom ou ruim; maior demora a refletir mudanças de rotina.</p>
     <p><strong>Por que não "streak":</strong> sequência que zera ao falhar um dia gera ansiedade e não tolera imprevistos. Aqui um dia perdido reduz a porcentagem, mas não apaga o histórico.</p>`},
   mediaDia:{titulo:'Média por dia estudado',corpo:`
     <p><strong>Como é calculado:</strong> tempo total do período ÷ número de dias em que houve estudo.</p>
-    <p><strong>Atenção:</strong> divide pelos dias <em>com</em> estudo, não pelos dias do período. Mede a intensidade típica de uma sessão sua, não a média diluída incluindo dias parados — para isso existe o card de Consistência.</p>`},
+    <p><strong>Atenção:</strong> divide pelos dias <em>com</em> estudo, não pelos dias do período. Mede a intensidade típica de uma sessão sua, não a média diluída incluindo dias parados – para isso existe o card de Consistência.</p>`},
   calendario:{titulo:'Calendário',corpo:`
     <p><strong>O que mostra:</strong> cada quadrado é um dia; quanto mais escuro, mais tempo estudado. Toque em um dia para ver o detalhe.</p>
-    <p><strong>Como a intensidade é definida:</strong> são 5 níveis, calculados por <strong>percentil dos seus próprios dias</strong> — não por valores fixos.</p>
+    <p><strong>Como a intensidade é definida:</strong> são 5 níveis, calculados por <strong>percentil dos seus próprios dias</strong> – não por valores fixos.</p>
     <p><strong>Por quê:</strong> uma escala fixa envelhece. Se 2h fosse "nível máximo", daqui a alguns meses todos os dias ficariam iguais. Usando seus dados, a escala acompanha sua evolução.</p>`},
   ondeInvesti:{titulo:'Onde investi o tempo',corpo:`
     <p><strong>O que mostra:</strong> seu tempo dividido em Módulo → Publicação → Capítulo, e dentro de cada capítulo, cada passagem que você fez por ele.</p>
     <p><strong>Ritmo (car/min):</strong> caracteres lidos ÷ minutos. Só aparece quando você informa os caracteres ao registrar a leitura.</p>
-    <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso — e antecipa a revisão daquele capítulo.</p>`},
+    <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso – e antecipa a revisão daquele capítulo.</p>`},
   histCapitulo:{titulo:'Histórico por capítulo',corpo:`
     <p><strong>O que é:</strong> todas as vezes que você passou por um capítulo, com o tempo e o ritmo de cada passagem.</p>
-    <p><strong>Como usar:</strong> escolha a matéria e, se quiser, a publicação e o capítulo. Os filtros funcionam em cascata — trocar a matéria limpa os de baixo.</p>
+    <p><strong>Como usar:</strong> escolha a matéria e, se quiser, a publicação e o capítulo. Os filtros funcionam em cascata – trocar a matéria limpa os de baixo.</p>
     <p><strong>Importante:</strong> esta seção <em>ignora</em> o filtro de período do topo de propósito. A pergunta aqui é "quantas vezes já li isto", que é sobre o histórico inteiro, não sobre um recorte de tempo.</p>
     <p><strong>Ritmo:</strong> caracteres ÷ minutos daquela passagem. Comparar a 1ª com a 3ª leitura mostra se o conteúdo ficou mais fluido com a repetição.</p>`},
   cobertura:{titulo:'Cobertura da bibliografia',corpo:`
     <p><strong>Como é calculado:</strong> capítulos distintos que você já estudou ÷ total de capítulos previstos na bibliografia oficial.</p>
-    <p><strong>De onde vem o total:</strong> do campo <em>capítulos válidos</em> da tabela de bibliografia — a lista do edital, não uma estimativa.</p>
+    <p><strong>De onde vem o total:</strong> do campo <em>capítulos válidos</em> da tabela de bibliografia – a lista do edital, não uma estimativa.</p>
     <p><strong>Importante:</strong> conta <em>cobertura</em>, não domínio. Um capítulo lido uma vez conta igual a um capítulo revisado cinco vezes. Para saber se o conteúdo ficou, veja Tempo × desempenho.</p>`},
   quadrante:{titulo:'Tempo investido × desempenho',corpo:`
-    <p><strong>O que faz:</strong> cruza duas fontes que viviam separadas — quanto tempo você investiu (sessões) e quanto você acerta (questões).</p>
+    <p><strong>O que faz:</strong> cruza duas fontes que viviam separadas – quanto tempo você investiu (sessões) e quanto você acerta (questões).</p>
     <p><strong>Como classifica:</strong> compara seu tempo no módulo com a <strong>mediana</strong> entre os módulos, e o aproveitamento com o corte de <strong>85,7%</strong> (o mesmo usado nas cores do app).</p>
     <ul>
-      <li><strong>Rever método</strong> — muito tempo e ainda erra: o problema não é falta de horas, é a forma de estudar.</li>
-      <li><strong>Estudar mais</strong> — pouco tempo e erro alto: falta exposição ao conteúdo.</li>
-      <li><strong>Consolidado</strong> — muito tempo e acerta: o investimento virou resultado.</li>
-      <li><strong>Eficiente</strong> — pouco tempo e já acerta: conteúdo que rende sem esforço proporcional.</li>
+      <li><strong>Rever método</strong> – muito tempo e ainda erra: o problema não é falta de horas, é a forma de estudar.</li>
+      <li><strong>Estudar mais</strong> – pouco tempo e erro alto: falta exposição ao conteúdo.</li>
+      <li><strong>Consolidado</strong> – muito tempo e acerta: o investimento virou resultado.</li>
+      <li><strong>Eficiente</strong> – pouco tempo e já acerta: conteúdo que rende sem esforço proporcional.</li>
     </ul>
-    <p><strong>Limitação:</strong> com poucos módulos tendo questões, a mediana perde sentido — se só um módulo tiver questões, ele sempre cairá do lado "muito tempo".</p>`},
+    <p><strong>Limitação:</strong> com poucos módulos tendo questões, a mediana perde sentido – se só um módulo tiver questões, ele sempre cairá do lado "muito tempo".</p>`},
   revisoes:{titulo:'Revisões de hoje',corpo:`
     <p><strong>O que é:</strong> revisão espaçada por capítulo, baseada na curva do esquecimento. Cada leitura registrada agenda a primeira revisão automaticamente.</p>
     <p><strong>Sequência base:</strong> 1 dia → 7 dias → 30 dias → 90 dias. A cada revisão concluída, sobe um nível.</p>
     <p><strong>Como o intervalo é ajustado:</strong></p>
     <ul>
-      <li><strong>Taxa de erro</strong> (sinal forte): acima de 50% de erro, o intervalo cai pela metade; abaixo de 20%, aumenta 50%. Usa o dado mais específico que existir — do capítulo, senão da publicação, senão do módulo.</li>
+      <li><strong>Taxa de erro</strong> (sinal forte): acima de 50% de erro, o intervalo cai pela metade; abaixo de 20%, aumenta 50%. Usa o dado mais específico que existir – do capítulo, senão da publicação, senão do módulo.</li>
       <li><strong>Ritmo de leitura</strong> (sinal fraco): seu ritmo naquele capítulo ÷ seu ritmo médio geral, limitado entre 0,75 e 1,25. Ler mais devagar que o seu normal antecipa a revisão.</li>
     </ul>
-    <p><strong>Por que o ritmo é limitado:</strong> ler devagar é ambíguo — pode ser conteúdo difícil, leitura cuidadosa ou apenas um dia cansado. Serve para ajustar na margem, nunca para dominar a decisão.</p>
+    <p><strong>Por que o ritmo é limitado:</strong> ler devagar é ambíguo – pode ser conteúdo difícil, leitura cuidadosa ou apenas um dia cansado. Serve para ajustar na margem, nunca para dominar a decisão.</p>
     <p><strong>Observação:</strong> só sessões do tipo <em>Leitura</em> geram revisão.</p>`},
   ciclo:{titulo:'Ciclo de estudos',corpo:`
     <p><strong>O que faz:</strong> sugere qual módulo estudar em seguida, garantindo que nenhum fique esquecido.</p>
@@ -1895,7 +1895,7 @@ function abrirEdicaoModuloQuestao(questaoId){
   popularPublicacoesEdicao(q.modulo, q.publicacao);
   popularCapitulosEdicao(q.modulo, q.publicacao, q.capitulo);
   const paginaWrap=document.getElementById('edicao-pagina-wrap');
-  document.getElementById('edicao-pagina-texto').textContent=q.pagina||'— não capturada —';
+  document.getElementById('edicao-pagina-texto').textContent=q.pagina||'– não capturada –';
   paginaWrap.classList.remove('hidden');
   document.getElementById('edicao-modulo-modal').style.display='flex';
 }
@@ -2231,7 +2231,7 @@ async function confirmarNomeAtividade(){
     document.getElementById('caderno-finalizado-texto').textContent=`${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`;
     document.getElementById('caderno-finalizado-modal').style.display='flex';
   }catch(e){
-    alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade — pode tentar de novo com segurança.');
+    alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade – pode tentar de novo com segurança.');
   }finally{
     confirmandoNomeAtividade=false;
   }
@@ -2409,7 +2409,7 @@ function renderAnalise(){
     const pub=s.publicacao||'Sem publicação';
     if(!pubs.has(pub)) pubs.set(pub,new Map());
     const caps=pubs.get(pub);
-    const cap=s.capitulo||'—';
+    const cap=s.capitulo||'–';
     if(!caps.has(cap)) caps.set(cap,[]);
     caps.get(cap).push(s);
   });
@@ -2438,7 +2438,7 @@ function renderAnalise(){
         }).join('');
         return `<div class="cap-group">
           <div class="cap-group-header" onclick="toggleCap('${id}')">
-            <span class="cap-loc">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
+            <span class="cap-loc">${cap==='–'?'Sem capítulo':'Capítulo '+cap}</span>
             <div class="cap-group-right">
               <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
               <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -2497,7 +2497,7 @@ function renderAnalise(){
     // Agrupa por capítulo pra mostrar as passagens de cada um separadamente
     const porCap=new Map();
     sessFiltradas.forEach(s=>{
-      const c=s.capitulo||'—';
+      const c=s.capitulo||'–';
       if(!porCap.has(c)) porCap.set(c,[]);
       porCap.get(c).push(s);
     });
@@ -2510,14 +2510,14 @@ function renderAnalise(){
         return `<div class="quad-item">
           <span class="quad-tag tag-tempo">${fmtDur(x.duracaoMinutos)}</span>
           <div class="quad-txt">
-            <div class="quad-nome">${arr.length-n}ª leitura — ${fmtData(x.data)}</div>
+            <div class="quad-nome">${arr.length-n}ª leitura – ${fmtData(x.data)}</div>
             <div class="quad-det">${x.tipo}${rp?' • '+rp.toLocaleString('pt-BR')+' car/min':''}${x.caracteresLidos?' • '+x.caracteresLidos.toLocaleString('pt-BR')+' caracteres':''}</div>
           </div>
         </div>`;
       }).join('');
       return `<div class="hist-cap-bloco">
         <div class="hist-cap-topo">
-          <span class="hist-cap-nome">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
+          <span class="hist-cap-nome">${cap==='–'?'Sem capítulo':'Capítulo '+cap}</span>
           ${arr.length>1?`<span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>`:''}
         </div>
         ${passagens}
@@ -2621,7 +2621,7 @@ function renderAnalise(){
       <span class="quad-tag" style="color:${x.cor};background:${x.bg}">${x.tag}</span>
       <div class="quad-txt">
         <div class="quad-nome">${x.m}</div>
-        <div class="quad-det">${fmtDur(x.tm)} • ${x.aprov}% de acerto — ${x.dica}</div>
+        <div class="quad-det">${fmtDur(x.tm)} • ${x.aprov}% de acerto – ${x.dica}</div>
       </div>
     </div>`).join('');
 
@@ -2637,7 +2637,7 @@ function renderAnalise(){
       <div class="stat-card"><div class="stat-val">${fmtDur(totalMinP)}</div><div class="stat-lbl">Tempo estudado</div></div>
       <div class="stat-card"><div class="stat-val">${diasDistintosP}</div><div class="stat-lbl">Dias com estudo</div></div>
       <div class="stat-card"><div class="stat-val" style="color:${corConsist}">${diasComEstudo}/${JANELA}</div><div class="stat-lbl">Consistência (${JANELA} dia${JANELA===1?'':'s'}) ${botaoInfo('consistencia')}</div></div>
-      <div class="stat-card"><div class="stat-val">${diasDistintosP?fmtDur(Math.round(totalMinP/diasDistintosP)):'—'}</div><div class="stat-lbl">Média por dia estudado ${botaoInfo('mediaDia')}</div></div>
+      <div class="stat-card"><div class="stat-val">${diasDistintosP?fmtDur(Math.round(totalMinP/diasDistintosP)):'–'}</div><div class="stat-lbl">Média por dia estudado ${botaoInfo('mediaDia')}</div></div>
     </div>
 
     ${sectionTitle('Calendário','calendario','#E6F1FB','#202A45',{direita:botaoInfo('calendario')})}
@@ -2816,7 +2816,7 @@ function renderAprovado(){
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-        const desabilitaAnki=''; // Anki tambem pode ter capitulo — a materia e opcional, nao proibida
+        const desabilitaAnki=''; // Anki tambem pode ter capitulo – a materia e opcional, nao proibida
         if(!timerPublicacao){
           return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
@@ -3126,7 +3126,7 @@ function renderCadernoTimerFullscreenConteudo(){
       <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
       <div class="tf-ref-wrap"></div>
       <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
-      <div class="tf-tipo">${restante===0?'tempo máximo esgotado — pode continuar até finalizar':'tempo restante pra responder'}</div>
+      <div class="tf-tipo">${restante===0?'tempo máximo esgotado – pode continuar até finalizar':'tempo restante pra responder'}</div>
       <div class="tf-btns">
         <button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="abrirCancelarCadernoTimer()">Cancelar</button>
         <button class="tf-btn" style="background:#fff;color:#202A45" onclick="abrirFinalizarCadernoTimer()">Finalizar</button>
@@ -3347,7 +3347,7 @@ function tocarBeepAlarme(){
       osc.start(ctx.currentTime+offset);
       osc.stop(ctx.currentTime+offset+0.3);
     });
-  }catch(e){ /* navegador sem suporte a áudio — segue só com o aviso visual */ }
+  }catch(e){ /* navegador sem suporte a áudio – segue só com o aviso visual */ }
 }
 function checarAlarmeAnki(segAtual){
   if(timerTipo==='Anki'&&timerAnkiAlvoSeg&&segAtual>=timerAnkiAlvoSeg&&!timerAnkiAlarmeDisparado){
@@ -3404,7 +3404,7 @@ function salvarSnapshotSessao(){
         tipo:'caderno',cadernoTimerAtivo,cadernoTimerInicio,
       }));
     }
-  }catch(e){ /* localStorage indisponível (modo privado etc) — sem backup, mas não quebra nada */ }
+  }catch(e){ /* localStorage indisponível (modo privado etc) – sem backup, mas não quebra nada */ }
 }
 function limparSnapshotSessao(){
   try{ localStorage.removeItem(SNAPSHOT_SESSAO_KEY); }catch(e){}
@@ -4231,7 +4231,7 @@ async function verificarFilaBancoPratico(){
     diasParaPreencher=[hojeStr];
   }else{
     const diffDias=Math.round((hoje-ultimaData)/(1000*60*60*24));
-    const diasAPreencher=Math.min(diffDias,7); // teto de 7 dias — não compensa além disso
+    const diasAPreencher=Math.min(diffDias,7); // teto de 7 dias – não compensa além disso
     for(let i=diasAPreencher-1;i>=0;i--){
       const d=new Date(hoje);
       d.setDate(d.getDate()-i);
@@ -4256,7 +4256,7 @@ async function verificarFilaBancoPratico(){
           const ultima=new Date(entradas[entradas.length-1]+'T00:00:00');
           dias=Math.max(1,Math.round((dataRef-ultima)/(1000*60*60*24)));
         }else{
-          dias=999; // nunca sugerida ainda — prioridade máxima
+          dias=999; // nunca sugerida ainda – prioridade máxima
         }
         return {...m,credito:m.peso*dias};
       });
@@ -5140,7 +5140,7 @@ function renderQuestoes(){
       return `<div class="cadernos-item-leve problema">
         <div class="prox-left">
           <span class="prox-nome" style="color:#A32D2D">${tipoAbrevFalha}${ap.nome?' '+ap.nome:''}</span>
-          <span class="prox-modalidade" style="color:#A32D2D">⚠ Falha ao ler ${ap.arquivoComFalha||ap.nomeArquivoOriginal||'este arquivo'}</span>
+          <span class="prox-modalidade" style="color:#A32D2D">⚠ Falha ao ler ${(ap.arquivoComFalha||ap.nomeArquivoOriginal)?'o arquivo '+(ap.arquivoComFalha||ap.nomeArquivoOriginal):'este arquivo'}</span>
           ${ap.motivoFalha?`<span class="prox-modalidade" style="color:#A32D2D;opacity:.8">${ap.motivoFalha}</span>`:''}
         </div>
         <button class="prox-confirm-btn cadernos-btn-largura" style="background:#A32D2D;color:#fff;border-color:#A32D2D;flex-shrink:0" ${ap.reextracaoSolicitada?'disabled':''} onclick="event.stopPropagation();solicitarReextracaoAtividade('${ap.id}')">${ap.reextracaoSolicitada?'Já solicitado':'Tentar de novo'}</button>
