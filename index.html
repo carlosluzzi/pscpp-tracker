@@ -482,6 +482,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .btn-analise-sub{font-size:var(--fs-b);color:#888;display:block;margin-top:1px}
 .btn-analise-seta{font-size:22px;color:#bbb;flex-shrink:0;line-height:1}
 @media(hover:hover){.btn-analise:hover{background:#fcfcfb}}
+/* Historico por capitulo */
+.hist-total{display:flex;gap:14px;flex-wrap:wrap;padding:10px 0 12px;border-bottom:0.5px solid #f0f0ee;margin-bottom:4px;font-size:var(--fs-c);color:#888}
+.hist-total strong{color:#202A45;font-weight:600}
+.hist-cap-bloco{padding-top:10px}
+.hist-cap-bloco+.hist-cap-bloco{border-top:0.5px solid #f0f0ee;margin-top:6px}
+.hist-cap-topo{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+.hist-cap-nome{font-size:var(--fs-d);font-weight:600;color:#111}
+.hist-cap-resumo{font-size:var(--fs-b);color:#888;flex-shrink:0}
+.hist-limpar{font-size:var(--fs-b);color:#888;cursor:pointer;text-align:right;margin:-4px 0 8px}
+@media(hover:hover){.hist-limpar:hover{color:#202A45}}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1301,6 +1311,11 @@ const EXPLICACOES={
     <p><strong>O que mostra:</strong> seu tempo dividido em Módulo → Publicação → Capítulo, e dentro de cada capítulo, cada passagem que você fez por ele.</p>
     <p><strong>Ritmo (car/min):</strong> caracteres lidos ÷ minutos. Só aparece quando você informa os caracteres ao registrar a leitura.</p>
     <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso — e antecipa a revisão daquele capítulo.</p>`},
+  histCapitulo:{titulo:'Histórico por capítulo',corpo:`
+    <p><strong>O que é:</strong> todas as vezes que você passou por um capítulo, com o tempo e o ritmo de cada passagem.</p>
+    <p><strong>Como usar:</strong> escolha a matéria e, se quiser, a publicação e o capítulo. Os filtros funcionam em cascata — trocar a matéria limpa os de baixo.</p>
+    <p><strong>Importante:</strong> esta seção <em>ignora</em> o filtro de período do topo de propósito. A pergunta aqui é "quantas vezes já li isto", que é sobre o histórico inteiro, não sobre um recorte de tempo.</p>
+    <p><strong>Ritmo:</strong> caracteres ÷ minutos daquela passagem. Comparar a 1ª com a 3ª leitura mostra se o conteúdo ficou mais fluido com a repetição.</p>`},
   cobertura:{titulo:'Cobertura da bibliografia',corpo:`
     <p><strong>Como é calculado:</strong> capítulos distintos que você já estudou ÷ total de capítulos previstos na bibliografia oficial.</p>
     <p><strong>De onde vem o total:</strong> do campo <em>capítulos válidos</em> da tabela de bibliografia — a lista do edital, não uma estimativa.</p>
@@ -1387,6 +1402,7 @@ function fmtPct(v){
 }
 
 let telaAnalise=false,analisePeriodo='mes',analiseMesRef=null;
+let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -2230,6 +2246,12 @@ function atualizarDotsHistorico(){
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
 function abrirAnalise(){ telaAnalise=true; analiseMesRef=null; renderTab(tabAtual); }
+// Filtro em cascata do histórico por capítulo: trocar um nível acima limpa os de baixo, senão
+// ficaria uma combinação impossível selecionada (ex: publicação de outro módulo).
+function setHistModulo(v){ histFiltroModulo=v; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
+function setHistPub(v){ histFiltroPub=v; histFiltroCap=''; renderTab(tabAtual,true); }
+function setHistCap(v){ histFiltroCap=v; renderTab(tabAtual,true); }
+function limparFiltroHist(){ histFiltroModulo=''; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
 function fecharAnalise(){ telaAnalise=false; renderTab(tabAtual); }
 function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
 function navegarMesAnalise(delta){
@@ -2443,6 +2465,86 @@ function renderAnalise(){
     </div>`;
   }).join('');
 
+  // ---------- histórico por capítulo (filtro livre) ----------
+  // Responde "quantas vezes já li este capítulo, quanto tempo em cada passagem e a que ritmo".
+  // Usa TODAS as sessões, ignorando o filtro de período de propósito: a pergunta aqui é sobre o
+  // histórico acumulado daquele conteúdo, não sobre um recorte de tempo.
+  const sessComPub=sessoes.filter(s=>s.publicacao);
+  const modsHist=[...new Set(sessComPub.map(s=>s.modulo).filter(Boolean))].sort();
+  const pubsHist=[...new Set(sessComPub.filter(s=>!histFiltroModulo||s.modulo===histFiltroModulo).map(s=>s.publicacao))].sort();
+  const capsHist=[...new Set(sessComPub
+    .filter(s=>(!histFiltroModulo||s.modulo===histFiltroModulo)&&(!histFiltroPub||s.publicacao===histFiltroPub))
+    .map(s=>s.capitulo||'').filter(Boolean))].sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
+
+  const temFiltro=histFiltroModulo||histFiltroPub||histFiltroCap;
+  const sessFiltradas=sessComPub.filter(s=>
+    (!histFiltroModulo||s.modulo===histFiltroModulo)&&
+    (!histFiltroPub||s.publicacao===histFiltroPub)&&
+    (!histFiltroCap||String(s.capitulo||'')===histFiltroCap));
+
+  let resultadoHist='';
+  if(!temFiltro){
+    resultadoHist='<div class="empty" style="padding:20px 8px">Escolha uma matéria para ver o histórico de leituras.</div>';
+  }else if(!sessFiltradas.length){
+    resultadoHist='<div class="empty" style="padding:20px 8px">Nenhuma leitura registrada com esses filtros.</div>';
+  }else{
+    const totMin=sessFiltradas.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+    const totCar=sessFiltradas.reduce((a,s)=>a+(s.caracteresLidos||0),0);
+    const ritmoMedio=(totCar>0&&totMin>0)?Math.round(totCar/totMin):null;
+    // Agrupa por capítulo pra mostrar as passagens de cada um separadamente
+    const porCap=new Map();
+    sessFiltradas.forEach(s=>{
+      const c=s.capitulo||'—';
+      if(!porCap.has(c)) porCap.set(c,[]);
+      porCap.get(c).push(s);
+    });
+    const blocos=[...porCap.entries()].sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)).map(([cap,arr])=>{
+      const min=arr.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+      const car=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
+      const r=(car>0&&min>0)?Math.round(car/min):null;
+      const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
+        const rp=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
+        return `<div class="quad-item">
+          <span class="quad-tag tag-tempo">${fmtDur(x.duracaoMinutos)}</span>
+          <div class="quad-txt">
+            <div class="quad-nome">${arr.length-n}ª leitura — ${fmtData(x.data)}</div>
+            <div class="quad-det">${x.tipo}${rp?' • '+rp.toLocaleString('pt-BR')+' car/min':''}${x.caracteresLidos?' • '+x.caracteresLidos.toLocaleString('pt-BR')+' caracteres':''}</div>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="hist-cap-bloco">
+        <div class="hist-cap-topo">
+          <span class="hist-cap-nome">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
+          <span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+        </div>
+        ${passagens}
+      </div>`;
+    }).join('');
+    resultadoHist=`
+      <div class="hist-total">
+        <span><strong>${sessFiltradas.length}</strong> leitura${sessFiltradas.length===1?'':'s'}</span>
+        <span><strong>${fmtDur(totMin)}</strong> no total</span>
+        ${ritmoMedio?`<span><strong>${ritmoMedio.toLocaleString('pt-BR')}</strong> car/min</span>`:''}
+      </div>
+      ${blocos}`;
+  }
+
+  const filtroHistHtml=`
+    <select class="filter-select" onchange="setHistModulo(this.value)">
+      <option value="">Todas as matérias</option>
+      ${modsHist.map(m=>`<option value="${m}" ${histFiltroModulo===m?'selected':''}>${m}</option>`).join('')}
+    </select>
+    <select class="filter-select" onchange="setHistPub(this.value)" ${pubsHist.length?'':'disabled'}>
+      <option value="">Todas as publicações</option>
+      ${pubsHist.map(p=>`<option value="${p.replace(/"/g,'&quot;')}" ${histFiltroPub===p?'selected':''}>${nomePub(p)}</option>`).join('')}
+    </select>
+    <select class="filter-select" onchange="setHistCap(this.value)" ${capsHist.length?'':'disabled'}>
+      <option value="">Todos os capítulos</option>
+      ${capsHist.map(c=>`<option value="${c}" ${histFiltroCap===c?'selected':''}>Capítulo ${c}</option>`).join('')}
+    </select>
+    ${temFiltro?`<div class="hist-limpar" onclick="limparFiltroHist()">limpar filtros</div>`:''}
+  `;
+
   // ---------- cobertura da bibliografia ----------
   // Usa capitulos_validos do edital real — por isso mede cobertura de verdade, nao estimativa.
   const capsEstudados=new Map();
@@ -2532,6 +2634,12 @@ function renderAnalise(){
     ${sectionTitle('Onde investi o tempo','pormodulo','#E6F1FB','#202A45',{direita:botaoInfo('ondeInvesti')})}
     <div class="card-inicio">
       ${detalheHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão no período selecionado.</div>'}
+    </div>
+
+    ${sectionTitle('Histórico por capítulo','livro','#E6F1FB','#202A45',{direita:botaoInfo('histCapitulo')})}
+    <div class="card-inicio">
+      ${filtroHistHtml}
+      ${resultadoHist}
     </div>
 
     ${sectionTitle('Cobertura da bibliografia','lista','#E6F1FB','#202A45',{direita:botaoInfo('cobertura')})}
