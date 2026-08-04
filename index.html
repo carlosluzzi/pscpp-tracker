@@ -475,6 +475,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .banco-alt-btn:disabled{cursor:default;opacity:0.85}
 .banco-resultado{font-size:var(--fs-e);font-weight:600;margin-top:16px;padding:10px 0;text-align:center}
 .banco-contador{font-size:var(--fs-c);color:#888;text-align:center;margin-top:14px}
+/* Menu de sub-abas do Aprovado. Fica grudado no topo da area rolavel (mesma tecnica da faixa de
+   voltar: top e margens negativas compensando o padding do .content, que muda por breakpoint). */
+.sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;gap:4px;
+  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 16px;
+  padding:10px var(--content-pad-x, 16px);background:#F9F9F7;border-bottom:0.5px solid #ececea}
+.sub-aba{flex:1;text-align:center;padding:9px 8px;border-radius:9px;cursor:pointer;
+  font-size:var(--fs-d);font-weight:500;color:#8a8f9a;background:transparent;
+  transition:color .15s ease,background .15s ease;user-select:none}
+.sub-aba.ativa{background:#202A45;color:#fff;font-weight:600}
+@media(hover:hover){.sub-aba:not(.ativa):hover{background:#f0f0ee;color:#555}}
+/* Primeira secao logo apos as abas nao precisa da margem de 32px */
+.sub-abas+.section-title{margin-top:0}
 /* Botao de entrada da Analise — card clicavel inteiro, primeiro item da aba */
 .btn-analise{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
 .btn-analise-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -1403,7 +1415,7 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let telaAnalise=false,analisePeriodo='mes',analiseMesRef=null;
+let abaAprovado='nova',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
@@ -1623,7 +1635,6 @@ async function loadDataInterno(){
 function showTab(tab){
   tabAtual=tab;
   atividadeAtual=null;
-  telaAnalise=false;
   ['inicio','atividades','questoes','aprovado'].forEach(t=>{
     document.getElementById('nav-'+t).classList.toggle('active',t===tab);
   });
@@ -1633,12 +1644,10 @@ function showTab(tab){
 function renderTab(tab,preservarScroll){
   const c=document.getElementById('content');
   const scrollAnterior=preservarScroll?c.scrollTop:0;
-  const isInicio=tab==='inicio'&&!atividadeAtual&&!telaAnalise;
+  const isInicio=tab==='inicio'&&!atividadeAtual;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
-  document.querySelector('.app').classList.toggle('tem-faixa-voltar',!!telaAnalise);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
-  if(telaAnalise){c.innerHTML=renderAnalise();c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
@@ -2256,14 +2265,19 @@ function atualizarDotsHistorico(){
   paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
-function abrirAnalise(){ telaAnalise=true; analiseMesRef=null; renderTab(tabAtual); }
+function setAbaAprovado(qual){
+  abaAprovado=qual;
+  if(qual==='historico') analiseMesRef=null;
+  const c=document.getElementById('content');
+  if(c) c.scrollTop=0;   // troca de aba volta pro topo, como o usuário espera
+  renderTab(tabAtual);
+}
 // Filtro em cascata do histórico por capítulo: trocar um nível acima limpa os de baixo, senão
 // ficaria uma combinação impossível selecionada (ex: publicação de outro módulo).
 function setHistModulo(v){ histFiltroModulo=v; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
 function setHistPub(v){ histFiltroPub=v; histFiltroCap=''; renderTab(tabAtual,true); }
 function setHistCap(v){ histFiltroCap=v; renderTab(tabAtual,true); }
 function limparFiltroHist(){ histFiltroModulo=''; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
-function fecharAnalise(){ telaAnalise=false; renderTab(tabAtual); }
 function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
 function navegarMesAnalise(delta){
   const base=analiseMesRef?new Date(analiseMesRef+'T12:00:00'):new Date();
@@ -2313,7 +2327,7 @@ function chaveDia(d){
 function renderAnalise(){
   const sessoes=sessoesEstudo||[];
   if(!sessoes.length){
-    return `<div class="empty" style="padding:60px 20px">Nenhuma sessão de estudo registrada ainda.<br><span style="font-size:var(--fs-c)">Use o cronômetro na aba Aprovado para começar.</span></div>`;
+    return `<div class="empty" style="padding:40px 20px">Nenhuma sessão de estudo registrada ainda.<br><span style="font-size:var(--fs-c)">Use o cronômetro em "Nova atividade" para começar.</span></div>`;
   }
 
   // ---------- minutos por dia ----------
@@ -2636,7 +2650,6 @@ function renderAnalise(){
   // ---------- montagem ----------
   const periodos=[['dia','Hoje'],['semana','Semana'],['mes','Mês'],['tudo','Tudo']];
   return `
-    <div class="detail-back detail-back-sticky" onclick="fecharAnalise()">← Aprovado</div>
     ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.002 19.732L16.351 22h-1.004l.982-2.143H15V17h3.002zm3.998 0L20.349 22h-1.003l.982-2.143H19V17h3zM13 20H2v-2h11zm9-7H2v-2h20zM3.672 4.143H5V7H2V4.268L3.651 2h1.003zm3.999 0H9V7H5.998V4.268L7.649 2h1.004zM22 6H11V4h11z"/></svg>`})}
     <div class="filter-row periodo-row" style="margin-bottom:12px">
       ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
@@ -2766,18 +2779,31 @@ function renderAprovado(){
     </div>`;
   }).join('');
 
-  return `
-    <div class="card-inicio btn-analise" onclick="abrirAnalise()">
-      <div class="btn-analise-left">
-        <span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('grafico')}</span>
-        <div>
-          <span class="btn-analise-titulo">Análise completa</span>
-          <span class="btn-analise-sub">Calendário, cobertura do edital e desempenho</span>
-        </div>
-      </div>
-      <span class="btn-analise-seta">›</span>
+  // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
+  // A antiga tela separada de Análise foi absorvida pela aba Histórico.
+  const abasHtml=`
+    <div class="sub-abas">
+      <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')">Nova atividade</div>
+      <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')">Histórico</div>
+    </div>`;
+
+  if(abaAprovado==='historico'){
+    return abasHtml+`
+    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
     </div>
 
+    ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${historicoHtml}
+    </div>
+
+    ${renderAnalise()}
+    `;
+  }
+
+  return abasHtml+`
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span>${botaoInfo('ciclo')}</div>
@@ -2866,16 +2892,6 @@ function renderAprovado(){
     </div>
     <div class="card-inicio">
       ${metasHtml||'<div class="empty" style="padding:16px 8px">Nenhuma meta configurada ainda.</div>'}
-    </div>
-
-    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
-    <div class="card-inicio">
-      ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
-    </div>
-
-    ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
-    <div class="card-inicio">
-      ${historicoHtml}
     </div>
   `;
 }
