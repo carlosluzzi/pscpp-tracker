@@ -482,9 +482,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    contínua com o conteúdo abaixo, e as inativas permanecem fechadas acima dela. */
 .sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;
   align-items:flex-end;
-  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 12px;
-  padding:14px var(--content-pad-x, 16px) 0;background:#F9F9F7;
-  border-bottom:1px solid #cfcfc6}
+  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 4px;
+  padding:0 var(--content-pad-x, 16px) 12px;background:#F9F9F7}
+/* A linha vira pseudo-elemento em vez de border-bottom: assim ela fica colada na base das abas,
+   e os 12px de padding abaixo dela continuam sendo fundo opaco. É esse trecho opaco que impede
+   o conteúdo de encostar na linha ao passar por trás durante a rolagem — margin-bottom não
+   resolveria, porque o conteúdo desliza por baixo do container sticky, não depois dele. */
+.sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#cfcfc6}
 /* Aba de fichário. A inclinação das laterais vem de perspective+rotateX (e não de clip-path),
    porque assim os cantos arredondados continuam funcionando — clip-path só faz bicos retos.
    O fundo fica num ::before (que recebe o transform) e o texto num <span> por cima, fora do
@@ -494,20 +498,23 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Altura fixa + flex centralizado: o texto fica no meio exato entre a borda de cima da aba e a
    linha de base, em vez de depender de padding calculado na mão. */
 .sub-aba{flex:1;cursor:pointer;position:relative;z-index:1;isolation:isolate;user-select:none;
-  margin-bottom:-1px;height:48px;display:flex;align-items:center;justify-content:center}
+  margin-bottom:-1px;height:40px;display:flex;align-items:center;justify-content:center}
 .sub-aba+.sub-aba{margin-left:-10px}
 .sub-aba.ativa{z-index:3}
 /* A inativa é fechada (arredondada nos 4 cantos, apoiada sobre a linha); a ativa é aberta
    embaixo — sem border-bottom e sem raio inferior — pra "cortar" a linha de base e ficar
    contínua com o conteúdo. */
 .sub-aba::before{content:'';position:absolute;inset:0;background:#EFEFEA;
-  border:1px solid #e0e0d8;border-radius:8px;
+  border:1px solid #e0e0d8;border-radius:8px 8px 6px 6px;
   transform:perspective(7px) rotateX(1.3deg);transform-origin:bottom;z-index:-1;
   transition:background .15s ease,border-color .15s ease}
 .sub-aba.ativa::before{background:#F9F9F7;border-color:#cfcfc6;
   border-bottom:none;border-radius:8px 8px 0 0}
+/* O padding-top de 4px compensa o deslocamento do fundo: o transform (perspective+rotateX com
+   origem na base) empurra o fundo visual ~2px pra baixo em relação à caixa lógica, então um
+   texto centralizado por flex ficava 2px acima do centro real da aba. Medido em render. */
 .sub-aba span{font-size:var(--fs-d);font-weight:500;color:#a0a4ad;line-height:1;
-  transition:color .15s ease}
+  padding-top:4px;transition:color .15s ease}
 .sub-aba.ativa span{color:#202A45;font-weight:700}
 @media(hover:hover){.sub-aba:not(.ativa):hover::before{background:#e7e7e0}
   .sub-aba:not(.ativa):hover span{color:#8a8e97}}
