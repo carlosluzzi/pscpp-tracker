@@ -483,8 +483,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .btn-analise-seta{font-size:22px;color:#bbb;flex-shrink:0;line-height:1}
 @media(hover:hover){.btn-analise:hover{background:#fcfcfb}}
 /* Historico por capitulo */
-.hist-total{display:flex;gap:14px;flex-wrap:wrap;padding:10px 0 12px;border-bottom:0.5px solid #f0f0ee;margin-bottom:4px;font-size:var(--fs-c);color:#888}
-.hist-total strong{color:#202A45;font-weight:600}
+.hist-total{display:flex;gap:8px;padding:4px 0 14px;margin-bottom:2px}
+.hist-total-item{flex:1;background:#F7F8FA;border-radius:10px;padding:10px 8px;text-align:center;min-width:0}
+.hist-total-val{display:block;font-size:var(--fs-e);font-weight:700;color:#202A45;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-total-lbl{display:block;font-size:var(--fs-a);color:#8a8f9a;margin-top:2px}
 .hist-cap-bloco{padding-top:10px}
 .hist-cap-bloco+.hist-cap-bloco{border-top:0.5px solid #f0f0ee;margin-top:6px}
 .hist-cap-topo{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
@@ -2498,6 +2500,7 @@ function renderAnalise(){
       if(!porCap.has(c)) porCap.set(c,[]);
       porCap.get(c).push(s);
     });
+    const varosCapitulos=porCap.size>1;
     const blocos=[...porCap.entries()].sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)).map(([cap,arr])=>{
       const min=arr.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
       const car=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
@@ -2515,16 +2518,25 @@ function renderAnalise(){
       return `<div class="hist-cap-bloco">
         <div class="hist-cap-topo">
           <span class="hist-cap-nome">${cap==='—'?'Sem capítulo':'Capítulo '+cap}</span>
-          <span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+          ${varosCapitulos?`<span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>`:''}
         </div>
         ${passagens}
       </div>`;
     }).join('');
     resultadoHist=`
       <div class="hist-total">
-        <span><strong>${sessFiltradas.length}</strong> leitura${sessFiltradas.length===1?'':'s'}</span>
-        <span><strong>${fmtDur(totMin)}</strong> no total</span>
-        ${ritmoMedio?`<span><strong>${ritmoMedio.toLocaleString('pt-BR')}</strong> car/min</span>`:''}
+        <div class="hist-total-item">
+          <span class="hist-total-val">${sessFiltradas.length}</span>
+          <span class="hist-total-lbl">leitura${sessFiltradas.length===1?'':'s'}</span>
+        </div>
+        <div class="hist-total-item">
+          <span class="hist-total-val">${fmtDur(totMin)}</span>
+          <span class="hist-total-lbl">tempo total</span>
+        </div>
+        ${ritmoMedio?`<div class="hist-total-item">
+          <span class="hist-total-val">${ritmoMedio.toLocaleString('pt-BR')}</span>
+          <span class="hist-total-lbl">car/min médio</span>
+        </div>`:''}
       </div>
       ${blocos}`;
   }
