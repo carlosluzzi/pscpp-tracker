@@ -110,7 +110,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     --fs-e:19px; --fs-f:22px; --fs-g:23px; --fs-h:29px;
   }
   body{display:flex;background:#f5f5f3}
-  .app{max-width:100%;width:100%;margin:0;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto auto 1fr;padding-bottom:0}
+  .app{max-width:100%;width:100%;margin:0;display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto auto auto 1fr;padding-bottom:0}
   /* header ocupa a linha de cima, span nas duas colunas — antes não tinha posição explícita e caía numa linha implícita de altura zero, sumindo */
   .topbar{grid-column:1/-1;grid-row:1;max-width:100%;margin:0;padding:18px 32px 14px;z-index:20}
   #header-slot{grid-column:1/-1;grid-row:1}
@@ -120,8 +120,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   .nav-item.active{background:#f0f0ee}
   .nav-icon{width:18px;height:18px}
   .nav-label{font-size:var(--fs-e)}
-  #ptr-indicator{grid-column:2;grid-row:2;align-self:start;width:100%}
-  .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:3;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
+  /* No desktop o menu vira barra lateral (coluna 1), entao as sub-abas ficam so na coluna do
+     conteudo — sem isso passariam por cima da barra. */
+  #sub-abas-slot{grid-column:2;grid-row:2;align-self:start;width:100%;padding:0 48px;max-width:1320px;box-sizing:border-box}
+  #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
+  .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
   .stat-card{padding:16px}
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -479,9 +482,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* A linha de base atravessa a tela inteira (de ponta a ponta, graças às margens negativas que
    compensam o padding do .content). As abas se apoiam nela; a ativa a interrompe, ficando
    contínua com o conteúdo abaixo, e as inativas permanecem fechadas acima dela. */
-.sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;
-  margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 4px;
-  padding:8px 0 12px;background:#F9F9F7}
+.sub-abas{display:flex;background:#F9F9F7;padding:8px 0 12px;position:relative;flex-shrink:0}
 /* Navegação secundária no topo, seguindo a mesma linguagem do menu de baixo: sem fundo de
    botão, só o texto mudando de peso e cor, com um realce sutil no item ativo. Antes isso era
    desenhado como aba de fichário (lateral inclinada, sobreposição) — trocado porque o app já
@@ -490,6 +491,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    A linha de base separa a navegação do conteúdo; os 12px abaixo dela são fundo opaco, pra o
    conteúdo não encostar na linha ao passar por trás durante a rolagem. */
 .sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#ececea}
+#sub-abas-slot{flex-shrink:0;background:#F9F9F7}
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
   padding:14px 8px;transition:background .15s ease}
 .sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease}
@@ -497,7 +499,6 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sub-aba.ativa span{color:#202A45;font-weight:500}
 @media(hover:hover){.sub-aba:not(.ativa):hover span{color:#555}}
 /* Primeira secao logo apos as abas nao precisa da margem de 32px */
-.sub-abas+.section-title{margin-top:0}
 /* Botao de entrada da Analise — card clicavel inteiro, primeiro item da aba */
 .btn-analise{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
 .btn-analise-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -1022,6 +1023,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 
   <div id="header-slot"></div>
+
+  <div id="sub-abas-slot"></div>
 
   <div id="ptr-indicator">
     <svg id="ptr-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -1658,6 +1661,30 @@ function showTab(tab){
   renderTab(tab);
 }
 
+// As sub-abas vivem FORA do .content de propósito. Dentro dele elas eram arrastadas junto no
+// pull-to-refresh (o gesto move a área rolável inteira) e o padding do conteúdo abria uma faixa
+// sem pintura entre o cabeçalho e elas. Aqui ficam ancoradas ao cabeçalho de verdade.
+function renderSubAbas(tab){
+  const slot=document.getElementById('sub-abas-slot');
+  if(!slot) return;
+  if(atividadeAtual){ slot.innerHTML=''; return; }
+  if(tab==='aprovado'){
+    slot.innerHTML=`<div class="sub-abas">
+      <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')"><span>Nova atividade</span></div>
+      <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')"><span>Histórico</span></div>
+    </div>`;
+    return;
+  }
+  if(tab==='atividades'&&atividades.some(a=>a.curso===CURSO_PILOTQUEST)){
+    slot.innerHTML=`<div class="sub-abas">
+      <div class="sub-aba${abaDesempenho==='provas'?' ativa':''}" onclick="setAbaDesempenho('provas')"><span>Provas</span></div>
+      <div class="sub-aba${abaDesempenho==='pilotquest'?' ativa':''}" onclick="setAbaDesempenho('pilotquest')"><span>Pilotquest</span></div>
+    </div>`;
+    return;
+  }
+  slot.innerHTML='';
+}
+
 function renderTab(tab,preservarScroll){
   const c=document.getElementById('content');
   const scrollAnterior=preservarScroll?c.scrollTop:0;
@@ -1671,6 +1698,7 @@ function renderTab(tab,preservarScroll){
   );
   document.querySelector('.app').classList.toggle('tem-sub-abas',temSubAbas);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
+  renderSubAbas(tab);
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
@@ -2819,14 +2847,9 @@ function renderAprovado(){
 
   // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
-  const abasHtml=`
-    <div class="sub-abas">
-      <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')"><span>Nova atividade</span></div>
-      <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')"><span>Histórico</span></div>
-    </div>`;
 
   if(abaAprovado==='historico'){
-    return abasHtml+`
+    return `
     ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
     <div class="card-inicio">
       ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
@@ -2841,7 +2864,7 @@ function renderAprovado(){
     `;
   }
 
-  return abasHtml+`
+  return `
     <div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alvo')}</span><span style="color:#202A45">Ciclo de estudos</span>${botaoInfo('ciclo')}</div>
@@ -4690,10 +4713,6 @@ function renderAtividades(){
   const temPilotquest=atividades.some(a=>a.curso===CURSO_PILOTQUEST);
 
   return `
-    ${temPilotquest?`<div class="sub-abas">
-      <div class="sub-aba${abaDesempenho==='provas'?' ativa':''}" onclick="setAbaDesempenho('provas')"><span>Provas</span></div>
-      <div class="sub-aba${abaDesempenho==='pilotquest'?' ativa':''}" onclick="setAbaDesempenho('pilotquest')"><span>Pilotquest</span></div>
-    </div>`:''}
     <div class="filter-row">
       <select class="filter-select" onchange="setFiltCurso(this.value)" style="flex:1;margin-bottom:0">
         <option value="todos"${filtCurso==='todos'?' selected':''}>Todos os cursos</option>
