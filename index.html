@@ -98,7 +98,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   .ativ-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .ativ-card{margin-bottom:0}
   .mods{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .nav-label{font-size:var(--fs-b)}
+  .nav-label{font-size:var(--fs-c)}
   .header-zone{padding:calc(env(safe-area-inset-top, 0px) + 18px) 24px 14px}
   .mobile-break{display:none}
 }
@@ -480,9 +480,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    compensam o padding do .content). As abas se apoiam nela; a ativa a interrompe, ficando
    contínua com o conteúdo abaixo, e as inativas permanecem fechadas acima dela. */
 .sub-abas{position:sticky;top:calc(var(--content-pad-y, 16px) * -1);z-index:5;display:flex;
-  gap:4px;
   margin:calc(var(--content-pad-y, 16px) * -1) calc(var(--content-pad-x, 16px) * -1) 4px;
-  padding:8px var(--content-pad-x, 16px) 12px;background:#F9F9F7}
+  padding:8px 0 12px;background:#F9F9F7}
 /* Navegação secundária no topo, seguindo a mesma linguagem do menu de baixo: sem fundo de
    botão, só o texto mudando de peso e cor, com um realce sutil no item ativo. Antes isso era
    desenhado como aba de fichário (lateral inclinada, sobreposição) — trocado porque o app já
@@ -492,9 +491,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    conteúdo não encostar na linha ao passar por trás durante a rolagem. */
 .sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#ececea}
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
-  padding:11px 8px;border-radius:10px;
-  transition:background .15s ease}
-.sub-aba span{font-size:var(--fs-d);color:#888;font-weight:400;transition:color .15s ease}
+  padding:14px 8px;transition:background .15s ease}
+.sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease}
 .sub-aba.ativa{background:#f0f0ee}
 .sub-aba.ativa span{color:#202A45;font-weight:500}
 @media(hover:hover){.sub-aba:not(.ativa):hover span{color:#555}}
