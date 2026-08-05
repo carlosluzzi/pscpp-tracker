@@ -495,7 +495,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
   padding:14px 8px;transition:background .15s ease}
 .sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease}
-.sub-aba.ativa{background:#f0f0ee}
+/* A seleção é marcada por um traço azul embaixo, não por cor de fundo: como o fundo do
+   cabeçalho e o da página são iguais, uma aba inativa "pintada" ou some (se for clara demais)
+   ou pesa mais que a selecionada (se for escura). O traço resolve sem esse dilema. */
+.sub-aba.ativa{background:#f0f0ee;position:relative}
+.sub-aba.ativa::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:#202A45}
 .sub-aba.ativa span{color:#202A45;font-weight:500}
 @media(hover:hover){.sub-aba:not(.ativa):hover span{color:#555}}
 /* Primeira secao logo apos as abas nao precisa da margem de 32px */
@@ -1344,7 +1348,7 @@ const EXPLICACOES={
     <p><strong>O que mostra:</strong> seu tempo dividido em Módulo → Publicação → Capítulo, e dentro de cada capítulo, cada passagem que você fez por ele.</p>
     <p><strong>Ritmo (car/min):</strong> caracteres lidos ÷ minutos. Só aparece quando você informa os caracteres ao registrar a leitura.</p>
     <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso – e antecipa a revisão daquele capítulo.</p>`},
-  histCapitulo:{titulo:'Histórico por capítulo',corpo:`
+  histCapitulo:{titulo:'Histórico por matéria',corpo:`
     <p><strong>O que é:</strong> todas as vezes que você passou por um capítulo, com o tempo e o ritmo de cada passagem.</p>
     <p><strong>Como usar:</strong> escolha a matéria e, se quiser, a publicação e o capítulo. Os filtros funcionam em cascata – trocar a matéria limpa os de baixo.</p>
     <p><strong>Importante:</strong> esta seção <em>ignora</em> o filtro de período do topo de propósito. A pergunta aqui é "quantas vezes já li isto", que é sobre o histórico inteiro, não sobre um recorte de tempo.</p>
@@ -2735,7 +2739,7 @@ function renderAnalise(){
       ${detalheHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão no período selecionado.</div>'}
     </div>
 
-    ${sectionTitle('Histórico por capítulo','livro','#E6F1FB','#202A45',{direita:botaoInfo('histCapitulo')})}
+    ${sectionTitle('Histórico por matéria','livro','#E6F1FB','#202A45',{direita:botaoInfo('histCapitulo')})}
     <div class="card-inicio">
       ${filtroHistHtml}
       ${resultadoHist}
@@ -2765,12 +2769,6 @@ function renderAprovado(){
   const tiposEstudo=['Leitura','Exercício','Revisão','Anki'];
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const seteDiasAtras=new Date(hoje);seteDiasAtras.setDate(seteDiasAtras.getDate()-6);
-  const sessoesRecentes=sessoesEstudo.filter(s=>new Date(s.data+'T00:00:00')>=seteDiasAtras);
-  const minutosPorModulo={};
-  sessoesRecentes.forEach(s=>{ minutosPorModulo[s.modulo]=(minutosPorModulo[s.modulo]||0)+s.duracaoMinutos; });
-  const totalMinutos=Object.values(minutosPorModulo).reduce((a,b)=>a+b,0);
-
   const hojeStr=hoje.toISOString().slice(0,10);
   const revisoesVencidas=revisoesEspacadas.filter(r=>r.proximaData<=hojeStr).sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
   const revisoesHtml=revisoesVencidas.map(r=>{
@@ -2787,21 +2785,6 @@ function renderAprovado(){
     </div>`;
   }).join('');
 
-  const graficoHtml=modulosPscpp.filter(m=>minutosPorModulo[m]).map(m=>{
-    const min=minutosPorModulo[m];
-    const pct=totalMinutos?Math.round(min/totalMinutos*100):0;
-    const cc=modCores[m];
-    const horas=(min/60).toFixed(1).replace('.0','');
-    return `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:var(--fs-c);margin-bottom:3px">
-        <span>${m}</span><span style="color:#888">${horas}h</span>
-      </div>
-      <div class="pub-bar-bg"><div class="pub-bar-fill" style="width:${pct}%;background:${cc.tx}"></div></div>
-    </div>`;
-  }).join('');
-
-  // Histórico paginado de 5 em 5, deslizando pro lado — mantém o card curto sem esconder o
-  // histórico. Reaproveita o carrossel com scroll-snap que já existia no CSS.
   const historicoItens=sessoesEstudo.slice(0,20).map(s=>{
     const refCompleta=s.publicacao||'';
     // Capítulo e ritmo de leitura entram na 2a linha quando existem — o dado já era salvo no
@@ -2849,18 +2832,16 @@ function renderAprovado(){
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
 
   if(abaAprovado==='historico'){
+    // "Horas por matéria – últimos 7 dias" foi removida: "Onde investi o tempo" mostra a mesma
+    // informação de forma mais completa (com hierarquia até o capítulo e filtro de período).
+    // O Histórico corrido fica por último, depois das análises.
     return `
-    ${sectionTitle('Horas por matéria – últimos 7 dias','grafico','#E6F1FB','#202A45')}
-    <div class="card-inicio">
-      ${graficoHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão registrada ainda.</div>'}
-    </div>
+    ${renderAnalise()}
 
     ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
       ${historicoHtml}
     </div>
-
-    ${renderAnalise()}
     `;
   }
 
