@@ -2406,6 +2406,26 @@ async function confirmarNomeAtividade(){
       throw eQuest;
     }
 
+    // O tempo gasto resolvendo vira sessão de estudo, para contar no Aprovado junto com
+    // leitura e Anki. O tipo espelha o da atividade: 'Simulado' para prova completa,
+    // 'Exercício' para caderno. Se a sessão falhar, não desfaz o resto — o registro do
+    // desempenho é o que importa, e o tempo pode ser lançado à mão depois.
+    const minutosGastos=ap.tempoGastoSegundos?Math.round(ap.tempoGastoSegundos/60):0;
+    if(minutosGastos>=1){
+      // Módulo só quando todas as questões forem da mesma matéria; misturado fica em branco
+      // e o app exibe como "PSCPP", que é o rótulo de estudo geral.
+      const modulos=[...new Set(qs.map(q=>q.modulo).filter(Boolean))];
+      const {error:eSessao}=await sbDados.from('sessoes_estudo').insert({
+        tipo: ap.tipo==='Simulado' ? 'Simulado' : 'Exercício',
+        duracao_minutos: minutosGastos,
+        data: ap.dataAtividade||new Date().toISOString().slice(0,10),
+        modulo: modulos.length===1 ? modulos[0] : null,
+        publicacao: nomeAtividade.trim(),
+        origem: ap.curso||null,
+      });
+      if(eSessao) console.error('Não foi possível registrar a sessão de estudo:',eSessao);
+    }
+
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
     if(eStatus){
       // mesma lógica: desfaz os dois inserts anteriores, que já tinham dado certo
