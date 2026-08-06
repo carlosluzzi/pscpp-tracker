@@ -1374,6 +1374,16 @@ const EXPLICACOES={
     <p><strong>Atenção agora:</strong> onde você está abaixo do alvo, ordenado por urgência real.</p>
     <p><strong>Risco escondido:</strong> onde você acerta na prova mas o conteúdo não está fixado, ou não há cards. Tende a evaporar sem aviso.</p>
     <p><strong>Limitação:</strong> enquanto o Anki não tiver cards maduros e o Pilotquest não tiver cadernos, o diagnóstico usa só os simulados – e não consegue separar os casos que dependem das outras fontes.</p>`},
+  ankiDurabilidade:{titulo:'Durabilidade na memória',corpo:`
+    <p><strong>O que é estabilidade:</strong> o número de dias até a chance de você lembrar daquele conteúdo cair para 90%. Se um card tem estabilidade 45, passarão 45 dias antes de a memória começar a ficar frágil.</p>
+    <p><strong>Por que não usamos "intervalo":</strong> o intervalo é uma decisão de agendamento – pode estar curto porque você voltou de férias e os cards foram reagendados. A estabilidade é medida da sua memória, independente de quando o card aparece.</p>
+    <p><strong>Dificuldade (1 a 10):</strong> o quanto aquele conteúdo é inerentemente complexo para você. Cards com dificuldade alta são candidatos a reformular ou dividir em dois.</p>
+    <p><strong>Só conta cards já revisados.</strong> Card nunca visto não tem estado de memória – não é falha, é que ainda não há o que medir.</p>`},
+  ankiEsquecido:{titulo:'O que você já esqueceu',corpo:`
+    <p><strong>O que é:</strong> os cards cuja chance de recordação está abaixo de 70% <em>neste momento</em>. Não é histórico – é o estado agora.</p>
+    <p><strong>A pergunta que responde:</strong> se a prova fosse amanhã, o que você provavelmente não lembraria?</p>
+    <p><strong>Como é calculado:</strong> pela fórmula do FSRS, que combina a estabilidade do card com o tempo desde a última revisão. Quanto mais tempo passa sem revisar, menor a chance de lembrar.</p>
+    <p><strong>Atenção ao momento:</strong> esse valor muda todo dia. O número mostrado é do instante em que os dados foram sincronizados do Anki – se faz dias que você não sincroniza, a lista está desatualizada.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando a <em>sua</em> produtividade real – não uma estimativa genérica.</p>
     <p><strong>Como mede a produtividade:</strong> cards vistos pela primeira vez ÷ tempo gasto, nas suas últimas três sessões. Usa as recentes e não todo o histórico porque a produtividade muda conforme o baralho cresce – a média de tudo ficaria otimista.</p>
@@ -4971,10 +4981,11 @@ function calcularRitmoAnki(){
   revs.forEach(r=>{
     const d=new Date(r.revisadoEm);
     const dia=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),toques:0});
+    if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),cards:new Set(),toques:0});
     const o=porDia.get(dia);
     o.minutos+=(r.tempoMs||0)/60000;
     o.toques++;
+    o.cards.add(r.cardId);
     const e=estreia.get(r.cardId);
     if(e){
       const diaEstreia=`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,'0')}-${String(e.getDate()).padStart(2,'0')}`;
@@ -4984,6 +4995,10 @@ function calcularRitmoAnki(){
 
   const dias=[...porDia.entries()].map(([dia,o])=>({
     dia, minutos:o.minutos, novos:o.novos.size, toques:o.toques,
+    // Repetições: respostas além da primeira em cada card naquele dia. Card que volta duas
+    // vezes na mesma sessão é card que você errou ou marcou como difícil.
+    repeticoes:o.toques-o.cards.size,
+    revisoes:o.cards.size-o.novos.size,   // cards antigos que voltaram
     novosPorHora:o.minutos>0?o.novos.size/(o.minutos/60):0,
   })).sort((a,b)=>a.dia.localeCompare(b.dia));
 
@@ -5091,6 +5106,19 @@ function renderAnkiDesempenho(){
   const ativos=cards.filter(c=>!c.suspenso);
   const vistos=ativos.filter(c=>c.reps>0).length;
   const pctVistos=ativos.length?Math.round(vistos/ativos.length*100):0;
+
+  // Com FSRS, maturidade passa a ser medida por ESTABILIDADE e não por intervalo. Intervalo é
+  // decisão de agendamento (pode estar curto porque o card foi reagendado); estabilidade é
+  // medida da memória: quantos dias até a chance de lembrar cair para 90%.
+  const comFsrs=ativos.filter(c=>c.estabilidade!=null);
+  const estabMedia=comFsrs.length
+    ? comFsrs.reduce((a,c)=>a+c.estabilidade,0)/comFsrs.length : null;
+  const estabMax=comFsrs.length?Math.max(...comFsrs.map(c=>c.estabilidade)):null;
+  const esquecendo=comFsrs.filter(c=>c.retrievability!=null&&c.retrievability<0.7)
+                          .sort((a,b)=>a.retrievability-b.retrievability);
+  const difMedia=comFsrs.filter(c=>c.dificuldade!=null).length
+    ? comFsrs.filter(c=>c.dificuldade!=null).reduce((a,c)=>a+c.dificuldade,0)/comFsrs.filter(c=>c.dificuldade!=null).length
+    : null;
   const fmt=n=>n.toLocaleString('pt-BR');
 
   // ---------- estado dos cards ----------
@@ -5184,10 +5212,7 @@ function renderAnkiDesempenho(){
       const r=calcularRitmoAnki();
       if(!r||!r.dias.length) return '';
       const opcoes=[15,30,45,60,90];
-      const porTempo=r.novosPorHora*(ankiMinutosDia/60);
-      const teto=ankiConfig.limiteNovos||Infinity;
-      const porDia=Math.min(porTempo,teto);
-      const travado=porTempo>teto;   // o tempo daria mais, mas o Anki não deixa
+      const porDia=r.novosPorHora*(ankiMinutosDia/60);
       const diasFalta=porDia>0?Math.ceil(r.restam/porDia):null;
       const meses=diasFalta?(diasFalta/30).toFixed(1).replace('.',','):null;
       const ult=r.dias.slice(-4);
@@ -5196,7 +5221,7 @@ function renderAnkiDesempenho(){
     <div class="card-inicio">
       <div style="font-size:var(--fs-c);color:#666;margin-bottom:10px">Se eu estudar por dia:</div>
       <div class="filter-row" style="margin-bottom:14px">
-        ${opcoes.map(m=>`<div class="filter-btn${ankiMinutosDia===m?' active':''}" onclick="setAnkiMinutos(${m})">${m>=60?(m/60===1?'1 hora':(m/60).toFixed(1).replace('.',',')+'h'):m+' min'}</div>`).join('')}
+        ${opcoes.map(m=>`<div class="filter-btn${ankiMinutosDia===m?' active':''}" onclick="setAnkiMinutos(${m})">${m>=60?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):m+' min'}</div>`).join('')}
       </div>
       <div class="hist-total">
         <div class="hist-total-item">
@@ -5218,12 +5243,6 @@ function renderAnkiDesempenho(){
         A conta usa a sua produtividade real: <strong style="color:#202A45">${r.novosPorHora.toFixed(1).replace('.',',')}</strong>
         cards novos por hora, medida nas últimas ${Math.min(3,r.dias.length)} sessões.
       </div>
-      ${travado?`<div style="font-size:var(--fs-b);color:#666;line-height:1.5;margin-top:8px">
-        Nesse tempo daria para ver <strong style="color:#202A45">${Math.round(porTempo)}</strong> cards novos.
-        O limite atual do baralho é <strong style="color:#202A45">${ankiConfig.limiteNovos} por dia</strong> –
-        subindo para ${Math.round(porTempo)}, a primeira passada cairia para
-        <strong style="color:#202A45">${Math.ceil(r.restam/porTempo)} dias</strong>.
-      </div>`:''}
       ${r.tendencia!==null&&Math.abs(r.tendencia)>=10?`<div style="font-size:var(--fs-b);color:${r.tendencia<0?'#A32D2D':'#27500A'};margin-top:8px;line-height:1.5">
         Sua produtividade em cards novos ${r.tendencia<0?'caiu':'subiu'} ${Math.abs(r.tendencia)}% desde a primeira sessão${r.tendencia<0?' – as revisões começam a ocupar parte do tempo':''}.
       </div>`:''}
@@ -5233,12 +5252,53 @@ function renderAnkiDesempenho(){
           <span class="quad-tag tag-tempo">${Math.round(d.minutos)} min</span>
           <div class="quad-txt">
             <div class="quad-nome">${fmtData(d.dia)}</div>
-            <div class="quad-det">${d.novos} cards novos • ${d.toques} respostas • ${d.novosPorHora.toFixed(1).replace('.',',')} novos/hora</div>
+            <div class="quad-det">${d.novos} novos${d.revisoes?' • '+d.revisoes+' revisões':''}${d.repeticoes?' • repetiu '+d.repeticoes:''} • ${d.novosPorHora.toFixed(1).replace('.',',')} novos/hora</div>
           </div>
         </div>`).join('')}
       </div>
     </div>`;
     })()}
+
+    ${comFsrs.length?`
+    ${sectionTitle('Durabilidade na memória','relogio','#E6F1FB','#202A45',{direita:botaoInfo('ankiDurabilidade')})}
+    <div class="card-inicio">
+      <div class="hist-total">
+        <div class="hist-total-item">
+          <span class="hist-total-val">${estabMedia.toFixed(1).replace('.',',')}</span>
+          <span class="hist-total-lbl">dias em média</span>
+        </div>
+        <div class="hist-total-item">
+          <span class="hist-total-val">${estabMax.toFixed(0)}</span>
+          <span class="hist-total-lbl">o mais durável</span>
+        </div>
+        ${difMedia!==null?`<div class="hist-total-item">
+          <span class="hist-total-val">${difMedia.toFixed(1).replace('.',',')}</span>
+          <span class="hist-total-lbl">dificuldade (1 a 10)</span>
+        </div>`:''}
+      </div>
+      <div style="font-size:var(--fs-b);color:#888;line-height:1.5">
+        Em média, o conteúdo que você já estudou dura
+        <strong style="color:#202A45">${estabMedia.toFixed(1).replace('.',',')} dias</strong>
+        antes da chance de lembrar cair para 90%.
+        Calculado sobre ${comFsrs.length} card${comFsrs.length===1?'':'s'} já revisado${comFsrs.length===1?'':'s'}.
+      </div>
+    </div>
+
+    ${sectionTitle('O que você já esqueceu','alerta',esquecendo.length?'#FCEBEB':'#EAF3DE',esquecendo.length?'#791F1F':'#27500A',{direita:botaoInfo('ankiEsquecido')})}
+    <div class="card-inicio">
+      ${esquecendo.length
+        ? esquecendo.slice(0,15).map(c=>`<div class="quad-item">
+            <span class="quad-tag tag-tempo">${Math.round(c.retrievability*100)}%</span>
+            <div class="quad-txt">
+              <div class="quad-nome">${(c.pergunta||'').split('\n').slice(-1)[0].slice(0,90)||'(sem texto)'}</div>
+              <div class="quad-det">${c.assunto||c.categoria||'sem assunto'} • dura ${c.estabilidade?c.estabilidade.toFixed(1).replace('.',','):'–'} dias</div>
+            </div>
+          </div>`).join('')
+        : `<div style="font-size:var(--fs-c);color:#666;line-height:1.5">
+            Nenhum card com chance de lembrar abaixo de 70% neste momento.
+            Se a prova fosse hoje, você provavelmente lembraria de tudo que já estudou.
+          </div>`}
+    </div>`:''}
 
     ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45',{direita:botaoInfo('ankiVolume')})}
     <div class="card-inicio">
