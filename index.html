@@ -1407,11 +1407,15 @@ const EXPLICACOES={
     <p><strong>De onde vem a matéria:</strong> da tag <em>Módulo::</em> de cada card, traduzida para o nome usado no app.</p>`},
   ankiTipo:{titulo:'Como os cards cobram',corpo:`
     <p><strong>O que mostra:</strong> a distribuição dos cards pela tag <em>Tipo_Questao::</em> – a mesma classificação usada nas questões de prova.</p>
-    <p><strong>Para que serve:</strong> comparar com o que a prova cobra. Se o baralho é quase todo conceitual mas o simulado tem muitas questões de cálculo, existe um desequilíbrio entre o que você treina e o que é cobrado.</p>
+    <p><strong>São dois eixos, não um:</strong> <em>Conceitual</em>, <em>Cálculo</em>, <em>Número</em> e <em>Identificação</em> descrevem o formato da resposta e um card leva apenas um deles. Já <em>Lista</em> descreve a arquitetura da pergunta e convive com qualquer um dos outros – um card pode ser Conceitual e Lista ao mesmo tempo.</p>
+    <p><strong>Por isso a soma passa do total de cards.</strong> Não é erro: os cards de Lista aparecem duas vezes, uma em cada eixo.</p>
+    <p><strong>Para que serve:</strong> comparar com o que a prova cobra. Se o baralho é quase todo conceitual mas o simulado tem muitas questões de cálculo, existe desequilíbrio entre o que você treina e o que é cobrado.</p>
     <p><strong>Ainda não dá para cruzar:</strong> as questões dos simulados não têm esse campo preenchido. Quando tiverem, a comparação fica automática.</p>`},
   ankiCategoria:{titulo:'Natureza do conteúdo',corpo:`
     <p><strong>O que mostra:</strong> a distribuição pela tag <em>Categoria::</em> – que tipo de coisa cada card guarda: definição, número, fórmula, figura, exceção, procedimento, lista ou comparação.</p>
-    <p><strong>Para que serve:</strong> perceber a composição do que você está memorizando. Um baralho quase todo de definições treina reconhecimento; um com muitas fórmulas e números exige outro tipo de estudo.</p>`},
+    <p><strong>Um card pode ter mais de uma categoria</strong>, então a soma passa do total. Um card que traz uma fórmula e o número que ela produz conta nas duas.</p>
+    <p><strong>Para que serve:</strong> perceber a composição do que você está memorizando. Um baralho quase todo de definições treina reconhecimento; um com muitas fórmulas e números exige outro tipo de estudo.</p>
+    <p><strong>Definição costuma dominar</strong> porque é a categoria mais abrangente – quando nenhuma outra se aplica, o conteúdo cai nela.</p>`},
   ankiCapitulo:{titulo:'Cards por capítulo',corpo:`
     <p><strong>O que mostra:</strong> quantos cards cobrem cada capítulo da bibliografia oficial.</p>
     <p><strong>Como é calculado:</strong> pela tag <em>Livro::Obra::Divisão::Subdivisão</em>, casada com a bibliografia do edital. Conta cards distintos por capítulo.</p>
@@ -1721,6 +1725,11 @@ async function loadDataInterno(){
     ankiCards=eAnki?[]:(ankiRes||[]).map(p=>({
       cardId:p.card_id, modulo:p.modulo||'', assunto:p.assunto||'',
       categoria:p.categoria||'', tipoQuestao:p.tipo_questao||'',
+      // Dois eixos separados: tipo_resposta é exclusivo (Conceitual, Cálculo, Número,
+      // Identificação) e eh_lista é independente — um card pode ser Conceitual E Lista.
+      // A coluna antiga tipo_questao guardava só a primeira tag e perdia 89 dos 91 Listas.
+      tipoResposta:p.tipo_resposta||p.tipo_questao||'', ehLista:!!p.eh_lista,
+      categorias:p.categorias||[], assuntos:p.assuntos||[],
       pergunta:p.pergunta||'', reps:p.reps||0, lapses:p.lapses||0,
       intervaloDias:p.intervalo_dias||0, estabilidade:p.estabilidade,
       dificuldade:p.dificuldade, retrievability:p.retrievability,
@@ -5224,12 +5233,19 @@ function renderAnkiDesempenho(){
   const semModulo=ativos.filter(c=>!c.modulo).length;
 
   // ---------- distribuição por eixo (categoria / tipo de questão) ----------
-  function distribuicao(campo){
+  // Aceita campo simples ou array. Cards com várias tags contam em cada uma — por isso a soma
+  // dos valores pode passar do total de cards, e está correto: um card com Categoria::Lista e
+  // Categoria::Número cobre as duas coisas.
+  function distribuicao(campo,extras){
     const mapa=new Map();
     ativos.forEach(c=>{
       const v=c[campo];
-      if(!v) return;
-      mapa.set(v,(mapa.get(v)||0)+1);
+      if(Array.isArray(v)) v.forEach(x=>{ if(x) mapa.set(x,(mapa.get(x)||0)+1); });
+      else if(v) mapa.set(v,(mapa.get(v)||0)+1);
+    });
+    (extras||[]).forEach(([rotulo,teste])=>{
+      const n=ativos.filter(teste).length;
+      if(n) mapa.set(rotulo,n);
     });
     const lista=[...mapa.entries()].sort((a,b)=>b[1]-a[1]);
     const maior=lista.length?lista[0][1]:1;
@@ -5416,10 +5432,10 @@ function renderAnkiDesempenho(){
     </div>
 
     ${sectionTitle('Como os cards cobram','etiqueta','#E6F1FB','#202A45',{direita:botaoInfo('ankiTipo')})}
-    <div class="card-inicio">${distribuicao('tipoQuestao')}</div>
+    <div class="card-inicio">${distribuicao('tipoResposta',[['Lista',c=>c.ehLista]])}</div>
 
     ${sectionTitle('Natureza do conteúdo','filtro','#E6F1FB','#202A45',{direita:botaoInfo('ankiCategoria')})}
-    <div class="card-inicio">${distribuicao('categoria')}</div>
+    <div class="card-inicio">${distribuicao('categorias')}</div>
 
     ${capsHtml?`${sectionTitle('Cards por capítulo','livro','#E6F1FB','#202A45',{direita:botaoInfo('ankiCapitulo')})}
     <div class="card-inicio">
