@@ -1438,8 +1438,9 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let abaAprovado='nova',abaDesempenho='provas',analisePeriodo='mes',analiseMesRef=null;
+let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
+let ankiCards=[];
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -1483,7 +1484,8 @@ async function loadDataInterno(){
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
       {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
       {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
-      {data:anotacoesRes,error:eAnotacoes}
+      {data:anotacoesRes,error:eAnotacoes},
+      {data:ankiRes,error:eAnki}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       sbDados.from('banco_questoes').select('*'),
@@ -1502,6 +1504,7 @@ async function loadDataInterno(){
       sbDados.from('questoes_pendentes').select('*'),
       sbDados.from('app_config').select('*'),
       sbDados.from('anotacoes_alternativas').select('*'),
+      sbDados.from('anki_cards').select('*'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -1624,6 +1627,15 @@ async function loadDataInterno(){
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
     revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',capitulo:p.capitulo||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
+    // Anki é opcional: se a sincronização nunca rodou, a lista fica vazia e a aba mostra o
+    // aviso de "sem dados" — não é erro que deva derrubar o carregamento do resto.
+    ankiCards=eAnki?[]:(ankiRes||[]).map(p=>({
+      cardId:p.card_id, modulo:p.modulo||'', assunto:p.assunto||'',
+      pergunta:p.pergunta||'', reps:p.reps||0, lapses:p.lapses||0,
+      intervaloDias:p.intervalo_dias||0, estabilidade:p.estabilidade,
+      dificuldade:p.dificuldade, retrievability:p.retrievability,
+      leech:!!p.leech, maduro:!!p.maduro, suspenso:!!p.suspenso,
+    }));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
       dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
@@ -1679,11 +1691,11 @@ function renderSubAbas(tab){
     </div>`;
     return;
   }
-  if(tab==='atividades'&&atividades.some(a=>a.curso===CURSO_PILOTQUEST)){
-    slot.innerHTML=`<div class="sub-abas">
-      <div class="sub-aba${abaDesempenho==='provas'?' ativa':''}" onclick="setAbaDesempenho('provas')"><span>Provas</span></div>
-      <div class="sub-aba${abaDesempenho==='pilotquest'?' ativa':''}" onclick="setAbaDesempenho('pilotquest')"><span>Pilotquest</span></div>
-    </div>`;
+  if(tab==='atividades'){
+    const abas=[['inicio','Início'],['simulados','Simulados'],['pilotquest','Pilotquest'],['anki','Anki']];
+    slot.innerHTML=`<div class="sub-abas">${abas.map(([k,l])=>
+      `<div class="sub-aba${abaDesempenho===k?' ativa':''}" onclick="setAbaDesempenho('${k}')"><span>${l}</span></div>`
+    ).join('')}</div>`;
     return;
   }
   slot.innerHTML='';
@@ -3839,9 +3851,10 @@ function atividadesFiltradas(){
   // A separação Provas x Pilotquest acontece AQUI, no único ponto por onde toda a aba passa.
   // Assim resumo, gráficos por módulo e lista de atividades se ajustam sozinhos, sem duplicar
   // a lógica de desempenho — que é justamente o motivo de o Pilotquest viver nas mesmas tabelas.
-  let lista=abaDesempenho==='pilotquest'
-    ? atividades.filter(a=>a.curso===CURSO_PILOTQUEST)
-    : atividades.filter(a=>a.curso!==CURSO_PILOTQUEST);
+  let lista;
+  if(abaDesempenho==='pilotquest')      lista=atividades.filter(a=>a.curso===CURSO_PILOTQUEST);
+  else if(abaDesempenho==='simulados')  lista=atividades.filter(a=>a.curso!==CURSO_PILOTQUEST);
+  else                                  lista=atividades;   // 'inicio' mostra tudo junto
   if(filtCurso!=='todos') lista=lista.filter(a=>a.curso===filtCurso);
   if(filtTipo!=='todos') lista=lista.filter(a=>a.tipo===filtTipo);
   lista=filtrarPorPeriodo(lista);
@@ -4674,7 +4687,105 @@ async function removerNota(id){
   }
 }
 
+// Aba Anki: dados de retenção vindos do baralho, separados do desempenho em prova.
+// Fica dentro de Desempenho porque responde a mesma pergunta ("como estou indo?"), mas com uma
+// fonte diferente — a prova mede acerto sob pressão; o Anki mede o que fica na memória.
+function renderAnkiDesempenho(){
+  const cards=ankiCards||[];
+  if(!cards.length){
+    return `<div class="empty" style="padding:60px 20px">
+      Nenhum dado do Anki ainda.<br>
+      <span style="font-size:var(--fs-c)">Abra o Anki no computador com o AnkiConnect instalado
+      para a sincronização acontecer.</span>
+    </div>`;
+  }
+
+  const ativos=cards.filter(c=>!c.suspenso);
+  const maduros=ativos.filter(c=>c.maduro).length;
+  const leeches=ativos.filter(c=>c.leech);
+  const pctMaduros=ativos.length?Math.round(maduros/ativos.length*100):0;
+  // Fase de construção: quantos cards já foram vistos ao menos uma vez. Com o baralho recém
+  // criado, esse é o número que importa — retenção e leeches ficam em zero por semanas, e
+  // mostrá-los como métrica principal daria a impressão errada de que algo está vazio.
+  const vistos=ativos.filter(c=>c.reps>0).length;
+  const pctVistos=ativos.length?Math.round(vistos/ativos.length*100):0;
+  const emConstrucao=pctVistos<50;
+
+  // Volume por módulo — mostra também os módulos sem cards, porque a lacuna é informação:
+  // saber que seis matérias ainda não têm card nenhum é o tamanho do que falta construir.
+  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+  const porModulo=modulosPscpp.map(m=>{
+    const doMod=ativos.filter(c=>c.modulo===m);
+    const mad=doMod.filter(c=>c.maduro).length;
+    const vis=doMod.filter(c=>c.reps>0).length;
+    return {modulo:m, total:doMod.length, maduros:mad, vistos:vis,
+            pct:doMod.length?Math.round((emConstrucao?vis:mad)/doMod.length*100):0};
+  });
+  const semModulo=ativos.filter(c=>!c.modulo).length;
+
+  const volumeHtml=porModulo.map(x=>{
+    const cc=modCores[x.modulo]||{tx:'#888'};
+    if(!x.total){
+      return `<div class="cob-item">
+        <div class="cob-top">
+          <span class="cob-nome" style="color:#bbb">${x.modulo}</span>
+          <span class="cob-num" style="color:#bbb">sem cards</span>
+        </div>
+        <div class="cob-bar"></div>
+      </div>`;
+    }
+    return `<div class="cob-item">
+      <div class="cob-top">
+        <span class="cob-nome">${x.modulo}</span>
+        <span class="cob-num">${x.total.toLocaleString('pt-BR')} card${x.total===1?'':'s'} • ${x.pct}% ${emConstrucao?'estudados':'maduros'}</span>
+      </div>
+      <div class="cob-bar"><div class="cob-fill" style="width:${x.pct}%;background:${cc.tx}"></div></div>
+    </div>`;
+  }).join('');
+
+  const leechesHtml=leeches.length
+    ? leeches.sort((a,b)=>b.lapses-a.lapses).slice(0,20).map(c=>{
+        const cc=modCores[c.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+        return `<div class="quad-item">
+          <span class="quad-tag" style="color:${cc.tx};background:${cc.bg}">${c.lapses} esquec.</span>
+          <div class="quad-txt">
+            <div class="quad-nome">${(c.pergunta||'').replace(/<[^>]+>/g,'').slice(0,90)}</div>
+            <div class="quad-det">${c.modulo||'sem módulo'} • ${c.reps} revisões</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="empty" style="padding:16px 8px">Nenhum card marcado como problemático.</div>';
+
+  return `
+    ${sectionTitle('Resumo do baralho','grafico','#E6F1FB','#202A45')}
+    <div class="stat-grid" style="margin-top:0">
+      <div class="stat-card"><div class="stat-val">${ativos.length.toLocaleString('pt-BR')}</div><div class="stat-lbl">Cards no baralho</div></div>
+      <div class="stat-card"><div class="stat-val">${vistos.toLocaleString('pt-BR')}</div><div class="stat-lbl">Já estudados (${pctVistos}%)</div></div>
+      <div class="stat-card"><div class="stat-val">${(ativos.length-vistos).toLocaleString('pt-BR')}</div><div class="stat-lbl">Ainda não vistos</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${leeches.length?'#A32D2D':'#111'}">${emConstrucao?'—':leeches.length}</div><div class="stat-lbl">${emConstrucao?'Retenção: em breve':'Problemáticos'}</div></div>
+    </div>
+    ${emConstrucao?`<div class="card-inicio" style="margin-top:-4px">
+      <div style="font-size:var(--fs-c);color:#666;line-height:1.5">
+        Você está construindo o baralho — ${pctVistos}% dos cards já foram vistos.
+        Retenção, cards maduros e conteúdo problemático só fazem sentido depois que
+        uma parte maior tiver sido estudada, então aparecem aqui mais adiante.
+      </div>
+    </div>`:''}
+
+    ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45')}
+    <div class="card-inicio">
+      ${volumeHtml}
+      ${semModulo?`<div class="cob-item"><div class="cob-top"><span class="cob-nome" style="color:#A32D2D">Sem tag de módulo</span><span class="cob-num">${semModulo} card${semModulo===1?'':'s'}</span></div></div>`:''}
+    </div>
+
+    ${leeches.length?`${sectionTitle('Conteúdo que não fixa','alerta','#FCEBEB','#791F1F')}
+    <div class="card-inicio">${leechesHtml}</div>`:''}
+  `;
+}
+
 function renderAtividades(){
+  if(abaDesempenho==='anki') return renderAnkiDesempenho();
+
   const lista=atividadesFiltradas();
   const comAprv=lista.filter(a=>a.aproveitamento);
   const mediaAprvNum=comAprv.length?comAprv.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAprv.length:0;
@@ -4688,10 +4799,9 @@ function renderAtividades(){
   // na aba de Provas (ou o contrário) daria sempre lista vazia.
   const escopo=abaDesempenho==='pilotquest'
     ? atividades.filter(a=>a.curso===CURSO_PILOTQUEST)
-    : atividades.filter(a=>a.curso!==CURSO_PILOTQUEST);
+    : (abaDesempenho==='simulados' ? atividades.filter(a=>a.curso!==CURSO_PILOTQUEST) : atividades);
   const cursos=[...new Set(escopo.map(a=>a.curso).filter(Boolean))];
   const tipos=[...new Set(escopo.map(a=>a.tipo).filter(Boolean))];
-  const temPilotquest=atividades.some(a=>a.curso===CURSO_PILOTQUEST);
 
   return `
     <div class="filter-row">
