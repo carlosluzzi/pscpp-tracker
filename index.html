@@ -45,10 +45,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
-/* Nas telas com sub-abas o header nao projeta sombra: ela cairia sobre as abas, e o conjunto
-   header + abas ja se separa do conteudo pelo proprio fundo opaco. Sem sombra nenhuma aqui. */
+/* Nas telas com sub-abas a sombra desce um nivel: sai do cabecalho (onde cairia sobre as abas)
+   e vai para o menu, que e o elemento mais baixo do conjunto fixo. Assim quem projeta sombra e
+   sempre a ultima coisa antes do conteudo que rola. */
 .app.tem-sub-abas.scrolled .header-zone,
 .app.tem-sub-abas.scrolled .topbar{box-shadow:none}
+.app.tem-sub-abas.scrolled #sub-abas-slot{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
@@ -491,7 +493,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    A linha de base separa a navegação do conteúdo; os 12px abaixo dela são fundo opaco, pra o
    conteúdo não encostar na linha ao passar por trás durante a rolagem. */
 .sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#ececea}
-#sub-abas-slot{flex-shrink:0;background:#F9F9F7}
+#sub-abas-slot{flex-shrink:0;background:#F9F9F7;position:relative;z-index:3}
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
   padding:14px 8px;transition:background .15s ease}
 .sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease}
@@ -1706,12 +1708,10 @@ function renderTab(tab,preservarScroll){
   const scrollAnterior=preservarScroll?c.scrollTop:0;
   const isInicio=tab==='inicio'&&!atividadeAtual;
   document.querySelector('.app').classList.toggle('tab-inicio',isInicio);
-  // Telas que mostram sub-abas: nelas o header não projeta sombra (ela cairia sobre as abas).
-  // Desempenho só tem sub-abas quando existe algum registro do Pilotquest.
-  const temSubAbas = !atividadeAtual && (
-    tab==='aprovado' ||
-    (tab==='atividades' && atividades.some(a=>a.curso===CURSO_PILOTQUEST))
-  );
+  // Telas com sub-abas: a sombra sai do cabeçalho e passa para o menu, que é o elemento mais
+  // baixo do conjunto fixo. Sem isso a sombra cairia SOBRE as abas, em vez de separar o
+  // conjunto do conteúdo que rola por baixo.
+  const temSubAbas = !atividadeAtual && (tab==='aprovado' || tab==='atividades');
   document.querySelector('.app').classList.toggle('tem-sub-abas',temSubAbas);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   renderSubAbas(tab);
