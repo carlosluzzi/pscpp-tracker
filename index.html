@@ -535,6 +535,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .selo-origem{display:inline-block;font-size:var(--fs-a);font-weight:600;color:#2D6A53;
   background:#EDF4F0;border:0.5px solid #B8D9CC;border-radius:5px;padding:1px 6px;
   margin-left:6px;vertical-align:middle;white-space:nowrap;letter-spacing:0.01em}
+/* Plano de acao: cada item e um diagnostico, nao um numero solto */
+.plano-item{padding:12px 0}
+.plano-item+.plano-item{border-top:0.5px solid #f0f0ee}
+.plano-topo{margin-bottom:5px}
+.plano-mod{display:inline-block;font-size:var(--fs-a);font-weight:600;padding:2px 8px;border-radius:5px}
+.plano-nome{font-size:var(--fs-d);font-weight:600;color:#111;line-height:1.35;margin-bottom:3px}
+.plano-frase{font-size:var(--fs-c);color:#444;line-height:1.45}
+.plano-acao{font-size:var(--fs-c);color:#202A45;line-height:1.45;margin-top:4px;font-weight:500}
+.plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1360,6 +1369,19 @@ const EXPLICACOES={
     <p><strong>De onde vem:</strong> do seu baralho do Anki, sincronizado pelo computador. Os números refletem o último sincronismo entre o iPad e o Mac.</p>
     <p><strong>Já estudados:</strong> cards que você viu pelo menos uma vez. <strong>Em revisão:</strong> cards que já saíram da fase inicial e voltam em intervalos crescentes.</p>
     <p><strong>Por que não mostra retenção ainda:</strong> com a maior parte do baralho não vista, qualquer percentual de acerto seria calculado sobre pouquíssimas revisões e oscilaria demais. Retenção e conteúdo problemático aparecem quando houver histórico suficiente.</p>`},
+  planoAcao:{titulo:'Plano de ação',corpo:`
+    <p><strong>O que é:</strong> o cruzamento das três fontes que medem coisas diferentes – os simulados medem acerto sob pressão, o Pilotquest mede acerto sem pressão, e o Anki mede se o conteúdo fica na memória.</p>
+    <p><strong>Por que cruzar:</strong> nenhuma fonte isolada distingue "não sei" de "sei mas erro na hora". E as ações para esses dois casos são opostas – uma pede mais estudo, a outra pede menos estudo e mais treino de prova.</p>
+    <p><strong>Como a ordem é definida:</strong> não é só pelo pior percentual. Cada item recebe uma prioridade que combina quatro coisas –</p>
+    <ul>
+      <li><strong>Distância do alvo</strong> – quanto abaixo dos 85,7% você está</li>
+      <li><strong>Peso na prova</strong> – capítulo que cai muito merece mais atenção que um que caiu uma vez</li>
+      <li><strong>Confiança</strong> – 3 questões erradas em 3 não é o mesmo que 30 em 100; amostra pequena pesa menos</li>
+      <li><strong>Recência</strong> – erro deste mês pesa mais que erro de seis meses atrás</li>
+    </ul>
+    <p><strong>Atenção agora:</strong> onde você está abaixo do alvo, ordenado por urgência real.</p>
+    <p><strong>Risco escondido:</strong> onde você acerta na prova mas o conteúdo não está fixado, ou não há cards. Tende a evaporar sem aviso.</p>
+    <p><strong>Limitação:</strong> enquanto o Anki não tiver cards maduros e o Pilotquest não tiver cadernos, o diagnóstico usa só os simulados – e não consegue separar os casos que dependem das outras fontes.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando a <em>sua</em> produtividade real – não uma estimativa genérica.</p>
     <p><strong>Como mede a produtividade:</strong> cards vistos pela primeira vez ÷ tempo gasto, nas suas últimas três sessões. Usa as recentes e não todo o histórico porque a produtividade muda conforme o baralho cresce – a média de tudo ficaria otimista.</p>
@@ -4776,6 +4798,152 @@ async function removerNota(id){
 // recalcula sozinha a cada sincronização. Três coisas mudam ao longo do tempo e a conta
 // acompanha: cards indo para intervalos longos (carga de revisão despenca), cards apagados
 // (o total encolhe), e a própria produtividade do Carlos mudando.
+// ============================================================================
+// PLANO DE AÇÃO — sub-aba Início do Desempenho
+//
+// Cruza as três fontes, que medem coisas diferentes:
+//   ANKI      -> se o conteúdo FICA na memória      (falha = não fixou)
+//   SIMULADO  -> acerto SOB PRESSÃO, tempo contado  (falha = não aplica)
+//   PILOTQUEST-> acerto SEM pressão, no seu ritmo   (falha = não sabe)
+//
+// A combinação delas distingue casos que nenhuma fonte isolada separa — em
+// especial "não sei" de "sei mas erro na hora", que pedem ações opostas.
+// ============================================================================
+
+const ALVO_APROVEITAMENTO=85.71;   // mesmo corte já usado nas cores do app
+const ALVO_RETENCAO=90;            // padrão do FSRS; trocar pelo configurado quando vier
+
+// Peso de Wilson: 3 erradas em 3 não é o mesmo que 30 em 100. Penaliza amostra pequena,
+// evitando que um capítulo com 2 questões apareça no topo da lista de urgência.
+function confiancaWilson(acertos,total){
+  if(!total) return 0;
+  const z=1.96, p=acertos/total;
+  const den=1+z*z/total;
+  const centro=p+z*z/(2*total);
+  const margem=z*Math.sqrt(p*(1-p)/total+z*z/(4*total*total));
+  return (centro-margem)/den;   // limite inferior: quanto menor a amostra, mais conservador
+}
+
+function montarPlanoAcao(){
+  // O curso e a data não vêm na questão: são derivados da atividade a que ela pertence,
+  // ligadas pelo nome (mesmo padrão usado no resto do app).
+  const porNome=new Map((atividades||[]).map(a=>[a.nome,a]));
+  const qs=(questoes||[]).filter(q=>q.modulo&&q.status).map(q=>{
+    const ativ=porNome.get(q.idAtividade);
+    return {...q,_curso:ativ?ativ.curso:null,_data:ativ?ativ.data:null};
+  });
+  if(!qs.length) return null;
+
+  // ---------- agrupa as questões por módulo + publicação + capítulo ----------
+  const grupos=new Map();
+  qs.forEach(q=>{
+    const chave=[q.modulo,q.publicacao||'',q.capitulo||''].join('||');
+    if(!grupos.has(chave)){
+      grupos.set(chave,{modulo:q.modulo,publicacao:q.publicacao||'',capitulo:q.capitulo||'',
+                        prova:{t:0,a:0}, pq:{t:0,a:0}, ultimoErro:null});
+    }
+    const g=grupos.get(chave);
+    const ehPilotquest=(q._curso===CURSO_PILOTQUEST);
+    const alvo=ehPilotquest?g.pq:g.prova;
+    alvo.t++;
+    if(isAcerto(q)||q.status==='Acertei com dúvida') alvo.a++;
+    if(q.status==='Errei'&&q._data&&(!g.ultimoErro||q._data>g.ultimoErro)) g.ultimoErro=q._data;
+  });
+
+  // ---------- traz a retenção do Anki para o mesmo recorte ----------
+  const retPorCap=new Map();
+  const secPorCard=new Map();
+  (ankiSecoes||[]).filter(s=>s.casou).forEach(s=>{
+    if(!secPorCard.has(s.cardId)) secPorCard.set(s.cardId,[]);
+    secPorCard.get(s.cardId).push(s);
+  });
+  const cardPorId=new Map((ankiCards||[]).map(c=>[c.cardId,c]));
+  (ankiRevisoes||[]).forEach(r=>{
+    if(r.intervaloAnt<21) return;             // só revisões de cards já maduros
+    const secs=secPorCard.get(r.cardId)||[];
+    const card=cardPorId.get(r.cardId);
+    if(!card) return;
+    secs.forEach(s=>{
+      const chave=[card.modulo,s.publicacao,s.capitulo].join('||');
+      if(!retPorCap.has(chave)) retPorCap.set(chave,{t:0,a:0});
+      const o=retPorCap.get(chave);
+      o.t++; if(r.resposta>=3) o.a++;
+    });
+  });
+  // quantos cards existem em cada recorte, mesmo sem revisão madura ainda
+  const cardsPorCap=new Map();
+  (ankiSecoes||[]).filter(s=>s.casou).forEach(s=>{
+    const card=cardPorId.get(s.cardId);
+    if(!card) return;
+    const chave=[card.modulo,s.publicacao,s.capitulo].join('||');
+    cardsPorCap.set(chave,(cardsPorCap.get(chave)||0)+1);
+  });
+
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+
+  // ---------- diagnóstico de cada recorte ----------
+  const itens=[...grupos.entries()].map(([chave,g])=>{
+    const prova = g.prova.t ? g.prova.a/g.prova.t*100 : null;
+    const pq    = g.pq.t    ? g.pq.a/g.pq.t*100       : null;
+    const ret   = retPorCap.has(chave)
+      ? retPorCap.get(chave).a/retPorCap.get(chave).t*100 : null;
+    const cards = cardsPorCap.get(chave)||0;
+
+    const provaOk = prova===null?null:prova>=ALVO_APROVEITAMENTO;
+    const pqOk    = pq===null   ?null:pq>=ALVO_APROVEITAMENTO;
+    const retOk   = ret===null  ?null:ret>=ALVO_RETENCAO;
+
+    // A matriz de 8 combinações. Quando uma fonte não tem dado, o diagnóstico é o
+    // possível com as que existem — e a frase diz o que falta para fechar o quadro.
+    let tipo,frase,acao;
+    if(provaOk===false&&retOk===false){
+      tipo='atencao'; frase='Você erra na prova e o conteúdo não fixa no Anki.';
+      acao='Falta base. Estude o capítulo e reforce os cards.';
+    } else if(provaOk===false&&pqOk===true){
+      tipo='atencao'; frase='Você acerta sem pressão, mas erra na prova.';
+      acao='Não é falta de estudo. Treine questões cronometradas e leitura de enunciado.';
+    } else if(provaOk===false&&retOk===true){
+      tipo='atencao'; frase='O conteúdo está fixado, mas você erra na prova.';
+      acao='O card testa reconhecimento, a prova cobra aplicação. Refaça os cards.';
+    } else if(provaOk===false){
+      tipo='atencao'; frase='Aproveitamento abaixo do alvo.';
+      acao=cards?'Reforce os cards deste capítulo.':'Sem cards no Anki ainda. Fazer cards ajudaria a fixar.';
+    } else if(provaOk===true&&retOk===false){
+      tipo='risco'; frase='Você acerta na prova, mas o conteúdo não está fixando.';
+      acao='Risco de esquecer. Reforce a revisão antes que caia.';
+    } else if(provaOk===true&&cards===0){
+      tipo='risco'; frase='Você acerta, mas não tem nenhum card sobre isso.';
+      acao='Sem revisão espaçada, tende a evaporar. Vale fazer cards.';
+    } else if(provaOk===true){
+      tipo='bem'; frase='Consolidado.'; acao='';
+    } else {
+      tipo='bem'; frase='Sem dado suficiente.'; acao='';
+    }
+
+    // Prioridade: combina distância do alvo, peso na prova, confiança e recência
+    const distancia = prova===null?0:Math.max(0,ALVO_APROVEITAMENTO-prova)/100;
+    const peso      = Math.min(1,g.prova.t/10);                 // capítulo que cai muito pesa mais
+    const conf      = 1-confiancaWilson(g.prova.a,g.prova.t);   // amostra pequena pesa menos
+    let recencia=0.5;
+    if(g.ultimoErro){
+      const dias=(hoje-new Date(g.ultimoErro+'T00:00:00'))/86400000;
+      recencia=Math.max(0.2,Math.min(1,1-dias/180));            // erro de 6 meses atrás pesa pouco
+    }
+    const prioridade = distancia*peso*conf*recencia*100;
+
+    return {...g, prova, pq, ret, cards, tipo, frase, acao, prioridade,
+            totalProva:g.prova.t, totalPq:g.pq.t, questoes:g.prova.t+g.pq.t};
+  });
+
+  return {
+    atencao: itens.filter(i=>i.tipo==='atencao').sort((a,b)=>b.prioridade-a.prioridade),
+    risco:   itens.filter(i=>i.tipo==='risco').sort((a,b)=>b.prioridade-a.prioridade),
+    bem:     itens.filter(i=>i.tipo==='bem'&&i.prova!==null).sort((a,b)=>b.prova-a.prova),
+    temAnki: (ankiRevisoes||[]).some(r=>r.intervaloAnt>=21),
+    temPilotquest: itens.some(i=>i.pq!==null),
+  };
+}
+
 function calcularRitmoAnki(){
   const cards=(ankiCards||[]).filter(c=>!c.suspenso);
   const revs=ankiRevisoes||[];
@@ -4830,6 +4998,77 @@ function calcularRitmoAnki(){
 
   return {restam, total:cards.length, dias, novosPorHora, tendencia,
           diasEstudados:dias.length};
+}
+
+// Tela do plano de ação. Cada item traz o diagnóstico em uma frase, o que fazer, e os números
+// de apoio — nunca um percentual solto sem leitura.
+function renderPlanoAcao(){
+  const p=montarPlanoAcao();
+  if(!p){
+    return `<div class="empty" style="padding:60px 20px">
+      Nenhuma questão respondida ainda.<br>
+      <span style="font-size:var(--fs-c)">Processe um simulado para o plano de ação aparecer.</span>
+    </div>`;
+  }
+
+  // O badge acima já mostra o módulo, então o título traz só publicação e capítulo — repetir
+  // o nome do módulo gastaria duas linhas dizendo a mesma coisa.
+  const nomeRecorte=i=>{
+    const pub=i.publicacao?nomePub(i.publicacao):'';
+    const cap=(i.capitulo&&i.capitulo!=='Único')?'Capítulo '+i.capitulo:'';
+    if(pub&&cap) return pub+', '+cap;
+    return pub||cap||i.modulo;
+  };
+
+  const numeros=i=>{
+    const partes=[];
+    if(i.prova!==null) partes.push(`${Math.round(i.prova)}% na prova (${i.totalProva} ${i.totalProva===1?'questão':'questões'})`);
+    if(i.pq!==null)    partes.push(`${Math.round(i.pq)}% no Pilotquest`);
+    if(i.ret!==null)   partes.push(`${Math.round(i.ret)}% de retenção`);
+    else if(i.cards)   partes.push(`${i.cards} cards, sem revisão madura ainda`);
+    else               partes.push('sem cards no Anki');
+    return partes.join(' • ');
+  };
+
+  const bloco=(itens,limite)=>itens.slice(0,limite).map(i=>{
+    const cc=modCores[i.modulo]||{bg:'#F1EFE8',tx:'#444441'};
+    return `<div class="plano-item">
+      <div class="plano-topo">
+        <span class="plano-mod" style="color:${cc.tx};background:${cc.bg}">${i.modulo}</span>
+      </div>
+      <div class="plano-nome">${nomeRecorte(i)}</div>
+      <div class="plano-frase">${i.frase}</div>
+      ${i.acao?`<div class="plano-acao">${i.acao}</div>`:''}
+      <div class="plano-num">${numeros(i)}</div>
+    </div>`;
+  }).join('');
+
+  // Aviso honesto sobre o que ainda não entra no diagnóstico
+  const faltando=[];
+  if(!p.temAnki)       faltando.push('retenção do Anki (nenhum card maduro ainda)');
+  if(!p.temPilotquest) faltando.push('desempenho do Pilotquest (nenhum caderno enviado)');
+
+  return `
+    ${faltando.length?`<div class="card-inicio" style="margin-bottom:14px">
+      <div style="font-size:var(--fs-c);color:#666;line-height:1.5">
+        O diagnóstico está usando só os simulados. Ainda falta ${faltando.join(' e ')}.
+        Conforme esses dados chegarem, ele fica mais preciso – e passa a distinguir
+        "não sei" de "sei mas erro na hora".
+      </div>
+    </div>`:''}
+
+    ${p.atencao.length?`${sectionTitle('Atenção agora','alerta','#FCEBEB','#791F1F',{direita:botaoInfo('planoAcao')})}
+    <div class="card-inicio">${bloco(p.atencao,6)}</div>`:''}
+
+    ${p.risco.length?`${sectionTitle('Risco escondido','alvo','#FAEEDA','#633806')}
+    <div class="card-inicio">${bloco(p.risco,4)}</div>`:''}
+
+    ${p.bem.length?`${sectionTitle('Você está bem','checkcirculo','#EAF3DE','#27500A')}
+    <div class="card-inicio">${bloco(p.bem,4)}</div>`:''}
+
+    ${!p.atencao.length&&!p.risco.length&&!p.bem.length?
+      '<div class="empty" style="padding:40px 20px">Sem dados suficientes para o diagnóstico.</div>':''}
+  `;
 }
 
 function renderAnkiDesempenho(){
@@ -5006,7 +5245,8 @@ function renderAnkiDesempenho(){
 }
 
 function renderAtividades(){
-  if(abaDesempenho==='anki') return renderAnkiDesempenho();
+  if(abaDesempenho==='anki')   return renderAnkiDesempenho();
+  if(abaDesempenho==='inicio') return renderPlanoAcao();
 
   const lista=atividadesFiltradas();
   const comAprv=lista.filter(a=>a.aproveitamento);
