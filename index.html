@@ -498,7 +498,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   padding:14px 8px;transition:background .15s ease}
 .sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease;
   display:inline-flex;align-items:center;justify-content:center;gap:5px}
-.sub-aba-icone{width:0.85em;height:0.85em;flex-shrink:0}
+/* O desenho da estrela não é opticamente centrado dentro do seu viewBox: medido em render, ele
+   assenta ~1,2px abaixo do centro do texto. A margem negativa compensa, e por ser em em ela
+   acompanha o tamanho da fonte em cada breakpoint. */
+.sub-aba-icone{width:0.85em;height:0.85em;flex-shrink:0;margin-bottom:0.07em}
 /* A seleção é marcada por um traço azul embaixo, não por cor de fundo: como o fundo do
    cabeçalho e o da página são iguais, uma aba inativa "pintada" ou some (se for clara demais)
    ou pesa mais que a selecionada (se for escura). O traço resolve sem esse dilema. */
