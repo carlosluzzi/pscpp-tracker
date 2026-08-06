@@ -1385,16 +1385,22 @@ const EXPLICACOES={
     <p><strong>Como é calculado:</strong> pela fórmula do FSRS, que combina a estabilidade do card com o tempo desde a última revisão. Quanto mais tempo passa sem revisar, menor a chance de lembrar.</p>
     <p><strong>Atenção ao momento:</strong> esse valor muda todo dia. O número mostrado é do instante em que os dados foram sincronizados do Anki – se faz dias que você não sincroniza, a lista está desatualizada.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
-    <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando a <em>sua</em> produtividade real – não uma estimativa genérica.</p>
-    <p><strong>Como mede a produtividade:</strong> cards vistos pela primeira vez ÷ tempo gasto, nas suas últimas três sessões. Usa as recentes e não todo o histórico porque a produtividade muda conforme o baralho cresce – a média de tudo ficaria otimista.</p>
-    <p><strong>Por que a produtividade cai:</strong> conforme mais cards entram em revisão, parte do tempo da sessão vai para revisar em vez de avançar. É esperado, não é você ficando mais lento.</p>
-    <p><strong>O que a conta ainda não considera:</strong></p>
+    <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando os <em>seus</em> custos reais medidos.</p>
+    <p><strong>Como funciona a conta:</strong> não é uma taxa única de "cards por hora". São dois custos separados, porque são atividades diferentes –</p>
     <ul>
-      <li><strong>Cards indo para intervalos longos</strong> – o que hoje volta em um dia, daqui a um mês volta em trinta. A carga de revisão por card despenca com o tempo, então o número tende a melhorar.</li>
-      <li><strong>Cards que você apagar</strong> – o total encolhe e a conta refaz sozinha na próxima sincronização.</li>
-      <li><strong>Tempo de edição</strong> – quando você ajusta o texto de um card na primeira vez que o vê, isso infla o tempo daquela sessão. É trabalho único, que não se repete.</li>
+      <li><strong>Custo de um card novo</strong> – quanto tempo você leva ao ver pela primeira vez</li>
+      <li><strong>Custo de uma revisão</strong> – quanto leva quando o card volta</li>
     </ul>
-    <p><strong>Só conta a primeira passada.</strong> Ver todos os cards uma vez não é o mesmo que dominá-los – as revisões seguintes vêm depois e não estão neste número.</p>`},
+    <p>A projeção vira um orçamento: a fila de revisão pendente é cobrada primeiro, e só o tempo que sobra vira avanço em cards novos.</p>
+    <p><strong>Por que não uma taxa única:</strong> conforme a fila cresce, uma taxa única cai – mas não porque você piorou, e sim porque o tempo mudou de destino. Com os custos separados, dá para ver exatamente quanto a fila está consumindo.</p>
+    <p><strong>Por matéria:</strong> o custo é medido em cada matéria separadamente, porque um card de fórmula custa mais que um de definição. Quando a matéria tem menos de 40 respostas, usa o custo geral – e a tela indica quando isso acontece.</p>
+    <p><strong>A janela é de respostas, não de sessões:</strong> sempre as 100 primeiras exposições e as 150 revisões mais recentes. Sessões têm tamanhos muito diferentes – uma de 7 cards e outra de 20 carregam volumes de informação distintos, e contar "sessões" trataria as duas como iguais.</p>
+    <p><strong>Por que 100:</strong> seu tempo por card varia bastante (desvio de cerca de 19 segundos sobre média de 40). Com 100 respostas, a margem de erro fica em torno de 4 segundos – e ir além disso melhora pouco, porque a precisão cresce com a raiz quadrada do número de observações.</p>
+    <p><strong>Como se atualiza:</strong> a cada sincronização, as respostas novas entram e as mais antigas saem da janela. Se o seu ritmo mudar, o número acompanha em poucas sessões – sem nunca depender de uma sessão isolada.</p>
+    <p><strong>Mediana, não média:</strong> resiste melhor a respostas atípicas.</p>
+    <p><strong>Limitação conhecida:</strong> o Anki corta a contagem de tempo em 60 segundos por card. Respostas mais longas – incluindo quando você edita o texto do card – aparecem truncadas. O custo real de card novo é portanto um piso, não um número exato.</p>
+    <p><strong>O que a conta ainda não considera:</strong> cards indo para intervalos longos (o que hoje volta em um dia, em um mês volta em trinta – a carga de revisão por card despenca com o tempo).</p>
+    <p><strong>Só a primeira passada.</strong> Ver todos os cards uma vez não é dominá-los; as revisões seguintes vêm depois e não estão neste número.</p>`},
   ankiVolume:{titulo:'Volume por matéria',corpo:`
     <p><strong>O que mostra:</strong> quantos cards existem em cada módulo, e que percentual deles você já estudou.</p>
     <p><strong>Matérias sem cards aparecem mesmo assim</strong> – a lacuna é informação: mostra o tamanho do que ainda falta construir.</p>
@@ -1719,7 +1725,7 @@ async function loadDataInterno(){
       intervaloDias:p.intervalo_dias||0, estabilidade:p.estabilidade,
       dificuldade:p.dificuldade, retrievability:p.retrievability,
       leech:!!p.leech, maduro:!!p.maduro, suspenso:!!p.suspenso,
-      tipoCard:p.tipo_card,
+      tipoCard:p.tipo_card, venceEm:p.vence_em||null,
     }));
     ankiSecoes=eAnkiSec?[]:(ankiSecRes||[]).map(p=>({
       cardId:p.card_id, obraTag:p.obra_tag, divisaoTag:p.divisao_tag||'',
@@ -4811,154 +4817,27 @@ async function removerNota(id){
 // existem, de que tipo, cobrindo quais capítulos. É o que permite ver desequilíbrios antes de
 // haver histórico de desempenho.
 // ---------- calculadora de ritmo ----------
-// Simulador, não projeção fixa. Usa a produtividade REAL medida nas sessões, e por isso se
-// recalcula sozinha a cada sincronização. Três coisas mudam ao longo do tempo e a conta
-// acompanha: cards indo para intervalos longos (carga de revisão despenca), cards apagados
-// (o total encolhe), e a própria produtividade do Carlos mudando.
-// ============================================================================
-// PLANO DE AÇÃO — sub-aba Início do Desempenho
+// Modelo de DOIS CUSTOS medidos por matéria, com janela por NÚMERO DE OBSERVAÇÕES.
 //
-// Cruza as três fontes, que medem coisas diferentes:
-//   ANKI      -> se o conteúdo FICA na memória      (falha = não fixou)
-//   SIMULADO  -> acerto SOB PRESSÃO, tempo contado  (falha = não aplica)
-//   PILOTQUEST-> acerto SEM pressão, no seu ritmo   (falha = não sabe)
+// Por que dois custos e não uma taxa única: ver um card novo e revisar são atividades com
+// preços diferentes. Uma taxa única cai quando a fila de revisão cresce — mas não porque a
+// pessoa piorou, e sim porque o tempo mudou de destino. Com custos separados, a projeção vira
+// orçamento: a fila é cobrada primeiro, e só o que sobra vira avanço.
 //
-// A combinação delas distingue casos que nenhuma fonte isolada separa — em
-// especial "não sei" de "sei mas erro na hora", que pedem ações opostas.
-// ============================================================================
+// Por que janela por observações e não por sessões: sessões têm tamanhos muito diferentes
+// (uma de 7 cards e outra de 20 carregam volumes de informação distintos). Contando
+// observações, a margem de erro fica constante. Com desvio-padrão de ~19s sobre média de 40s,
+// 100 observações dão margem de ±3,7s (9%) — e o ganho de ir além disso é pequeno, porque a
+// precisão melhora com a raiz quadrada de n.
+const OBS_NOVO=100;          // primeiras exposições consideradas
+const OBS_REV=150;           // revisões consideradas (são mais frequentes por sessão)
+const MIN_OBS_MATERIA=40;    // abaixo disso, a matéria usa o custo global
 
-const ALVO_APROVEITAMENTO=85.71;   // mesmo corte já usado nas cores do app
-const ALVO_RETENCAO=90;            // padrão do FSRS; trocar pelo configurado quando vier
-
-// Peso de Wilson: 3 erradas em 3 não é o mesmo que 30 em 100. Penaliza amostra pequena,
-// evitando que um capítulo com 2 questões apareça no topo da lista de urgência.
-function confiancaWilson(acertos,total){
-  if(!total) return 0;
-  const z=1.96, p=acertos/total;
-  const den=1+z*z/total;
-  const centro=p+z*z/(2*total);
-  const margem=z*Math.sqrt(p*(1-p)/total+z*z/(4*total*total));
-  return (centro-margem)/den;   // limite inferior: quanto menor a amostra, mais conservador
-}
-
-function montarPlanoAcao(){
-  // O curso e a data não vêm na questão: são derivados da atividade a que ela pertence,
-  // ligadas pelo nome (mesmo padrão usado no resto do app).
-  const porNome=new Map((atividades||[]).map(a=>[a.nome,a]));
-  const qs=(questoes||[]).filter(q=>q.modulo&&q.status).map(q=>{
-    const ativ=porNome.get(q.idAtividade);
-    return {...q,_curso:ativ?ativ.curso:null,_data:ativ?ativ.data:null};
-  });
-  if(!qs.length) return null;
-
-  // ---------- agrupa as questões por módulo + publicação + capítulo ----------
-  const grupos=new Map();
-  qs.forEach(q=>{
-    const chave=[q.modulo,q.publicacao||'',q.capitulo||''].join('||');
-    if(!grupos.has(chave)){
-      grupos.set(chave,{modulo:q.modulo,publicacao:q.publicacao||'',capitulo:q.capitulo||'',
-                        prova:{t:0,a:0}, pq:{t:0,a:0}, ultimoErro:null});
-    }
-    const g=grupos.get(chave);
-    const ehPilotquest=(q._curso===CURSO_PILOTQUEST);
-    const alvo=ehPilotquest?g.pq:g.prova;
-    alvo.t++;
-    if(isAcerto(q)||q.status==='Acertei com dúvida') alvo.a++;
-    if(q.status==='Errei'&&q._data&&(!g.ultimoErro||q._data>g.ultimoErro)) g.ultimoErro=q._data;
-  });
-
-  // ---------- traz a retenção do Anki para o mesmo recorte ----------
-  const retPorCap=new Map();
-  const secPorCard=new Map();
-  (ankiSecoes||[]).filter(s=>s.casou).forEach(s=>{
-    if(!secPorCard.has(s.cardId)) secPorCard.set(s.cardId,[]);
-    secPorCard.get(s.cardId).push(s);
-  });
-  const cardPorId=new Map((ankiCards||[]).map(c=>[c.cardId,c]));
-  (ankiRevisoes||[]).forEach(r=>{
-    if(r.intervaloAnt<21) return;             // só revisões de cards já maduros
-    const secs=secPorCard.get(r.cardId)||[];
-    const card=cardPorId.get(r.cardId);
-    if(!card) return;
-    secs.forEach(s=>{
-      const chave=[card.modulo,s.publicacao,s.capitulo].join('||');
-      if(!retPorCap.has(chave)) retPorCap.set(chave,{t:0,a:0});
-      const o=retPorCap.get(chave);
-      o.t++; if(r.resposta>=3) o.a++;
-    });
-  });
-  // quantos cards existem em cada recorte, mesmo sem revisão madura ainda
-  const cardsPorCap=new Map();
-  (ankiSecoes||[]).filter(s=>s.casou).forEach(s=>{
-    const card=cardPorId.get(s.cardId);
-    if(!card) return;
-    const chave=[card.modulo,s.publicacao,s.capitulo].join('||');
-    cardsPorCap.set(chave,(cardsPorCap.get(chave)||0)+1);
-  });
-
-  const hoje=new Date(); hoje.setHours(0,0,0,0);
-
-  // ---------- diagnóstico de cada recorte ----------
-  const itens=[...grupos.entries()].map(([chave,g])=>{
-    const prova = g.prova.t ? g.prova.a/g.prova.t*100 : null;
-    const pq    = g.pq.t    ? g.pq.a/g.pq.t*100       : null;
-    const ret   = retPorCap.has(chave)
-      ? retPorCap.get(chave).a/retPorCap.get(chave).t*100 : null;
-    const cards = cardsPorCap.get(chave)||0;
-
-    const provaOk = prova===null?null:prova>=ALVO_APROVEITAMENTO;
-    const pqOk    = pq===null   ?null:pq>=ALVO_APROVEITAMENTO;
-    const retOk   = ret===null  ?null:ret>=ALVO_RETENCAO;
-
-    // A matriz de 8 combinações. Quando uma fonte não tem dado, o diagnóstico é o
-    // possível com as que existem — e a frase diz o que falta para fechar o quadro.
-    let tipo,frase,acao;
-    if(provaOk===false&&retOk===false){
-      tipo='atencao'; frase='Você erra na prova e o conteúdo não fixa no Anki.';
-      acao='Falta base. Estude o capítulo e reforce os cards.';
-    } else if(provaOk===false&&pqOk===true){
-      tipo='atencao'; frase='Você acerta sem pressão, mas erra na prova.';
-      acao='Não é falta de estudo. Treine questões cronometradas e leitura de enunciado.';
-    } else if(provaOk===false&&retOk===true){
-      tipo='atencao'; frase='O conteúdo está fixado, mas você erra na prova.';
-      acao='O card testa reconhecimento, a prova cobra aplicação. Refaça os cards.';
-    } else if(provaOk===false){
-      tipo='atencao'; frase='Aproveitamento abaixo do alvo.';
-      acao=cards?'Reforce os cards deste capítulo.':'Sem cards no Anki ainda. Fazer cards ajudaria a fixar.';
-    } else if(provaOk===true&&retOk===false){
-      tipo='risco'; frase='Você acerta na prova, mas o conteúdo não está fixando.';
-      acao='Risco de esquecer. Reforce a revisão antes que caia.';
-    } else if(provaOk===true&&cards===0){
-      tipo='risco'; frase='Você acerta, mas não tem nenhum card sobre isso.';
-      acao='Sem revisão espaçada, tende a evaporar. Vale fazer cards.';
-    } else if(provaOk===true){
-      tipo='bem'; frase='Consolidado.'; acao='';
-    } else {
-      tipo='bem'; frase='Sem dado suficiente.'; acao='';
-    }
-
-    // Prioridade: combina distância do alvo, peso na prova, confiança e recência
-    const distancia = prova===null?0:Math.max(0,ALVO_APROVEITAMENTO-prova)/100;
-    const peso      = Math.min(1,g.prova.t/10);                 // capítulo que cai muito pesa mais
-    const conf      = 1-confiancaWilson(g.prova.a,g.prova.t);   // amostra pequena pesa menos
-    let recencia=0.5;
-    if(g.ultimoErro){
-      const dias=(hoje-new Date(g.ultimoErro+'T00:00:00'))/86400000;
-      recencia=Math.max(0.2,Math.min(1,1-dias/180));            // erro de 6 meses atrás pesa pouco
-    }
-    const prioridade = distancia*peso*conf*recencia*100;
-
-    return {...g, prova, pq, ret, cards, tipo, frase, acao, prioridade,
-            totalProva:g.prova.t, totalPq:g.pq.t, questoes:g.prova.t+g.pq.t};
-  });
-
-  return {
-    atencao: itens.filter(i=>i.tipo==='atencao').sort((a,b)=>b.prioridade-a.prioridade),
-    risco:   itens.filter(i=>i.tipo==='risco').sort((a,b)=>b.prioridade-a.prioridade),
-    bem:     itens.filter(i=>i.tipo==='bem'&&i.prova!==null).sort((a,b)=>b.prova-a.prova),
-    temAnki: (ankiRevisoes||[]).some(r=>r.intervaloAnt>=21),
-    temPilotquest: itens.some(i=>i.pq!==null),
-  };
+function medianaMs(lista){
+  if(!lista.length) return null;
+  const v=[...lista].sort((a,b)=>a-b);
+  const m=Math.floor(v.length/2);
+  return v.length%2 ? v[m] : (v[m-1]+v[m])/2;
 }
 
 function calcularRitmoAnki(){
@@ -4966,9 +4845,9 @@ function calcularRitmoAnki(){
   const revs=ankiRevisoes||[];
   if(!cards.length) return null;
 
-  const restam=cards.filter(c=>c.reps===0).length;
+  const porCard=new Map(cards.map(c=>[c.cardId,c]));
+  const diaDe=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-  // Estreia de cada card: a primeira vez que ele foi visto, no horário local
   const estreia=new Map();
   revs.forEach(r=>{
     const d=new Date(r.revisadoEm);
@@ -4976,54 +4855,92 @@ function calcularRitmoAnki(){
     if(!ant||d<ant) estreia.set(r.cardId,d);
   });
 
-  // Agrupa por dia local, separando cards novos de revisões
+  // Sessões por dia, para o histórico exibido
   const porDia=new Map();
   revs.forEach(r=>{
-    const d=new Date(r.revisadoEm);
-    const dia=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const d=new Date(r.revisadoEm), dia=diaDe(d);
     if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),cards:new Set(),toques:0});
     const o=porDia.get(dia);
     o.minutos+=(r.tempoMs||0)/60000;
     o.toques++;
     o.cards.add(r.cardId);
     const e=estreia.get(r.cardId);
-    if(e){
-      const diaEstreia=`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,'0')}-${String(e.getDate()).padStart(2,'0')}`;
-      if(diaEstreia===dia) o.novos.add(r.cardId);
-    }
+    if(e&&diaDe(e)===dia) o.novos.add(r.cardId);
   });
-
   const dias=[...porDia.entries()].map(([dia,o])=>({
     dia, minutos:o.minutos, novos:o.novos.size, toques:o.toques,
-    // Repetições: respostas além da primeira em cada card naquele dia. Card que volta duas
-    // vezes na mesma sessão é card que você errou ou marcou como difícil.
     repeticoes:o.toques-o.cards.size,
-    revisoes:o.cards.size-o.novos.size,   // cards antigos que voltaram
-    novosPorHora:o.minutos>0?o.novos.size/(o.minutos/60):0,
+    revisoes:o.cards.size-o.novos.size,
   })).sort((a,b)=>a.dia.localeCompare(b.dia));
-
   if(!dias.length) return null;
 
-  // Produtividade: média das sessões mais recentes. Uso as 3 últimas em vez de todas porque
-  // a produtividade muda conforme o baralho cresce — a média histórica ficaria otimista.
-  const recentes=dias.slice(-3);
-  const minutosRec=recentes.reduce((a,d)=>a+d.minutos,0);
-  const novosRec=recentes.reduce((a,d)=>a+d.novos,0);
-  const novosPorHora=minutosRec>0?novosRec/(minutosRec/60):0;
+  // Todas as respostas em ordem cronológica, marcadas como primeira exposição ou revisão
+  const respostas=revs
+    .filter(r=>r.tempoMs>0)
+    .map(r=>{
+      const d=new Date(r.revisadoEm);
+      const e=estreia.get(r.cardId);
+      const card=porCard.get(r.cardId);
+      return {
+        quando:d.getTime(), ms:r.tempoMs,
+        ehNovo: !!e && d.getTime()===e.getTime(),
+        materia: card ? (card.modulo||'') : '',
+      };
+    })
+    .sort((a,b)=>b.quando-a.quando);   // mais recentes primeiro
 
-  // Tendência: a produtividade está subindo ou caindo?
-  let tendencia=null;
-  if(dias.length>=2){
-    const primeiro=dias[0].novosPorHora, ultimo=dias[dias.length-1].novosPorHora;
-    if(primeiro>0) tendencia=Math.round((ultimo-primeiro)/primeiro*100);
-  }
+  // Pega as N últimas de cada tipo. Como está ordenado do mais novo pro mais antigo, basta
+  // cortar — a janela acompanha o ritmo recente sem depender de quantas sessões foram.
+  const ultimas=(lista,n)=>lista.slice(0,n);
+  const novosGlobal = ultimas(respostas.filter(r=>r.ehNovo),  OBS_NOVO).map(r=>r.ms);
+  const revsGlobal  = ultimas(respostas.filter(r=>!r.ehNovo), OBS_REV ).map(r=>r.ms);
 
-  return {restam, total:cards.length, dias, novosPorHora, tendencia,
-          diasEstudados:dias.length};
+  const custoNovoGlobal=medianaMs(novosGlobal);
+  const custoRevGlobal =medianaMs(revsGlobal);
+
+  // Mesma janela, agora dentro de cada matéria. Matéria com poucas observações cai para o
+  // custo global — mesma cascata usada na revisão espaçada.
+  const materias=[...new Set(respostas.map(r=>r.materia).filter(Boolean))];
+  const custos={};
+  materias.forEach(mat=>{
+    const daMat=respostas.filter(r=>r.materia===mat);
+    const n=ultimas(daMat.filter(r=>r.ehNovo),  OBS_NOVO).map(r=>r.ms);
+    const v=ultimas(daMat.filter(r=>!r.ehNovo), OBS_REV ).map(r=>r.ms);
+    custos[mat]={
+      novo: n.length>=MIN_OBS_MATERIA ? medianaMs(n) : custoNovoGlobal,
+      rev:  v.length>=MIN_OBS_MATERIA ? medianaMs(v) : custoRevGlobal,
+      obsNovo:n.length, obsRev:v.length,
+      proprioNovo: n.length>=MIN_OBS_MATERIA,
+      proprioRev:  v.length>=MIN_OBS_MATERIA,
+    };
+  });
+
+  const restamPorMateria=new Map();
+  cards.filter(c=>c.reps===0).forEach(c=>{
+    const m=c.modulo||'';
+    restamPorMateria.set(m,(restamPorMateria.get(m)||0)+1);
+  });
+
+  // Fila pendente: consome tempo antes de sobrar para o que é novo
+  const hoje=new Date(); hoje.setHours(23,59,59,999);
+  const filaPendente=cards.filter(c=>c.venceEm&&new Date(c.venceEm+'T12:00:00')<=hoje).length
+                  || cards.filter(c=>c.reps>0&&c.tipoCard===2).length;
+
+  return {
+    restam: cards.filter(c=>c.reps===0).length,
+    total: cards.length,
+    dias,
+    custoNovo: custoNovoGlobal,
+    custoRev:  custoRevGlobal,
+    obsNovo: novosGlobal.length,
+    obsRev:  revsGlobal.length,
+    custos, restamPorMateria, filaPendente,
+    // A estimativa só é considerada firme quando há observações suficientes para a margem
+    // de erro cair abaixo de ~10% da média.
+    provisorio: novosGlobal.length < OBS_NOVO,
+  };
 }
 
-// Tela do plano de ação. Cada item traz o diagnóstico em uma frase, o que fazer, e os números
-// de apoio — nunca um percentual solto sem leitura.
 function renderPlanoAcao(){
   const p=montarPlanoAcao();
   if(!p){
@@ -5210,12 +5127,40 @@ function renderAnkiDesempenho(){
 
     ${(()=>{
       const r=calcularRitmoAnki();
-      if(!r||!r.dias.length) return '';
+      if(!r||!r.dias.length||!r.custoNovo) return '';
       const opcoes=[15,30,45,60,90];
-      const porDia=r.novosPorHora*(ankiMinutosDia/60);
+      const segNovo=r.custoNovo/1000, segRev=r.custoRev/1000;
+      const janelaTxt=`${r.obsNovo} card${r.obsNovo===1?'':'s'} novo${r.obsNovo===1?'':'s'} e ${r.obsRev} revis${r.obsRev===1?'ão':'ões'} mais recentes`;
+
+      // Orçamento de tempo: a fila de revisão é cobrada primeiro, e só o que sobra vira avanço.
+      const minutos=ankiMinutosDia;
+      const minRevisao=Math.min(minutos, r.filaPendente*segRev/60);
+      const minSobra=Math.max(0, minutos-minRevisao);
+      const porDia=Math.floor(minSobra*60/segNovo);
       const diasFalta=porDia>0?Math.ceil(r.restam/porDia):null;
       const meses=diasFalta?(diasFalta/30).toFixed(1).replace('.',','):null;
+      const semRevisao=Math.floor(minutos*60/segNovo);
       const ult=r.dias.slice(-4);
+
+      // Quanto falta em cada matéria, com o custo específico dela quando houver dado
+      const linhasMateria=[...r.restamPorMateria.entries()]
+        .filter(([m,n])=>m&&n>0)
+        .sort((a,b)=>b[1]-a[1])
+        .map(([mat,qtd])=>{
+          const c=r.custos[mat]||{};
+          const sn=(c.novo||r.custoNovo)/1000;
+          // Ritmo próprio da matéria: o tempo que sobra depois da fila, dividido pelo custo dela
+          const porDiaMat=sn>0?Math.floor(minSobra*60/sn):0;
+          const dias=porDiaMat>0?Math.ceil(qtd/porDiaMat):null;
+          return `<div class="quad-item" style="padding:7px 0">
+            <span class="quad-tag tag-tempo">${dias?dias+'d':'–'}</span>
+            <div class="quad-txt">
+              <div class="quad-nome">${mat}</div>
+              <div class="quad-det">${qtd.toLocaleString('pt-BR')} cards a ver • ${sn.toFixed(0)} seg cada${c.proprioNovo?'':' (custo geral)'}</div>
+            </div>
+          </div>`;
+        }).join('');
+
       return `
     ${sectionTitle('Quanto falta para rodar o baralho','evolucao','#E6F1FB','#202A45',{direita:botaoInfo('ankiRitmo')})}
     <div class="card-inicio">
@@ -5225,7 +5170,7 @@ function renderAnkiDesempenho(){
       </div>
       <div class="hist-total">
         <div class="hist-total-item">
-          <span class="hist-total-val">${Math.round(porDia)}</span>
+          <span class="hist-total-val">${porDia}</span>
           <span class="hist-total-lbl">cards novos por dia</span>
         </div>
         <div class="hist-total-item">
@@ -5237,22 +5182,32 @@ function renderAnkiDesempenho(){
           <span class="hist-total-lbl">meses</span>
         </div>
       </div>
-      <div style="font-size:var(--fs-b);color:#888;line-height:1.5;margin-top:4px">
-        Faltam <strong style="color:#202A45">${r.restam.toLocaleString('pt-BR')}</strong> cards nunca vistos,
-        de ${r.total.toLocaleString('pt-BR')} no total.
-        A conta usa a sua produtividade real: <strong style="color:#202A45">${r.novosPorHora.toFixed(1).replace('.',',')}</strong>
-        cards novos por hora, medida nas últimas ${Math.min(3,r.dias.length)} sessões.
+
+      <div style="font-size:var(--fs-b);color:#888;line-height:1.6;margin-top:4px">
+        Cada card novo custa <strong style="color:#202A45">${segNovo.toFixed(0)} segundos</strong>
+        e cada revisão <strong style="color:#202A45">${segRev.toFixed(0)}</strong>,
+        medidos sobre ${janelaTxt}.${r.provisorio?' Ainda são poucas respostas – a estimativa vai firmar conforme você estudar.':''}
+        ${r.filaPendente>0?`Com <strong style="color:#202A45">${r.filaPendente}</strong> revisões
+        na fila, ${Math.round(minRevisao)} dos ${minutos} minutos vão para elas –
+        sobram ${Math.round(minSobra)} para avançar.`:'Sem revisões pendentes, todo o tempo vai para cards novos.'}
       </div>
-      ${r.tendencia!==null&&Math.abs(r.tendencia)>=10?`<div style="font-size:var(--fs-b);color:${r.tendencia<0?'#A32D2D':'#27500A'};margin-top:8px;line-height:1.5">
-        Sua produtividade em cards novos ${r.tendencia<0?'caiu':'subiu'} ${Math.abs(r.tendencia)}% desde a primeira sessão${r.tendencia<0?' – as revisões começam a ocupar parte do tempo':''}.
+
+      ${r.filaPendente>0&&semRevisao>porDia?`<div style="font-size:var(--fs-b);color:#888;line-height:1.5;margin-top:6px">
+        Sem fila nenhuma, esse mesmo tempo daria <strong style="color:#202A45">${semRevisao}</strong> cards novos.
       </div>`:''}
+
+      ${linhasMateria?`<div style="border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px">
+        <div style="font-size:var(--fs-b);color:#888;margin-bottom:4px">Por matéria</div>
+        ${linhasMateria}
+      </div>`:''}
+
       <div style="border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px">
         <div style="font-size:var(--fs-b);color:#888;margin-bottom:6px">Suas últimas sessões</div>
         ${ult.map(d=>`<div class="quad-item" style="padding:6px 0">
           <span class="quad-tag tag-tempo">${Math.round(d.minutos)} min</span>
           <div class="quad-txt">
             <div class="quad-nome">${fmtData(d.dia)}</div>
-            <div class="quad-det">${d.novos} novos${d.revisoes?' • '+d.revisoes+' revisões':''}${d.repeticoes?' • repetiu '+d.repeticoes:''} • ${d.novosPorHora.toFixed(1).replace('.',',')} novos/hora</div>
+            <div class="quad-det">${d.novos} novos${d.revisoes?' • '+d.revisoes+' revisões':''}${d.repeticoes?' • repetiu '+d.repeticoes:''}</div>
           </div>
         </div>`).join('')}
       </div>
