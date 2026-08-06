@@ -1360,6 +1360,17 @@ const EXPLICACOES={
     <p><strong>De onde vem:</strong> do seu baralho do Anki, sincronizado pelo computador. Os números refletem o último sincronismo entre o iPad e o Mac.</p>
     <p><strong>Já estudados:</strong> cards que você viu pelo menos uma vez. <strong>Em revisão:</strong> cards que já saíram da fase inicial e voltam em intervalos crescentes.</p>
     <p><strong>Por que não mostra retenção ainda:</strong> com a maior parte do baralho não vista, qualquer percentual de acerto seria calculado sobre pouquíssimas revisões e oscilaria demais. Retenção e conteúdo problemático aparecem quando houver histórico suficiente.</p>`},
+  ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
+    <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando a <em>sua</em> produtividade real – não uma estimativa genérica.</p>
+    <p><strong>Como mede a produtividade:</strong> cards vistos pela primeira vez ÷ tempo gasto, nas suas últimas três sessões. Usa as recentes e não todo o histórico porque a produtividade muda conforme o baralho cresce – a média de tudo ficaria otimista.</p>
+    <p><strong>Por que a produtividade cai:</strong> conforme mais cards entram em revisão, parte do tempo da sessão vai para revisar em vez de avançar. É esperado, não é você ficando mais lento.</p>
+    <p><strong>O que a conta ainda não considera:</strong></p>
+    <ul>
+      <li><strong>Cards indo para intervalos longos</strong> – o que hoje volta em um dia, daqui a um mês volta em trinta. A carga de revisão por card despenca com o tempo, então o número tende a melhorar.</li>
+      <li><strong>Cards que você apagar</strong> – o total encolhe e a conta refaz sozinha na próxima sincronização.</li>
+      <li><strong>Tempo de edição</strong> – quando você ajusta o texto de um card na primeira vez que o vê, isso infla o tempo daquela sessão. É trabalho único, que não se repete.</li>
+    </ul>
+    <p><strong>Só conta a primeira passada.</strong> Ver todos os cards uma vez não é o mesmo que dominá-los – as revisões seguintes vêm depois e não estão neste número.</p>`},
   ankiVolume:{titulo:'Volume por matéria',corpo:`
     <p><strong>O que mostra:</strong> quantos cards existem em cada módulo, e que percentual deles você já estudou.</p>
     <p><strong>Matérias sem cards aparecem mesmo assim</strong> – a lacuna é informação: mostra o tamanho do que ainda falta construir.</p>
@@ -1468,7 +1479,8 @@ function fmtPct(v){
 
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
-let ankiCards=[],ankiSecoes=[];
+let ankiCards=[],ankiSecoes=[],ankiRevisoes=[];
+let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -1514,7 +1526,8 @@ async function loadDataInterno(){
       {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
       {data:anotacoesRes,error:eAnotacoes},
       {data:ankiRes,error:eAnki},
-      {data:ankiSecRes,error:eAnkiSec}
+      {data:ankiSecRes,error:eAnkiSec},
+      {data:ankiRevRes,error:eAnkiRev}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
@@ -1535,6 +1548,7 @@ async function loadDataInterno(){
       sbDados.from('anotacoes_alternativas').select('*'),
       buscarTudo('anki_cards'),
       buscarTudo('anki_secoes'),
+      buscarTudo('anki_revisoes'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -1672,6 +1686,10 @@ async function loadDataInterno(){
       cardId:p.card_id, obraTag:p.obra_tag, divisaoTag:p.divisao_tag||'',
       subdivisaoTag:p.subdivisao_tag||'', publicacao:p.publicacao||'',
       capitulo:p.capitulo||'', casou:!!p.casou,
+    }));
+    ankiRevisoes=eAnkiRev?[]:(ankiRevRes||[]).map(p=>({
+      cardId:p.card_id, revisadoEm:p.revisado_em, resposta:p.resposta,
+      tempoMs:p.tempo_ms||0, intervaloAnt:p.intervalo_ant, tipo:p.tipo,
     }));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
@@ -2372,6 +2390,7 @@ function atualizarDotsHistorico(){
   paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
+function setAnkiMinutos(m){ ankiMinutosDia=m; renderTab(tabAtual,true); }
 function setAbaDesempenho(qual){
   abaDesempenho=qual;
   filtCurso='todos'; filtTipo='todos';  // filtros da outra sub-aba não fazem sentido aqui
@@ -4752,6 +4771,67 @@ async function removerNota(id){
 // retenção (que ficaria em zero por semanas) e sim a COMPOSIÇÃO do baralho — quantos cards
 // existem, de que tipo, cobrindo quais capítulos. É o que permite ver desequilíbrios antes de
 // haver histórico de desempenho.
+// ---------- calculadora de ritmo ----------
+// Simulador, não projeção fixa. Usa a produtividade REAL medida nas sessões, e por isso se
+// recalcula sozinha a cada sincronização. Três coisas mudam ao longo do tempo e a conta
+// acompanha: cards indo para intervalos longos (carga de revisão despenca), cards apagados
+// (o total encolhe), e a própria produtividade do Carlos mudando.
+function calcularRitmoAnki(){
+  const cards=(ankiCards||[]).filter(c=>!c.suspenso);
+  const revs=ankiRevisoes||[];
+  if(!cards.length) return null;
+
+  const restam=cards.filter(c=>c.reps===0).length;
+
+  // Estreia de cada card: a primeira vez que ele foi visto, no horário local
+  const estreia=new Map();
+  revs.forEach(r=>{
+    const d=new Date(r.revisadoEm);
+    const ant=estreia.get(r.cardId);
+    if(!ant||d<ant) estreia.set(r.cardId,d);
+  });
+
+  // Agrupa por dia local, separando cards novos de revisões
+  const porDia=new Map();
+  revs.forEach(r=>{
+    const d=new Date(r.revisadoEm);
+    const dia=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),toques:0});
+    const o=porDia.get(dia);
+    o.minutos+=(r.tempoMs||0)/60000;
+    o.toques++;
+    const e=estreia.get(r.cardId);
+    if(e){
+      const diaEstreia=`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,'0')}-${String(e.getDate()).padStart(2,'0')}`;
+      if(diaEstreia===dia) o.novos.add(r.cardId);
+    }
+  });
+
+  const dias=[...porDia.entries()].map(([dia,o])=>({
+    dia, minutos:o.minutos, novos:o.novos.size, toques:o.toques,
+    novosPorHora:o.minutos>0?o.novos.size/(o.minutos/60):0,
+  })).sort((a,b)=>a.dia.localeCompare(b.dia));
+
+  if(!dias.length) return null;
+
+  // Produtividade: média das sessões mais recentes. Uso as 3 últimas em vez de todas porque
+  // a produtividade muda conforme o baralho cresce — a média histórica ficaria otimista.
+  const recentes=dias.slice(-3);
+  const minutosRec=recentes.reduce((a,d)=>a+d.minutos,0);
+  const novosRec=recentes.reduce((a,d)=>a+d.novos,0);
+  const novosPorHora=minutosRec>0?novosRec/(minutosRec/60):0;
+
+  // Tendência: a produtividade está subindo ou caindo?
+  let tendencia=null;
+  if(dias.length>=2){
+    const primeiro=dias[0].novosPorHora, ultimo=dias[dias.length-1].novosPorHora;
+    if(primeiro>0) tendencia=Math.round((ultimo-primeiro)/primeiro*100);
+  }
+
+  return {restam, total:cards.length, dias, novosPorHora, tendencia,
+          diasEstudados:dias.length};
+}
+
 function renderAnkiDesempenho(){
   const cards=ankiCards||[];
   if(!cards.length){
@@ -4853,6 +4933,57 @@ function renderAnkiDesempenho(){
     ${aprendendo?`<div class="card-inicio" style="margin-top:-4px">
       <div style="font-size:var(--fs-c);color:#666">${fmt(aprendendo)} card${aprendendo===1?'':'s'} em fase de aprendizado – vistos hoje, ainda não consolidados.</div>
     </div>`:''}
+
+    ${(()=>{
+      const r=calcularRitmoAnki();
+      if(!r||!r.dias.length) return '';
+      const opcoes=[15,30,45,60,90];
+      const porDia=r.novosPorHora*(ankiMinutosDia/60);
+      const diasFalta=porDia>0?Math.ceil(r.restam/porDia):null;
+      const meses=diasFalta?(diasFalta/30).toFixed(1).replace('.',','):null;
+      const ult=r.dias.slice(-4);
+      return `
+    ${sectionTitle('Quanto falta para rodar o baralho','evolucao','#E6F1FB','#202A45',{direita:botaoInfo('ankiRitmo')})}
+    <div class="card-inicio">
+      <div style="font-size:var(--fs-c);color:#666;margin-bottom:10px">Se eu estudar por dia:</div>
+      <div class="filter-row" style="margin-bottom:14px">
+        ${opcoes.map(m=>`<div class="filter-btn${ankiMinutosDia===m?' active':''}" onclick="setAnkiMinutos(${m})">${m>=60?(m/60===1?'1 hora':(m/60).toFixed(1).replace('.',',')+'h'):m+' min'}</div>`).join('')}
+      </div>
+      <div class="hist-total">
+        <div class="hist-total-item">
+          <span class="hist-total-val">${Math.round(porDia)}</span>
+          <span class="hist-total-lbl">cards novos por dia</span>
+        </div>
+        <div class="hist-total-item">
+          <span class="hist-total-val">${diasFalta?diasFalta.toLocaleString('pt-BR'):'–'}</span>
+          <span class="hist-total-lbl">dias até ver todos</span>
+        </div>
+        <div class="hist-total-item">
+          <span class="hist-total-val">${meses||'–'}</span>
+          <span class="hist-total-lbl">meses</span>
+        </div>
+      </div>
+      <div style="font-size:var(--fs-b);color:#888;line-height:1.5;margin-top:4px">
+        Faltam <strong style="color:#202A45">${r.restam.toLocaleString('pt-BR')}</strong> cards nunca vistos,
+        de ${r.total.toLocaleString('pt-BR')} no total.
+        A conta usa a sua produtividade real: <strong style="color:#202A45">${r.novosPorHora.toFixed(1).replace('.',',')}</strong>
+        cards novos por hora, medida nas últimas ${Math.min(3,r.dias.length)} sessões.
+      </div>
+      ${r.tendencia!==null&&Math.abs(r.tendencia)>=10?`<div style="font-size:var(--fs-b);color:${r.tendencia<0?'#A32D2D':'#27500A'};margin-top:8px;line-height:1.5">
+        Sua produtividade em cards novos ${r.tendencia<0?'caiu':'subiu'} ${Math.abs(r.tendencia)}% desde a primeira sessão${r.tendencia<0?' – as revisões começam a ocupar parte do tempo':''}.
+      </div>`:''}
+      <div style="border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px">
+        <div style="font-size:var(--fs-b);color:#888;margin-bottom:6px">Suas últimas sessões</div>
+        ${ult.map(d=>`<div class="quad-item" style="padding:6px 0">
+          <span class="quad-tag tag-tempo">${Math.round(d.minutos)} min</span>
+          <div class="quad-txt">
+            <div class="quad-nome">${fmtData(d.dia)}</div>
+            <div class="quad-det">${d.novos} cards novos • ${d.toques} respostas • ${d.novosPorHora.toFixed(1).replace('.',',')} novos/hora</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+    })()}
 
     ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45',{direita:botaoInfo('ankiVolume')})}
     <div class="card-inicio">
