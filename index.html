@@ -1356,6 +1356,26 @@ const EXPLICACOES={
     <p><strong>O que mostra:</strong> seu tempo dividido em Módulo → Publicação → Capítulo, e dentro de cada capítulo, cada passagem que você fez por ele.</p>
     <p><strong>Ritmo (car/min):</strong> caracteres lidos ÷ minutos. Só aparece quando você informa os caracteres ao registrar a leitura.</p>
     <p><strong>Para que serve:</strong> comparar capítulos do mesmo livro. Ritmo abaixo do seu normal sugere conteúdo mais denso – e antecipa a revisão daquele capítulo.</p>`},
+  ankiResumo:{titulo:'Resumo do baralho',corpo:`
+    <p><strong>De onde vem:</strong> do seu baralho do Anki, sincronizado pelo computador. Os números refletem o último sincronismo entre o iPad e o Mac.</p>
+    <p><strong>Já estudados:</strong> cards que você viu pelo menos uma vez. <strong>Em revisão:</strong> cards que já saíram da fase inicial e voltam em intervalos crescentes.</p>
+    <p><strong>Por que não mostra retenção ainda:</strong> com a maior parte do baralho não vista, qualquer percentual de acerto seria calculado sobre pouquíssimas revisões e oscilaria demais. Retenção e conteúdo problemático aparecem quando houver histórico suficiente.</p>`},
+  ankiVolume:{titulo:'Volume por matéria',corpo:`
+    <p><strong>O que mostra:</strong> quantos cards existem em cada módulo, e que percentual deles você já estudou.</p>
+    <p><strong>Matérias sem cards aparecem mesmo assim</strong> – a lacuna é informação: mostra o tamanho do que ainda falta construir.</p>
+    <p><strong>De onde vem a matéria:</strong> da tag <em>Módulo::</em> de cada card, traduzida para o nome usado no app.</p>`},
+  ankiTipo:{titulo:'Como os cards cobram',corpo:`
+    <p><strong>O que mostra:</strong> a distribuição dos cards pela tag <em>Tipo_Questao::</em> – a mesma classificação usada nas questões de prova.</p>
+    <p><strong>Para que serve:</strong> comparar com o que a prova cobra. Se o baralho é quase todo conceitual mas o simulado tem muitas questões de cálculo, existe um desequilíbrio entre o que você treina e o que é cobrado.</p>
+    <p><strong>Ainda não dá para cruzar:</strong> as questões dos simulados não têm esse campo preenchido. Quando tiverem, a comparação fica automática.</p>`},
+  ankiCategoria:{titulo:'Natureza do conteúdo',corpo:`
+    <p><strong>O que mostra:</strong> a distribuição pela tag <em>Categoria::</em> – que tipo de coisa cada card guarda: definição, número, fórmula, figura, exceção, procedimento, lista ou comparação.</p>
+    <p><strong>Para que serve:</strong> perceber a composição do que você está memorizando. Um baralho quase todo de definições treina reconhecimento; um com muitas fórmulas e números exige outro tipo de estudo.</p>`},
+  ankiCapitulo:{titulo:'Cards por capítulo',corpo:`
+    <p><strong>O que mostra:</strong> quantos cards cobrem cada capítulo da bibliografia oficial.</p>
+    <p><strong>Como é calculado:</strong> pela tag <em>Livro::Obra::Divisão::Subdivisão</em>, casada com a bibliografia do edital. Conta cards distintos por capítulo.</p>
+    <p><strong>Atenção:</strong> um card de comparação carrega várias tags <em>Livro::</em> e cobre mais de um capítulo – por isso aparece em todos eles, e a soma dos capítulos pode passar do total de cards. Isso está correto.</p>
+    <p><strong>Complementa a Cobertura da bibliografia:</strong> aquela mede o que você leu; esta mede o que você fixou em card. Capítulo lido mas sem cards é conteúdo com risco alto de evaporar.</p>`},
   histCapitulo:{titulo:'Histórico por matéria',corpo:`
     <p><strong>O que é:</strong> todas as vezes que você passou por um capítulo, com o tempo e o ritmo de cada passagem.</p>
     <p><strong>Como usar:</strong> escolha a matéria e, se quiser, a publicação e o capítulo. Os filtros funcionam em cascata – trocar a matéria limpa os de baixo.</p>
@@ -1448,7 +1468,7 @@ function fmtPct(v){
 
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
-let ankiCards=[];
+let ankiCards=[],ankiSecoes=[];
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -1493,7 +1513,8 @@ async function loadDataInterno(){
       {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
       {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
       {data:anotacoesRes,error:eAnotacoes},
-      {data:ankiRes,error:eAnki}
+      {data:ankiRes,error:eAnki},
+      {data:ankiSecRes,error:eAnkiSec}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
@@ -1513,6 +1534,7 @@ async function loadDataInterno(){
       sbDados.from('app_config').select('*'),
       sbDados.from('anotacoes_alternativas').select('*'),
       buscarTudo('anki_cards'),
+      buscarTudo('anki_secoes'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -1639,10 +1661,17 @@ async function loadDataInterno(){
     // aviso de "sem dados" — não é erro que deva derrubar o carregamento do resto.
     ankiCards=eAnki?[]:(ankiRes||[]).map(p=>({
       cardId:p.card_id, modulo:p.modulo||'', assunto:p.assunto||'',
+      categoria:p.categoria||'', tipoQuestao:p.tipo_questao||'',
       pergunta:p.pergunta||'', reps:p.reps||0, lapses:p.lapses||0,
       intervaloDias:p.intervalo_dias||0, estabilidade:p.estabilidade,
       dificuldade:p.dificuldade, retrievability:p.retrievability,
       leech:!!p.leech, maduro:!!p.maduro, suspenso:!!p.suspenso,
+      tipoCard:p.tipo_card,
+    }));
+    ankiSecoes=eAnkiSec?[]:(ankiSecRes||[]).map(p=>({
+      cardId:p.card_id, obraTag:p.obra_tag, divisaoTag:p.divisao_tag||'',
+      subdivisaoTag:p.subdivisao_tag||'', publicacao:p.publicacao||'',
+      capitulo:p.capitulo||'', casou:!!p.casou,
     }));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
@@ -2398,6 +2427,8 @@ function mostrarDiaAnalise(key){
 }
 
 const ROTULO_SEM_MODULO='PSCPP';
+// Mesmo desenho usado na sub-aba, reaproveitado no título da seção.
+const ICONE_ANKI_SVG=`<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M221.3 511.9q-5.25.3-10.8-.9c-32.3-7.7-38.6-52.7-45.2-100.4-2.6-19.2-7.1-51.2-12.5-57.7-5.6-6.3-36.6-15.6-55.2-21.1-46-13.8-89.5-26.8-92.2-60-2.7-33.1 38.2-53 81.5-74 17.4-8.4 46.5-22.6 51-29.7 4.3-7.3 3.5-39.6 3-59-1.1-48.1-2.2-93.6 28.5-106.3 30.6-12.7 62.2 20 95.6 54.7 13.4 13.9 35.8 37.2 44 39.4 8.3 1.8 38.8-8.9 57-15.3 45.4-16 88.3-31 109.9-5.8s.2 65.3-22.5 107.8c-9.1 17-24.4 45.6-23.8 54 .8 8.4 20.5 34.1 32.2 49.5 29.2 38.3 56.8 74.4 39.5 102.8s-62.1 20.4-109.4 11.9c-19-3.4-50.9-9-58.8-6-7.7 3.4-26.1 30-37.1 45.9-24.2 35.1-47.2 68.4-74.7 70.2M48.8 268.3c9.9 7.9 42.6 17.7 61 23.2 33.1 9.9 61.6 18.4 75 34s17.5 45.1 22.2 79.3c2.6 19 7.3 52.8 13.6 63.8 10.6-7 30-35.1 40.9-50.8 19.6-28.4 36.6-52.9 55.5-60.8 19-7.9 48.3-2.7 82.3 3.4 18.8 3.4 52.5 9.3 64.9 6.8-3.4-12.3-24.1-39.4-35.7-54.6-20.9-27.4-39-51.1-40.7-71.6s12.4-46.8 28.7-77.2c9-16.9 25.1-47 26.5-59.6-12.7-.5-44.9 10.7-63 17.1-32.6 11.4-60.7 21.3-80.7 16.6s-40.7-26.2-64.6-51.1c-13.3-13.8-36.9-38.4-48.5-43.6-4.5 11.9-3.7 46-3.2 65.2.8 34.5 1.5 64.3-9.2 81.9-10.7 17.5-37.5 30.5-68.6 45.6-17.2 8.1-47.9 23-56.4 32.4"/></svg>`;
 // Selo de origem: só aparece quando a sessão veio de fora do Tracker (hoje, do Pilotquest).
 // Sessões criadas aqui têm origem vazia e não ganham selo — o padrão continua limpo.
 function seloOrigem(s){
@@ -4717,6 +4748,10 @@ async function removerNota(id){
 // Aba Anki: dados de retenção vindos do baralho, separados do desempenho em prova.
 // Fica dentro de Desempenho porque responde a mesma pergunta ("como estou indo?"), mas com uma
 // fonte diferente — a prova mede acerto sob pressão; o Anki mede o que fica na memória.
+// Aba Anki: retrato do baralho. Enquanto o volume estudado for pequeno, o que informa não é
+// retenção (que ficaria em zero por semanas) e sim a COMPOSIÇÃO do baralho — quantos cards
+// existem, de que tipo, cobrindo quais capítulos. É o que permite ver desequilíbrios antes de
+// haver histórico de desempenho.
 function renderAnkiDesempenho(){
   const cards=ankiCards||[];
   if(!cards.length){
@@ -4728,85 +4763,114 @@ function renderAnkiDesempenho(){
   }
 
   const ativos=cards.filter(c=>!c.suspenso);
-  const maduros=ativos.filter(c=>c.maduro).length;
-  const leeches=ativos.filter(c=>c.leech);
-  const pctMaduros=ativos.length?Math.round(maduros/ativos.length*100):0;
-  // Fase de construção: quantos cards já foram vistos ao menos uma vez. Com o baralho recém
-  // criado, esse é o número que importa — retenção e leeches ficam em zero por semanas, e
-  // mostrá-los como métrica principal daria a impressão errada de que algo está vazio.
   const vistos=ativos.filter(c=>c.reps>0).length;
   const pctVistos=ativos.length?Math.round(vistos/ativos.length*100):0;
-  const emConstrucao=pctVistos<50;
+  const fmt=n=>n.toLocaleString('pt-BR');
 
-  // Volume por módulo — mostra também os módulos sem cards, porque a lacuna é informação:
-  // saber que seis matérias ainda não têm card nenhum é o tamanho do que falta construir.
+  // ---------- estado dos cards ----------
+  const novos=ativos.filter(c=>c.tipoCard===0).length;
+  const aprendendo=ativos.filter(c=>c.tipoCard===1).length;
+  const emRevisao=ativos.filter(c=>c.tipoCard===2).length;
+
+  // ---------- volume por módulo ----------
   const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
-  const porModulo=modulosPscpp.map(m=>{
+  const volumeHtml=modulosPscpp.map(m=>{
     const doMod=ativos.filter(c=>c.modulo===m);
-    const mad=doMod.filter(c=>c.maduro).length;
-    const vis=doMod.filter(c=>c.reps>0).length;
-    return {modulo:m, total:doMod.length, maduros:mad, vistos:vis,
-            pct:doMod.length?Math.round((emConstrucao?vis:mad)/doMod.length*100):0};
-  });
-  const semModulo=ativos.filter(c=>!c.modulo).length;
-
-  const volumeHtml=porModulo.map(x=>{
-    const cc=modCores[x.modulo]||{tx:'#888'};
-    if(!x.total){
+    const cc=modCores[m]||{tx:'#888'};
+    if(!doMod.length){
       return `<div class="cob-item">
         <div class="cob-top">
-          <span class="cob-nome" style="color:#bbb">${x.modulo}</span>
+          <span class="cob-nome" style="color:#bbb">${m}</span>
           <span class="cob-num" style="color:#bbb">sem cards</span>
         </div>
         <div class="cob-bar"></div>
       </div>`;
     }
+    const vis=doMod.filter(c=>c.reps>0).length;
+    const pct=Math.round(vis/doMod.length*100);
     return `<div class="cob-item">
       <div class="cob-top">
-        <span class="cob-nome">${x.modulo}</span>
-        <span class="cob-num">${x.total.toLocaleString('pt-BR')} card${x.total===1?'':'s'} • ${x.pct}% ${emConstrucao?'estudados':'maduros'}</span>
+        <span class="cob-nome">${m}</span>
+        <span class="cob-num">${fmt(doMod.length)} cards • ${pct}% estudados</span>
       </div>
-      <div class="cob-bar"><div class="cob-fill" style="width:${x.pct}%;background:${cc.tx}"></div></div>
+      <div class="cob-bar"><div class="cob-fill" style="width:${pct}%;background:${cc.tx}"></div></div>
     </div>`;
   }).join('');
+  const semModulo=ativos.filter(c=>!c.modulo).length;
 
-  const leechesHtml=leeches.length
-    ? leeches.sort((a,b)=>b.lapses-a.lapses).slice(0,20).map(c=>{
-        const cc=modCores[c.modulo]||{bg:'#F1EFE8',tx:'#444441'};
-        return `<div class="quad-item">
-          <span class="quad-tag" style="color:${cc.tx};background:${cc.bg}">${c.lapses} esquec.</span>
-          <div class="quad-txt">
-            <div class="quad-nome">${(c.pergunta||'').replace(/<[^>]+>/g,'').slice(0,90)}</div>
-            <div class="quad-det">${c.modulo||'sem módulo'} • ${c.reps} revisões</div>
-          </div>
-        </div>`;
-      }).join('')
-    : '<div class="empty" style="padding:16px 8px">Nenhum card marcado como problemático.</div>';
+  // ---------- distribuição por eixo (categoria / tipo de questão) ----------
+  function distribuicao(campo){
+    const mapa=new Map();
+    ativos.forEach(c=>{
+      const v=c[campo];
+      if(!v) return;
+      mapa.set(v,(mapa.get(v)||0)+1);
+    });
+    const lista=[...mapa.entries()].sort((a,b)=>b[1]-a[1]);
+    const maior=lista.length?lista[0][1]:1;
+    return lista.map(([nome,qtd])=>{
+      const pct=Math.round(qtd/ativos.length*100);
+      return `<div class="cob-item">
+        <div class="cob-top">
+          <span class="cob-nome">${nome}</span>
+          <span class="cob-num">${fmt(qtd)} • ${pct}%</span>
+        </div>
+        <div class="cob-bar"><div class="cob-fill" style="width:${Math.round(qtd/maior*100)}%;background:#202A45"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- cards por capítulo do edital ----------
+  // Conta cards DISTINTOS por capítulo. Um card de comparação cobre várias seções e aparece em
+  // todas elas — por isso a soma dos capítulos passa do total de cards, e está correto.
+  const porCap=new Map();
+  (ankiSecoes||[]).filter(s=>s.casou).forEach(s=>{
+    const chave=s.publicacao+'||'+s.capitulo;
+    if(!porCap.has(chave)) porCap.set(chave,{publicacao:s.publicacao,capitulo:s.capitulo,cards:new Set()});
+    porCap.get(chave).cards.add(s.cardId);
+  });
+  const capsLista=[...porCap.values()]
+    .sort((a,b)=>a.publicacao.localeCompare(b.publicacao)||(parseInt(a.capitulo)||0)-(parseInt(b.capitulo)||0));
+  const maiorCap=capsLista.reduce((m,x)=>Math.max(m,x.cards.size),1);
+  const capsHtml=capsLista.map(x=>`
+    <div class="cob-item">
+      <div class="cob-top">
+        <span class="cob-nome">${nomePub(x.publicacao)} – Capítulo ${x.capitulo}</span>
+        <span class="cob-num">${fmt(x.cards.size)} cards</span>
+      </div>
+      <div class="cob-bar"><div class="cob-fill" style="width:${Math.round(x.cards.size/maiorCap*100)}%;background:#3C3489"></div></div>
+    </div>`).join('');
+  const semPar=(ankiSecoes||[]).filter(s=>!s.casou).length;
 
   return `
-    ${sectionTitle('Resumo do baralho','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M221.3 511.9q-5.25.3-10.8-.9c-32.3-7.7-38.6-52.7-45.2-100.4-2.6-19.2-7.1-51.2-12.5-57.7-5.6-6.3-36.6-15.6-55.2-21.1-46-13.8-89.5-26.8-92.2-60-2.7-33.1 38.2-53 81.5-74 17.4-8.4 46.5-22.6 51-29.7 4.3-7.3 3.5-39.6 3-59-1.1-48.1-2.2-93.6 28.5-106.3 30.6-12.7 62.2 20 95.6 54.7 13.4 13.9 35.8 37.2 44 39.4 8.3 1.8 38.8-8.9 57-15.3 45.4-16 88.3-31 109.9-5.8s.2 65.3-22.5 107.8c-9.1 17-24.4 45.6-23.8 54 .8 8.4 20.5 34.1 32.2 49.5 29.2 38.3 56.8 74.4 39.5 102.8s-62.1 20.4-109.4 11.9c-19-3.4-50.9-9-58.8-6-7.7 3.4-26.1 30-37.1 45.9-24.2 35.1-47.2 68.4-74.7 70.2M48.8 268.3c9.9 7.9 42.6 17.7 61 23.2 33.1 9.9 61.6 18.4 75 34s17.5 45.1 22.2 79.3c2.6 19 7.3 52.8 13.6 63.8 10.6-7 30-35.1 40.9-50.8 19.6-28.4 36.6-52.9 55.5-60.8 19-7.9 48.3-2.7 82.3 3.4 18.8 3.4 52.5 9.3 64.9 6.8-3.4-12.3-24.1-39.4-35.7-54.6-20.9-27.4-39-51.1-40.7-71.6s12.4-46.8 28.7-77.2c9-16.9 25.1-47 26.5-59.6-12.7-.5-44.9 10.7-63 17.1-32.6 11.4-60.7 21.3-80.7 16.6s-40.7-26.2-64.6-51.1c-13.3-13.8-36.9-38.4-48.5-43.6-4.5 11.9-3.7 46-3.2 65.2.8 34.5 1.5 64.3-9.2 81.9-10.7 17.5-37.5 30.5-68.6 45.6-17.2 8.1-47.9 23-56.4 32.4"/></svg>`})}
+    ${sectionTitle('Resumo do baralho','grafico','#E6F1FB','#202A45',{customSvg:ICONE_ANKI_SVG,direita:botaoInfo('ankiResumo')})}
     <div class="stat-grid" style="margin-top:0">
-      <div class="stat-card"><div class="stat-val">${ativos.length.toLocaleString('pt-BR')}</div><div class="stat-lbl">Cards no baralho</div></div>
-      <div class="stat-card"><div class="stat-val">${vistos.toLocaleString('pt-BR')}</div><div class="stat-lbl">Já estudados (${pctVistos}%)</div></div>
-      <div class="stat-card"><div class="stat-val">${(ativos.length-vistos).toLocaleString('pt-BR')}</div><div class="stat-lbl">Ainda não vistos</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:${leeches.length?'#A32D2D':'#111'}">${emConstrucao?'–':leeches.length}</div><div class="stat-lbl">${emConstrucao?'Retenção: em breve':'Problemáticos'}</div></div>
+      <div class="stat-card"><div class="stat-val">${fmt(ativos.length)}</div><div class="stat-lbl">Cards no baralho</div></div>
+      <div class="stat-card"><div class="stat-val">${fmt(vistos)}</div><div class="stat-lbl">Já estudados (${pctVistos}%)</div></div>
+      <div class="stat-card"><div class="stat-val">${fmt(novos)}</div><div class="stat-lbl">Ainda não vistos</div></div>
+      <div class="stat-card"><div class="stat-val">${fmt(emRevisao)}</div><div class="stat-lbl">Em revisão</div></div>
     </div>
-    ${emConstrucao?`<div class="card-inicio" style="margin-top:-4px">
-      <div style="font-size:var(--fs-c);color:#666;line-height:1.5">
-        Você está construindo o baralho – ${pctVistos}% dos cards já foram vistos.
-        Retenção, cards maduros e conteúdo problemático só fazem sentido depois que
-        uma parte maior tiver sido estudada, então aparecem aqui mais adiante.
-      </div>
+    ${aprendendo?`<div class="card-inicio" style="margin-top:-4px">
+      <div style="font-size:var(--fs-c);color:#666">${fmt(aprendendo)} card${aprendendo===1?'':'s'} em fase de aprendizado – vistos hoje, ainda não consolidados.</div>
     </div>`:''}
 
-    ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45')}
+    ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45',{direita:botaoInfo('ankiVolume')})}
     <div class="card-inicio">
       ${volumeHtml}
-      ${semModulo?`<div class="cob-item"><div class="cob-top"><span class="cob-nome" style="color:#A32D2D">Sem tag de módulo</span><span class="cob-num">${semModulo} card${semModulo===1?'':'s'}</span></div></div>`:''}
+      ${semModulo?`<div class="cob-item"><div class="cob-top"><span class="cob-nome" style="color:#A32D2D">Sem tag de módulo</span><span class="cob-num">${fmt(semModulo)}</span></div></div>`:''}
     </div>
 
-    ${leeches.length?`${sectionTitle('Conteúdo que não fixa','alerta','#FCEBEB','#791F1F')}
-    <div class="card-inicio">${leechesHtml}</div>`:''}
+    ${sectionTitle('Como os cards cobram','etiqueta','#E6F1FB','#202A45',{direita:botaoInfo('ankiTipo')})}
+    <div class="card-inicio">${distribuicao('tipoQuestao')}</div>
+
+    ${sectionTitle('Natureza do conteúdo','filtro','#E6F1FB','#202A45',{direita:botaoInfo('ankiCategoria')})}
+    <div class="card-inicio">${distribuicao('categoria')}</div>
+
+    ${capsHtml?`${sectionTitle('Cards por capítulo','livro','#E6F1FB','#202A45',{direita:botaoInfo('ankiCapitulo')})}
+    <div class="card-inicio">
+      ${capsHtml}
+      ${semPar?`<div class="cob-item"><div class="cob-top"><span class="cob-nome" style="color:#A32D2D">Tags sem par na bibliografia</span><span class="cob-num">${fmt(semPar)}</span></div></div>`:''}
+    </div>`:''}
   `;
 }
 
