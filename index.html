@@ -919,7 +919,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div class="modal-overlay" id="caderno-finalizado-modal" style="display:none;z-index:1000000">
   <div class="modal-box">
-    <div class="config-title">Caderno finalizado!</div>
+    <div class="config-title" id="caderno-finalizado-titulo">Caderno finalizado!</div>
     <p id="caderno-finalizado-texto" style="margin:0 0 20px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('caderno-finalizado-modal').style.display='none'">Ok</button>
@@ -2345,6 +2345,27 @@ async function confirmarNomeAtividade(){
   const ap=atividadesPendentes.find(a=>a.id===resolucaoAtividadeId);
   if(!ap){ confirmandoNomeAtividade=false; return; }
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
+
+  // Trava contra confirmar caderno sem gabarito. Sem essa checagem, questões respondidas sem
+  // gabarito caem no ramo final e viram "Errei" — o caderno inteiro entra no banco como erro,
+  // contaminando desempenho por módulo, Foco Recomendado e plano de ação. Já aconteceu com o
+  // caderno 013 do Catavento: 40 questões respondidas, 40 gravadas como erradas.
+  const semGabarito=qs.filter(q=>!q.gabarito).length;
+  if(semGabarito===qs.length&&qs.length>0){
+    confirmandoNomeAtividade=false;
+    mostrarAviso('Sem gabarito',
+      `Este caderno não tem gabarito em nenhuma das ${qs.length} questões, então não há como corrigir – tudo seria gravado como erro. `+
+      `Confira se o arquivo de gabarito está na pasta e aguarde o processamento antes de confirmar.`);
+    return;
+  }
+  if(semGabarito>0){
+    confirmandoNomeAtividade=false;
+    mostrarAviso('Gabarito incompleto',
+      `${semGabarito} de ${qs.length} questões estão sem gabarito e seriam gravadas como erro. `+
+      `Verifique o arquivo de gabarito antes de confirmar.`);
+    return;
+  }
+
   const modoManualPuro=!qs.some(q=>q.suaResposta);
 
   let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0,anuladas=0;
@@ -2436,6 +2457,7 @@ async function confirmarNomeAtividade(){
 
     fecharMarcacaoPendente();
     await loadData();
+    document.getElementById('caderno-finalizado-titulo').textContent='Caderno finalizado!';
     document.getElementById('caderno-finalizado-texto').textContent=`${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`;
     document.getElementById('caderno-finalizado-modal').style.display='flex';
   }catch(e){
@@ -2529,6 +2551,18 @@ function seloOrigem(s){
   return ` <span class="selo-origem">${s.origem}</span>`;
 }
 function nomeModuloSessao(s){ return s.modulo||ROTULO_SEM_MODULO; }
+
+// Reaproveita o modal de "caderno finalizado" para avisos de bloqueio — mesma estrutura, só
+// com título e texto trocados. Evita criar um segundo modal com o mesmo formato.
+function mostrarAviso(titulo,texto){
+  const t=document.getElementById('caderno-finalizado-titulo');
+  const p=document.getElementById('caderno-finalizado-texto');
+  const m=document.getElementById('caderno-finalizado-modal');
+  if(!t||!p||!m) return;
+  t.textContent=titulo;
+  p.textContent=texto;
+  m.style.display='flex';
+}
 
 // O Supabase devolve no máximo 1000 linhas por consulta, silenciosamente — sem erro, só faltando
 // dado. Isso já cortou a contagem de cards do Anki (1.325 no banco, 1.000 no app). Esta função
