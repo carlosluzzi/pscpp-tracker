@@ -1226,15 +1226,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 
 <script>
-const modCores={
-  'Manobrabilidade':{bg:'#EEEDFE',tx:'#3C3489'},
-  'Arte Naval':{bg:'#E6F1FB',tx:'#202A45'},
-  'Navegação em Águas Restritas':{bg:'#EAF3DE',tx:'#27500A'},
-  'Legislação':{bg:'#FAEEDA',tx:'#633806'},
-  'Meteorologia e Oceanografia':{bg:'#FCEBEB',tx:'#791F1F'},
-  'Comunicações':{bg:'#F1EFE8',tx:'#444441'},
-  'Conhecimentos Gerais':{bg:'#FAECE7',tx:'#4A1B0C'},
-};
+// Cor única do app para todos os módulos. Antes cada matéria tinha sua própria paleta; a
+// identificação passou a ser feita pelo texto, não pela cor. Mantido como objeto (em vez de
+// remover as chamadas) para que os ~11 pontos que consultam modCores continuem funcionando —
+// e para que voltar a diferenciar por matéria seja mudar só aqui.
+const COR_APP={bg:'#E6F1FB',tx:'#202A45'};
+const modCores=new Proxy({},{ get:()=>COR_APP });
 const modIcones={
   'Manobrabilidade':'<circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.34 6.34l2.83 2.83M14.83 14.83l2.83 2.83M6.34 17.66l2.83-2.83M14.83 9.17l2.83-2.83"/>',
   'Arte Naval':'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>',
@@ -1244,16 +1241,11 @@ const modIcones={
   'Comunicações':'<rect x="7" y="7" width="10" height="14" rx="2"/><line x1="12" y1="2" x2="12" y2="7"/><circle cx="12" cy="2" r="1"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="14" x2="15" y2="14"/><rect x="9.5" y="17" width="5" height="2" rx="0.5"/>',
   'Conhecimentos Gerais':'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
 };
-const cursoCores={
-  'Curso H':{bg:'#E1F5EE',tx:'#085041'},
-  'Catavento':{bg:'#EEEDFE',tx:'#3C3489'},
-  'MPX':{bg:'#FAEEDA',tx:'#633806'},
-  'Curso Prático':{bg:'#E6F1FB',tx:'#202A45'},
-};
-const tipoCores={
-  'Simulado':{bg:'#E6F1FB',tx:'#202A45'},
-  'Caderno de Exercícios':{bg:'#FAEEDA',tx:'#633806'},
-};
+// Mesma decisão dos módulos: cor única do app. Curso e matéria são identificados pelo texto,
+// não pela cor. As cores SEMÂNTICAS (verde de acerto, vermelho de erro, âmbar de atenção)
+// continuam existindo — aquelas comunicam significado, estas eram só decoração.
+const cursoCores=new Proxy({},{ get:()=>COR_APP });
+const tipoCores=new Proxy({},{ get:()=>COR_APP });
 const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
 const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
 const secIcons={
@@ -1503,6 +1495,7 @@ let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[];
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
+let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
@@ -1575,6 +1568,20 @@ async function loadDataInterno(){
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
     saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
+    // Configurações lidas do próprio Anki pelo sincronizador. O limite de cards novos é o mais
+    // importante: ele é um teto real, e sem considerá-lo o simulador prometeria um ritmo que o
+    // Anki não deixa acontecer.
+    const cfgNum=(chave,padrao)=>{
+      const v=(appConfigRes.find(c=>c.chave===chave)||{}).valor;
+      const n=parseFloat(v);
+      return Number.isFinite(n)?n:padrao;
+    };
+    ankiConfig={
+      alvoRetencao:   cfgNum('anki_alvo_retencao',0.9)*100,
+      limiteNovos:    cfgNum('anki_limite_novos',0),
+      limiteRevisoes: cfgNum('anki_limite_revisoes',0),
+      limiteLeech:    cfgNum('anki_limite_leech',8),
+    };
 
     // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
     // pra não travar o resto do app se o PilotQuest estiver fora do ar.
@@ -4595,7 +4602,7 @@ function renderCardComplementares(){
               <span class="prox-nome">${c.nome}</span>
               <div class="prox-badges">
                 ${pc?`<span class="ativ-badge" style="background:${pc.bg};color:${pc.tx}">${c.prioridade}</span>`:''}
-                ${c.recorrenciaDias?`<span class="ativ-badge" style="background:#EEEDFE;color:#3C3489">A cada ${c.recorrenciaDias} ${c.recorrenciaDias===1?'dia':'dias'}<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
+                ${c.recorrenciaDias?`<span class="ativ-badge" style="background:${COR_APP.bg};color:${COR_APP.tx}">A cada ${c.recorrenciaDias} ${c.recorrenciaDias===1?'dia':'dias'}<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
               </div>
             </div>
             <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
@@ -5157,7 +5164,7 @@ function renderAnkiDesempenho(){
         <span class="cob-nome">${nomePub(x.publicacao)} – Capítulo ${x.capitulo}</span>
         <span class="cob-num">${fmt(x.cards.size)} cards</span>
       </div>
-      <div class="cob-bar"><div class="cob-fill" style="width:${Math.round(x.cards.size/maiorCap*100)}%;background:#3C3489"></div></div>
+      <div class="cob-bar"><div class="cob-fill" style="width:${Math.round(x.cards.size/maiorCap*100)}%;background:${COR_APP.tx}"></div></div>
     </div>`).join('');
   const semPar=(ankiSecoes||[]).filter(s=>!s.casou).length;
 
@@ -5177,7 +5184,10 @@ function renderAnkiDesempenho(){
       const r=calcularRitmoAnki();
       if(!r||!r.dias.length) return '';
       const opcoes=[15,30,45,60,90];
-      const porDia=r.novosPorHora*(ankiMinutosDia/60);
+      const porTempo=r.novosPorHora*(ankiMinutosDia/60);
+      const teto=ankiConfig.limiteNovos||Infinity;
+      const porDia=Math.min(porTempo,teto);
+      const travado=porTempo>teto;   // o tempo daria mais, mas o Anki não deixa
       const diasFalta=porDia>0?Math.ceil(r.restam/porDia):null;
       const meses=diasFalta?(diasFalta/30).toFixed(1).replace('.',','):null;
       const ult=r.dias.slice(-4);
@@ -5208,6 +5218,12 @@ function renderAnkiDesempenho(){
         A conta usa a sua produtividade real: <strong style="color:#202A45">${r.novosPorHora.toFixed(1).replace('.',',')}</strong>
         cards novos por hora, medida nas últimas ${Math.min(3,r.dias.length)} sessões.
       </div>
+      ${travado?`<div style="font-size:var(--fs-b);color:#666;line-height:1.5;margin-top:8px">
+        Nesse tempo daria para ver <strong style="color:#202A45">${Math.round(porTempo)}</strong> cards novos.
+        O limite atual do baralho é <strong style="color:#202A45">${ankiConfig.limiteNovos} por dia</strong> –
+        subindo para ${Math.round(porTempo)}, a primeira passada cairia para
+        <strong style="color:#202A45">${Math.ceil(r.restam/porTempo)} dias</strong>.
+      </div>`:''}
       ${r.tendencia!==null&&Math.abs(r.tendencia)>=10?`<div style="font-size:var(--fs-b);color:${r.tendencia<0?'#A32D2D':'#27500A'};margin-top:8px;line-height:1.5">
         Sua produtividade em cards novos ${r.tendencia<0?'caiu':'subiu'} ${Math.abs(r.tendencia)}% desde a primeira sessão${r.tendencia<0?' – as revisões começam a ocupar parte do tempo':''}.
       </div>`:''}
