@@ -137,8 +137,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   /* A faixa fica só na coluna do conteúdo, senão passaria por cima da barra lateral. Ocupa a
      mesma linha das sub-abas porque as duas nunca aparecem juntas: com o detalhe aberto não há
      sub-abas, e vice-versa. */
-  .voltar-faixa{grid-column:2;grid-row:2;align-self:start;width:100%;max-width:1320px;
-    padding:10px 48px}
+  /* Sem max-width: a faixa vai da borda da barra lateral até o fim da tela, para a sombra
+     cobrir toda a largura do conteúdo. O .content tem limite de 1320px por causa da leitura,
+     mas a faixa é um elemento de navegação e deve acompanhar a janela. */
+  .voltar-faixa{grid-column:2;grid-row:2;align-self:start;width:100%;padding:10px 48px}
   #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
   .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
