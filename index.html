@@ -562,6 +562,45 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   background:#fff;color:#202A45;font-size:var(--fs-c);font-weight:500;cursor:pointer;
   font-family:inherit;transition:background .15s ease}
 @media(hover:hover){.ativ-revisar:hover{background:#f5f5f3}}
+/* Lista de sessões do Anki: resumo na linha, detalhe no toque */
+.sess-item{padding:11px 0;cursor:pointer}
+.sess-item+.sess-item{border-top:0.5px solid #f0f0ee}
+@media(hover:hover){.sess-item:hover{opacity:.72}}
+.sess-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sess-dur{font-size:var(--fs-d);font-weight:600;color:#202A45}
+.sess-data{font-size:var(--fs-a);color:#999;flex-shrink:0}
+.sess-numeros{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px}
+.sess-bolha{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;
+  padding:0 7px;border-radius:12px;font-size:var(--fs-a);font-weight:700;line-height:1}
+.sess-bolha-novo{background:#E6F1FB;color:#202A45}
+.sess-bolha-rev{background:#EAF3DE;color:#27500A}
+.sess-bolha-rep{background:#FAEEDA;color:#854F0B}
+.sess-lbl{font-size:var(--fs-a);color:#888;margin-right:6px}
+.sess-acerto{font-size:var(--fs-a);font-weight:600;margin-left:auto}
+.sess-ctx{font-size:var(--fs-a);color:#aaa;margin-top:5px;line-height:1.35}
+
+/* Pop-up de detalhe da sessão */
+.sd-box{max-height:82vh;overflow-y:auto;text-align:left}
+.sd-cabecalho{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sd-dur{font-size:var(--fs-f);font-weight:700;color:#202A45}
+.sd-data{font-size:var(--fs-c);color:#888}
+.sd-linha-topo{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+.sd-bloco{margin-top:16px}
+.sd-titulo{font-size:var(--fs-a);color:#999;text-transform:uppercase;letter-spacing:.05em;
+  font-weight:700;margin-bottom:7px}
+.sd-texto{font-size:var(--fs-c);color:#5F5E5A;line-height:1.5}
+.sd-resp{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.sd-resp-nome{font-size:var(--fs-a);font-weight:600;width:58px;flex-shrink:0}
+.sd-resp-barra{flex:1;height:7px;border-radius:4px;background:#f0f0ee;overflow:hidden}
+.sd-resp-barra div{height:100%;border-radius:4px}
+.sd-resp-n{font-size:var(--fs-a);color:#888;width:22px;text-align:right;flex-shrink:0}
+.sd-card-errado{padding:8px 0}
+.sd-card-errado+.sd-card-errado{border-top:0.5px solid #f4f4f2}
+.sd-card-texto{font-size:var(--fs-c);color:#333;line-height:1.4}
+.sd-card-meta{font-size:var(--fs-a);color:#aaa;margin-top:2px}
+.sd-cats{display:flex;flex-wrap:wrap;gap:6px}
+.sd-cat{font-size:var(--fs-a);color:#5F5E5A;background:#f5f5f3;border-radius:7px;padding:4px 9px}
+
 /* Situação do baralho: cor muda conforme o tempo parado, do verde ao vermelho */
 .anki-situacao{border-radius:14px;padding:12px 14px;margin:0 0 14px}
 .anki-situacao-frase{font-size:var(--fs-d);font-weight:600;line-height:1.35}
@@ -961,6 +1000,19 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(30)">+30 min</button>
     </div>
     <button class="modal-btn modal-btn-sim" style="width:100%" onclick="dispensarAlarmeAnki()">Dispensar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sessao-detalhe-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharDetalheSessao()">
+  <div class="modal-box sd-box">
+    <div class="sd-cabecalho">
+      <span class="sd-dur" id="sessao-detalhe-titulo"></span>
+      <span class="sd-data" id="sessao-detalhe-data"></span>
+    </div>
+    <div id="sessao-detalhe-corpo"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDetalheSessao()">Fechar</button>
+    </div>
   </div>
 </div>
 
@@ -1455,6 +1507,11 @@ const EXPLICACOES={
     <p><strong>Por que só a partir de dois:</strong> um erro pode ser azar, distração ou questão mal formulada. Dois erros no mesmo assunto, em provas distintas, é lacuna real.</p>
     <p><strong>De onde vem:</strong> da classificação da alternativa que você marcou errado – não da questão inteira. É por isso que aparece "largura de canal sem praticagem" e não "Conhecimentos Gerais".</p>
     <p><strong>Se a lista estiver vazia,</strong> isso também é informação: significa que seus erros estão espalhados em assuntos distintos, sem ponto fraco recorrente. Nesse caso o padrão está no tipo de conteúdo, não no tema.</p>`},
+  sessoesAnki:{titulo:'Suas sessões',corpo:`
+    <p><strong>O que mostra:</strong> cada dia de estudo no Anki, do mais recente para o mais antigo, com duração, quantos cards novos, quantas revisões e o percentual de acerto.</p>
+    <p><strong>Toque numa sessão</strong> para ver como você respondeu, em que ritmo, e quais cards não fixaram.</p>
+    <p><strong>O percentual de acerto</strong> conta as respostas "Bom" e "Fácil". "Difícil" não entra como acerto: você chegou na resposta, mas com esforço – e o FSRS encurta o intervalo por causa disso.</p>
+    <p><strong>Sessões do mesmo dia aparecem juntas.</strong> O sincronizador separa blocos por lacunas de 30 minutos para medir o tempo corretamente, mas na lista o dia é o que interessa.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Arraste o controle para escolher quanto tempo pretende estudar por dia – de 5 minutos a 3 horas – e ele calcula quanto você avança, usando os <em>seus</em> custos reais medidos.</p>
     <p><strong>Como funciona a conta:</strong> não é uma taxa única de "cards por hora". São dois custos separados, porque são atividades diferentes –</p>
@@ -1673,6 +1730,9 @@ async function loadDataInterno(){
       const n=parseFloat(v);
       return Number.isFinite(n)?n:padrao;
     };
+    // Piso de 15 minutos: abaixo disso a fila de revisão consome todo o tempo e a projeção
+    // devolve zero cards novos, o que não ajuda em nada.
+    ankiMinutosDia=Math.max(15,cfgNum('anki_minutos_dia',30));
     ankiConfig={
       alvoRetencao:   cfgNum('anki_alvo_retencao',0.9)*100,
       limiteNovos:    cfgNum('anki_limite_novos',0),
@@ -2571,6 +2631,104 @@ function atualizarDotsHistorico(){
   paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
+// Detalhe de uma sessão do Anki. A lista mostra o resumo; aqui vem o que explica a sessão:
+// como você respondeu, em que ritmo, e principalmente QUAIS cards não fixaram.
+function abrirDetalheSessao(dia){
+  const r=calcularRitmoAnki();
+  if(!r) return;
+  const d=r.dias.find(x=>x.dia===dia);
+  if(!d) return;
+
+  const rotulos=['De novo','Difícil','Bom','Fácil'];
+  const cores=['#E24B4A','#EF9F27','#639922','#4A8FD4'];
+  const total=d.respostas.reduce((a,x)=>a+x,0);
+
+  // Ritmo comparado com a média geral: sessão mais lenta sugere conteúdo mais denso
+  const todosTempos=(ankiRevisoes||[]).filter(x=>x.tempoMs>0).map(x=>x.tempoMs);
+  const mediaGeral=todosTempos.length?todosTempos.reduce((a,x)=>a+x,0)/todosTempos.length/1000:null;
+  const desvio=(d.segMedio&&mediaGeral)?Math.round((d.segMedio-mediaGeral)/mediaGeral*100):null;
+
+  // Cards não lembrados, com o texto da pergunta
+  const porId=new Map((ankiCards||[]).map(c=>[c.cardId,c]));
+  const errados=d.errados.map(id=>porId.get(id)).filter(Boolean);
+
+  // Composição por tipo de conteúdo dos cards tocados na sessão
+  const doDia=(ankiRevisoes||[]).filter(rv=>{
+    const dt=new Date(rv.revisadoEm);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`===dia;
+  });
+  const ids=new Set(doDia.map(rv=>rv.cardId));
+  const porCat=new Map();
+  ids.forEach(id=>{
+    const c=porId.get(id);
+    if(!c) return;
+    (c.categorias&&c.categorias.length?c.categorias:(c.categoria?[c.categoria]:[])).forEach(cat=>{
+      if(cat) porCat.set(cat,(porCat.get(cat)||0)+1);
+    });
+  });
+  const cats=[...porCat.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // Intervalo desde a sessão anterior
+  const idx=r.dias.findIndex(x=>x.dia===dia);
+  const anterior=idx>0?r.dias[idx-1]:null;
+  const intervalo=anterior
+    ? Math.round((new Date(dia+'T12:00:00')-new Date(anterior.dia+'T12:00:00'))/86400000)
+    : null;
+
+  const hhmm=x=>`${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;
+
+  document.getElementById('sessao-detalhe-titulo').textContent=fmtDur(Math.round(d.minutos));
+  document.getElementById('sessao-detalhe-data').textContent=fmtData(d.dia);
+  document.getElementById('sessao-detalhe-corpo').innerHTML=`
+    <div class="sd-linha-topo">
+      ${d.novos?`<span class="sess-bolha sess-bolha-novo">${d.novos}</span><span class="sess-lbl">novos</span>`:''}
+      ${d.revisoes?`<span class="sess-bolha sess-bolha-rev">${d.revisoes}</span><span class="sess-lbl">revisões</span>`:''}
+      ${d.repeticoes?`<span class="sess-bolha sess-bolha-rep">${d.repeticoes}</span><span class="sess-lbl">repetiu</span>`:''}
+    </div>
+
+    <div class="sd-bloco">
+      <div class="sd-titulo">Como você respondeu</div>
+      ${d.respostas.map((n,i)=>n?`
+        <div class="sd-resp">
+          <span class="sd-resp-nome" style="color:${cores[i]}">${rotulos[i]}</span>
+          <div class="sd-resp-barra"><div style="width:${Math.round(n/total*100)}%;background:${cores[i]}"></div></div>
+          <span class="sd-resp-n">${n}</span>
+        </div>`:'').join('')}
+    </div>
+
+    <div class="sd-bloco">
+      <div class="sd-titulo">Ritmo</div>
+      <div class="sd-texto">
+        ${d.segMedio?`<strong>${d.segMedio.toFixed(0)} segundos</strong> por card`:'sem dado de tempo'}${
+        desvio!==null?` – ${Math.abs(desvio)}% ${desvio>0?'acima':'abaixo'} da sua média${Math.abs(desvio)>=15?(desvio>0?', conteúdo mais denso':', conteúdo mais leve'):''}`:''}.
+        ${d.inicio&&d.fim?`<br>Das ${hhmm(d.inicio)} às ${hhmm(d.fim)}.`:''}
+        ${intervalo!==null?`<br>${intervalo===1?'No dia seguinte à':intervalo+' dias depois da'} sessão anterior.`:''}
+      </div>
+    </div>
+
+    ${errados.length?`<div class="sd-bloco">
+      <div class="sd-titulo">Não lembrou (${errados.length})</div>
+      ${errados.map(c=>`<div class="sd-card-errado">
+        <div class="sd-card-texto">${(c.pergunta||'').split('\n').filter(Boolean).slice(-1)[0]?.slice(0,140)||'(sem texto)'}</div>
+        <div class="sd-card-meta">${c.assunto||c.categoria||'sem assunto'}</div>
+      </div>`).join('')}
+    </div>`:`<div class="sd-bloco">
+      <div class="sd-titulo">Não lembrou</div>
+      <div class="sd-texto">Nenhum card marcado como "De novo" nesta sessão.</div>
+    </div>`}
+
+    ${cats.length?`<div class="sd-bloco">
+      <div class="sd-titulo">O que estudou</div>
+      <div class="sd-cats">${cats.map(([nome,n])=>`<span class="sd-cat">${nome} <strong>${n}</strong></span>`).join('')}</div>
+    </div>`:''}
+  `;
+  document.getElementById('sessao-detalhe-modal').style.display='flex';
+}
+
+function fecharDetalheSessao(){
+  document.getElementById('sessao-detalhe-modal').style.display='none';
+}
+
 function fmtMinutosRitmo(m){
   return m>=60 ? Math.floor(m/60)+':'+String(m%60).padStart(2,'0') : m+' min';
 }
@@ -2598,7 +2756,17 @@ function atualizarPreviaRitmo(valor){
   if(elM) elM.textContent=dias?(dias/30).toFixed(1).replace('.',','):'–';
 }
 
-function setAnkiMinutos(m){ ankiMinutosDia=m; renderTab(tabAtual,true); }
+// O tempo escolhido no controle de ritmo fica salvo: é uma decisão do Carlos sobre a rotina
+// dele, não um filtro passageiro. Vai para app_config para valer também no iPad e no celular.
+async function setAnkiMinutos(m){
+  ankiMinutosDia=m;
+  renderTab(tabAtual,true);
+  try{
+    await sbDados.from('app_config').upsert({chave:'anki_minutos_dia',valor:String(m)});
+  }catch(e){
+    console.error('Não foi possível salvar o tempo do controle de ritmo:',e);
+  }
+}
 function setAbaDesempenho(qual){
   abaDesempenho=qual;
   filtCurso='todos'; filtTipo='todos';  // filtros da outra sub-aba não fazem sentido aqui
@@ -5148,19 +5316,33 @@ function calcularRitmoAnki(){
   const porDia=new Map();
   revs.forEach(r=>{
     const d=new Date(r.revisadoEm), dia=diaDe(d);
-    if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),cards:new Set(),toques:0});
+    if(!porDia.has(dia)) porDia.set(dia,{minutos:0,novos:new Set(),cards:new Set(),toques:0,
+      respostas:[0,0,0,0], errados:new Set(), tempos:[], horaMin:d, horaMax:d});
     const o=porDia.get(dia);
     o.minutos+=(r.tempoMs||0)/60000;
     o.toques++;
     o.cards.add(r.cardId);
+    if(r.resposta>=1&&r.resposta<=4) o.respostas[r.resposta-1]++;
+    if(r.resposta===1) o.errados.add(r.cardId);
+    if(r.tempoMs>0) o.tempos.push(r.tempoMs);
+    if(d<o.horaMin) o.horaMin=d;
+    if(d>o.horaMax) o.horaMax=d;
     const e=estreia.get(r.cardId);
     if(e&&diaDe(e)===dia) o.novos.add(r.cardId);
   });
-  const dias=[...porDia.entries()].map(([dia,o])=>({
-    dia, minutos:o.minutos, novos:o.novos.size, toques:o.toques,
-    repeticoes:o.toques-o.cards.size,
-    revisoes:o.cards.size-o.novos.size,
-  })).sort((a,b)=>a.dia.localeCompare(b.dia));
+  const dias=[...porDia.entries()].map(([dia,o])=>{
+    const acertos=o.respostas[2]+o.respostas[3];   // Bom + Fácil
+    return {
+      dia, minutos:o.minutos, novos:o.novos.size, toques:o.toques,
+      repeticoes:o.toques-o.cards.size,
+      revisoes:o.cards.size-o.novos.size,
+      respostas:o.respostas,
+      pctAcerto:o.toques?Math.round(acertos/o.toques*100):null,
+      errados:[...o.errados],
+      segMedio:o.tempos.length?o.tempos.reduce((a,x)=>a+x,0)/o.tempos.length/1000:null,
+      inicio:o.horaMin, fim:o.horaMax,
+    };
+  }).sort((a,b)=>a.dia.localeCompare(b.dia));
   if(!dias.length) return null;
 
   // Todas as respostas em ordem cronológica, marcadas como primeira exposição ou revisão
@@ -5637,7 +5819,6 @@ function renderAnkiDesempenho(){
       const diasFalta=porDia>0?Math.ceil(r.restam/porDia):null;
       const meses=diasFalta?(diasFalta/30).toFixed(1).replace('.',','):null;
       const semRevisao=Math.floor(minutos*60/segNovo);
-      const ult=r.dias.slice(-4);
 
       // Quanto falta em cada matéria, com o custo específico dela quando houver dado
       const linhasMateria=[...r.restamPorMateria.entries()]
@@ -5666,10 +5847,10 @@ function renderAnkiDesempenho(){
         <span class="ritmo-valor" id="ritmo-valor">${fmtMinutosRitmo(ankiMinutosDia)}</span>
       </div>
       <input type="range" class="ritmo-slider" id="ritmo-slider"
-        min="5" max="180" step="5" value="${ankiMinutosDia}"
+        min="15" max="180" step="5" value="${ankiMinutosDia}"
         oninput="atualizarPreviaRitmo(this.value)" onchange="setAnkiMinutos(parseInt(this.value,10))">
       <div class="ritmo-escala">
-        <span>5 min</span><span>1:00</span><span>3:00</span>
+        <span>15 min</span><span>1:00</span><span>3:00</span>
       </div>
       <div class="hist-total">
         <div class="hist-total-item">
@@ -5704,16 +5885,6 @@ function renderAnkiDesempenho(){
         ${linhasMateria}
       </div>`:''}
 
-      <div style="border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px">
-        <div style="font-size:var(--fs-b);color:#888;margin-bottom:6px">Suas últimas sessões</div>
-        ${ult.map(d=>`<div class="quad-item" style="padding:6px 0">
-          <span class="quad-tag tag-tempo">${Math.round(d.minutos)} min</span>
-          <div class="quad-txt">
-            <div class="quad-nome">${fmtData(d.dia)}</div>
-            <div class="quad-det">${d.novos} novos${d.revisoes?' • '+d.revisoes+' revisões':''}${d.repeticoes?' • repetiu '+d.repeticoes:''}</div>
-          </div>
-        </div>`).join('')}
-      </div>
     </div>`;
     })()}
 
@@ -5757,6 +5928,50 @@ function renderAnkiDesempenho(){
             Se a prova fosse hoje, você provavelmente lembraria de tudo que já estudou.
           </div>`}
     </div>`:''}
+
+
+    ${(()=>{
+      const r=calcularRitmoAnki();
+      if(!r||!r.dias.length) return '';
+      // Mais recente no topo: a pergunta "como foi a última vez" é a mais frequente.
+      const sess=[...r.dias].reverse().slice(0,8);
+      const linhas=sess.map((d,i)=>{
+        const ctx=(()=>{
+          const secs=(ankiSecoes||[]).filter(x=>x.casou);
+          if(!secs.length) return '';
+          const doDia=(ankiRevisoes||[]).filter(rv=>{
+            const dt=new Date(rv.revisadoEm);
+            return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`===d.dia;
+          });
+          const ids=new Set(doDia.map(rv=>rv.cardId));
+          const cont=new Map();
+          secs.filter(x=>ids.has(x.cardId)).forEach(x=>{
+            const k=x.publicacao+'||'+x.capitulo;
+            cont.set(k,(cont.get(k)||0)+1);
+          });
+          if(!cont.size) return '';
+          const [chave]=[...cont.entries()].sort((a,b)=>b[1]-a[1])[0];
+          const [pub,cap]=chave.split('||');
+          return `${nomePub(pub)}${cap?', Capítulo '+cap:''}${cont.size>1?' e outros':''}`;
+        })();
+        const corAcerto=d.pctAcerto===null?'#888':fc(d.pctAcerto);
+        return `<div class="sess-item" onclick="abrirDetalheSessao('${d.dia}')">
+          <div class="sess-topo">
+            <span class="sess-dur">${fmtDur(Math.round(d.minutos))}</span>
+            <span class="sess-data">${fmtData(d.dia)}</span>
+          </div>
+          <div class="sess-numeros">
+            ${d.novos?`<span class="sess-bolha sess-bolha-novo">${d.novos}</span><span class="sess-lbl">novos</span>`:''}
+            ${d.revisoes?`<span class="sess-bolha sess-bolha-rev">${d.revisoes}</span><span class="sess-lbl">revisões</span>`:''}
+            ${d.pctAcerto!==null?`<span class="sess-acerto" style="color:${corAcerto}">${d.pctAcerto}% de acerto</span>`:''}
+          </div>
+          ${ctx?`<div class="sess-ctx">${ctx}</div>`:''}
+        </div>`;
+      }).join('');
+      return `
+    ${sectionTitle('Suas sessões','relogio','#E6F1FB','#202A45',{direita:botaoInfo('sessoesAnki')})}
+    <div class="card-inicio">${linhas}</div>`;
+    })()}
 
     ${sectionTitle('Volume por matéria','lista','#E6F1FB','#202A45',{direita:botaoInfo('ankiVolume')})}
     <div class="card-inicio">
