@@ -581,11 +581,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Pop-up de detalhe da sessão */
 /* Pop-up de detalhe da sessão. Duas classes no seletor de propósito: .modal-box vem depois no
    arquivo e, com a mesma especificidade, venceria — a largura maior nunca chegaria a valer.
-   400px contra os 320px do modal comum: o conteúdo aqui tem barras e cards que ficam apertados
-   na largura padrão, mas não tanto a ponto de destoar do resto do app.
+   600px contra os 320px do modal comum: o conteúdo aqui tem quatro cards lado a lado, barras
+   de distribuição e textos longos de card, que quebram feio numa largura menor. Medido contra
+   o pop-up do Pilotquest no mesmo iPad, que ocupa cerca de 59% da tela – 400px deixava o
+   nosso em 34%, visivelmente mais estreito.
+   No celular a tela é que limita, então nada muda por lá.
    O miolo é que rola, não a caixa inteira, para o botão Fechar não descer junto com o
    conteúdo numa sessão com muitos cards errados. */
-.modal-box.sd-box{max-width:400px;max-height:85vh;overflow:hidden;text-align:left;
+.modal-box.sd-box{max-width:600px;max-height:85vh;overflow:hidden;text-align:left;
   display:flex;flex-direction:column}
 .sd-miolo{flex:1;min-height:0;overflow-y:auto}
 .sd-rodape{border-top:0.5px solid #eee;margin-top:12px;padding-top:12px;flex-shrink:0}
@@ -1356,6 +1359,18 @@ const modIcones={
 const cursoCores=new Proxy({},{ get:()=>COR_APP });
 const tipoCores=new Proxy({},{ get:()=>COR_APP });
 const fc=p=>p>=92.86?'#639922':p>=85.71?'#EF9F27':'#E24B4A';
+
+// Cor do acerto no Anki. O corte do app (fc) usa o alvo de aproveitamento da PROVA – acima de
+// 92,86% é bom, abaixo de 85,71% é ruim. Isso não serve para o Anki: numa sessão com cards
+// novos, errar é parte do processo, e 77% ficaria em vermelho sem motivo.
+// Aqui a referência é o alvo de retenção configurado no FSRS (padrão 90%), com uma faixa de
+// tolerância abaixo dele – e só ficando vermelho quando a sessão realmente destoa.
+const fcAnki=p=>{
+  const alvo=(ankiConfig&&ankiConfig.alvoRetencao)||90;
+  if(p>=alvo)      return '#639922';   // no alvo ou acima
+  if(p>=alvo-20)   return '#EF9F27';   // abaixo, mas dentro do esperado ao ver material novo
+  return '#E24B4A';                     // bem abaixo: a sessão foi difícil de verdade
+};
 const fcBg=p=>p>=92.86?'#EAF3DE':p>=85.71?'#FAEEDA':'#FCEBEB';
 const secIcons={
   calendario:'<rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/>',
@@ -1522,6 +1537,7 @@ const EXPLICACOES={
     <p><strong>Um dia, uma linha.</strong> Se você estudou em três momentos separados no mesmo dia, eles aparecem somados – o sincronizador separa os blocos para medir o tempo corretamente, mas na lista o que interessa é o dia.</p>
     <p><strong>Toque numa sessão</strong> para ver como você respondeu, em que ritmo, e quais cards não fixaram.</p>
     <p><strong>O percentual de acerto</strong> conta as respostas "Bom" e "Fácil". "Difícil" não entra como acerto: você chegou na resposta, mas com esforço – e o FSRS encurta o intervalo por causa disso.</p>
+    <p><strong>A cor usa o alvo de retenção do seu FSRS</strong>, não o alvo de aproveitamento da prova. Numa sessão com cards novos, errar faz parte – 77% de acerto aqui é normal, enquanto na prova seria ruim. Verde no alvo ou acima, âmbar até vinte pontos abaixo, vermelho quando a sessão realmente destoa.</p>
     <p><strong>Sessões do mesmo dia aparecem juntas.</strong> O sincronizador separa blocos por lacunas de 30 minutos para medir o tempo corretamente, mas na lista o dia é o que interessa.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Arraste o controle para escolher quanto tempo pretende estudar por dia – de 5 minutos a 3 horas – e ele calcula quanto você avança, usando os <em>seus</em> custos reais medidos.</p>
@@ -2694,7 +2710,7 @@ function abrirDetalheSessao(dia){
     <div class="sess-cards" style="margin-top:0">
       <div class="sess-card"><span class="sess-card-val">${d.novos}</span><span class="sess-card-lbl">novos</span></div>
       <div class="sess-card"><span class="sess-card-val">${d.revisoes}</span><span class="sess-card-lbl">revisões</span></div>
-      <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fc(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
+      <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fcAnki(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
       ${d.repeticoes?`<div class="sess-card"><span class="sess-card-val">${d.repeticoes}</span><span class="sess-card-lbl">repetiu</span></div>`:''}
     </div>
 
@@ -5933,7 +5949,7 @@ function renderAnkiDesempenho(){
           <div class="sess-cards">
             <div class="sess-card"><span class="sess-card-val">${d.novos}</span><span class="sess-card-lbl">novos</span></div>
             <div class="sess-card"><span class="sess-card-val">${d.revisoes}</span><span class="sess-card-lbl">revisões</span></div>
-            <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fc(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
+            <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fcAnki(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
           </div>
         </div>`;
       }).join('');
