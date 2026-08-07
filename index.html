@@ -579,7 +579,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sess-card-lbl{display:block;font-size:var(--fs-a);color:#8a8f9a;margin-top:1px}
 
 /* Pop-up de detalhe da sessão */
-.sd-box{max-height:85vh;overflow-y:auto;text-align:left;width:100%;max-width:560px}
+/* Pop-up de detalhe da sessão. Duas classes no seletor de propósito: .modal-box vem depois no
+   arquivo e, com a mesma especificidade, venceria — a largura maior nunca chegaria a valer.
+   400px contra os 320px do modal comum: o conteúdo aqui tem barras e cards que ficam apertados
+   na largura padrão, mas não tanto a ponto de destoar do resto do app.
+   O miolo é que rola, não a caixa inteira, para o botão Fechar não descer junto com o
+   conteúdo numa sessão com muitos cards errados. */
+.modal-box.sd-box{max-width:400px;max-height:85vh;overflow:hidden;text-align:left;
+  display:flex;flex-direction:column}
+.sd-miolo{flex:1;min-height:0;overflow-y:auto}
+.sd-rodape{border-top:0.5px solid #eee;margin-top:12px;padding-top:12px;flex-shrink:0}
 .sd-cabecalho{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
 .sd-dur{font-size:var(--fs-f);font-weight:700;color:#202A45}
 .sd-data{font-size:var(--fs-c);color:#888}
@@ -1004,12 +1013,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 <div class="modal-overlay" id="sessao-detalhe-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharDetalheSessao()">
   <div class="modal-box sd-box">
-    <div class="sd-cabecalho">
-      <span class="sd-dur" id="sessao-detalhe-titulo"></span>
-      <span class="sd-data" id="sessao-detalhe-data"></span>
+    <div class="sd-miolo">
+      <div class="sd-cabecalho">
+        <span class="sd-dur" id="sessao-detalhe-titulo"></span>
+        <span class="sd-data" id="sessao-detalhe-data"></span>
+      </div>
+      <div id="sessao-detalhe-corpo"></div>
     </div>
-    <div id="sessao-detalhe-corpo"></div>
-    <div class="modal-actions" style="margin-top:16px">
+    <div class="sd-rodape">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDetalheSessao()">Fechar</button>
     </div>
   </div>
