@@ -6692,7 +6692,14 @@ async function editarApelidoPublicacao(original){
 // "A." como primeiro item, então essa âncora é um sinal confiável de "a lista começou aqui".
 function quebrarEnunciado(zonaEnunciado,temRomanos){
   if(temRomanos){
-    return zonaEnunciado.split(/(?=\s(?:\(?[IVXLCDM]{1,6}\)|\(\s*\)))/).map(p=>p.trim()).filter(Boolean);
+    // Dois formatos convivem nos cadernos: "I)" com parêntese (Curso H, Curso Prático) e "I."
+    // com ponto (Catavento). A versão anterior exigia o parêntese, então as assertivas com
+    // ponto nunca quebravam linha.
+    // O ponto só vale logo após quebra de linha — no meio da frase, "A. P." de nome de autor
+    // ou "Volume I, 2023" bateriam no mesmo padrão e cortariam o texto em lugar errado.
+    return zonaEnunciado
+      .split(/\n(?=\s*(?:\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s)|(?=\s\(?[IVXLCDM]{1,6}\)\s)|(?=\s\(\s*\))/)
+      .map(p=>p.trim()).filter(Boolean);
   }
   // "A. " sozinho não basta pra confirmar uma lista de assertivas alfabéticas — nomes de autor
   // com iniciais (ex: "SILVA, G. A. M, 2017") batem nesse mesmo padrão por coincidência e
@@ -6717,7 +6724,9 @@ function formatApenasEnunciado(texto){
   const altMatch=escaped.match(/\s\([a-e]\)/);
   const idxAlt=altMatch?altMatch.index:-1;
   const zonaEnunciado=idxAlt===-1?escaped:escaped.slice(0,idxAlt);
-  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
+  // Detecta assertivas nos dois formatos: "I)" com parêntese e "I." com ponto em início de linha
+  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado)
+                || /(?:^|\n)\s*[IVXLCDM]{1,6}\.\s/.test(zonaEnunciado);
   const partesEnun=quebrarEnunciado(zonaEnunciado,temRomanos);
   return [partesEnun[0]||'', ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`)].join('');
 }
@@ -6771,7 +6780,9 @@ function formatQuestaoCompleta(texto,q){
   const zonaAlternativas=idxAlt===-1?'':escaped.slice(idxAlt).trim();
 
   // no enunciado: quebra em cada assertiva romana (I) II) III)... até onde for necessário)
-  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado);
+  // Detecta assertivas nos dois formatos: "I)" com parêntese e "I." com ponto em início de linha
+  const temRomanos=/\s\(?[IVXLCDM]{1,6}\)/.test(zonaEnunciado)
+                || /(?:^|\n)\s*[IVXLCDM]{1,6}\.\s/.test(zonaEnunciado);
   const partesEnun=quebrarEnunciado(zonaEnunciado,temRomanos);
   // nas alternativas: quebra só nas letras minúsculas (a)-(e) — as alternativas são sempre salvas em minúscula,
   // então nunca confunde com um "(C)" ou "(E)" de conteúdo (ex: questões de marcação Certo/Errado)
