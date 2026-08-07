@@ -545,6 +545,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .plano-acao{font-size:var(--fs-c);color:#202A45;line-height:1.45;margin-top:4px;font-weight:500}
 .plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
 /* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
+/* Ação de revisar na tela de detalhe: botão acima da data, alinhado à direita */
+.detalhe-acoes{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.detalhe-data{font-size:var(--fs-c);color:#888}
+.btn-revisar-caderno{padding:6px 13px;border-radius:8px;border:none;background:#202A45;color:#fff;
+  font-size:var(--fs-c);font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;
+  transition:opacity .15s ease}
+@media(hover:hover){.btn-revisar-caderno:hover{opacity:.88}}
 .ativ-revisar{width:100%;margin-top:10px;padding:7px 0;border-radius:9px;border:0.5px solid #dcdcd4;
   background:#fff;color:#202A45;font-size:var(--fs-c);font-weight:500;cursor:pointer;
   font-family:inherit;transition:background .15s ease}
@@ -3277,14 +3284,32 @@ function renderTimerFullscreenConteudo(){
   const segAtual=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const pubInfoTf=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const capituloFormatadoTf=formatarCapituloExibicao(pubInfoTf,timerCapitulo);
+
+  // Revisão de caderno: em vez de módulo + publicação + capítulo (que o caderno não tem), o
+  // cabeçalho repete a identificação da tela do caderno — logo do curso, "CADERNO 013" e a
+  // data. Sem isso a tela mostrava só "013" solto, sem contexto nenhum.
+  const cadernoTimer = timerOrigem
+    ? (atividades||[]).find(a=>a.nome===timerPublicacao&&a.curso===timerOrigem)
+    : null;
+  const cabecalhoCaderno = cadernoTimer ? `
+      ${logosCursos[cadernoTimer.curso]?`<img src="${logosCursos[cadernoTimer.curso]}" alt="${cadernoTimer.curso}"
+        style="height:${(cadernoTimer.curso==='Catavento'||cadernoTimer.curso==='Curso Prático')?20:18}px;
+        aspect-ratio:${proporcaoLogosCursos[cadernoTimer.curso]};display:block;margin:0 auto 10px;filter:brightness(0) invert(1);opacity:.9">`
+        :`<div class="tf-modulo">${cadernoTimer.curso}</div>`}
+      <div class="tf-ref-wrap">
+        <div class="tf-ref">${(tipoLabelCurso[cadernoTimer.curso]||(cadernoTimer.tipo==='Simulado'?'SIMULADO':'CADERNO'))} ${cadernoTimer.nome}</div>
+        ${cadernoTimer.data?`<div class="tf-ref">${fmtData(cadernoTimer.data)}</div>`:''}
+      </div>` : '';
+
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <div>
+      ${cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
       ${(timerPublicacao||capituloFormatadoTf)?`<div class="tf-ref-wrap">
         ${timerPublicacao?`<div class="tf-ref">${nomePub(timerPublicacao)}</div>`:''}
         ${capituloFormatadoTf?`<div class="tf-ref">${capituloFormatadoTf}</div>`:''}
-      </div>`:''}
+      </div>`:''}`}
       <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
       <div class="tf-tipo">${timerTipo}</div>
       <div class="tf-btns">
@@ -5803,7 +5828,10 @@ function renderDetalhe(a){
     ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px;height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
-      ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
+      <div class="detalhe-acoes">
+        <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
+        ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
+      </div>
     </div>
     ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
