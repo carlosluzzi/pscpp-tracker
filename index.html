@@ -545,9 +545,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .plano-acao{font-size:var(--fs-c);color:#202A45;line-height:1.45;margin-top:4px;font-weight:500}
 .plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
 /* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
-/* Ação de revisar na tela de detalhe: botão acima da data, alinhado à direita */
-.detalhe-acoes{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.detalhe-data{font-size:var(--fs-c);color:#888}
+/* Logo do curso e botão de revisar dividem a mesma linha, no topo da tela de detalhe */
+.detalhe-linha-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:8px 0 10px}
+.detalhe-data{font-size:var(--fs-c);color:#888;flex-shrink:0}
 .btn-revisar-caderno{padding:6px 13px;border-radius:8px;border:none;background:#202A45;color:#fff;
   font-size:var(--fs-c);font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;
   transition:opacity .15s ease}
@@ -5825,13 +5826,13 @@ function renderDetalhe(a){
 
   const tipoAbrevDet=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `
-    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="margin-top:8px;height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
+    <div class="detalhe-linha-topo">
+      ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
+      <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
+    </div>
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
-      <div class="detalhe-acoes">
-        <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
-        ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
-      </div>
+      ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
     </div>
     ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
