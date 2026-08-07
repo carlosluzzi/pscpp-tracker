@@ -544,6 +544,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .plano-frase{font-size:var(--fs-c);color:#444;line-height:1.45}
 .plano-acao{font-size:var(--fs-c);color:#202A45;line-height:1.45;margin-top:4px;font-weight:500}
 .plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
+/* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
+.tipo-alerta{font-size:var(--fs-a);color:#854F0B;background:#FAEEDA;border-radius:7px;
+  padding:6px 9px;margin-top:7px;line-height:1.4}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1384,6 +1387,23 @@ const EXPLICACOES={
     <p><strong>A pergunta que responde:</strong> se a prova fosse amanhã, o que você provavelmente não lembraria?</p>
     <p><strong>Como é calculado:</strong> pela fórmula do FSRS, que combina a estabilidade do card com o tempo desde a última revisão. Quanto mais tempo passa sem revisar, menor a chance de lembrar.</p>
     <p><strong>Atenção ao momento:</strong> esse valor muda todo dia. O número mostrado é do instante em que os dados foram sincronizados do Anki – se faz dias que você não sincroniza, a lista está desatualizada.</p>`},
+  tipoConteudo:{titulo:'Por tipo de conteúdo',corpo:`
+    <p><strong>O que mostra:</strong> que tipo de coisa cada questão cobra, e quanto disso existe no seu baralho do Anki. Os dois usam o mesmo vocabulário, então a comparação é direta.</p>
+    <p><strong>Os tipos:</strong></p>
+    <ul>
+      <li><strong>Definição</strong> – o que é um conceito, mecanismo ou norma</li>
+      <li><strong>Número</strong> – valor específico a memorizar, ou conta a fazer</li>
+      <li><strong>Exceção</strong> – "EXCETO", "INCORRETA", "FALSA"; exige marcar o que NÃO é</li>
+      <li><strong>Procedimento</strong> – o que fazer em determinada situação</li>
+      <li><strong>Lista</strong> – conjunto de itens que compõem algo, dependência ou composição</li>
+      <li><strong>Identificação</strong> – reconhecer um sinal, bandeira, luz ou peça pela descrição</li>
+      <li><strong>Figura</strong> – exige interpretar imagem ou diagrama</li>
+      <li><strong>Fórmula</strong> – aplicar ou reconhecer uma expressão</li>
+      <li><strong>Comparação</strong> – confrontar dois conceitos ou correlacionar colunas</li>
+    </ul>
+    <p><strong>O aviso em âmbar</strong> aparece quando um tipo é cobrado na prova bem mais do que treinado no baralho. É onde o esforço de estudo está desalinhado com o que a prova exige.</p>
+    <p><strong>Por que a soma dos cards passa do total:</strong> um card pode ter mais de uma categoria. Um que traz uma fórmula e o número que ela produz conta nas duas.</p>
+    <p><strong>Cuidado com amostra pequena:</strong> um tipo com 2 ou 3 questões pode mostrar 0% ou 100% por acaso. Olhe a quantidade antes de concluir.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando os <em>seus</em> custos reais medidos.</p>
     <p><strong>Como funciona a conta:</strong> não é uma taxa única de "cards por hora". São dois custos separados, porque são atividades diferentes –</p>
@@ -4149,7 +4169,7 @@ function renderHeaderZone(){
           </span>
         </span>
       </div>
-      ${atividadeAtual?`<div class="detail-back" onclick="voltarLista()">← Atividades</div>`:''}
+      ${atividadeAtual?`<div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div>`:''}
     </div>
   `;
 }
@@ -5555,21 +5575,34 @@ function renderAtividades(){
     })()}
     ${(()=>{
       const tiposHtmlGeral=renderTiposCards(questoesFiltradas);
-      return tiposHtmlGeral?`${sectionTitle('Por tipo de questão','etiqueta','#E6F1FB','#202A45')}${tiposHtmlGeral}`:'';
+      return tiposHtmlGeral?`${sectionTitle('Por tipo de conteúdo','etiqueta','#E6F1FB','#202A45',{direita:botaoInfo('tipoConteudo')})}${tiposHtmlGeral}`:'';
     })()}
-    ${sectionTitle('Atividades','lista','#E6F1FB','#202A45')}
+    ${sectionTitle({simulados:'Simulados',pilotquest:'Cadernos do Pilotquest'}[abaDesempenho]||'Atividades','lista','#E6F1FB','#202A45')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
 }
 
-function abrirDetalhe(id){
+// Guarda de onde o detalhe foi aberto, para o botão de voltar dizer o nome certo. Mapear a
+// sub-aba na hora de renderizar funcionaria hoje, mas quebraria no dia em que uma atividade
+// puder ser aberta de outro lugar — do Início, de uma busca, de um link.
+let origemDetalhe=null;
+function abrirDetalhe(id,origem){
   atividadeAtual=atividades.find(a=>a.id===id);
+  origemDetalhe=origem||rotuloAbaAtual();
   renderTab(tabAtual);
   document.getElementById('content').scrollTop=0;
 }
 
+function rotuloAbaAtual(){
+  if(tabAtual==='atividades'){
+    return {inicio:'Início',simulados:'Simulados',pilotquest:'Pilotquest',anki:'Anki'}[abaDesempenho]||'Desempenho';
+  }
+  return {inicio:'Início',questoes:'Questões',aprovado:'Aprovado'}[tabAtual]||'Voltar';
+}
+
 function voltarLista(){
   atividadeAtual=null;
+  origemDetalhe=null;
   renderTab(tabAtual);
 }
 
@@ -5626,22 +5659,58 @@ function renderDetalhe(a){
 
 // Mesmo padrão visual do card de módulo (barra + %), mas sem expandir/colapsar — tipo de
 // questão não tem uma hierarquia natural de "sub-itens" dentro dele, então fica só a barra.
+// Cruza o tipo de conteúdo cobrado na prova com o que existe no baralho do Anki. Os dois usam
+// o mesmo vocabulário (Definição, Número, Figura, Lista, Fórmula, Exceção, Procedimento,
+// Comparação), então a comparação é direta — sem tradução entre os sistemas.
+//
+// O que o cruzamento revela: se um tipo é muito cobrado e pouco treinado, existe um
+// desalinhamento entre o esforço de estudo e o que a prova exige.
 function renderTiposCards(qs){
-  const tipos=['Conceitual','Cálculo','Número','Lista','Identificação'];
-  return tipos.map(t=>{
-    const tqs=qs.filter(q=>q.tipoQuestao===t);
-    if(!tqs.length) return '';
-    const ac=tqs.filter(isAcerto).length;
-    const pct=Math.round(ac/tqs.length*100);
-    const c=fc(pct);
+  const comTipo=qs.filter(q=>q.tipoQuestao);
+  if(!comTipo.length) return '';
+
+  // Cards do Anki por categoria. Um card pode ter mais de uma, então a soma passa do total —
+  // está correto: um card que traz fórmula e número cobre as duas coisas.
+  const cardsAtivos=(ankiCards||[]).filter(c=>!c.suspenso);
+  const porCategoria=new Map();
+  cardsAtivos.forEach(c=>{
+    (c.categorias&&c.categorias.length?c.categorias:(c.categoria?[c.categoria]:[]))
+      .forEach(cat=>{ if(cat) porCategoria.set(cat,(porCategoria.get(cat)||0)+1); });
+  });
+  const totalCards=cardsAtivos.length;
+
+  const tipos=[...new Set([...comTipo.map(q=>q.tipoQuestao),...porCategoria.keys()])];
+  const linhas=tipos.map(t=>{
+    const tqs=comTipo.filter(q=>q.tipoQuestao===t);
+    const cards=porCategoria.get(t)||0;
+    return {
+      tipo:t, questoes:tqs.length,
+      pctProva: comTipo.length?tqs.length/comTipo.length*100:0,
+      acerto: tqs.length?tqs.filter(isAcerto).length/tqs.length*100:null,
+      acertos: tqs.filter(isAcerto).length,
+      cards, pctAnki: totalCards?cards/totalCards*100:0,
+    };
+  }).filter(x=>x.questoes||x.cards)
+    .sort((a,b)=>b.questoes-a.questoes||b.cards-a.cards);
+
+  return linhas.map(x=>{
+    const c=x.acerto!==null?fc(x.acerto):'#bbb';
+    // Desalinhamento: cobrado com peso relevante na prova e pouco presente no baralho
+    const lacuna = x.pctProva>=5 && x.cards>0 && x.pctProva > x.pctAnki*2;
+    const semCards = x.questoes>=3 && x.cards===0;
     return `<div class="mod-card">
       <div class="mod-header" style="cursor:default">
         <div class="mod-top">
-          <span class="mod-nm">${t}</span>
-          <div class="mod-right"><span class="mod-p" style="color:${c};background:${fcBg(pct)}">${pct}%</span></div>
+          <span class="mod-nm">${x.tipo}</span>
+          <div class="mod-right">${x.acerto!==null
+            ?`<span class="mod-p" style="color:${c};background:${fcBg(x.acerto)}">${Math.round(x.acerto)}%</span>`
+            :'<span class="mod-p" style="color:#bbb;background:#f5f5f3">sem questões</span>'}</div>
         </div>
-        <div class="bbg"><div class="bf" style="width:${pct}%;background:${c}"></div></div>
-        <span class="mac">${ac}/${tqs.length} acertos</span>
+        <div class="bbg"><div class="bf" style="width:${x.acerto!==null?Math.round(x.acerto):0}%;background:${c}"></div></div>
+        <span class="mac">${x.questoes?`${x.acertos}/${x.questoes} acertos • ${x.pctProva.toFixed(1).replace('.',',')}% da prova`:'não caiu nas provas'}${
+          x.cards?` • ${x.cards.toLocaleString('pt-BR')} card${x.cards===1?'':'s'} (${x.pctAnki.toFixed(1).replace('.',',')}%)`:' • sem cards'}</span>
+        ${lacuna?`<div class="tipo-alerta">Cobrado ${(x.pctProva/Math.max(x.pctAnki,0.1)).toFixed(1).replace('.',',')}× mais na prova do que treinado no baralho.</div>`:''}
+        ${semCards?`<div class="tipo-alerta">Caiu ${x.questoes} ${x.questoes===1?'vez':'vezes'} e você não tem nenhum card deste tipo.</div>`:''}
       </div>
     </div>`;
   }).join('');
