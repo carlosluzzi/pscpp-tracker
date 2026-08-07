@@ -50,6 +50,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
    sempre a ultima coisa antes do conteudo que rola. */
 .app.tem-sub-abas.scrolled .header-zone,
 .app.tem-sub-abas.scrolled .topbar{box-shadow:none}
+/* Com a faixa de voltar presente, ela é o elemento mais baixo do conjunto fixo — então é dela
+   a sombra que separa do conteúdo que rola. */
+.app.tem-voltar.scrolled .header-zone,
+.app.tem-voltar.scrolled .topbar{box-shadow:none}
+.app.tem-voltar.scrolled .voltar-faixa{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .app.tem-sub-abas.scrolled #sub-abas-slot{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
@@ -129,7 +134,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
      ao padding da coluna de conteúdo evita que ele apareça sobre a barra lateral. */
   /* Duas classes no seletor porque a regra base vem DEPOIS no arquivo e, com a mesma
      especificidade, venceria — o botão voltaria para cima da barra lateral. */
-  .app .detail-back{left:calc(250px + 32px);bottom:14px}
+  /* A faixa fica só na coluna do conteúdo, senão passaria por cima da barra lateral. Ocupa a
+     mesma linha das sub-abas porque as duas nunca aparecem juntas: com o detalhe aberto não há
+     sub-abas, e vice-versa. */
+  .voltar-faixa{grid-column:2;grid-row:2;align-self:start;width:100%;max-width:1320px;
+    padding:10px 48px}
   #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
   .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
@@ -377,10 +386,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .mod-pct{font-size:var(--fs-c);font-weight:500;width:32px;text-align:right;flex-shrink:0}
 
 /* DETALHE ATIVIDADE */
-/* Fora do fluxo: o botão flutua sobre o cabeçalho em vez de ocupar altura própria. Antes ele
-   empurrava o conteúdo para baixo e o cabeçalho crescia só nas telas de detalhe. */
-.detail-back{position:absolute;left:16px;bottom:12px;display:flex;align-items:center;gap:6px;
-  cursor:pointer;color:#888;font-size:var(--fs-e);z-index:3}
+/* Faixa própria abaixo do cabeçalho, como um segundo header. Antes o botão ficava dentro do
+   header e o esticava; depois flutuou sobre ele, o que resolvia a altura mas o deixava colado
+   na data. Aqui ele tem espaço próprio e a sombra do scroll passa a ser dele. */
+.voltar-faixa{flex-shrink:0;background:#F9F9F7;padding:10px 16px;position:relative;z-index:3}
+.detail-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:#888;
+  font-size:var(--fs-e)}
 /* Voltar dentro da propria aba (nao no cabecalho): sticky gruda no topo da area rolavel, entao
    continua sempre visivel sem ocupar espaco do header. Os margins negativos compensam o padding
    do .content pra faixa cobrir a largura toda e o fundo esconder o conteudo que passa por tras. */
@@ -2042,6 +2053,8 @@ function renderTab(tab,preservarScroll){
   // conjunto do conteúdo que rola por baixo.
   const temSubAbas = !atividadeAtual && (tab==='aprovado' || tab==='atividades');
   document.querySelector('.app').classList.toggle('tem-sub-abas',temSubAbas);
+  // Quando existe a faixa de voltar, é ela que projeta a sombra do scroll, não o cabeçalho.
+  document.querySelector('.app').classList.toggle('tem-voltar',!!atividadeAtual);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   renderSubAbas(tab);
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
@@ -4682,8 +4695,8 @@ function renderHeaderZone(){
           </span>
         </span>
       </div>
-      ${atividadeAtual?`<div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div>`:''}
     </div>
+    ${atividadeAtual?`<div class="voltar-faixa"><div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div></div>`:''}
   `;
 }
 
