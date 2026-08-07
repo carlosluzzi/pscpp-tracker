@@ -497,17 +497,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
   padding:14px 8px;transition:background .15s ease}
 .sub-aba span{font-size:var(--fs-e);color:#888;font-weight:400;transition:color .15s ease;
-  display:inline-flex;align-items:center;justify-content:center;gap:5px}
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;position:relative;z-index:2}
 /* Alinhamento pelo EIXO do texto (metade entre a linha de base e o topo das letras), não pela
    caixa do elemento: sem compensação os dois ícones assentavam ~1,1px abaixo desse eixo, e o
    olho percebia como desalinhado. Medido em render, vale para os dois desenhos.
    Em em, então acompanha o tamanho da fonte em cada breakpoint. */
 .sub-aba-icone{width:0.85em;height:0.85em;flex-shrink:0;margin-bottom:0.065em}
-/* A seleção é marcada por um traço azul embaixo, não por cor de fundo: como o fundo do
-   cabeçalho e o da página são iguais, uma aba inativa "pintada" ou some (se for clara demais)
-   ou pesa mais que a selecionada (se for escura). O traço resolve sem esse dilema. */
-.sub-aba.ativa{background:#f0f0ee;position:relative}
-.sub-aba.ativa::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:#202A45}
+/* A linha de base atravessa toda a largura, mas o item ativo a cobre — então ela aparece só
+   sob os inativos. Antes o ativo levava um traço azul embaixo, o que lia como sublinhado e
+   invertia a leitura de quem está selecionado. */
+.sub-aba.ativa{background:#f0f0ee;position:relative;z-index:1}
+.sub-aba.ativa::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#f0f0ee}
 .sub-aba.ativa span{color:#202A45;font-weight:500}
 @media(hover:hover){.sub-aba:not(.ativa):hover span{color:#555}}
 /* Primeira secao logo apos as abas nao precisa da margem de 32px */
@@ -546,8 +546,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
 /* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
 /* Logo do curso e botão de revisar dividem a mesma linha, no topo da tela de detalhe */
+/* Logo e botão dividem a linha. A margem vem da própria logo (que já tem margin-bottom), e o
+   botão é posicionado de forma a não esticar a altura da linha — senão o título do caderno
+   ganharia um respiro que não existia antes de o botão entrar. */
 .detalhe-linha-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin:8px 0 10px}
+  margin-top:8px;height:16px}
+.detalhe-linha-topo .ativ-logo-curso{margin-bottom:0}
+.detalhe-linha-topo .btn-revisar-caderno{position:relative;z-index:2}
 .detalhe-data{font-size:var(--fs-c);color:#888;flex-shrink:0}
 .btn-revisar-caderno{padding:6px 13px;border-radius:8px;border:none;background:#202A45;color:#fff;
   font-size:var(--fs-c);font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;
@@ -557,6 +562,21 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   background:#fff;color:#202A45;font-size:var(--fs-c);font-weight:500;cursor:pointer;
   font-family:inherit;transition:background .15s ease}
 @media(hover:hover){.ativ-revisar:hover{background:#f5f5f3}}
+/* Controle de ritmo: arrastar é mais direto que escolher entre opções fixas, e permite
+   qualquer valor entre 5 minutos e 3 horas em vez de cinco pontos pré-definidos. */
+.ritmo-topo{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.ritmo-valor{font-size:var(--fs-e);font-weight:700;color:#202A45;font-variant-numeric:tabular-nums}
+.ritmo-slider{width:100%;-webkit-appearance:none;appearance:none;background:transparent;
+  margin:0 0 2px;height:26px;cursor:pointer}
+.ritmo-slider::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:#e8e8e4}
+.ritmo-slider::-moz-range-track{height:5px;border-radius:3px;background:#e8e8e4}
+.ritmo-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;
+  border-radius:50%;background:#202A45;border:3px solid #fff;margin-top:-8.5px;
+  box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.ritmo-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#202A45;
+  border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.ritmo-escala{display:flex;justify-content:space-between;font-size:var(--fs-a);color:#aaa;
+  margin-bottom:12px}
 .tipo-alerta{font-size:var(--fs-a);color:#854F0B;background:#FAEEDA;border-radius:7px;
   padding:6px 9px;margin-top:7px;line-height:1.4}
 .tipo-det-titulo{font-size:var(--fs-a);color:#888;padding:2px 0 6px}
@@ -1430,7 +1450,7 @@ const EXPLICACOES={
     <p><strong>De onde vem:</strong> da classificação da alternativa que você marcou errado – não da questão inteira. É por isso que aparece "largura de canal sem praticagem" e não "Conhecimentos Gerais".</p>
     <p><strong>Se a lista estiver vazia,</strong> isso também é informação: significa que seus erros estão espalhados em assuntos distintos, sem ponto fraco recorrente. Nesse caso o padrão está no tipo de conteúdo, não no tema.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
-    <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando os <em>seus</em> custos reais medidos.</p>
+    <p><strong>O que é:</strong> um simulador. Arraste o controle para escolher quanto tempo pretende estudar por dia – de 5 minutos a 3 horas – e ele calcula quanto você avança, usando os <em>seus</em> custos reais medidos.</p>
     <p><strong>Como funciona a conta:</strong> não é uma taxa única de "cards por hora". São dois custos separados, porque são atividades diferentes –</p>
     <ul>
       <li><strong>Custo de um card novo</strong> – quanto tempo você leva ao ver pela primeira vez</li>
@@ -2545,6 +2565,33 @@ function atualizarDotsHistorico(){
   paginaHistAtual=idx;
   [...dots.children].forEach((d,i)=>d.classList.toggle('ativo',i===idx));
 }
+function fmtMinutosRitmo(m){
+  return m>=60 ? Math.floor(m/60)+':'+String(m%60).padStart(2,'0') : m+' min';
+}
+
+// Enquanto o dedo arrasta, só os números mudam — re-renderizar a tela inteira a cada pixel
+// derrubaria o foco do controle e travaria o movimento. O estado global só é gravado ao soltar.
+function atualizarPreviaRitmo(valor){
+  const min=parseInt(valor,10);
+  const el=document.getElementById('ritmo-valor');
+  if(el) el.textContent=fmtMinutosRitmo(min);
+
+  const r=calcularRitmoAnki();
+  if(!r||!r.custoNovo) return;
+  const segNovo=r.custoNovo/1000, segRev=r.custoRev/1000;
+  const minRevisao=Math.min(min, r.filaPendente*segRev/60);
+  const minSobra=Math.max(0, min-minRevisao);
+  const porDia=Math.floor(minSobra*60/segNovo);
+  const dias=porDia>0?Math.ceil(r.restam/porDia):null;
+
+  const elC=document.getElementById('ritmo-cards');
+  const elD=document.getElementById('ritmo-dias');
+  const elM=document.getElementById('ritmo-meses');
+  if(elC) elC.textContent=porDia;
+  if(elD) elD.textContent=dias?dias.toLocaleString('pt-BR'):'–';
+  if(elM) elM.textContent=dias?(dias/30).toFixed(1).replace('.',','):'–';
+}
+
 function setAnkiMinutos(m){ ankiMinutosDia=m; renderTab(tabAtual,true); }
 function setAbaDesempenho(qual){
   abaDesempenho=qual;
@@ -5525,7 +5572,6 @@ function renderAnkiDesempenho(){
     ${(()=>{
       const r=calcularRitmoAnki();
       if(!r||!r.dias.length||!r.custoNovo) return '';
-      const opcoes=[15,30,45,60,90];
       const segNovo=r.custoNovo/1000, segRev=r.custoRev/1000;
       const janelaTxt=`${r.obsNovo} card${r.obsNovo===1?'':'s'} novo${r.obsNovo===1?'':'s'} e ${r.obsRev} revis${r.obsRev===1?'ão':'ões'} mais recentes`;
 
@@ -5561,21 +5607,27 @@ function renderAnkiDesempenho(){
       return `
     ${sectionTitle('Quanto falta para rodar o baralho','evolucao','#E6F1FB','#202A45',{direita:botaoInfo('ankiRitmo')})}
     <div class="card-inicio">
-      <div style="font-size:var(--fs-c);color:#666;margin-bottom:10px">Se eu estudar por dia:</div>
-      <div class="filter-row" style="margin-bottom:14px">
-        ${opcoes.map(m=>`<div class="filter-btn${ankiMinutosDia===m?' active':''}" onclick="setAnkiMinutos(${m})">${m>=60?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):m+' min'}</div>`).join('')}
+      <div class="ritmo-topo">
+        <span style="font-size:var(--fs-c);color:#666">Se eu estudar por dia:</span>
+        <span class="ritmo-valor" id="ritmo-valor">${fmtMinutosRitmo(ankiMinutosDia)}</span>
+      </div>
+      <input type="range" class="ritmo-slider" id="ritmo-slider"
+        min="5" max="180" step="5" value="${ankiMinutosDia}"
+        oninput="atualizarPreviaRitmo(this.value)" onchange="setAnkiMinutos(parseInt(this.value,10))">
+      <div class="ritmo-escala">
+        <span>5 min</span><span>1:00</span><span>3:00</span>
       </div>
       <div class="hist-total">
         <div class="hist-total-item">
-          <span class="hist-total-val">${porDia}</span>
+          <span class="hist-total-val" id="ritmo-cards">${porDia}</span>
           <span class="hist-total-lbl">cards novos por dia</span>
         </div>
         <div class="hist-total-item">
-          <span class="hist-total-val">${diasFalta?diasFalta.toLocaleString('pt-BR'):'–'}</span>
+          <span class="hist-total-val" id="ritmo-dias">${diasFalta?diasFalta.toLocaleString('pt-BR'):'–'}</span>
           <span class="hist-total-lbl">dias até ver todos</span>
         </div>
         <div class="hist-total-item">
-          <span class="hist-total-val">${meses||'–'}</span>
+          <span class="hist-total-val" id="ritmo-meses">${meses||'–'}</span>
           <span class="hist-total-lbl">meses</span>
         </div>
       </div>
@@ -5830,6 +5882,7 @@ function renderDetalhe(a){
       ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
       <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
     </div>
+    <div style="height:10px"></div>
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
