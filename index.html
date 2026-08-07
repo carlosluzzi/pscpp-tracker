@@ -547,6 +547,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
 .tipo-alerta{font-size:var(--fs-a);color:#854F0B;background:#FAEEDA;border-radius:7px;
   padding:6px 9px;margin-top:7px;line-height:1.4}
+.tipo-det-titulo{font-size:var(--fs-a);color:#888;padding:2px 0 6px}
+.tipo-errada{padding:8px 0}
+.tipo-errada+.tipo-errada{border-top:0.5px solid #f4f4f2}
+.tipo-errada-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.tipo-errada-num{font-size:var(--fs-c);font-weight:600;color:#202A45}
+.tipo-errada-resp{font-size:var(--fs-a);color:#A32D2D;white-space:nowrap}
+.tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:3px;line-height:1.35}
+.tipo-errada-ref{font-size:var(--fs-a);color:#999;margin-top:2px;line-height:1.35}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
 @media(hover:hover){.info-btn:hover{color:#888}}
@@ -1404,6 +1412,11 @@ const EXPLICACOES={
     <p><strong>O aviso em âmbar</strong> aparece quando um tipo é cobrado na prova bem mais do que treinado no baralho. É onde o esforço de estudo está desalinhado com o que a prova exige.</p>
     <p><strong>Por que a soma dos cards passa do total:</strong> um card pode ter mais de uma categoria. Um que traz uma fórmula e o número que ela produz conta nas duas.</p>
     <p><strong>Cuidado com amostra pequena:</strong> um tipo com 2 ou 3 questões pode mostrar 0% ou 100% por acaso. Olhe a quantidade antes de concluir.</p>`},
+  assuntosRepetem:{titulo:'Assuntos que se repetem',corpo:`
+    <p><strong>O que mostra:</strong> assuntos em que você errou mais de uma vez, em provas diferentes.</p>
+    <p><strong>Por que só a partir de dois:</strong> um erro pode ser azar, distração ou questão mal formulada. Dois erros no mesmo assunto, em provas distintas, é lacuna real.</p>
+    <p><strong>De onde vem:</strong> da classificação da alternativa que você marcou errado – não da questão inteira. É por isso que aparece "largura de canal sem praticagem" e não "Conhecimentos Gerais".</p>
+    <p><strong>Se a lista estiver vazia,</strong> isso também é informação: significa que seus erros estão espalhados em assuntos distintos, sem ponto fraco recorrente. Nesse caso o padrão está no tipo de conteúdo, não no tema.</p>`},
   ankiRitmo:{titulo:'Quanto falta para rodar o baralho',corpo:`
     <p><strong>O que é:</strong> um simulador. Você escolhe quanto tempo pretende estudar por dia e ele calcula quanto avança, usando os <em>seus</em> custos reais medidos.</p>
     <p><strong>Como funciona a conta:</strong> não é uma taxa única de "cards por hora". São dois custos separados, porque são atividades diferentes –</p>
@@ -1533,7 +1546,7 @@ function fmtPct(v){
 
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef=null;
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
-let ankiCards=[],ankiSecoes=[],ankiRevisoes=[];
+let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[];
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
@@ -1582,7 +1595,8 @@ async function loadDataInterno(){
       {data:anotacoesRes,error:eAnotacoes},
       {data:ankiRes,error:eAnki},
       {data:ankiSecRes,error:eAnkiSec},
-      {data:ankiRevRes,error:eAnkiRev}
+      {data:ankiRevRes,error:eAnkiRev},
+      {data:classAltRes,error:eClassAlt}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
@@ -1604,6 +1618,7 @@ async function loadDataInterno(){
       buscarTudo('anki_cards'),
       buscarTudo('anki_secoes'),
       buscarTudo('anki_revisoes'),
+      buscarTudo('classificacao_alternativas'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -1764,6 +1779,14 @@ async function loadDataInterno(){
     ankiRevisoes=eAnkiRev?[]:(ankiRevRes||[]).map(p=>({
       cardId:p.card_id, revisadoEm:p.revisado_em, resposta:p.resposta,
       tempoMs:p.tempo_ms||0, intervaloAnt:p.intervalo_ant, tipo:p.tipo,
+    }));
+    // Classificação no nível da alternativa: diz o que a alternativa marcada errado estava
+    // cobrando. É o que transforma "erra números" em "erra a largura de canal do CONAPRA".
+    classAlternativas=eClassAlt?[]:(classAltRes||[]).map(p=>({
+      idAtividade:p.id_atividade, questao:p.numero_questao, alternativa:p.alternativa,
+      tipoConteudo:p.tipo_conteudo||'', assunto:p.assunto||'',
+      foiMarcada:!!p.foi_marcada, ehGabarito:!!p.eh_gabarito,
+      direcaoErro:p.direcao_erro||null,
     }));
     atividadesPendentes=ativPendRes.map(p=>({
       id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
@@ -5577,6 +5600,39 @@ function renderAtividades(){
       const tiposHtmlGeral=renderTiposCards(questoesFiltradas);
       return tiposHtmlGeral?`${sectionTitle('Por tipo de conteúdo','etiqueta','#E6F1FB','#202A45',{direita:botaoInfo('tipoConteudo')})}${tiposHtmlGeral}`:'';
     })()}
+    ${(()=>{
+      // Assuntos em que o Carlos errou mais de uma vez. É o sinal mais forte que existe: um erro
+      // pode ser azar, dois no mesmo assunto em provas diferentes é lacuna real. Hoje a lista
+      // vem vazia (52 erros em 52 assuntos distintos), e isso já é informação — significa que
+      // não há ponto fraco recorrente, só lacunas pontuais espalhadas.
+      const nomes=new Set(lista.map(a=>a.nome));
+      const erros=(classAlternativas||[]).filter(c=>c.foiMarcada&&c.assunto&&nomes.has(c.idAtividade));
+      if(!erros.length) return '';
+      const porAssunto=new Map();
+      erros.forEach(c=>{
+        if(!porAssunto.has(c.assunto)) porAssunto.set(c.assunto,{tipo:c.tipoConteudo,ocorrencias:[]});
+        porAssunto.get(c.assunto).ocorrencias.push(c);
+      });
+      const repetidos=[...porAssunto.entries()]
+        .filter(([,v])=>v.ocorrencias.length>=2)
+        .sort((a,b)=>b[1].ocorrencias.length-a[1].ocorrencias.length);
+
+      const corpo = repetidos.length
+        ? repetidos.map(([assunto,v])=>`<div class="quad-item">
+            <span class="quad-tag" style="color:#A32D2D;background:#FCEBEB;width:64px">${v.ocorrencias.length}× erro</span>
+            <div class="quad-txt">
+              <div class="quad-nome">${assunto}</div>
+              <div class="quad-det">${v.tipo} • ${v.ocorrencias.map(o=>o.idAtividade+' Q'+o.questao).join(' · ')}</div>
+            </div>
+          </div>`).join('')
+        : `<div style="font-size:var(--fs-c);color:#666;line-height:1.5">
+            Nenhum assunto errado mais de uma vez. Seus ${erros.length} erros estão em
+            ${porAssunto.size} assuntos diferentes – são lacunas pontuais, não um ponto fraco
+            que se repete. Conforme mais provas forem processadas, reincidências aparecem aqui.
+          </div>`;
+      return `${sectionTitle('Assuntos que se repetem','alerta',repetidos.length?'#FCEBEB':'#EAF3DE',repetidos.length?'#791F1F':'#27500A',{direita:botaoInfo('assuntosRepetem')})}
+        <div class="card-inicio">${corpo}</div>`;
+    })()}
     ${sectionTitle({simulados:'Simulados',pilotquest:'Cadernos do Pilotquest'}[abaDesempenho]||'Atividades','lista','#E6F1FB','#202A45')}
     ${lista.length?`<div class="ativ-list-grid">${lista.map(a=>ativCard(a)).join('')}</div>`:'<div class="empty">Nenhuma atividade no período selecionado.</div>'}
   `;
@@ -5693,18 +5749,48 @@ function renderTiposCards(qs){
   }).filter(x=>x.questoes||x.cards)
     .sort((a,b)=>b.questoes-a.questoes||b.cards-a.cards);
 
-  return linhas.map(x=>{
+  return linhas.map((x,i)=>{
     const c=x.acerto!==null?fc(x.acerto):'#bbb';
     // Desalinhamento: cobrado com peso relevante na prova e pouco presente no baralho
     const lacuna = x.pctProva>=5 && x.cards>0 && x.pctProva > x.pctAnki*2;
     const semCards = x.questoes>=3 && x.cards===0;
+
+    // Lista das erradas, para responder "o que exatamente eu errei deste tipo". Ordenada por
+    // atividade e número, e cada linha leva ao contexto: onde caiu, o que você marcou e o
+    // gabarito. Sem isso o card só diz o percentual e não leva a lugar nenhum.
+    const erradas=comTipo.filter(q=>q.tipoQuestao===x.tipo && !isAcerto(q))
+      .sort((a,b)=>(a.idAtividade||'').localeCompare(b.idAtividade||'')
+                 ||(parseInt(a.questao,10)||0)-(parseInt(b.questao,10)||0));
+    // Assunto da alternativa que o Carlos marcou errado — é o nível mais fino que existe hoje.
+    // Sem isso a linha diz apenas "errou a Q23"; com isso diz o que a alternativa cobrava.
+    const assuntoDe=q=>{
+      const c=(classAlternativas||[]).find(x=>
+        x.idAtividade===q.idAtividade && x.questao===q.questao && x.foiMarcada);
+      return c?c.assunto:'';
+    };
+    const detalhe=erradas.length
+      ? erradas.map(q=>{
+          const as=assuntoDe(q);
+          return `<div class="tipo-errada">
+          <div class="tipo-errada-top">
+            <span class="tipo-errada-num">${q.idAtividade||''} · Q${q.questao}</span>
+            <span class="tipo-errada-resp">marcou ${(q.suaResposta||'–').toUpperCase()} • era ${(q.gabarito||'–').toUpperCase()}</span>
+          </div>
+          ${as?`<div class="tipo-errada-assunto">${as}</div>`:''}
+          <div class="tipo-errada-ref">${q.modulo||'sem módulo'}${q.publicacao?' – '+nomePub(q.publicacao):''}${q.capitulo?', Capítulo '+q.capitulo:''}</div>
+        </div>`;
+        }).join('')
+      : '<div class="empty" style="padding:12px 8px">Nenhum erro deste tipo no período.</div>';
+
+    const podeExpandir=x.questoes>0;
     return `<div class="mod-card">
-      <div class="mod-header" style="cursor:default">
+      <div class="mod-header"${podeExpandir?` onclick="toggleTipo(${i})"`:' style="cursor:default"'}>
         <div class="mod-top">
           <span class="mod-nm">${x.tipo}</span>
           <div class="mod-right">${x.acerto!==null
             ?`<span class="mod-p" style="color:${c};background:${fcBg(x.acerto)}">${Math.round(x.acerto)}%</span>`
-            :'<span class="mod-p" style="color:#bbb;background:#f5f5f3">sem questões</span>'}</div>
+            :'<span class="mod-p" style="color:#bbb;background:#f5f5f3">sem questões</span>'}${
+            podeExpandir?`<span class="chev" id="tchev${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`:''}</div>
         </div>
         <div class="bbg"><div class="bf" style="width:${x.acerto!==null?Math.round(x.acerto):0}%;background:${c}"></div></div>
         <span class="mac">${x.questoes?`${x.acertos}/${x.questoes} acertos • ${x.pctProva.toFixed(1).replace('.',',')}% da prova`:'não caiu nas provas'}${
@@ -5712,6 +5798,10 @@ function renderTiposCards(qs){
         ${lacuna?`<div class="tipo-alerta">Cobrado ${(x.pctProva/Math.max(x.pctAnki,0.1)).toFixed(1).replace('.',',')}× mais na prova do que treinado no baralho.</div>`:''}
         ${semCards?`<div class="tipo-alerta">Caiu ${x.questoes} ${x.questoes===1?'vez':'vezes'} e você não tem nenhum card deste tipo.</div>`:''}
       </div>
+      ${podeExpandir?`<div class="mod-detail" id="tdet${i}">
+        <div class="tipo-det-titulo">${erradas.length} ${erradas.length===1?'questão errada':'questões erradas'}</div>
+        ${detalhe}
+      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -6264,6 +6354,16 @@ let bancoCombinarTags='OU';
 function toggleMod(i){
   const d=document.getElementById('mdet'+i);
   const c=document.getElementById('mchev'+i);
+  const open=d.classList.contains('open');
+  d.classList.toggle('open',!open);
+  if(c) c.classList.toggle('open',!open);
+  if(!open) requestAnimationFrame(()=>{ d.scrollIntoView({block:'nearest',behavior:'smooth'}); });
+}
+
+function toggleTipo(i){
+  const d=document.getElementById('tdet'+i);
+  const c=document.getElementById('tchev'+i);
+  if(!d) return;
   const open=d.classList.contains('open');
   d.classList.toggle('open',!open);
   if(c) c.classList.toggle('open',!open);
