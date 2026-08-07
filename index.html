@@ -127,7 +127,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   #sub-abas-slot{grid-column:2;grid-row:2;align-self:start;width:100%;max-width:1320px;box-sizing:border-box}
   /* Mesmo motivo: o botão de voltar fica dentro do header, que ocupa as duas colunas. Alinhá-lo
      ao padding da coluna de conteúdo evita que ele apareça sobre a barra lateral. */
-  .detail-back{margin-left:250px;padding-left:16px}
+  /* Duas classes no seletor porque a regra base vem DEPOIS no arquivo e, com a mesma
+     especificidade, venceria — o botão voltaria para cima da barra lateral. */
+  .app .detail-back{left:calc(250px + 32px);bottom:14px}
   #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
   .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
@@ -375,7 +377,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .mod-pct{font-size:var(--fs-c);font-weight:500;width:32px;text-align:right;flex-shrink:0}
 
 /* DETALHE ATIVIDADE */
-.detail-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:#888;font-size:var(--fs-e);margin-top:10px}
+/* Fora do fluxo: o botão flutua sobre o cabeçalho em vez de ocupar altura própria. Antes ele
+   empurrava o conteúdo para baixo e o cabeçalho crescia só nas telas de detalhe. */
+.detail-back{position:absolute;left:16px;bottom:12px;display:flex;align-items:center;gap:6px;
+  cursor:pointer;color:#888;font-size:var(--fs-e);z-index:3}
 /* Voltar dentro da propria aba (nao no cabecalho): sticky gruda no topo da area rolavel, entao
    continua sempre visivel sem ocupar espaco do header. Os margins negativos compensam o padding
    do .content pra faixa cobrir a largura toda e o fundo esconder o conteudo que passa por tras. */
@@ -741,7 +746,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .resumo-stat-label{font-size:11px;color:#888;text-align:center;line-height:1.25}
 
 /* Sistema de cards da Início (substitui a trilha) */
-.header-zone{background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);position:relative;overflow:hidden;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
+.header-zone{position:relative;background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);position:relative;overflow:hidden;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 .header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
 .card-inicio{background:#fff;border-radius:18px;padding:13px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
 .cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
