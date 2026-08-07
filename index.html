@@ -562,6 +562,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   background:#fff;color:#202A45;font-size:var(--fs-c);font-weight:500;cursor:pointer;
   font-family:inherit;transition:background .15s ease}
 @media(hover:hover){.ativ-revisar:hover{background:#f5f5f3}}
+/* Situação do baralho: cor muda conforme o tempo parado, do verde ao vermelho */
+.anki-situacao{border-radius:14px;padding:12px 14px;margin:0 0 14px}
+.anki-situacao-frase{font-size:var(--fs-d);font-weight:600;line-height:1.35}
+.anki-situacao-acao{font-size:var(--fs-c);line-height:1.45;margin-top:3px;opacity:.88}
 /* Controle de ritmo: arrastar é mais direto que escolher entre opções fixas, e permite
    qualquer valor entre 5 minutos e 3 horas em vez de cinco pontos pré-definidos. */
 .ritmo-topo{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
@@ -1403,7 +1407,9 @@ const EXPLICACOES={
   ankiResumo:{titulo:'Resumo do baralho',corpo:`
     <p><strong>De onde vem:</strong> do seu baralho do Anki, sincronizado pelo computador. Os números refletem o último sincronismo entre o iPad e o Mac.</p>
     <p><strong>Já estudados:</strong> cards que você viu pelo menos uma vez. <strong>Em revisão:</strong> cards que já saíram da fase inicial e voltam em intervalos crescentes.</p>
-    <p><strong>Por que não mostra retenção ainda:</strong> com a maior parte do baralho não vista, qualquer percentual de acerto seria calculado sobre pouquíssimas revisões e oscilaria demais. Retenção e conteúdo problemático aparecem quando houver histórico suficiente.</p>`},
+    <p><strong>Por que não mostra retenção ainda:</strong> com a maior parte do baralho não vista, qualquer percentual de acerto seria calculado sobre pouquíssimas revisões e oscilaria demais. Retenção e conteúdo problemático aparecem quando houver histórico suficiente.</p>
+    <p><strong>A faixa colorida</strong> mostra há quanto tempo você não estuda e quanto está acumulando. Verde até ontem, âmbar de dois a três dias, vermelho a partir de quatro.</p>
+    <p><strong>Cards vencidos há mais de dois dias</strong> são destacados separadamente: o intervalo do FSRS foi calculado para você revisar no dia certo, e cada dia a mais reduz a chance de acertar quando o card voltar.</p>`},
   planoAcao:{titulo:'Plano de ação',corpo:`
     <p><strong>O que é:</strong> o cruzamento das três fontes que medem coisas diferentes – os simulados medem acerto sob pressão, o Pilotquest mede acerto sem pressão, e o Anki mede se o conteúdo fica na memória.</p>
     <p><strong>Por que cruzar:</strong> nenhuma fonte isolada distingue "não sei" de "sei mas erro na hora". E as ações para esses dois casos são opostas – uma pede mais estudo, a outra pede menos estudo e mais treino de prova.</p>
@@ -5565,8 +5571,56 @@ function renderAnkiDesempenho(){
       <div class="stat-card"><div class="stat-val">${fmt(novos)}</div><div class="stat-lbl">Ainda não vistos</div></div>
       <div class="stat-card"><div class="stat-val">${fmt(emRevisao)}</div><div class="stat-lbl">Em revisão</div></div>
     </div>
+    ${(()=>{
+      // Situação atual do baralho: há quanto tempo sem estudar e o que está acumulando. Sem
+      // isso a aba mostrava o retrato do baralho como se estivesse tudo em dia, mesmo com
+      // dias de ausência e fila crescendo.
+      const revs=ankiRevisoes||[];
+      if(!revs.length) return '';
+      const ultima=revs.reduce((max,r)=>{
+        const d=new Date(r.revisadoEm);
+        return d>max?d:max;
+      },new Date(0));
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const ultimaDia=new Date(ultima); ultimaDia.setHours(0,0,0,0);
+      const diasParado=Math.round((hoje-ultimaDia)/86400000);
+
+      const hojeStr=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+      const vencidos=ativos.filter(c=>c.venceEm&&c.venceEm<=hojeStr).length;
+      // Vencidos há mais de 2 dias: já passaram do ponto em que a memória começa a ceder
+      const limite=new Date(hoje); limite.setDate(limite.getDate()-2);
+      const limiteStr=`${limite.getFullYear()}-${String(limite.getMonth()+1).padStart(2,'0')}-${String(limite.getDate()).padStart(2,'0')}`;
+      const atrasados=ativos.filter(c=>c.venceEm&&c.venceEm<limiteStr).length;
+
+      let cor,frase,acao;
+      if(diasParado===0){
+        cor={bg:'#EAF3DE',tx:'#27500A'};
+        frase='Você estudou hoje.';
+        acao=vencidos?`Ainda há ${fmt(vencidos)} card${vencidos===1?'':'s'} na fila.`:'Fila em dia.';
+      } else if(diasParado===1){
+        cor={bg:'#EAF3DE',tx:'#27500A'};
+        frase='Última sessão foi ontem.';
+        acao=vencidos?`${fmt(vencidos)} card${vencidos===1?'':'s'} esperando revisão.`:'Nada vencido.';
+      } else if(diasParado<=3){
+        cor={bg:'#FAEEDA',tx:'#854F0B'};
+        frase=`Faz ${diasParado} dias que você não abre o Anki.`;
+        acao=vencidos?`${fmt(vencidos)} card${vencidos===1?'':'s'} já venceram e estão acumulando.`:'Nada vencido ainda.';
+      } else {
+        cor={bg:'#FCEBEB',tx:'#791F1F'};
+        frase=`Faz ${diasParado} dias que você não abre o Anki.`;
+        acao=atrasados
+          ? `${fmt(vencidos)} card${vencidos===1?'':'s'} vencido${vencidos===1?'':'s'}, ${fmt(atrasados)} há mais de dois dias – quanto mais tempo passa, mais difícil recuperar.`
+          : `${fmt(vencidos)} card${vencidos===1?'':'s'} esperando revisão.`;
+      }
+
+      return `<div class="anki-situacao" style="background:${cor.bg};color:${cor.tx}">
+        <div class="anki-situacao-frase">${frase}</div>
+        <div class="anki-situacao-acao">${acao}</div>
+      </div>`;
+    })()}
+
     ${aprendendo?`<div class="card-inicio" style="margin-top:-4px">
-      <div style="font-size:var(--fs-c);color:#666">${fmt(aprendendo)} card${aprendendo===1?'':'s'} em fase de aprendizado – vistos hoje, ainda não consolidados.</div>
+      <div style="font-size:var(--fs-c);color:#666">${fmt(aprendendo)} card${aprendendo===1?'':'s'} em fase de aprendizado – começou a ver mas ainda não consolidou.</div>
     </div>`:''}
 
     ${(()=>{
