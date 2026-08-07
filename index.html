@@ -594,12 +594,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .sd-rodape{border-top:0.5px solid #eee;margin-top:12px;padding-top:12px;flex-shrink:0}
 .sd-cabecalho{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
 .sd-dur{font-size:var(--fs-f);font-weight:700;color:#202A45}
-.sd-data{font-size:var(--fs-c);color:#888}
+.sd-data{font-size:var(--fs-c);color:#888;text-align:right;line-height:1.3}
+.sd-hora{display:block;font-size:var(--fs-a);color:#aaa}
 .sd-linha-topo{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px}
 .sd-bloco{margin-top:16px}
 .sd-titulo{font-size:var(--fs-a);color:#999;text-transform:uppercase;letter-spacing:.05em;
   font-weight:700;margin-bottom:7px}
 .sd-texto{font-size:var(--fs-c);color:#5F5E5A;line-height:1.5}
+.sd-nota{font-size:var(--fs-a);color:#aaa;line-height:1.4;margin:-3px 0 8px}
 .sd-resp{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .sd-resp-nome{font-size:var(--fs-a);font-weight:600;width:58px;flex-shrink:0}
 .sd-resp-barra{flex:1;height:7px;border-radius:4px;background:#f0f0ee;overflow:hidden}
@@ -1532,6 +1534,12 @@ const EXPLICACOES={
     <p><strong>Por que só a partir de dois:</strong> um erro pode ser azar, distração ou questão mal formulada. Dois erros no mesmo assunto, em provas distintas, é lacuna real.</p>
     <p><strong>De onde vem:</strong> da classificação da alternativa que você marcou errado – não da questão inteira. É por isso que aparece "largura de canal sem praticagem" e não "Conhecimentos Gerais".</p>
     <p><strong>Se a lista estiver vazia,</strong> isso também é informação: significa que seus erros estão espalhados em assuntos distintos, sem ponto fraco recorrente. Nesse caso o padrão está no tipo de conteúdo, não no tema.</p>`},
+  equalizador:{titulo:'Equalizador',corpo:`
+    <p><strong>O que faz:</strong> divide o seu tempo diário entre as matérias de forma que todas terminem no mesmo prazo, em vez de você acabar uma e só então começar a outra.</p>
+    <p><strong>Como calcula:</strong> usa o custo por card medido em cada baralho separadamente – um card de fórmula custa mais que um de definição, e isso muda a divisão. A fila de revisão é cobrada primeiro; o tempo que sobra é repartido proporcionalmente ao que falta em cada matéria.</p>
+    <p><strong>Duas direções:</strong> escolhendo o tempo no controle acima, ele mostra o prazo. Ajustando o controle até chegar no prazo que você quer, ele mostra o tempo necessário.</p>
+    <p><strong>Limitação honesta:</strong> a conta assume a fila de revisão estável. Na prática, conforme os cards novos de hoje viram revisão amanhã, sobra menos tempo para avançar – então o prazo real tende a ser maior que o calculado. Esse refinamento depende de ter mais de uma matéria com histórico para calibrar.</p>
+    <p><strong>Precisa de pelo menos duas matérias</strong> com cards. Com uma só, o cálculo é idêntico ao de "Quanto falta para rodar o baralho".</p>`},
   sessoesAnki:{titulo:'Suas sessões',corpo:`
     <p><strong>O que mostra:</strong> cada dia de estudo no Anki, do mais recente para o mais antigo, com duração, matéria, quantos cards novos, quantas revisões e o percentual de acerto.</p>
     <p><strong>Um dia, uma linha.</strong> Se você estudou em três momentos separados no mesmo dia, eles aparecem somados – o sincronizador separa os blocos para medir o tempo corretamente, mas na lista o que interessa é o dia.</p>
@@ -2666,6 +2674,7 @@ function abrirDetalheSessao(dia){
   const d=r.dias.find(x=>x.dia===dia);
   if(!d) return;
 
+  const hhmm=x=>`${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;
   const rotulos=['De novo','Difícil','Bom','Fácil'];
   const cores=['#E24B4A','#EF9F27','#639922','#4A8FD4'];
   const total=d.respostas.reduce((a,x)=>a+x,0);
@@ -2702,20 +2711,22 @@ function abrirDetalheSessao(dia){
     ? Math.round((new Date(dia+'T12:00:00')-new Date(anterior.dia+'T12:00:00'))/86400000)
     : null;
 
-  const hhmm=x=>`${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;
-
   document.getElementById('sessao-detalhe-titulo').textContent=fmtDur(Math.round(d.minutos));
-  document.getElementById('sessao-detalhe-data').textContent=fmtData(d.dia);
+  // Data com o intervalo de horas: como as sessões do mesmo dia aparecem juntas, o horário aqui
+  // é do primeiro ao último card do dia – mostra se o estudo foi concentrado ou espalhado.
+  document.getElementById('sessao-detalhe-data').innerHTML=
+    `${fmtData(d.dia)}${d.inicio&&d.fim?`<span class="sd-hora">${hhmm(d.inicio)} às ${hhmm(d.fim)}</span>`:''}`;
   document.getElementById('sessao-detalhe-corpo').innerHTML=`
     <div class="sess-cards" style="margin-top:0">
       <div class="sess-card"><span class="sess-card-val">${d.novos}</span><span class="sess-card-lbl">novos</span></div>
       <div class="sess-card"><span class="sess-card-val">${d.revisoes}</span><span class="sess-card-lbl">revisões</span></div>
-      <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fcAnki(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
       ${d.repeticoes?`<div class="sess-card"><span class="sess-card-val">${d.repeticoes}</span><span class="sess-card-lbl">repetiu</span></div>`:''}
+      <div class="sess-card"><span class="sess-card-val"${d.pctAcerto!==null?` style="color:${fcAnki(d.pctAcerto)}"`:''}>${d.pctAcerto!==null?d.pctAcerto+'%':'–'}</span><span class="sess-card-lbl">de acerto</span></div>
     </div>
 
     <div class="sd-bloco">
       <div class="sd-titulo">Como você respondeu</div>
+      <div class="sd-nota">Os quatro botões que você aperta no Anki para dizer quando quer ver o card de novo.</div>
       ${d.respostas.map((n,i)=>n?`
         <div class="sd-resp">
           <span class="sd-resp-nome" style="color:${cores[i]}">${rotulos[i]}</span>
@@ -2729,13 +2740,13 @@ function abrirDetalheSessao(dia){
       <div class="sd-texto">
         ${d.segMedio?`<strong>${d.segMedio.toFixed(0)} segundos</strong> por card`:'sem dado de tempo'}${
         desvio!==null?` – ${Math.abs(desvio)}% ${desvio>0?'acima':'abaixo'} da sua média${Math.abs(desvio)>=15?(desvio>0?', conteúdo mais denso':', conteúdo mais leve'):''}`:''}.
-        ${d.inicio&&d.fim?`<br>Das ${hhmm(d.inicio)} às ${hhmm(d.fim)}.`:''}
         ${intervalo!==null?`<br>${intervalo===1?'No dia seguinte à':intervalo+' dias depois da'} sessão anterior.`:''}
       </div>
     </div>
 
     ${errados.length?`<div class="sd-bloco">
       <div class="sd-titulo">Não lembrou (${errados.length})</div>
+      <div class="sd-nota">Cards em que você apertou "De novo".</div>
       ${errados.map(c=>`<div class="sd-card-errado">
         <div class="sd-card-texto">${(c.pergunta||'').split('\n').filter(Boolean).slice(-1)[0]?.slice(0,140)||'(sem texto)'}</div>
         <div class="sd-card-meta">${c.assunto||c.categoria||'sem assunto'}</div>
@@ -5914,6 +5925,81 @@ function renderAnkiDesempenho(){
       </div>`:''}
 
     </div>`;
+    })()}
+
+
+    ${(()=>{
+      // EQUALIZADOR — responde "quantos cards de cada matéria por dia para terminar todas
+      // juntas". A conta base: se todas devem acabar em D dias, cada matéria precisa ver
+      // restam/D cards por dia, e o tempo total é a soma disso mais a fila de revisão.
+      // Resolvendo para D:  D = Σ(restam × custoNovo) / (tempoDiário − Σ(fila × custoRev))
+      //
+      // ⚠️ Falta modelar a carga de revisão CRESCENTE: conforme os cards novos de hoje viram
+      // revisão de amanhã, o tempo disponível para avançar encolhe. A conta abaixo assume a
+      // fila estável, então é otimista. Só vale a pena refinar quando houver mais de uma
+      // matéria com dado real para calibrar.
+      const r=calcularRitmoAnki();
+      if(!r) return '';
+      const materias=[...r.restamPorMateria.entries()]
+        .filter(([m,n])=>m&&n>0)
+        .map(([mat,restam])=>{
+          const c=r.custos[mat]||{};
+          return {mat, restam,
+            custoNovo:(c.novo||r.custoNovo)/1000,
+            custoRev:(c.rev||r.custoRev)/1000,
+            proprio:!!c.proprioNovo};
+        });
+
+      const comDadoProprio=materias.filter(m=>m.proprio).length;
+      const corpo = materias.length>=2
+        ? (()=>{
+            const minutos=ankiMinutosDia;
+            const minFila=Math.min(minutos, r.filaPendente*(r.custoRev/1000)/60);
+            const sobra=Math.max(0, minutos-minFila);
+            const custoTotal=materias.reduce((a,m)=>a+m.restam*m.custoNovo,0)/60;
+            const dias=sobra>0?Math.ceil(custoTotal/sobra):null;
+            if(!dias) return '<div class="empty" style="padding:12px 8px">Nesse tempo a fila de revisão consome tudo – não sobra para avançar.</div>';
+            return `
+              <div class="hist-total" style="padding-top:0">
+                <div class="hist-total-item">
+                  <span class="hist-total-val">${dias.toLocaleString('pt-BR')}</span>
+                  <span class="hist-total-lbl">dias até terminar tudo</span>
+                </div>
+                <div class="hist-total-item">
+                  <span class="hist-total-val">${(dias/30).toFixed(1).replace('.',',')}</span>
+                  <span class="hist-total-lbl">meses</span>
+                </div>
+              </div>
+              ${materias.map(m=>{
+                const porDia=Math.ceil(m.restam/dias);
+                return `<div class="quad-item" style="padding:7px 0">
+                  <span class="quad-tag tag-tempo">${porDia}/dia</span>
+                  <div class="quad-txt">
+                    <div class="quad-nome">${m.mat}</div>
+                    <div class="quad-det">${m.restam.toLocaleString('pt-BR')} cards a ver • ${m.custoNovo.toFixed(0)} seg cada${m.proprio?'':' (custo geral)'}</div>
+                  </div>
+                </div>`;
+              }).join('')}
+              <div style="font-size:var(--fs-b);color:#888;line-height:1.5;margin-top:10px">
+                Fazendo <strong style="color:#202A45">${fmtMinutosRitmo(ankiMinutosDia)}</strong> por dia,
+                dividindo assim entre as matérias, todas terminam juntas.
+                A conta assume a fila de revisão estável – conforme os cards novos virarem revisão,
+                o prazo real tende a ser maior.
+              </div>`;
+          })()
+        : `<div style="font-size:var(--fs-c);color:#666;line-height:1.55">
+            <strong style="color:#202A45">Sem informação ainda.</strong><br>
+            Você tem ${materias.length===1?'uma matéria':'nenhuma matéria'} com cards no Anki.
+            O equalizador divide seu tempo diário entre várias matérias para que todas terminem
+            no mesmo prazo – com uma só, o cálculo é o mesmo de "Quanto falta para rodar o baralho" acima.
+            <br><br>
+            Quando você criar o baralho de outra obra ou matéria, esta seção passa a mostrar
+            quantos cards de cada uma fazer por dia${comDadoProprio?'':', usando o custo medido em cada baralho'}.
+          </div>`;
+
+      return `
+    ${sectionTitle('Equalizador','alvo','#E6F1FB','#202A45',{direita:botaoInfo('equalizador')})}
+    <div class="card-inicio">${corpo}</div>`;
     })()}
 
     ${(()=>{
