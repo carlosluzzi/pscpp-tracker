@@ -2747,6 +2747,31 @@ function renderAnalise(){
   // "Catavento 001" no topo e o tipo da sessão no lugar do capítulo.
   const ehSessaoCaderno=s=>['Exercício','Simulado','Revisão'].includes(s.tipo)&&s.publicacao&&!s.capitulo&&s.origem;
 
+  // Sessões do Anki não trazem publicação nem capítulo — mas os cards revisados naquele dia
+  // trazem, via tag Livro::. Aqui essa informação é recuperada das revisões, para a sessão
+  // não aparecer como um "Manobrabilidade" solto sem contexto nenhum.
+  const contextoAnki=(sessao)=>{
+    if(!ankiRevisoes||!ankiRevisoes.length||!ankiSecoes||!ankiSecoes.length) return null;
+    const doDia=ankiRevisoes.filter(r=>{
+      const d=new Date(r.revisadoEm);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`===sessao.data;
+    });
+    if(!doDia.length) return null;
+    const ids=new Set(doDia.map(r=>r.cardId));
+    const secs=ankiSecoes.filter(x=>x.casou&&ids.has(x.cardId));
+    if(!secs.length) return null;
+    // Publicação e capítulo predominantes na sessão. Se a sessão misturar várias, mostra a
+    // mais frequente — é a que representa o que foi estudado ali.
+    const cont=new Map();
+    secs.forEach(x=>{
+      const k=x.publicacao+'||'+x.capitulo;
+      cont.set(k,(cont.get(k)||0)+1);
+    });
+    const [chave]=[...cont.entries()].sort((a,b)=>b[1]-a[1])[0];
+    const [publicacao,capitulo]=chave.split('||');
+    return {publicacao,capitulo,cards:ids.size,variados:cont.size>1};
+  };
+
   const porModulo=new Map();
   sessPeriodo.forEach(s=>{
     let mod,pub,cap;
@@ -2754,6 +2779,11 @@ function renderAnalise(){
       mod = s.origem ? `${s.origem} ${s.publicacao}` : s.publicacao;
       pub = s.modulo || 'Caderno de questões';
       cap = s.tipo;                      // "Exercício", "Simulado" ou "Revisão"
+    } else if(s.tipo==='Anki'){
+      const ctx=contextoAnki(s);
+      mod = nomeModuloSessao(s);
+      pub = ctx ? ctx.publicacao : 'Anki';
+      cap = ctx ? (ctx.variados?'Anki – vários capítulos':ctx.capitulo) : 'Anki';
     } else {
       mod = nomeModuloSessao(s);
       pub = s.publicacao||'Sem publicação';
@@ -2784,9 +2814,12 @@ function renderAnalise(){
         const ritmoCap=carCap>0&&minCap>0?Math.round(carCap/minCap):null;
         const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
           const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
+          // Mostra o tipo quando não for Leitura: dentro de um mesmo capítulo pode haver
+          // leitura, revisão e Anki, e sem isso as três linhas ficariam indistinguíveis.
+          const rotuloTipo = x.tipo && x.tipo!=='Leitura' ? x.tipo+' • ' : '';
           return `<div class="cap-row">
             <span class="cap-loc" style="flex-shrink:0">${arr.length-n}ª</span>
-            <span class="cap-tit">${fmtData(x.data)} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+            <span class="cap-tit">${rotuloTipo}${fmtData(x.data)} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
           </div>`;
         }).join('');
         return `<div class="cap-group">
@@ -2815,7 +2848,7 @@ function renderAnalise(){
           <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
-        <span class="mac">${todasSess.length} sessõe${todasSess.length===1?'':'s'}</span>
+        <span class="mac">${todasSess.length} ${todasSess.length===1?'sessão':'sessões'}</span>
       </div>
       <div class="mod-detail" id="mdetan${mi}">${pubsHtml}</div>
     </div>`;
