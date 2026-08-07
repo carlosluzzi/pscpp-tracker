@@ -545,6 +545,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .plano-acao{font-size:var(--fs-c);color:#202A45;line-height:1.45;margin-top:4px;font-weight:500}
 .plano-num{font-size:var(--fs-a);color:#999;margin-top:5px}
 /* Aviso de desalinhamento entre o que a prova cobra e o que o baralho treina */
+.ativ-revisar{width:100%;margin-top:10px;padding:7px 0;border-radius:9px;border:0.5px solid #dcdcd4;
+  background:#fff;color:#202A45;font-size:var(--fs-c);font-weight:500;cursor:pointer;
+  font-family:inherit;transition:background .15s ease}
+@media(hover:hover){.ativ-revisar:hover{background:#f5f5f3}}
 .tipo-alerta{font-size:var(--fs-a);color:#854F0B;background:#FAEEDA;border-radius:7px;
   padding:6px 9px;margin-top:7px;line-height:1.4}
 .tipo-det-titulo{font-size:var(--fs-a);color:#888;padding:2px 0 6px}
@@ -1553,6 +1557,10 @@ let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+// Guarda o curso quando a sessão nasce de um caderno (botão Revisar). É o que faz a sessão
+// aparecer como "Catavento 013" em vez de "PSCPP", e o que distingue revisar um caderno de
+// revisar uma matéria solta.
+let timerOrigem='';
 let timerAnkiAlvoSeg=null,timerAnkiAlarmeDisparado=false;
 let primeiroCarregamentoFeito=false;
 let saudacaoSubtexto='Bora estudar';
@@ -2733,15 +2741,28 @@ function renderAnalise(){
     </div>`;
 
   // ---------- modulo -> publicacao -> capitulo -> passagens ----------
+  // Sessões de caderno (Exercício, Simulado, Revisão vinda de um caderno) não têm módulo nem
+  // capítulo — têm curso e número. Forçá-las na hierarquia Módulo → Publicação → Capítulo
+  // produzia "PSCPP > 013 > Sem capítulo", que não diz nada. Aqui elas usam o próprio recorte:
+  // "Catavento 001" no topo e o tipo da sessão no lugar do capítulo.
+  const ehSessaoCaderno=s=>['Exercício','Simulado','Revisão'].includes(s.tipo)&&s.publicacao&&!s.capitulo&&s.origem;
+
   const porModulo=new Map();
   sessPeriodo.forEach(s=>{
-    const mod=nomeModuloSessao(s);
+    let mod,pub,cap;
+    if(ehSessaoCaderno(s)){
+      mod = s.origem ? `${s.origem} ${s.publicacao}` : s.publicacao;
+      pub = s.modulo || 'Caderno de questões';
+      cap = s.tipo;                      // "Exercício", "Simulado" ou "Revisão"
+    } else {
+      mod = nomeModuloSessao(s);
+      pub = s.publicacao||'Sem publicação';
+      cap = s.capitulo||'–';
+    }
     if(!porModulo.has(mod)) porModulo.set(mod,new Map());
     const pubs=porModulo.get(mod);
-    const pub=s.publicacao||'Sem publicação';
     if(!pubs.has(pub)) pubs.set(pub,new Map());
     const caps=pubs.get(pub);
-    const cap=s.capitulo||'–';
     if(!caps.has(cap)) caps.set(cap,[]);
     caps.get(cap).push(s);
   });
@@ -2770,7 +2791,7 @@ function renderAnalise(){
         }).join('');
         return `<div class="cap-group">
           <div class="cap-group-header" onclick="toggleCap('${id}')">
-            <span class="cap-loc">${cap==='–'?'Sem capítulo':'Capítulo '+cap}</span>
+            <span class="cap-loc">${cap==='–'?'Sem capítulo':(/^\d/.test(cap)?'Capítulo '+cap:cap)}</span>
             <div class="cap-group-right">
               <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
               <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -3259,6 +3280,9 @@ function formatarCapituloExibicao(pubInfo,identificador){
 
 function timerCamposObrigatoriosCompletos(){
   if(timerTipo==='Anki') return true;
+  // Revisão de caderno: o caderno já identifica o que está sendo revisado, e ele cobre vários
+  // módulos ao mesmo tempo — exigir módulo e capítulo aqui não faria sentido.
+  if(timerOrigem&&timerPublicacao) return true;
   if(!timerModulo||!timerPublicacao) return false;
   const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
@@ -3759,6 +3783,26 @@ function descartarSessaoRecuperavel(){
   window._snapshotSessaoRecuperada=null;
 }
 
+// Prepara o timer para revisar um caderno específico e abre a tela cheia. O tipo é Revisão e a
+// origem guarda o curso, para a sessão aparecer no lugar certo em "Onde investi o tempo".
+function revisarCaderno(id){
+  const a=atividades.find(x=>x.id===id);
+  if(!a) return;
+  if(timerRodando){
+    mostrarAviso('Timer em andamento',
+      'Já existe um estudo sendo cronometrado. Pause ou salve antes de começar a revisão deste caderno.');
+    return;
+  }
+  timerTipo='Revisão';
+  timerPublicacao=a.nome||'';
+  timerOrigem=a.curso||'';
+  timerModulo='';           // caderno cobre vários módulos
+  timerCapitulo='';
+  timerAcumuladoSeg=0;
+  abrirTimerFullscreen(true);
+  iniciarTimer();
+}
+
 function iniciarTimer(){
   if(!timerCamposObrigatoriosCompletos()) return;
   timerRodando=true;
@@ -3785,6 +3829,7 @@ function zerarTimer(){
   timerInicio=null;
   timerModulo='';
   timerPublicacao='';
+  timerOrigem='';
   timerCapitulo='';
   timerTipo='Leitura';
   timerAnkiAlvoSeg=null;
@@ -3860,6 +3905,7 @@ async function confirmarSalvarTimer(){
       duracao_minutos:minutos,
       data:new Date().toISOString().slice(0,10),
       caracteres_lidos:caracteresLidos,
+      origem:timerOrigem||null,   // curso, quando a sessão nasceu de um caderno
     });
     if(error) throw error;
     await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
@@ -4091,6 +4137,9 @@ function atividadesFiltradas(){
 
 function ativCard(a,clicavel=true){
   const onclick=clicavel?`onclick="abrirDetalhe('${a.id}')" `:'';
+  // Revisar um caderno já feito também é estudo: abre o timer, e ao salvar vira sessão do tipo
+  // Revisão vinculada àquele caderno.
+  const btnRevisar=`<button class="ativ-revisar" onclick="event.stopPropagation();revisarCaderno('${a.id}')">Revisar</button>`;
   const tipoAbrev=tipoLabelCurso[a.curso]||(a.tipo==='Caderno de Exercícios'?'CADERNO':a.tipo==='Simulado'?'SIMULADO':(a.tipo||'').toUpperCase());
   return `<div class="ativ-card" ${onclick}>
     <div class="ativ-top">
@@ -4103,6 +4152,7 @@ function ativCard(a,clicavel=true){
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'–'}</div><div class="ativ-metric-lbl">erros</div></div>
     </div>
+    ${btnRevisar}
   </div>`;
 }
 
