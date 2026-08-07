@@ -3079,20 +3079,41 @@ function renderAprovado(){
     </div>`;
   }).join('');
 
-  const historicoItens=sessoesEstudo.slice(0,20).map(s=>{
+  // Sessões de Anki do mesmo dia e mesmo módulo aparecem juntas. O sincronizador separa em
+  // blocos de 30 minutos, o que é correto para medir tempo, mas gera linhas de 2 e 7 minutos
+  // que poluem o histórico — três pausas curtas no celular viram três entradas. Agrupadas,
+  // a lista mostra o dia de estudo e a soma, sem perder nenhum minuto.
+  const chaveAgrupavel=s=>s.tipo==='Anki'?`anki|${s.data}|${s.modulo||''}`:`solo|${s.id}`;
+  const agrupadas=[];
+  const indicePorChave=new Map();
+  sessoesEstudo.forEach(s=>{
+    const k=chaveAgrupavel(s);
+    if(indicePorChave.has(k)){
+      const g=agrupadas[indicePorChave.get(k)];
+      g.duracaoMinutos+=s.duracaoMinutos||0;
+      g.blocos++;
+      g.ids.push(s.id);
+    } else {
+      indicePorChave.set(k,agrupadas.length);
+      agrupadas.push({...s, blocos:1, ids:[s.id]});
+    }
+  });
+
+  const historicoItens=agrupadas.slice(0,20).map(s=>{
     const refCompleta=s.publicacao||'';
     // Capítulo e ritmo de leitura entram na 2a linha quando existem — o dado já era salvo no
     // banco desde sempre, só não estava sendo exibido.
-    const capTexto=s.capitulo?` • Cap. ${s.capitulo}`:'';
+    const capTexto=s.capitulo?` • Capítulo ${s.capitulo}`:'';
     const ritmoTexto=(s.caracteresLidos>0&&s.duracaoMinutos>0)
       ? ` • ${Math.round(s.caracteresLidos/s.duracaoMinutos).toLocaleString('pt-BR')} car/min`
       : '';
+    const blocosTexto=s.blocos>1?` • ${s.blocos} sessões`:'';
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
         <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}${seloOrigem(s)}</span>
-        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto} • ${fmtData(s.data)}</span>
+        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto}${blocosTexto} • ${fmtData(s.data)}</span>
       </div>
-      <span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>
+      ${s.blocos===1?`<span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>`:''}
     </div>`;
   });
   const POR_PAGINA_HIST=5;
