@@ -125,6 +125,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   /* No desktop o menu vira barra lateral (coluna 1), entao as sub-abas ficam so na coluna do
      conteudo — sem isso passariam por cima da barra. */
   #sub-abas-slot{grid-column:2;grid-row:2;align-self:start;width:100%;max-width:1320px;box-sizing:border-box}
+  /* Mesmo motivo: o botão de voltar fica dentro do header, que ocupa as duas colunas. Alinhá-lo
+     ao padding da coluna de conteúdo evita que ele apareça sobre a barra lateral. */
+  .detail-back{margin-left:250px;padding-left:16px}
   #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
   .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
@@ -161,12 +164,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   #timer-flutuante{bottom:24px}
 }
 #timer-flutuante.hidden{display:none}
-/* Cronômetro pausado: opacidade menor e um rótulo, para não parecer que travou */
-#timer-flutuante.pausado{opacity:.82}
+/* Cronômetro pausado: mantém o mesmo fundo do estado normal — mudar a cor da caixa faria
+   parecer outro componente. A distinção vem do número em cinza e do selo em âmbar. */
+#timer-flutuante.pausado{padding-bottom:20px}
 #timer-flutuante.pausado #timer-flutuante-tempo{color:#9BA3B7}
 #timer-flutuante.pausado::after{content:'PAUSADO';position:absolute;left:14px;bottom:6px;
   font-size:9px;letter-spacing:.08em;color:#EF9F27;font-weight:700}
-#timer-flutuante.pausado{padding-bottom:20px}
 #timer-flutuante-fechar{position:absolute;top:2px;right:6px;font-size:13px;color:#9BA3B7;padding:6px;cursor:pointer}
 #timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
 #timer-flutuante-subtitulo{font-size:12px;color:#fff;font-weight:600;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
@@ -1035,7 +1038,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     </p>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharCancelarTimerModal()">Voltar</button>
-      <button class="modal-btn modal-btn-sim" onclick="confirmarCancelarTimer()">Cancelar cronômetro</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarCancelarTimer()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -3582,7 +3585,8 @@ function renderTimerFullscreenConteudo(){
   const cabecalhoCaderno = cadernoTimer ? `
       ${logosCursos[cadernoTimer.curso]?`<img src="${logosCursos[cadernoTimer.curso]}" alt="${cadernoTimer.curso}"
         style="height:${(cadernoTimer.curso==='Catavento'||cadernoTimer.curso==='Curso Prático')?20:18}px;
-        aspect-ratio:${proporcaoLogosCursos[cadernoTimer.curso]};display:block;margin:0 auto 10px;opacity:.95">`
+        aspect-ratio:${proporcaoLogosCursos[cadernoTimer.curso]};display:block;margin:0 auto 10px;
+        filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo">${cadernoTimer.curso}</div>`}
       <div class="tf-ref-wrap">
         <div class="tf-ref">${(tipoLabelCurso[cadernoTimer.curso]||(cadernoTimer.tipo==='Simulado'?'SIMULADO':'CADERNO'))} ${cadernoTimer.nome}</div>
@@ -3848,7 +3852,7 @@ function renderCadernoTimerFullscreenConteudo(){
       ${ap&&logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}"
         style="height:${(ap.curso==='Catavento'||ap.curso==='Curso Prático')?20:18}px;
         aspect-ratio:${proporcaoLogosCursos[ap.curso]};display:block;margin:0 auto 10px;
-        opacity:.95">`
+        filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>`}
       <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
       <div class="tf-ref-wrap"></div>
@@ -3924,6 +3928,7 @@ async function finalizarCadernoTimer(){
 // caderno) mas o cronômetro continua rodando em background. Arrastável, e pode ser escondido
 // manualmente (fica escondido até o próximo fullscreen fechar de novo).
 let timerFlutuanteFechadoManualmente=false;
+let timerReexibirId=null;   // volta a mostrar o widget depois de escondido no ✕
 let timerFlutuanteArrastadoManualmente=false;
 function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   if(timerFlutuanteFechadoManualmente) return;
@@ -3966,9 +3971,30 @@ function esconderTimerFlutuante(){
   document.getElementById('timer-flutuante').classList.add('hidden');
 }
 function fecharTimerFlutuante(){
+  // Fechar o widget esconde por 30 segundos, não para sempre. Antes ele sumia definitivamente e
+  // o cronômetro ficava rodando sem nenhum controle na tela — sem pausar, sem cancelar, sem
+  // reabrir. Esconder temporariamente atende a quem quer o widget fora do caminho, sem deixar
+  // um cronômetro órfão.
   timerFlutuanteFechadoManualmente=true;
   esconderTimerFlutuante();
+  if(timerReexibirId) clearTimeout(timerReexibirId);
+  timerReexibirId=setTimeout(()=>{
+    timerReexibirId=null;
+    const aindaAtivo = cadernoTimerAtivo || timerRodando || timerAcumuladoSeg>0;
+    if(!aindaAtivo) return;
+    timerFlutuanteFechadoManualmente=false;
+    if(cadernoTimerAtivo){
+      const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
+      const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
+      const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
+      mostrarTimerFlutuante(ap?ap.curso:'Caderno',formatarTempoTimer(restante),ap?ap.nome:'');
+    } else {
+      const seg=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+      mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(seg),timerPublicacao||'');
+    }
+  },30000);
 }
+
 (function(){
   // Arrastar o pop-up flutuante — funciona com mouse e touch, sem depender de nenhuma lib externa.
   // Os listeners de mover/soltar só ficam ativos ENQUANTO o arraste está de fato acontecendo —
@@ -4060,8 +4086,11 @@ function fecharTimerFlutuante(){
   });
 })();
 function reabrirFullscreenAtivo(){
+  // Também reabre com o cronômetro PAUSADO: antes só respondia rodando, então um timer pausado
+  // ficava sem caminho de volta — o widget não abria nada e não havia outro acesso à tela cheia.
+  // O segundo parâmetro evita retomar a contagem sozinho ao reabrir.
   if(cadernoTimerAtivo) abrirCadernoTimerFullscreen(cadernoTimerAtivo);
-  else if(timerRodando) abrirTimerFullscreen(true);
+  else if(timerRodando||timerAcumuladoSeg>0) abrirTimerFullscreen(true,true);
 }
 
 function tocarBeepAlarme(){
