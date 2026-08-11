@@ -44,6 +44,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* camada única e estática da imagem do header — mesmo tamanho/zoom sempre, cada aba só corta na sua própria altura */
 .topbar{position:relative;z-index:2;flex-shrink:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);display:flex;justify-content:space-between;align-items:center;gap:16px;background:transparent;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 #header-slot{flex-shrink:0;position:relative;z-index:2}
+#voltar-slot{flex-shrink:0;position:relative;z-index:3}
 .app.scrolled .topbar,.app.scrolled .header-zone{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 /* Nas telas com sub-abas a sombra desce um nivel: sai do cabecalho (onde cairia sobre as abas)
    e vai para o menu, que e o elemento mais baixo do conjunto fixo. Assim quem projeta sombra e
@@ -137,10 +138,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   /* A faixa fica só na coluna do conteúdo, senão passaria por cima da barra lateral. Ocupa a
      mesma linha das sub-abas porque as duas nunca aparecem juntas: com o detalhe aberto não há
      sub-abas, e vice-versa. */
-  /* Sem max-width: a faixa vai da borda da barra lateral até o fim da tela, para a sombra
-     cobrir toda a largura do conteúdo. O .content tem limite de 1320px por causa da leitura,
-     mas a faixa é um elemento de navegação e deve acompanhar a janela. */
-  .voltar-faixa{grid-column:2;grid-row:2;align-self:start;width:100%;padding:10px 48px}
+  /* O SLOT é que se posiciona no grid — a faixa dentro dele só preenche. Sem max-width: vai da
+     borda da barra lateral até o fim da tela, para a sombra cobrir toda a largura. */
+  #voltar-slot{grid-column:2;grid-row:2;align-self:start;width:100%}
+  .voltar-faixa{padding:10px 48px}
   #ptr-indicator{grid-column:2;grid-row:3;align-self:start;width:100%}
   .content{--content-pad-y:32px;--content-pad-x:48px;grid-column:2;grid-row:4;padding:32px 48px;padding-top:32px;max-width:1320px;width:100%}
   .stat-grid{grid-template-columns:repeat(4,1fr);gap:12px}
@@ -391,6 +392,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Faixa própria abaixo do cabeçalho, como um segundo header. Antes o botão ficava dentro do
    header e o esticava; depois flutuou sobre ele, o que resolvia a altura mas o deixava colado
    na data. Aqui ele tem espaço próprio e a sombra do scroll passa a ser dele. */
+/* Bloco do que ainda vai vencer: separado do que é para fazer hoje, e mais discreto — é
+   informação para se organizar, não tarefa pendente. */
+.rev-futuras{border-top:0.5px solid #f0f0ee;margin-top:10px;padding-top:8px}
+.rev-futuras-titulo{font-size:var(--fs-a);color:#999;text-transform:uppercase;
+  letter-spacing:.05em;font-weight:700;margin-bottom:4px}
+.rev-futuras .prox-nome{color:#666}
 .voltar-faixa{flex-shrink:0;background:#F9F9F7;padding:10px 16px;position:relative;z-index:3}
 .detail-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:#888;
   font-size:var(--fs-e)}
@@ -797,7 +804,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .prox-list .prox-item.prox-due+.prox-item::before,
 .prox-list .prox-item+.prox-item.prox-due::before{display:none}
 .prox-left{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.prox-nome{font-size:16px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Deixa quebrar em até duas linhas em vez de cortar com reticências: com módulo, publicação e
+   capítulo no mesmo texto, cortar escondia justamente o capítulo — que é o que torna a revisão
+   acionável. */
+.prox-nome{font-size:16px;font-weight:600;color:#111;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .prox-modalidade{display:inline-block;font-size:var(--fs-a);color:#888}
 .prox-sugestao{font-size:var(--fs-c);color:#888;display:block;margin-top:3px}
 .banco-pratico-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
@@ -1208,6 +1219,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 
   <div id="header-slot"></div>
+  <div id="voltar-slot"></div>
 
   <div id="sub-abas-slot"></div>
 
@@ -1654,8 +1666,10 @@ const EXPLICACOES={
       <li><strong>Eficiente</strong> – pouco tempo e já acerta: conteúdo que rende sem esforço proporcional.</li>
     </ul>
     <p><strong>Limitação:</strong> com poucos módulos tendo questões, a mediana perde sentido – se só um módulo tiver questões, ele sempre cairá do lado "muito tempo".</p>`},
-  revisoes:{titulo:'Revisões de hoje',corpo:`
+  revisoes:{titulo:'Revisões programadas',corpo:`
     <p><strong>O que é:</strong> revisão espaçada por capítulo, baseada na curva do esquecimento. Cada leitura registrada agenda a primeira revisão automaticamente.</p>
+    <p><strong>A lista tem três partes:</strong> o que já venceu e não foi feito (com há quantos dias), o que vence hoje, e o que vem nos próximos sete dias – este último só para você se organizar, sem botão de concluir.</p>
+    <p><strong>O atraso aparece porque importa:</strong> o intervalo foi calculado pela curva do esquecimento, e cada dia além dele significa menos conteúdo retido. Revisão parada há uma semana fica em vermelho.</p>
     <p><strong>Sequência base:</strong> 1 dia → 7 dias → 30 dias → 90 dias. A cada revisão concluída, sobe um nível.</p>
     <p><strong>Como o intervalo é ajustado:</strong></p>
     <ul>
@@ -1725,7 +1739,9 @@ function fmtPct(v){
   return (Math.round((parseFloat(v)+Number.EPSILON)*100)/100).toFixed(2).replace('.',',');
 }
 
-let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='mes',analiseMesRef=null;
+// O histórico abre em "Hoje": a pergunta mais frequente é "o que eu já fiz hoje", não o mês.
+let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='dia',analiseMesRef=null;
+let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[];
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
@@ -2058,6 +2074,7 @@ function renderTab(tab,preservarScroll){
   // Quando existe a faixa de voltar, é ela que projeta a sombra do scroll, não o cabeçalho.
   document.querySelector('.app').classList.toggle('tem-voltar',!!atividadeAtual);
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
+  document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
   renderSubAbas(tab);
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
@@ -2881,6 +2898,9 @@ function setHistPub(v){ histFiltroPub=v; histFiltroCap=''; renderTab(tabAtual,tr
 function setHistCap(v){ histFiltroCap=v; renderTab(tabAtual,true); }
 function limparFiltroHist(){ histFiltroModulo=''; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
 function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
+function setAnaliseDataInicio(v){ analiseDataInicio=v; renderTab(tabAtual,true); }
+function setAnaliseDataFim(v){ analiseDataFim=v; renderTab(tabAtual,true); }
+function limparAnaliseData(){ analiseDataInicio=''; analiseDataFim=''; renderTab(tabAtual,true); }
 function navegarMesAnalise(delta){
   const base=analiseMesRef?new Date(analiseMesRef+'T12:00:00'):new Date();
   base.setMonth(base.getMonth()+delta);
@@ -3020,12 +3040,21 @@ function renderAnalise(){
 
   // ---------- totais do periodo selecionado ----------
   const hojeKey=chaveDia(hoje);
+  const ontem=new Date(hoje); ontem.setDate(hoje.getDate()-1);
+  const ontemKey=chaveDia(ontem);
   const inicioSemana=new Date(hoje); inicioSemana.setDate(hoje.getDate()-hoje.getDay());
   const mesRef=analiseMesRef||hojeKey.slice(0,7);
   const filtraPeriodo=s=>{
     if(analisePeriodo==='dia') return s.data===hojeKey;
+    if(analisePeriodo==='ontem') return s.data===ontemKey;
     if(analisePeriodo==='semana') return s.data>=chaveDia(inicioSemana)&&s.data<=hojeKey;
     if(analisePeriodo==='mes') return (s.data||'').slice(0,7)===mesRef;
+    if(analisePeriodo==='personalizado'){
+      if(!analiseDataInicio&&!analiseDataFim) return true;
+      if(analiseDataInicio&&s.data<analiseDataInicio) return false;
+      if(analiseDataFim&&s.data>analiseDataFim) return false;
+      return true;
+    }
     return true;
   };
   const sessPeriodo=sessoes.filter(filtraPeriodo);
@@ -3335,12 +3364,20 @@ function renderAnalise(){
     </div>`).join('');
 
   // ---------- montagem ----------
-  const periodos=[['dia','Hoje'],['semana','Semana'],['mes','Mês'],['tudo','Tudo']];
+  const periodos=[['dia','Hoje'],['ontem','Ontem'],['semana','Semana'],['mes','Mês'],['tudo','Tudo'],['personalizado','📅']];
   return `
     ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.002 19.732L16.351 22h-1.004l.982-2.143H15V17h3.002zm3.998 0L20.349 22h-1.003l.982-2.143H19V17h3zM13 20H2v-2h11zm9-7H2v-2h20zM3.672 4.143H5V7H2V4.268L3.651 2h1.003zm3.999 0H9V7H5.998V4.268L7.649 2h1.004zM22 6H11V4h11z"/></svg>`})}
-    <div class="filter-row periodo-row" style="margin-bottom:12px">
+    <div class="filter-row periodo-row" style="margin-bottom:${analisePeriodo==='personalizado'?'8':'12'}px">
       ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
     </div>
+    ${analisePeriodo==='personalizado'?`
+    <div class="filter-row" style="align-items:center">
+      <input type="date" class="filter-date" value="${analiseDataInicio}" onchange="setAnaliseDataInicio(this.value)">
+      <span style="font-size:var(--fs-d);color:#888">até</span>
+      <input type="date" class="filter-date" value="${analiseDataFim}" onchange="setAnaliseDataFim(this.value)">
+    </div>
+    <div class="config-reset-btn" onclick="limparAnaliseData()">Redefinir</div>
+    `:''}
     <div class="stat-grid" style="margin-top:0">
       <div class="stat-card"><div class="stat-val">${fmtDur(totalMinP)}</div><div class="stat-lbl">Tempo estudado</div></div>
       <div class="stat-card"><div class="stat-val">${diasDistintosP}</div><div class="stat-lbl">Dias com estudo</div></div>
@@ -3387,20 +3424,57 @@ function renderAprovado(){
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const hojeStr=hoje.toISOString().slice(0,10);
-  const revisoesVencidas=revisoesEspacadas.filter(r=>r.proximaData<=hojeStr).sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
-  const revisoesHtml=revisoesVencidas.map(r=>{
-    const cc=modCores[r.modulo];
-    // Nome completo até o capítulo: sem isso o lembrete dizia só "revisar o livro X", sem apontar
-    // o que exatamente rever. O capítulo é o que torna a revisão acionável.
-    const nomeRev=r.modulo+(r.publicacao?' – '+nomePub(r.publicacao):'')+(r.capitulo?' – Cap. '+r.capitulo:'');
+  // Três grupos em vez de uma lista só. Antes aparecia apenas o que já tinha vencido, sem
+  // distinguir "venceu ontem" de "venceu há duas semanas" — e sem mostrar o que vem, então não
+  // dava para se organizar. O atraso é o registro de que a revisão não foi feita: não precisa
+  // de marcação própria, precisa aparecer.
+  const HORIZONTE_REVISAO=7;   // dias à frente mostrados
+  const diasEntre=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);
+
+  const revisoesAtrasadas=revisoesEspacadas.filter(r=>r.proximaData<hojeStr)
+    .sort((a,b)=>a.proximaData.localeCompare(b.proximaData));   // mais atrasada primeiro
+  const revisoesHoje=revisoesEspacadas.filter(r=>r.proximaData===hojeStr);
+  const limiteFuturo=(()=>{ const d=new Date(hoje); d.setDate(d.getDate()+HORIZONTE_REVISAO);
+    return d.toISOString().slice(0,10); })();
+  const revisoesProximas=revisoesEspacadas
+    .filter(r=>r.proximaData>hojeStr&&r.proximaData<=limiteFuturo)
+    .sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
+
+  const revisoesVencidas=[...revisoesAtrasadas,...revisoesHoje];   // o que fazer hoje
+
+  const nomeRevisao=r=>r.modulo+(r.publicacao?' – '+nomePub(r.publicacao):'')+(r.capitulo?' – Capítulo '+r.capitulo:'');
+
+  const linhaRevisao=(r,situacao)=>{
+    const nomeRev=nomeRevisao(r);
+    const atraso=diasEntre(r.proximaData,hojeStr);
+    let detalhe,cor;
+    if(situacao==='atrasada'){
+      // Quanto mais tempo passa do intervalo, mais do conteúdo já se perdeu — por isso o
+      // atraso aparece com destaque, e em vermelho quando passa de uma semana.
+      detalhe=`Venceu ${atraso===1?'ontem':'há '+atraso+' dias'} • nível ${r.nivel+1}`;
+      cor=atraso>=7?'#A32D2D':'#854F0B';
+    } else if(situacao==='hoje'){
+      detalhe=`Para hoje • nível ${r.nivel+1}`;
+      cor='#202A45';
+    } else {
+      const faltam=diasEntre(hojeStr,r.proximaData);
+      detalhe=`${faltam===1?'Amanhã':'Em '+faltam+' dias'} • nível ${r.nivel+1}`;
+      cor='#888';
+    }
     return `<div class="prox-item" style="cursor:default">
       <div class="prox-left">
         <span class="prox-nome">${nomeRev}</span>
-        <span class="prox-modalidade" style="color:${cc.tx}">Nível ${r.nivel+1} da sequência</span>
+        <span class="prox-modalidade" style="color:${cor}">${detalhe}</span>
       </div>
-      <button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')">feito</button>
+      ${situacao==='futura'?'':`<button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')">feito</button>`}
     </div>`;
-  }).join('');
+  };
+
+  const revisoesHtml=[
+    ...revisoesAtrasadas.map(r=>linhaRevisao(r,'atrasada')),
+    ...revisoesHoje.map(r=>linhaRevisao(r,'hoje')),
+  ].join('');
+  const revisoesProximasHtml=revisoesProximas.map(r=>linhaRevisao(r,'futura')).join('');
 
   // Sessões de Anki do mesmo dia e mesmo módulo aparecem juntas. O sincronizador separa em
   // blocos de 30 minutos, o que é correto para medir tempo, mas gera linhas de 2 e 7 minutos
@@ -3503,13 +3577,20 @@ function renderAprovado(){
       `}
     </div>
 
-    ${revisoesVencidas.length?`<div class="card-inicio">
+    ${(revisoesVencidas.length||revisoesProximas.length)?`<div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões de hoje</span>${botaoInfo('revisoes')}</div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões programadas</span>${botaoInfo('revisoes')}</div>
+        ${revisoesAtrasadas.length?`<span style="font-size:var(--fs-a);color:${revisoesAtrasadas.some(r=>diasEntre(r.proximaData,hojeStr)>=7)?'#A32D2D':'#854F0B'};font-weight:600">${revisoesAtrasadas.length} atrasada${revisoesAtrasadas.length===1?'':'s'}</span>`:''}
       </div>
       <div class="prox-list">
         ${revisoesHtml}
       </div>
+      ${revisoesProximas.length?`
+      <div class="rev-futuras">
+        <div class="rev-futuras-titulo">Próximos dias</div>
+        <div class="prox-list">${revisoesProximasHtml}</div>
+      </div>`:''}
+      ${!revisoesVencidas.length?`<div style="font-size:var(--fs-c);color:#639922;padding:2px 0 4px">Nenhuma revisão pendente hoje.</div>`:''}
     </div>`:''}
 
 
@@ -4698,8 +4779,15 @@ function renderHeaderZone(){
         </span>
       </div>
     </div>
-    ${atividadeAtual?`<div class="voltar-faixa"><div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div></div>`:''}
   `;
+}
+
+// A faixa de voltar fica FORA do header-slot: dentro dele herdaria o "grid-column:1/-1" do
+// header no desktop e passaria por cima da barra lateral, mesmo com regra própria.
+function renderVoltarSlot(){
+  return atividadeAtual
+    ? `<div class="voltar-faixa"><div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div></div>`
+    : '';
 }
 
 function renderCardSaudacao(){
@@ -7193,6 +7281,7 @@ function reposicionarTimerFlutuanteSeForaDaTela(){
 
 document.querySelector('.app').classList.add('tab-inicio');
 document.getElementById('header-slot').innerHTML=renderHeaderZone();
+  document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
 
 // splash de carregamento: a barra é indeterminada (loop via CSS @keyframes splashCarregando),
 // não precisa de JS pra animar — só pra esconder/remover quando os dados terminam de carregar
