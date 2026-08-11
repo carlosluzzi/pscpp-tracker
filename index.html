@@ -226,6 +226,22 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-btns{display:flex;gap:10px;justify-content:center}
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
 .tf-btn-toggle{min-width:150px}
+/* Ajustes do cronômetro: engrenagem no topo direito, ao lado do fechar */
+.tf-ajustes-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 22px);right:60px;
+  color:#6B7280;background:none;border:none;cursor:pointer;padding:8px;display:flex}
+@media(hover:hover){.tf-ajustes-btn:hover{color:#9BA3B7}}
+.tf-ajustes{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);right:20px;
+  width:min(300px, calc(100vw - 40px));background:#1A1F2E;border-radius:14px;padding:14px 16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:5}
+.tf-ajustes.hidden{display:none}
+.tf-ajustes-topo{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:var(--fs-c);color:#9BA3B7;margin-bottom:8px}
+.tf-ajustes-topo span:last-child{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+.tf-ajustes .ritmo-slider::-webkit-slider-runnable-track{background:#2A3141}
+.tf-ajustes .ritmo-slider::-moz-range-track{background:#2A3141}
+.tf-ajustes .ritmo-slider::-webkit-slider-thumb{background:#fff;border-color:#1A1F2E}
+.tf-ajustes .ritmo-slider::-moz-range-thumb{background:#fff;border-color:#1A1F2E}
+.tf-ajustes-nota{font-size:var(--fs-a);color:#6B7280;line-height:1.4;margin-top:6px}
 /* Cancelar fica separado e discreto: é destrutivo, não deve competir com Pausar e Finalizar */
 .tf-cancelar{display:block;margin:22px auto 0;background:none;border:none;color:#6B7280;
   font-size:var(--fs-c);font-family:inherit;cursor:pointer;padding:8px 14px}
@@ -3701,6 +3717,18 @@ function renderTimerFullscreenConteudo(){
 
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
+    <button class="tf-ajustes-btn" onclick="abrirAjusteApito()" aria-label="Ajustes de som">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    </button>
+    <div class="tf-ajustes hidden" id="tf-ajustes">
+      <div class="tf-ajustes-topo">
+        <span>Volume do lembrete</span>
+        <span id="vol-valor">${Math.round(apitoVolume*100)}%</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="0" max="1" step="0.05" value="${apitoVolume}"
+        oninput="setApitoVolume(this.value)">
+      <div class="tf-ajustes-nota">Toca a cada 30 segundos com o cronômetro pausado, depois de 1 minuto parado.</div>
+    </div>
     <div>
       ${cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
@@ -3775,6 +3803,10 @@ function timerCamposObrigatoriosCompletos(){
 let apitoPausaId=null, apitoContextoAudio=null;
 const APITO_ESPERA_MS=60000;    // silêncio no primeiro minuto de pausa
 const APITO_INTERVALO_MS=30000; // depois disso, a cada 30 segundos
+// Volume de 0 a 1, ajustável na engrenagem do cronômetro. O padrão sobe para 0,45: o valor
+// anterior (0,12) ficava inaudível num iPad a alguns metros de distância, que é justamente o
+// cenário de uso — cronômetro num aparelho, estudo em outro.
+let apitoVolume=parseFloat(localStorage.getItem('apitoVolume')||'0.45');
 
 // O iOS só permite criar e destravar o contexto de áudio DURANTE um gesto do usuário. Como o
 // primeiro apito sai um minuto depois da pausa, criar o contexto lá seria tarde demais — o
@@ -3811,12 +3843,30 @@ function tocarApitoPausa(){
       osc.frequency.value=660;
       const t0=ctx.currentTime+atraso;
       ganho.gain.setValueAtTime(0.0001,t0);
-      ganho.gain.exponentialRampToValueAtTime(0.12,t0+0.02);
+      ganho.gain.exponentialRampToValueAtTime(Math.max(0.0002,apitoVolume),t0+0.02);
       ganho.gain.exponentialRampToValueAtTime(0.0001,t0+0.12);
       osc.connect(ganho); ganho.connect(ctx.destination);
       osc.start(t0); osc.stop(t0+0.14);
     });
   }catch(e){}   // som é conforto, não função — nunca deve quebrar o cronômetro
+}
+
+// Ajuste do volume. Cada mudança toca o som na hora — sem ouvir, escolher um número é chute.
+function setApitoVolume(v){
+  apitoVolume=parseFloat(v);
+  localStorage.setItem('apitoVolume',String(apitoVolume));
+  const el=document.getElementById('vol-valor');
+  if(el) el.textContent=Math.round(apitoVolume*100)+'%';
+  prepararAudioApito();
+  tocarApitoPausa();
+}
+
+function abrirAjusteApito(){
+  const el=document.getElementById('tf-ajustes');
+  if(!el) return;
+  const abrindo=el.classList.contains('hidden');
+  el.classList.toggle('hidden',!abrindo);
+  if(abrindo) prepararAudioApito();   // destrava o áudio no gesto que abriu o painel
 }
 
 function iniciarApitoPausa(){
