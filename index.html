@@ -3776,6 +3776,25 @@ let apitoPausaId=null, apitoContextoAudio=null;
 const APITO_ESPERA_MS=60000;    // silêncio no primeiro minuto de pausa
 const APITO_INTERVALO_MS=30000; // depois disso, a cada 30 segundos
 
+// O iOS só permite criar e destravar o contexto de áudio DURANTE um gesto do usuário. Como o
+// primeiro apito sai um minuto depois da pausa, criar o contexto lá seria tarde demais — o
+// sistema bloquearia em silêncio. Por isso o contexto nasce no clique em Pausar, com um som
+// mudo para destravá-lo, e fica pronto para tocar quando a hora chegar.
+function prepararAudioApito(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!apitoContextoAudio) apitoContextoAudio=new AC();
+    if(apitoContextoAudio.state==='suspended') apitoContextoAudio.resume().catch(()=>{});
+    // Toque inaudível: o que importa é o ato de tocar dentro do gesto, não o som.
+    const ctx=apitoContextoAudio;
+    const osc=ctx.createOscillator(), g=ctx.createGain();
+    g.gain.value=0;
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime+0.01);
+  }catch(e){}
+}
+
 function tocarApitoPausa(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
@@ -3802,6 +3821,7 @@ function tocarApitoPausa(){
 
 function iniciarApitoPausa(){
   pararApitoPausa();
+  prepararAudioApito();   // precisa acontecer dentro do gesto que pausou
   apitoPausaId=setTimeout(()=>{
     tocarApitoPausa();
     apitoPausaId=setInterval(tocarApitoPausa,APITO_INTERVALO_MS);
