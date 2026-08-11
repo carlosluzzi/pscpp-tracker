@@ -3768,6 +3768,50 @@ function timerCamposObrigatoriosCompletos(){
   return true;
 }
 
+// ---------- lembrete sonoro de cronômetro pausado ----------
+// Pausar e esquecer de retomar é fácil, principalmente com o cronômetro num aparelho e o estudo
+// em outro. Um som discreto a cada 30 segundos resolve, mas só depois de 1 minuto parado —
+// apitar no instante da pausa seria só barulho, já que a pausa foi intencional.
+let apitoPausaId=null, apitoContextoAudio=null;
+const APITO_ESPERA_MS=60000;    // silêncio no primeiro minuto de pausa
+const APITO_INTERVALO_MS=30000; // depois disso, a cada 30 segundos
+
+function tocarApitoPausa(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!apitoContextoAudio) apitoContextoAudio=new AC();
+    // O iOS suspende o contexto quando o app perde o foco; retomar é barato e necessário.
+    if(apitoContextoAudio.state==='suspended') apitoContextoAudio.resume().catch(()=>{});
+    const ctx=apitoContextoAudio;
+    // Dois toques curtos em 660 Hz — "tu... tu". Frequência média e volume baixo, com envelope
+    // suave nas pontas: sem isso o corte abrupto vira um clique desagradável.
+    [0, 0.18].forEach(atraso=>{
+      const osc=ctx.createOscillator(), ganho=ctx.createGain();
+      osc.type='sine';
+      osc.frequency.value=660;
+      const t0=ctx.currentTime+atraso;
+      ganho.gain.setValueAtTime(0.0001,t0);
+      ganho.gain.exponentialRampToValueAtTime(0.12,t0+0.02);
+      ganho.gain.exponentialRampToValueAtTime(0.0001,t0+0.12);
+      osc.connect(ganho); ganho.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+0.14);
+    });
+  }catch(e){}   // som é conforto, não função — nunca deve quebrar o cronômetro
+}
+
+function iniciarApitoPausa(){
+  pararApitoPausa();
+  apitoPausaId=setTimeout(()=>{
+    tocarApitoPausa();
+    apitoPausaId=setInterval(tocarApitoPausa,APITO_INTERVALO_MS);
+  },APITO_ESPERA_MS);
+}
+
+function pararApitoPausa(){
+  if(apitoPausaId){ clearTimeout(apitoPausaId); clearInterval(apitoPausaId); apitoPausaId=null; }
+}
+
 let wakeLockAtivo=null;
 async function solicitarWakeLock(){
   // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
@@ -3852,6 +3896,7 @@ function fecharCancelarTimerModal(){
 }
 function confirmarCancelarTimer(){
   fecharCancelarTimerModal();
+  pararApitoPausa();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   timerRodando=false;
   timerInicio=null;
@@ -4340,6 +4385,7 @@ function revisarCaderno(id){
 }
 
 function iniciarTimer(){
+  pararApitoPausa();
   if(!timerCamposObrigatoriosCompletos()) return;
   timerRodando=true;
   timerInicio=Date.now();
@@ -4354,12 +4400,14 @@ function pausarTimer(){
   timerInicio=null;
   limparSnapshotSessao();
   esconderTimerFlutuante();
+  iniciarApitoPausa();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   else renderTab(tabAtual,true);
 }
 
 function zerarTimer(){
+  pararApitoPausa();
   timerAcumuladoSeg=0;
   timerRodando=false;
   timerInicio=null;
@@ -4398,6 +4446,7 @@ document.addEventListener('fullscreenchange',saiuDoFullscreenReal);
 document.addEventListener('webkitfullscreenchange',saiuDoFullscreenReal);
 
 function pararESalvarTimer(){
+  pararApitoPausa();
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
   if(minutos<1){
