@@ -442,8 +442,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-plano{background:#639922}
 .cal-ponto-evento{background:#7C5BC7}
 /* Ícone do curso: no canto da célula do calendário, e no lugar do badge dentro do dia */
-.cal-cel-icone{position:absolute;top:3px;left:3px;height:11px;width:auto;object-fit:contain}
+/* Ícone do curso na célula: afastado da borda e limitado em largura — o MPX é quase três vezes
+   mais largo que os outros e transbordaria a célula na altura em que os demais ficam bons. */
+.cal-cel-icone{position:absolute;top:5px;left:5px;height:13px;width:auto;max-width:calc(100% - 10px);
+  object-fit:contain}
+/* O número desce para não encostar no ícone */
+.cal-cel .cal-num{margin-top:9px}
 .cal-item-icone{height:17px;width:auto;object-fit:contain;display:block}
+.cal-item-clicavel{cursor:pointer;border-radius:8px;margin-left:-6px;margin-right:-6px;padding-left:6px;padding-right:6px}
+@media(hover:hover){.cal-item-clicavel:hover{background:#FAFAF8}}
 .cal-add-grupo{display:flex;gap:14px}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
@@ -1248,6 +1255,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="iniciar-modal" style="display:none;z-index:1000005"
+  onclick="if(event.target===this)fecharIniciarEstudo()">
+  <div class="modal-box">
+    <div class="config-title">Começar agora</div>
+    <p id="iniciar-titulo" style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4"></p>
+    <div class="acoes-rotulo">Tipo de estudo</div>
+    <div class="filter-row" id="iniciar-tipos" style="margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharIniciarEstudo()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarIniciarEstudo()">Iniciar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="assunto-modal" style="display:none;z-index:1000005"
   onclick="if(event.target===this)fecharEditarAssunto()">
   <div class="modal-box nota-box">
@@ -1321,7 +1342,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="plano-modal" style="display:none;z-index:1000001"
   onclick="if(event.target===this)fecharNovoPlano()">
   <div class="modal-box">
-    <div class="config-title">Planejar estudo</div>
+    <div class="config-title" id="plano-titulo">Planejar estudo</div>
     <input type="hidden" id="plano-data">
     <select id="plano-tipo" class="filter-select" style="width:100%;margin-bottom:10px"
       onchange="atualizarPlaceholderPlano()">
@@ -1336,6 +1357,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
         <option value="Evento">Evento</option>
       </optgroup>
     </select>
+    <div id="plano-materia-wrap">
+      <select class="filter-select" id="plano-modulo" style="width:100%;margin-bottom:8px"
+        onchange="atualizarPublicacoesPlano()"></select>
+      <select class="filter-select" id="plano-publicacao" style="width:100%;margin-bottom:8px"
+        onchange="atualizarCapitulosPlano()"><option value="">Publicação</option></select>
+      <select class="filter-select" id="plano-capitulo" style="width:100%;margin-bottom:10px">
+        <option value="">Capítulo/Seção</option></select>
+    </div>
     <input type="text" id="plano-descricao" class="filter-select" placeholder="O que vai estudar"
       style="width:100%;margin-bottom:10px">
     <input type="number" id="plano-minutos" class="filter-select" placeholder="Minutos (opcional)"
@@ -5411,7 +5440,8 @@ function renderDetalheDia(){
       <div class="cal-add-grupo"><button class="cal-add" onclick="abrirNovoPlano('${dia}','Leitura')">+ estudo</button><button class="cal-add" onclick="abrirNovoPlano('${dia}','Evento')">+ evento</button></div>
     </div>
     ${ev.length?ev.map(e=>`
-      <div class="cal-item${e.feito?' cal-item-feito':''}">
+      <div class="cal-item${e.feito?' cal-item-feito':''}${(e.fonte==='revisao'||e.fonte==='plano')?' cal-item-clicavel':''}"
+        ${(e.fonte==='revisao'||e.fonte==='plano')?`onclick="abrirIniciarEstudo('${e.fonte}','${e.id}')"`:''}>
         <div class="cal-item-corpo">
           ${e.fonte==='curso'&&iconesCursos[e.tipo]
             ? `<img src="${iconesCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-icone"
@@ -5439,33 +5469,78 @@ function abrirNovoPlano(dia,tipo){
   document.getElementById('plano-tipo').value=tipo||'Leitura';
   document.getElementById('plano-descricao').value='';
   document.getElementById('plano-minutos').value='';
+  document.getElementById('plano-modulo').innerHTML='<option value="">Módulo</option>'
+    +[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('plano-publicacao').innerHTML='<option value="">Publicação</option>';
+  document.getElementById('plano-capitulo').innerHTML='<option value="">Capítulo/Seção</option>';
   atualizarPlaceholderPlano();
   document.getElementById('plano-modal').style.display='flex';
 }
 function fecharNovoPlano(){ document.getElementById('plano-modal').style.display='none'; }
 
-// Evento não é estudo: não faz sentido pedir minutos de dedicação nem falar em "estudar".
+// Evento não é estudo: some a matéria, os minutos, e o título muda. Deixar os campos de
+// módulo e capítulo num evento pessoal seria pedir informação que não existe.
 function atualizarPlaceholderPlano(){
   const tipo=document.getElementById('plano-tipo').value;
   const desc=document.getElementById('plano-descricao');
   const min=document.getElementById('plano-minutos');
+  const materia=document.getElementById('plano-materia-wrap');
   const ehEvento=tipo==='Evento';
-  desc.placeholder=ehEvento?'O que é':'O que vai estudar';
+  document.getElementById('plano-titulo').textContent=ehEvento?'Planejar evento':'Planejar estudo';
+  desc.placeholder=ehEvento?'O que é':'Observação (opcional)';
   min.style.display=ehEvento?'none':'';
+  materia.style.display=ehEvento?'none':'';
   if(ehEvento) min.value='';
+}
+
+// Mesma cascata do registro manual de sessão: módulo filtra publicação, que filtra capítulo.
+function atualizarPublicacoesPlano(){
+  const modulo=document.getElementById('plano-modulo').value;
+  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome)
+    .sort((a,b)=>a.localeCompare(b,'pt'));
+  document.getElementById('plano-publicacao').innerHTML='<option value="">Publicação</option>'
+    +opcoes.map(p=>`<option value="${p}">${nomePub(p)}</option>`).join('');
+  atualizarCapitulosPlano();
+}
+function atualizarCapitulosPlano(){
+  const modulo=document.getElementById('plano-modulo').value;
+  const publicacao=document.getElementById('plano-publicacao').value;
+  const sel=document.getElementById('plano-capitulo');
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!publicacao||!pubInfo){
+    sel.innerHTML='<option value="">Capítulo/Seção</option>'; sel.disabled=true; return;
+  }
+  sel.disabled=false;
+  if(pubInfo.capituloUnico){
+    sel.innerHTML='<option value="">Capítulo Único</option>'; sel.disabled=true; return;
+  }
+  const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length
+    ? pubInfo.capitulosValidos
+    : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
+  const rot=pubInfo.rotuloCapitulo||'Capítulo';
+  sel.innerHTML='<option value="">Capítulo/Seção</option>'
+    +caps.map(c=>`<option value="${c}">${rot} ${c}</option>`).join('');
 }
 
 async function salvarNovoPlano(){
   const data=document.getElementById('plano-data').value;
   const tipo=document.getElementById('plano-tipo').value;
   const descricao=document.getElementById('plano-descricao').value.trim();
-  if(!data||!descricao) return;
+  // Com módulo e publicação escolhidos, a descrição é opcional — a referência já identifica.
+  if(!data) return;
+  if(tipo==='Evento'&&!descricao) return;
+  if(tipo!=='Evento'&&!descricao&&!document.getElementById('plano-modulo').value) return;
   const minutos=parseInt(document.getElementById('plano-minutos').value,10)||null;
+  const ehEvento=tipo==='Evento';
+  const modulo=ehEvento?'':document.getElementById('plano-modulo').value;
+  const publicacao=ehEvento?'':document.getElementById('plano-publicacao').value;
+  const capitulo=ehEvento?'':document.getElementById('plano-capitulo').value;
   fecharNovoPlano();
   const {data:novo,error}=await sbDados.from('plano_estudo')
-    .insert({data,tipo,descricao,minutos}).select().single();
+    .insert({data,tipo,descricao,minutos,modulo:modulo||null,publicacao:publicacao||null,
+             capitulo:capitulo||null}).select().single();
   if(error){ mostrarAviso('Não deu para salvar','Tente de novo em instantes.'); return; }
-  planoEstudo.push({id:novo.id,data,tipo,modulo:'',publicacao:'',capitulo:'',
+  planoEstudo.push({id:novo.id,data,tipo,modulo,publicacao,capitulo,
     descricao,minutos,feito:false});
   renderTab(tabAtual,true);
   // O modal do dia continua aberto atrás: atualiza o conteúdo dele para o novo item aparecer.
@@ -7477,6 +7552,78 @@ function toggleCap(capId){
 // compartilhar o assunto — que é justamente o objetivo. Três questões sobre quebra de onda,
 // resistência de onda e padrão de ondas viram todas "Wave resistance" sem nenhum passo extra.
 let assuntoEditando=null;
+
+// ---------- Iniciar estudo direto do calendário ----------
+// Tocar numa revisão programada abre a escolha do tipo e começa o cronômetro já com módulo,
+// publicação e capítulo preenchidos — sem precisar ir à aba Aprovado e digitar tudo de novo.
+let iniciarCtx=null;
+
+function abrirIniciarEstudo(fonte,id){
+  let modulo='',publicacao='',capitulo='',rotulo='',tipoSugerido='Revisão';
+
+  if(fonte==='revisao'){
+    const r=(revisoesEspacadas||[]).find(x=>x.id===id);
+    if(!r) return;
+    modulo=r.modulo||''; publicacao=r.publicacao||''; capitulo=r.capitulo||'';
+    rotulo=[modulo,publicacao?nomePub(publicacao):'',capitulo?'Capítulo '+capitulo:'']
+      .filter(Boolean).join(' – ');
+  }else if(fonte==='plano'){
+    const pl=(planoEstudo||[]).find(x=>x.id===id);
+    if(!pl) return;
+    modulo=pl.modulo||''; publicacao=pl.publicacao||''; capitulo=pl.capitulo||'';
+    tipoSugerido=['Leitura','Exercício','Revisão','Anki'].includes(pl.tipo)?pl.tipo:'Leitura';
+    rotulo=pl.descricao||[modulo,publicacao?nomePub(publicacao):'',capitulo?'Capítulo '+capitulo:'']
+      .filter(Boolean).join(' – ');
+  }else return;
+
+  iniciarCtx={modulo,publicacao,capitulo,tipo:tipoSugerido};
+  document.getElementById('iniciar-titulo').textContent=rotulo;
+  renderTiposIniciar();
+  document.getElementById('iniciar-modal').style.display='flex';
+}
+
+function renderTiposIniciar(){
+  const el=document.getElementById('iniciar-tipos');
+  if(!el||!iniciarCtx) return;
+  el.innerHTML=['Leitura','Exercício','Revisão','Anki']
+    .map(t=>`<div class="filter-btn${iniciarCtx.tipo===t?' active':''}"
+      onclick="escolherTipoIniciar('${t}')">${t}</div>`).join('');
+}
+
+function escolherTipoIniciar(t){
+  if(!iniciarCtx) return;
+  iniciarCtx.tipo=t;
+  renderTiposIniciar();
+}
+
+function fecharIniciarEstudo(){
+  document.getElementById('iniciar-modal').style.display='none';
+  iniciarCtx=null;
+}
+
+function confirmarIniciarEstudo(){
+  if(!iniciarCtx) return;
+  if(timerRodando){
+    fecharIniciarEstudo();
+    mostrarAviso('Cronômetro em andamento',
+      'Já existe um estudo sendo cronometrado. Pause ou finalize antes de começar outro.');
+    return;
+  }
+  const {modulo,publicacao,capitulo,tipo}=iniciarCtx;
+  fecharIniciarEstudo();
+  fecharDiaCalendario();
+
+  timerTipo=tipo;
+  timerModulo=modulo;
+  timerPublicacao=publicacao;
+  timerCapitulo=capitulo;
+  timerOrigem='';
+  timerAcumuladoSeg=0;
+  // Leva para a aba onde o cronômetro vive: ao finalizar, a tela de trás já é a certa.
+  showTab('aprovado');
+  abrirTimerFullscreen(true);
+  iniciarTimer();
+}
 
 function abrirEditarAssunto(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
