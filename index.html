@@ -449,6 +449,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* O número desce para não encostar no ícone */
 .cal-cel .cal-num{margin-top:9px}
 .cal-item-icone{height:17px;width:auto;object-fit:contain;display:block}
+/* Calendário completo de um curso: data à esquerda, o que é no meio, e quanto falta à direita */
+.curso-cal-topo{display:flex;justify-content:center;padding:4px 0 2px}
+.curso-cal-logo{height:20px;width:auto;object-fit:contain}
+.curso-cal-linha{display:flex;align-items:baseline;gap:10px;padding:8px 0}
+.curso-cal-linha+.curso-cal-linha{border-top:0.5px solid #f7f7f5}
+.curso-cal-passou{opacity:.45}
+.curso-cal-data{font-size:var(--fs-a);color:#888;width:74px;flex-shrink:0}
+.curso-cal-nome{font-size:var(--fs-c);color:#202A45;font-weight:500;flex:1;min-width:0}
+.curso-cal-quando{font-size:var(--fs-a);color:#888;flex-shrink:0}
 .cal-item-clicavel{cursor:pointer;border-radius:8px;margin-left:-6px;margin-right:-6px;padding-left:6px;padding-right:6px}
 @media(hover:hover){.cal-item-clicavel:hover{background:#FAFAF8}}
 .cal-add-grupo{display:flex;gap:14px}
@@ -458,7 +467,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    de fechar sobe junto, deixando um vazio embaixo. Assim ele acompanha a borda inferior. */
 .modal-box.cal-dia-box{width:min(440px, 92vw);max-height:80vh;text-align:left;
   display:flex;flex-direction:column;overflow:hidden}
-.modal-box.cal-dia-box #cal-dia-corpo{flex:1;min-height:0;overflow-y:auto}
+.modal-box.cal-dia-box #cal-dia-corpo,
+.modal-box.cal-dia-box #curso-cal-corpo{flex:1;min-height:0;overflow-y:auto}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
@@ -1252,6 +1262,17 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="fecharTextoModal()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarTextoModal()">Salvar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="curso-cal-modal" style="display:none;z-index:1000005"
+  onclick="if(event.target===this)fecharCalendarioCurso()">
+  <div class="modal-box cal-dia-box">
+    <div id="curso-cal-corpo"></div>
+    <div class="sd-rodape">
+      <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharCalendarioCurso()">Fechar</button>
+    </div>
+    <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -5440,8 +5461,9 @@ function renderDetalheDia(){
       <div class="cal-add-grupo"><button class="cal-add" onclick="abrirNovoPlano('${dia}','Leitura')">+ estudo</button><button class="cal-add" onclick="abrirNovoPlano('${dia}','Evento')">+ evento</button></div>
     </div>
     ${ev.length?ev.map(e=>`
-      <div class="cal-item${e.feito?' cal-item-feito':''}${(e.fonte==='revisao'||e.fonte==='plano')?' cal-item-clicavel':''}"
-        ${(e.fonte==='revisao'||e.fonte==='plano')?`onclick="abrirIniciarEstudo('${e.fonte}','${e.id}')"`:''}>
+      <div class="cal-item${e.feito?' cal-item-feito':''}${['revisao','plano','curso'].includes(e.fonte)?' cal-item-clicavel':''}"
+        ${e.fonte==='curso'?`onclick="abrirCalendarioCurso('${e.tipo.replace(/'/g,"\\'")}')"`
+          :(e.fonte==='revisao'||e.fonte==='plano')?`onclick="abrirIniciarEstudo('${e.fonte}','${e.id}')"`:''}>
         <div class="cal-item-corpo">
           ${e.fonte==='curso'&&iconesCursos[e.tipo]
             ? `<img src="${iconesCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-icone"
@@ -7557,6 +7579,65 @@ let assuntoEditando=null;
 // Tocar numa revisão programada abre a escolha do tipo e começa o cronômetro já com módulo,
 // publicação e capítulo preenchidos — sem precisar ir à aba Aprovado e digitar tudo de novo.
 let iniciarCtx=null;
+
+// ---------- Calendário completo de um curso ----------
+// Tocar num evento de curso abre tudo que está agendado para ele — o card antigo mostrava só o
+// próximo, e para se organizar é preciso ver a sequência inteira.
+let cursoCalAberto=null;
+
+function abrirCalendarioCurso(curso){
+  if(!curso) return;
+  cursoCalAberto=curso;
+  const hoje=chaveDia(new Date());
+  const eventos=(calendarioEventos||[])
+    .filter(c=>c.curso===curso)
+    .sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+
+  const futuros=eventos.filter(c=>c.data>=hoje&&!c.feito);
+  const passados=eventos.filter(c=>c.data<hoje||c.feito).reverse();
+
+  const rot=tipoLabelCurso[curso]||'SIMULADO';
+  const rotuloTipo=rot.charAt(0)+rot.slice(1).toLowerCase();
+
+  const linha=(c,passou)=>{
+    const d=new Date(c.data+'T12:00:00');
+    const diaSemana=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+    // O formato curto do pt-BR devolve "22 de ago"; o "de" no meio alarga a coluna sem
+    // acrescentar nada, então sai.
+    const dataFmt=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+      .replace(' de ',' ').replace('.','');
+    const faltam=Math.round((d-new Date(hoje+'T12:00:00'))/86400000);
+    const quando=passou?(c.feito?'feito':'passou')
+      : faltam===0?'hoje' : faltam===1?'amanhã' : `em ${faltam} dias`;
+    return `<div class="curso-cal-linha${passou?' curso-cal-passou':''}">
+      <span class="curso-cal-data">${diaSemana} · ${dataFmt}</span>
+      <span class="curso-cal-nome">${c.numero?rotuloTipo+' '+c.numero:rotuloTipo}</span>
+      <span class="curso-cal-quando">${quando}</span>
+    </div>`;
+  };
+
+  const logo=logosCursos[curso]
+    ? `<img src="${logosCursos[curso]}" alt="${curso}" class="curso-cal-logo"
+         style="aspect-ratio:${proporcaoLogosCursos[curso]||4.4}">`
+    : `<span class="config-title">${curso}</span>`;
+
+  document.getElementById('curso-cal-corpo').innerHTML=`
+    <div class="curso-cal-topo">${logo}</div>
+    ${futuros.length?`
+      <div class="acoes-rotulo" style="margin-top:14px">Próximos</div>
+      ${futuros.map(c=>linha(c,false)).join('')}`
+      :'<div class="empty" style="padding:14px 0">Nada programado por enquanto.</div>'}
+    ${passados.length?`
+      <div class="acoes-rotulo" style="margin-top:18px">Já passaram</div>
+      ${passados.slice(0,8).map(c=>linha(c,true)).join('')}`:''}
+  `;
+  document.getElementById('curso-cal-modal').style.display='flex';
+}
+
+function fecharCalendarioCurso(){
+  document.getElementById('curso-cal-modal').style.display='none';
+  cursoCalAberto=null;
+}
 
 function abrirIniciarEstudo(fonte,id){
   let modulo='',publicacao='',capitulo='',rotulo='',tipoSugerido='Revisão';
