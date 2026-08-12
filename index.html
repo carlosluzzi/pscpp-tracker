@@ -1797,7 +1797,11 @@ function registrarGrupoPilotTransfer(){
     modulo:'Arte Naval',
     capituloUnico:true,      // são textos curtos, sem divisão em capítulos
     capitulosValidos:null,
-    faixaCapitulos:null,
+    // No lugar de "Capítulo Único", lista o que o grupo contém — assim fica claro o que se está
+    // registrando, sem precisar abrir outra tela para lembrar.
+    // Sem o prefixo das circulares: cinco nomes completos não cabem na largura do seletor e o
+    // texto cortava. Os números identificam sozinhos.
+    faixaCapitulos:'SOLAS · 1045 · 1108 · 1428 · 1495',
     rotuloCapitulo:'Capítulo',
   });
 }
@@ -4104,7 +4108,7 @@ function renderAprovado(){
           return `<select class="filter-select" disabled><option value="">Capítulo/Seção</option></select>`;
         }
         if(!pubInfo||pubInfo.capituloUnico){
-          return `<select class="filter-select" disabled><option value="">Capítulo Único</option></select>`;
+          return `<select class="filter-select" disabled><option value="">${rotuloCapituloUnico(pubInfo)}</option></select>`;
         }
         if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
           return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option></select>`;
@@ -4255,6 +4259,13 @@ function aoTrocarPublicacaoTimer(novaPublicacao){
 // "Capítulo Capítulo 3", duplicado). Depois do backfill, esse caminho nunca mais é usado, mas fica
 // como rede de segurança permanente — não faz mal manter.
 const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section'];
+// Publicação de capítulo único pode ter uma descrição no lugar do rótulo genérico — é o caso
+// do grupo Pilot Transfer Arrangement, onde "Capítulo Único" não diz nada e a lista das cinco
+// fontes diz tudo.
+function rotuloCapituloUnico(pubInfo){
+  return (pubInfo&&pubInfo.faixaCapitulos)||'Capítulo Único';
+}
+
 function formatarCapituloExibicao(pubInfo,identificador){
   if(!identificador) return '';
   if(identificador==='Único') return 'Capítulo Único';
@@ -5126,7 +5137,7 @@ function atualizarCapitulosRegistroManual(){
     return;
   }
   if(pubInfo.capituloUnico){
-    capSelect.innerHTML='<option value="">Capítulo Único</option>';
+    capSelect.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`;
     capSelect.disabled=true;
     return;
   }
@@ -5719,7 +5730,7 @@ function atualizarCapitulosPlano(){
   }
   sel.disabled=false;
   if(pubInfo.capituloUnico){
-    sel.innerHTML='<option value="">Capítulo Único</option>'; sel.disabled=true; return;
+    sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`; sel.disabled=true; return;
   }
   const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length
     ? pubInfo.capitulosValidos
