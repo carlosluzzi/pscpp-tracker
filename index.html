@@ -1775,6 +1775,42 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação',
   'Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
 
+// Em Arte Naval, cinco publicações tratam do mesmo assunto e são curtas: a regra da SOLAS e as
+// quatro resoluções e circulares da IMO sobre embarque do prático. Na hora de registrar estudo,
+// escolher entre elas é decisão sem sentido — leu-se o conjunto.
+// Só vale na SELEÇÃO de estudo; nas questões dos simulados a publicação original é preservada,
+// porque ali ela é a referência da fonte da questão.
+// A SOLAS de Navegação em Águas Restritas fica de fora: é o Capítulo V inteiro, outro assunto.
+const GRUPO_PILOT_TRANSFER='Pilot Transfer Arrangement';
+const PILOT_TRANSFER_MEMBROS=['SOLAS','A.1045(27) – Pilot Transfer Arrangements',
+  'A.1108(29) – Pilot Transfer Arrangements','Circ.1428 – Pilot Transfer Arrangements',
+  'Circ.1495 – Pilot Transfer Arrangements'];
+
+// Entrada virtual do grupo, acrescentada à bibliografia depois do carregamento. Assim todo
+// código que faz bibliografia.find(...) para descobrir capítulos encontra o grupo como se fosse
+// uma publicação de verdade — sem precisar tratar o caso especial em cada lugar.
+function registrarGrupoPilotTransfer(){
+  if(bibliografia.some(b=>b.nome===GRUPO_PILOT_TRANSFER)) return;
+  if(!bibliografia.some(b=>b.modulo==='Arte Naval'&&PILOT_TRANSFER_MEMBROS.includes(b.nome))) return;
+  bibliografia.push({
+    nome:GRUPO_PILOT_TRANSFER,
+    modulo:'Arte Naval',
+    capituloUnico:true,      // são textos curtos, sem divisão em capítulos
+    capitulosValidos:null,
+    faixaCapitulos:null,
+    rotuloCapitulo:'Capítulo',
+  });
+}
+
+// Publicações de um módulo, com o grupo no lugar dos membros
+function publicacoesParaEstudo(modulo){
+  const todas=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
+  if(modulo!=='Arte Naval') return todas.sort((a,b)=>a.localeCompare(b,'pt'));
+  const fora=todas.filter(n=>!PILOT_TRANSFER_MEMBROS.includes(n));
+  const temGrupo=todas.some(n=>PILOT_TRANSFER_MEMBROS.includes(n));
+  return (temGrupo?[...fora,GRUPO_PILOT_TRANSFER]:fora).sort((a,b)=>a.localeCompare(b,'pt'));
+}
+
 // Cor única do app para todos os módulos. Antes cada matéria tinha sua própria paleta; a
 // identificação passou a ser feita pelo texto, não pela cor. Mantido como objeto (em vez de
 // remover as chamadas) para que os ~11 pontos que consultam modCores continuem funcionando —
@@ -2408,6 +2444,8 @@ async function loadDataInterno(){
       a.total=qs.length;
       a.aproveitamento=qs.length?(acertos/qs.length*100):0;
     });
+
+    registrarGrupoPilotTransfer();
 
     // Notas ligadas ao assunto em si, não a uma questão: o que vale saber sobre o tema, lido
     // antes de estudar qualquer questão dele.
@@ -4057,7 +4095,7 @@ function renderAprovado(){
       </select>
       <select class="filter-select" onchange="aoTrocarPublicacaoTimer(this.value)" ${timerRodando||!timerModulo?'disabled':''}>
         <option value="">Publicação</option>
-        ${bibliografia.filter(b=>b.modulo===timerModulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt')).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
+        ${publicacoesParaEstudo(timerModulo).map(p=>`<option value="${p}" ${timerPublicacao===p?'selected':''}>${p}</option>`).join('')}
       </select>
       ${(()=>{
         const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
@@ -5073,7 +5111,7 @@ function abrirRegistroManual(){
 }
 function atualizarPublicacoesRegistroManual(){
   const modulo=document.getElementById('registro-manual-modulo').value;
-  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome).sort((a,b)=>a.localeCompare(b,'pt'));
+  const opcoes=publicacoesParaEstudo(modulo);
   document.getElementById('registro-manual-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${p}">${p}</option>`).join('');
   atualizarCapitulosRegistroManual();
 }
@@ -5666,8 +5704,7 @@ function atualizarPlaceholderPlano(){
 // Mesma cascata do registro manual de sessão: módulo filtra publicação, que filtra capítulo.
 function atualizarPublicacoesPlano(){
   const modulo=document.getElementById('plano-modulo').value;
-  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome)
-    .sort((a,b)=>a.localeCompare(b,'pt'));
+  const opcoes=publicacoesParaEstudo(modulo);
   document.getElementById('plano-publicacao').innerHTML='<option value="">Publicação</option>'
     +opcoes.map(p=>`<option value="${p}">${nomePub(p)}</option>`).join('');
   atualizarCapitulosPlano();
