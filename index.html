@@ -4082,6 +4082,9 @@ function confirmarCancelarTimer(){
   timerRodando=false;
   timerInicio=null;
   timerAcumuladoSeg=0;
+  // Sem isso o snapshot de recuperação sobrevive ao cancelamento, e o app oferece retomar uma
+  // sessão que já foi descartada de propósito.
+  limparSnapshotSessao();
   timerModulo=''; timerPublicacao=''; timerCapitulo=''; timerOrigem='';
   esconderTimerFlutuante();
   fecharTimerFullscreen();
