@@ -448,7 +448,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   object-fit:contain}
 /* O número desce para não encostar no ícone */
 .cal-cel .cal-num{margin-top:9px}
-.cal-item-icone{height:17px;width:auto;object-fit:contain;display:block}
+/* Dentro do dia cabe a logo completa, com o nome do curso — o ícone compacto é só para a
+   célula do calendário, onde não há espaço. */
+.cal-item-logo{height:15px;width:auto;object-fit:contain;display:block}
 /* Calendário completo de um curso: data à esquerda, o que é no meio, e quanto falta à direita */
 .curso-cal-topo{display:flex;justify-content:center;padding:4px 0 2px}
 .curso-cal-logo{height:20px;width:auto;object-fit:contain}
@@ -5465,9 +5467,9 @@ function renderDetalheDia(){
         ${e.fonte==='curso'?`onclick="abrirCalendarioCurso('${e.tipo.replace(/'/g,"\\'")}')"`
           :(e.fonte==='revisao'||e.fonte==='plano')?`onclick="abrirIniciarEstudo('${e.fonte}','${e.id}')"`:''}>
         <div class="cal-item-corpo">
-          ${e.fonte==='curso'&&iconesCursos[e.tipo]
-            ? `<img src="${iconesCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-icone"
-                 style="aspect-ratio:${proporcaoIcones[e.tipo]||1}" loading="lazy">`
+          ${e.fonte==='curso'&&logosCursos[e.tipo]
+            ? `<img src="${logosCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-logo"
+                 style="aspect-ratio:${proporcaoLogosCursos[e.tipo]||4.4}" loading="lazy">`
             : `<span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>`}
           <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
         </div>
