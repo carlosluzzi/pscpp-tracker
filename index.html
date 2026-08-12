@@ -442,7 +442,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-plano{background:#639922}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
-.modal-box.cal-dia-box{width:min(400px, 92vw);max-height:80vh;text-align:left}
+/* Coluna com o miolo rolando: sem isso, ao esticar o modal o conteúdo fica no topo e o botão
+   de fechar sobe junto, deixando um vazio embaixo. Assim ele acompanha a borda inferior. */
+.modal-box.cal-dia-box{width:min(400px, 92vw);max-height:80vh;text-align:left;
+  display:flex;flex-direction:column;overflow:hidden}
+.modal-box.cal-dia-box #cal-dia-corpo{flex:1;min-height:0;overflow-y:auto}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
