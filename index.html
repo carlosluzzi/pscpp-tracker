@@ -755,11 +755,25 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   border:0.5px solid #ddd;background:#fff;color:#111;font-family:inherit;line-height:1.5;
   resize:vertical;min-height:96px;margin-bottom:16px}
 .nota-textarea:focus{outline:none;border-color:#202A45}
+/* Pop-up da questão: redimensionável pelo canto, e com o cabeçalho junto do título — a
+   distância padrão do modal sobrava aqui, onde a primeira informação é curta. */
+.modal-box.vq-box{max-width:680px;width:92%;max-height:85vh;display:flex;flex-direction:column;
+  padding:0;overflow:hidden;resize:both;min-width:300px;min-height:240px}
+.vq-titulo{padding:20px 24px 0;flex-shrink:0;margin-bottom:0}
+.vq-corpo{padding:8px 24px 12px;overflow-y:auto;flex:1}
+.vq-corpo .rs{margin-top:6px}
+/* Ações da questão: rótulos de seção e os botões de letra para marcar a dúvida */
+.acoes-rotulo{font-size:var(--fs-a);color:#888;margin-bottom:6px;font-weight:600}
+.acoes-duvida{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.duvida-letra{padding:10px 0;border-radius:9px;border:1px solid #ddd;background:#fff;color:#888;
+  font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
+.duvida-letra.ativa{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
 /* Nota da questão inteira, acima do enunciado */
 .vq-nota{font-size:var(--fs-c);color:#333;background:#FAEEDA;border-radius:8px;padding:8px 10px;
   margin:10px 0;line-height:1.45;cursor:pointer}
-.vq-nota-add{font-size:var(--fs-c);color:#888;margin:10px 0;cursor:pointer}
-@media(hover:hover){.vq-nota-add:hover{color:#202A45}}
+.vq-duvida{font-size:var(--fs-c);color:#854F0B;background:#FAEEDA;border-radius:8px;
+  padding:8px 10px;margin:10px 0;line-height:1.45;cursor:pointer}
+.vq-duvida-motivo{display:block;color:#5F5E5A;margin-top:3px}
 .tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:2px;line-height:1.35}
 .tipo-errada-ref{font-size:var(--fs-a);color:#999;margin-top:2px;line-height:1.35}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
@@ -1088,9 +1102,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 
 <div class="modal-overlay" id="ver-questao-modal" style="display:none;z-index:1000002">
-  <div class="modal-box" style="max-width:680px;width:92%;max-height:85vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
-    <div class="config-title" id="ver-questao-titulo" style="padding:24px 24px 0 24px;flex-shrink:0"></div>
-    <div id="ver-questao-conteudo" style="padding:12px 24px;overflow-y:auto;flex:1"></div>
+  <div class="modal-box vq-box">
+    <div class="config-title vq-titulo" id="ver-questao-titulo"></div>
+    <div id="ver-questao-conteudo" class="vq-corpo"></div>
     <div class="modal-actions" style="padding:16px 24px 24px 24px;flex-shrink:0;margin-top:0;border-top:0.5px solid #eee">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('ver-questao-modal').style.display='none'">Fechar</button>
     </div>
@@ -1172,16 +1186,42 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div class="modal-overlay" id="nota-questao-modal" style="display:none;z-index:1000004"
-  onclick="if(event.target===this)fecharNotaQuestao()">
-  <div class="modal-box nota-box">
-    <div class="config-title">Nota sobre a questão</div>
-    <p id="nota-questao-titulo" style="margin:0 0 10px;font-size:var(--fs-c);color:#888"></p>
-    <textarea id="nota-questao-textarea" class="nota-textarea" rows="4"
-      placeholder="O que você quer lembrar sobre esta questão"></textarea>
+<div class="modal-overlay" id="texto-modal" style="display:none;z-index:1000005"
+  onclick="if(event.target===this)fecharTextoModal()">
+  <div class="modal-box">
+    <div class="config-title" id="texto-modal-titulo"></div>
+    <p id="texto-modal-sub" style="margin:0 0 10px;font-size:var(--fs-c);color:#888"></p>
+    <input type="text" id="texto-modal-input" class="filter-select" style="width:100%;margin-bottom:16px"
+      onkeydown="if(event.key==='Enter')confirmarTextoModal()">
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-nao" onclick="fecharNotaQuestao()">Cancelar</button>
-      <button class="modal-btn modal-btn-sim" onclick="salvarNotaQuestao()">Salvar</button>
+      <button class="modal-btn modal-btn-nao" onclick="fecharTextoModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarTextoModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="acoes-questao-modal" style="display:none;z-index:1000004"
+  onclick="if(event.target===this)fecharAcoesQuestao()">
+  <div class="modal-box nota-box">
+    <div class="config-title">Anotar questão</div>
+    <p id="acoes-questao-titulo" style="margin:0 0 14px;font-size:var(--fs-c);color:#888"></p>
+
+    <div class="acoes-rotulo">Nota sobre a questão</div>
+    <textarea id="acoes-nota" class="nota-textarea" rows="3"
+      placeholder="O que você quer lembrar"></textarea>
+
+    <div class="acoes-rotulo" style="margin-top:14px">Fiquei em dúvida entre</div>
+    <div class="acoes-duvida" id="acoes-duvida-letras"></div>
+
+    <div id="acoes-motivo-wrap" style="display:none">
+      <div class="acoes-rotulo" style="margin-top:14px">Por que confundiram</div>
+      <textarea id="acoes-motivo" class="nota-textarea" rows="3"
+        placeholder="O que fez as duas parecerem certas"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharAcoesQuestao()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarAcoesQuestao()">Salvar</button>
     </div>
   </div>
 </div>
@@ -2055,6 +2095,8 @@ async function loadDataInterno(){
       tipoQuestao:p.tipo_questao||null,
       ultimaRevisao:p.ultima_revisao||null,
       notasPessoais:p.notas_pessoais||'',
+      alternativasDuvida:p.alternativas_duvida||null,
+      motivoDuvida:p.motivo_duvida||'',
       favorita:p.favorita||false,
       excluida:p.excluida||false,
       totalErros:p.total_de_erros||0,
@@ -2425,6 +2467,10 @@ async function abrirMarcacaoPendente(atividadePendenteId){
 function fecharMarcacaoPendente(){
   document.getElementById('marcacao-fullscreen').classList.add('hidden');
   resolucaoAtividadeId=null;
+  // Redesenha a lista atrás: os avisos de "sem capítulo", "sem módulo" e quantas faltam
+  // responder são calculados na renderização. Sem isso, o que foi preenchido aqui dentro só
+  // aparecia depois de trocar de aba ou recarregar.
+  renderTab(tabAtual,true);
 }
 
 function renderizarListaMarcacao(){
@@ -5319,9 +5365,10 @@ function renderCardSaudacao(){
   `;
 }
 function abrirEditarSaudacaoSubtexto(){
-  const novo=prompt('Texto abaixo da saudação:',saudacaoSubtexto);
-  if(novo===null||!novo.trim()) return;
-  salvarSaudacaoSubtexto(novo.trim());
+  abrirTextoModal({titulo:'Texto da saudação',valor:saudacaoSubtexto,
+    placeholder:'O que aparece abaixo do seu nome'},novo=>{
+    if(novo) salvarSaudacaoSubtexto(novo);
+  });
 }
 async function salvarSaudacaoSubtexto(novo){
   try{
@@ -5737,18 +5784,22 @@ async function marcarFilaBancoFeito(id){
   }
 }
 
-async function editarMetaDiaria(){
+function editarMetaDiaria(){
   const atual=bancoPratico.metaDiaria||10;
-  const texto=prompt('Quantas questões por dia você quer como meta?',String(atual));
-  if(texto===null) return;
-  const novaMeta=parseInt(texto,10);
-  if(isNaN(novaMeta)||novaMeta<1){alert('Digite um número válido.');return;}
+  abrirTextoModal({titulo:'Meta diária',sub:'Quantas questões por dia',
+    valor:String(atual),tipo:'number'},texto=>{
+    const novaMeta=parseInt(texto,10);
+    if(isNaN(novaMeta)||novaMeta<1){ mostrarAviso('Número inválido','Informe quantas questões por dia, a partir de 1.'); return; }
+    salvarMetaDiaria(novaMeta);
+  });
+}
+async function salvarMetaDiaria(novaMeta){
   try{
     const {error}=await sbDados.from('banco_pratico_config').update({meta_diaria:novaMeta}).eq('id',bancoPratico.id);
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar meta: '+e.message);
+    mostrarAviso('Não deu para salvar a meta','Tente de novo em instantes.');
   }
 }
 
@@ -7301,49 +7352,116 @@ function abrirVerQuestaoCompleta(questaoId){
          <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
        </div>`;
 
-  // A nota da questão inteira fica acima do enunciado; as das alternativas aparecem coladas em
-  // cada uma, pelo formatQuestaoCompleta. Nos dois casos dá para tocar e editar.
+  // Nota e dúvida aparecem acima do enunciado quando existem. Para criar ou editar, toca-se no
+  // próprio enunciado — mesmo gesto das alternativas, sem link separado.
   const nota=(q.notasPessoais||'').trim();
-  const notaHtml = nota
-    ? `<div class="vq-nota" onclick="abrirNotaQuestao('${q.id}')">📝 ${escapeHtml(nota)}</div>`
-    : `<div class="vq-nota-add" onclick="abrirNotaQuestao('${q.id}')">+ nota sobre a questão</div>`;
+  const duvida=q.alternativasDuvida||[];
+  const notaHtml=nota?`<div class="vq-nota" onclick="abrirAcoesQuestao('${q.id}')">📝 ${escapeHtml(nota)}</div>`:'';
+  const duvidaHtml=duvida.length>=2
+    ? `<div class="vq-duvida" onclick="abrirAcoesQuestao('${q.id}')">
+         Fiquei em dúvida entre ${duvida.map(l=>l.toUpperCase()).join(' e ')}
+         ${q.motivoDuvida?`<span class="vq-duvida-motivo">${escapeHtml(q.motivoDuvida)}</span>`:''}
+       </div>` : '';
 
   document.getElementById('ver-questao-conteudo').innerHTML=`
     ${cabecalho}
     ${notaHtml}
+    ${duvidaHtml}
     <div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>
   `;
   document.getElementById('ver-questao-modal').style.display='flex';
 }
 
-// Nota da questão inteira — diferente das notas por alternativa, que já existem. Serve para o
-// que não cabe em nenhuma alternativa específica.
-let notaQuestaoId=null;
-function abrirNotaQuestao(questaoId){
+// Modal de texto reaproveitável, no lugar do prompt nativo do navegador — que não é
+// estilizável, quebra o visual do app e no iOS aparece com a cara do Safari.
+let textoModalCallback=null;
+function abrirTextoModal({titulo,sub,valor,placeholder,tipo},aoConfirmar){
+  document.getElementById('texto-modal-titulo').textContent=titulo||'';
+  const elSub=document.getElementById('texto-modal-sub');
+  elSub.textContent=sub||'';
+  elSub.style.display=sub?'':'none';
+  const input=document.getElementById('texto-modal-input');
+  input.value=valor||'';
+  input.placeholder=placeholder||'';
+  input.type=tipo||'text';
+  textoModalCallback=aoConfirmar;
+  document.getElementById('texto-modal').style.display='flex';
+  setTimeout(()=>{ input.focus(); input.select(); },50);
+}
+function fecharTextoModal(){
+  document.getElementById('texto-modal').style.display='none';
+  textoModalCallback=null;
+}
+function confirmarTextoModal(){
+  const valor=document.getElementById('texto-modal-input').value.trim();
+  const cb=textoModalCallback;
+  fecharTextoModal();
+  if(cb) cb(valor);
+}
+
+// Ações da questão inteira, abertas ao tocar no enunciado: a nota geral e o registro de qual
+// par de alternativas confundiu. A dúvida fica na questão, não numa alternativa isolada —
+// marcar só em (a) perderia o (d), e dois registros soltos não se relacionariam.
+let acoesQuestaoId=null;
+let duvidaSelecionada=[];
+
+function abrirAcoesQuestao(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
   if(!q) return;
-  notaQuestaoId=questaoId;
-  document.getElementById('nota-questao-titulo').textContent=`Questão ${q.questao||''}`;
-  document.getElementById('nota-questao-textarea').value=q.notasPessoais||'';
-  document.getElementById('nota-questao-modal').style.display='flex';
+  acoesQuestaoId=questaoId;
+  duvidaSelecionada=[...(q.alternativasDuvida||[])];
+  document.getElementById('acoes-questao-titulo').textContent=`Questão ${q.questao||''}`;
+  document.getElementById('acoes-nota').value=q.notasPessoais||'';
+  document.getElementById('acoes-motivo').value=q.motivoDuvida||'';
+  renderDuvidaLetras();
+  document.getElementById('acoes-questao-modal').style.display='flex';
 }
-function fecharNotaQuestao(){
-  document.getElementById('nota-questao-modal').style.display='none';
-  notaQuestaoId=null;
+
+function renderDuvidaLetras(){
+  const el=document.getElementById('acoes-duvida-letras');
+  if(!el) return;
+  el.innerHTML=['a','b','c','d','e'].map(l=>
+    `<button class="duvida-letra${duvidaSelecionada.includes(l)?' ativa':''}"
+      onclick="toggleDuvidaLetra('${l}')">${l.toUpperCase()}</button>`).join('');
+  // O motivo só faz sentido quando há pelo menos duas — "confundi entre" pede um par.
+  const wrap=document.getElementById('acoes-motivo-wrap');
+  if(wrap) wrap.style.display=duvidaSelecionada.length>=2?'':'none';
 }
-async function salvarNotaQuestao(){
-  if(!notaQuestaoId) return;
-  const id=notaQuestaoId;
-  const texto=document.getElementById('nota-questao-textarea').value.trim();
-  fecharNotaQuestao();
+
+function toggleDuvidaLetra(letra){
+  duvidaSelecionada=duvidaSelecionada.includes(letra)
+    ? duvidaSelecionada.filter(l=>l!==letra)
+    : [...duvidaSelecionada,letra].sort();
+  renderDuvidaLetras();
+}
+
+function fecharAcoesQuestao(){
+  document.getElementById('acoes-questao-modal').style.display='none';
+  acoesQuestaoId=null;
+  duvidaSelecionada=[];
+}
+
+async function salvarAcoesQuestao(){
+  if(!acoesQuestaoId) return;
+  const id=acoesQuestaoId;
+  const nota=document.getElementById('acoes-nota').value.trim();
+  const motivo=document.getElementById('acoes-motivo').value.trim();
+  const duvida=duvidaSelecionada.length>=2?[...duvidaSelecionada]:null;
+  fecharAcoesQuestao();
+
   const q=questoes.find(qq=>qq.id===id);
-  if(q) q.notasPessoais=texto;
-  // Reabre o pop-up da questão já com a nota atualizada, sem recarregar tudo.
-  abrirVerQuestaoCompleta(id);
+  if(q){ q.notasPessoais=nota; q.alternativasDuvida=duvida; q.motivoDuvida=motivo; }
+  if(document.getElementById('ver-questao-modal').style.display==='flex') abrirVerQuestaoCompleta(id);
+  else renderTab(tabAtual,true);
+
   try{
-    await sbDados.from('banco_questoes').update({notas_pessoais:texto||null}).eq('id',id);
+    await sbDados.from('banco_questoes').update({
+      notas_pessoais:nota||null,
+      alternativas_duvida:duvida,
+      motivo_duvida:duvida?(motivo||null):null,
+    }).eq('id',id);
   }catch(e){
-    mostrarAviso('Não deu para salvar a nota','Tente de novo em instantes.');
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
 }
 
@@ -7355,15 +7473,22 @@ function toggleCap(capId){
   if(c) c.classList.toggle('open',!open);
 }
 
-async function adicionarAssuntoPrincipal(questaoId){
-  const texto=prompt('Assunto principal desta questão:');
-  if(!texto||!texto.trim()) return;
+function adicionarAssuntoPrincipal(questaoId){
+  const q=questoes.find(qq=>qq.id===questaoId);
+  abrirTextoModal({titulo:'Assunto principal',
+    sub:q?`Questão ${q.questao}`:'',
+    valor:q?(q.assuntoPrincipal||''):'',
+    placeholder:'Em uma palavra, do que é esta questão'},texto=>{
+    if(texto) salvarAssuntoPrincipal(questaoId,texto);
+  });
+}
+async function salvarAssuntoPrincipal(questaoId,texto){
   try{
-    const {error}=await sbDados.from('banco_questoes').update({assunto_principal:texto.trim()}).eq('id',questaoId);
+    const {error}=await sbDados.from('banco_questoes').update({assunto_principal:texto}).eq('id',questaoId);
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
 }
 
@@ -7373,10 +7498,14 @@ function escapeHtml(str){
 function nomePub(original){
   return apelidos[original]||original;
 }
-async function editarApelidoPublicacao(original){
+function editarApelidoPublicacao(original){
   const atual=apelidos[original]||original;
-  const texto=prompt(`Como você quer chamar "${original}"?`,atual);
-  if(!texto||!texto.trim()||texto.trim()===original) return;
+  abrirTextoModal({titulo:'Apelido da publicação',sub:original,valor:atual,
+    placeholder:'Como você quer chamar'},texto=>{
+    if(texto&&texto!==original) salvarApelidoPublicacao(original,texto);
+  });
+}
+async function salvarApelidoPublicacao(original,texto){
   try{
     const {error}=await sbDados.from('apelidos_publicacao').upsert({
       nome_original:original,
@@ -7385,7 +7514,7 @@ async function editarApelidoPublicacao(original){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar apelido: '+e.message);
+    mostrarAviso('Não deu para salvar o apelido','Tente de novo em instantes.');
   }
 }
 
@@ -7518,9 +7647,17 @@ function formatQuestaoCompleta(texto,q){
     return linhaAlt+notaHtml;
   });
 
+  // O enunciado também é clicável, igual às alternativas — abre as ações da questão inteira
+  // (nota e registro de dúvida). Antes isso ficava num link separado abaixo do título, que
+  // não seguia o mesmo gesto das alternativas.
+  const temAcoes=q&&q.id;
+  const cls='enunciado-linha'+(temAcoes?' enunciado-linha-clicavel':'')
+    +(q&&(q.notasPessoais||(q.alternativasDuvida||[]).length)?' tem-nota':'');
+  const clique=temAcoes?` onclick="abrirAcoesQuestao('${q.id}')"`:'';
+
   const linhas=[
-    partesEnun[0]||'',
-    ...partesEnun.slice(1).map(p=>`<div class="enunciado-linha">${p}</div>`),
+    partesEnun[0]?`<div class="${cls}"${clique}>${partesEnun[0]}</div>`:'',
+    ...partesEnun.slice(1).map(p=>`<div class="${cls}"${clique}>${p}</div>`),
     ...linhasAlt
   ];
   return linhas.join('');
