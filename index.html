@@ -500,7 +500,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .carrossel-dot{width:6px;height:6px;border-radius:50%;background:#ddd;flex-shrink:0}
 .carrossel-dot.ativo{background:#202A45}
 .mod-detail.open{display:flex}
-.pub-block{display:flex;flex-direction:column;gap:5px}
+/* Publicações dentro do módulo: sem respiro entre elas o bloco vira um amontoado */
+.pub-block{display:flex;flex-direction:column;gap:14px}
 .pub-top{display:flex;justify-content:space-between;align-items:center}
 .pub-nm{font-size:var(--fs-d);font-weight:500;flex:1;padding-right:8px}
 .pub-nm-edit{cursor:pointer;border-bottom:0.5px dashed #ccc}
@@ -740,7 +741,14 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tipo-errada-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .tipo-errada-num{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .tipo-errada-resp{font-size:var(--fs-a);color:#A32D2D;white-space:nowrap}
-.tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:3px;line-height:1.35}
+.tipo-errada-questao{font-size:var(--fs-c);font-weight:600;color:#202A45;margin-top:3px}
+/* Cabeçalho do pop-up de questão: origem, resultado e referência antes do enunciado */
+.vq-origem{font-size:var(--fs-a);color:#999;margin-bottom:6px}
+.vq-linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.vq-resp{font-size:var(--fs-a);color:#A32D2D;white-space:nowrap}
+.vq-ref{font-size:var(--fs-a);color:#888;line-height:1.4}
+.vq-assunto{font-size:var(--fs-c);color:#333;margin-top:4px}
+.tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:2px;line-height:1.35}
 .tipo-errada-ref{font-size:var(--fs-a);color:#999;margin-top:2px;line-height:1.35}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
 .info-btn svg{width:13px;height:13px}
@@ -1043,7 +1051,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div class="modal-overlay" id="anotar-alternativa-modal" style="display:none;z-index:1000002">
+<div class="modal-overlay" id="anotar-alternativa-modal" style="display:none;z-index:1000004">
   <div class="modal-box" style="max-width:480px;width:92%">
     <div class="config-title">Anotação - alternativa (<span id="anotar-alt-letra"></span>)</div>
     <textarea id="anotar-alt-textarea" class="nota-questao-textarea" placeholder="Insight" rows="8"></textarea>
@@ -1099,7 +1107,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="escolher-resposta-modal" style="display:none;z-index:1000001"
   onclick="if(event.target===this)fecharEscolherResposta()">
   <div class="modal-box">
-    <div class="config-title">Qual foi sua resposta?</div>
+    <div class="config-title" id="escolher-resposta-titulo"></div>
     <p id="escolher-resposta-texto" style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
       <button class="modal-btn modal-btn-nao" id="esc-alt-a" onclick="confirmarRespostaManual('a')">A</button>
@@ -1108,7 +1116,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" id="esc-alt-d" onclick="confirmarRespostaManual('d')">D</button>
       <button class="modal-btn modal-btn-nao" id="esc-alt-e" onclick="confirmarRespostaManual('e')">E</button>
     </div>
-    <button class="modal-btn modal-btn-nao" style="width:100%;margin-top:12px"
+    <button class="modal-btn modal-btn-nao" id="esc-apagar" style="width:100%;margin-top:12px"
+      onclick="apagarRespostaManual()">Apagar marcação</button>
+    <button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px"
       onclick="fecharEscolherResposta()">Cancelar</button>
   </div>
 </div>
@@ -1133,6 +1143,19 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div id="cal-dia-corpo"></div>
     <div class="sd-rodape">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDiaCalendario()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="nota-nova-modal" style="display:none;z-index:1000001"
+  onclick="if(event.target===this)fecharNotaNova()">
+  <div class="modal-box">
+    <div class="config-title">Nova nota de estudo</div>
+    <input type="text" id="nota-nova-input" class="filter-select" placeholder="O que você quer lembrar"
+      style="width:100%;margin-bottom:16px" onkeydown="if(event.key==='Enter')salvarNotaNova()">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharNotaNova()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarNotaNova()">Salvar</button>
     </div>
   </div>
 </div>
@@ -2429,7 +2452,7 @@ function renderizarListaMarcacao(){
       ? ': '+faltando.map(q=>q.numeroQuestao).join(', ')
       : '';
     avisoEl.classList.remove('hidden');
-    avisoEl.innerHTML=`<span>⚠ Falta${faltando.length>1?'m':''} ${faltando.length} questão${faltando.length>1?'ões':''} responder${lista}</span>`;
+    avisoEl.innerHTML=`<span>⚠ Falta${faltando.length>1?'m':''} responder ${faltando.length} ${faltando.length>1?'questões':'questão'}${lista}</span>`;
   }else if(semModuloAviso.length||semPublicacaoAviso.length||semCapitulo.length){
     avisoEl.classList.remove('hidden');
     const partes=[];
@@ -2562,14 +2585,36 @@ function abrirEscolherRespostaManual(questaoId){
   if(!q) return;
   escolherRespostaQuestaoId=questaoId;
   const jaTem=(q.suaResposta||'').toLowerCase();
+  document.getElementById('escolher-resposta-titulo').textContent=`Questão ${q.numeroQuestao}`;
   document.getElementById('escolher-resposta-texto').textContent=
-    `Questão ${q.numeroQuestao}` + (jaTem?` · marcada como ${jaTem.toUpperCase()}`:'');
+    jaTem?`Resposta marcada: ${jaTem.toUpperCase()}`:'Marque sua resposta';
+  // Apagar só faz sentido quando existe algo marcado.
+  const btnApagar=document.getElementById('esc-apagar');
+  if(btnApagar) btnApagar.style.display=jaTem?'':'none';
   // Destaca a letra atual: sem isso, ao reabrir para trocar, não dá para saber qual está valendo.
   ['a','b','c','d','e'].forEach(l=>{
     const b=document.getElementById('esc-alt-'+l);
     if(b) b.className='modal-btn '+(l===jaTem?'modal-btn-sim':'modal-btn-nao');
   });
   document.getElementById('escolher-resposta-modal').style.display='flex';
+}
+
+// Desfaz a marcação: a questão volta ao estado de não respondida, e o botão "Escolher" reaparece.
+async function apagarRespostaManual(){
+  if(!escolherRespostaQuestaoId) return;
+  const questaoId=escolherRespostaQuestaoId;
+  fecharEscolherResposta();
+  const q=questoesPendentes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  try{
+    const {error}=await sbDados.from('questoes_pendentes')
+      .update({sua_resposta:null,respondida:false,resposta_manual:false}).eq('id',questaoId);
+    if(error) throw error;
+    q.suaResposta=null; q.respondida=false; q.respostaManual=false;
+    renderizarListaMarcacao();
+  }catch(e){
+    alert('Erro ao apagar marcação: '+e.message);
+  }
 }
 
 function fecharEscolherResposta(){
@@ -5922,15 +5967,27 @@ function renderCardNotas(){
   `;
 }
 
-async function adicionarNota(){
-  const texto=prompt('Nova nota de estudo:');
-  if(!texto||!texto.trim()) return;
+// O prompt nativo do navegador quebra o visual do app e não é estilizável. Modal próprio,
+// como todo o resto.
+function adicionarNota(){
+  document.getElementById('nota-nova-input').value='';
+  document.getElementById('nota-nova-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('nota-nova-input').focus(),50);
+}
+function fecharNotaNova(){
+  document.getElementById('nota-nova-modal').style.display='none';
+}
+async function salvarNotaNova(){
+  const el=document.getElementById('nota-nova-input');
+  const texto=(el.value||'').trim();
+  if(!texto) return;
+  fecharNotaNova();
   try{
-    const {error}=await sbDados.from('notas_estudo').insert({texto:texto.trim()});
+    const {error}=await sbDados.from('notas_estudo').insert({texto});
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar nota: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
 }
 
@@ -6911,7 +6968,7 @@ function renderDetalhe(a){
       ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
       <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
     </div>
-    <div style="height:10px"></div>
+    <div style="height:18px"></div>
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
@@ -6986,12 +7043,20 @@ function renderTiposCards(qs){
     const detalhe=erradas.length
       ? erradas.map(q=>{
           const as=assuntoDe(q);
-          return `<div class="tipo-errada">
+          // Identificação completa: só o número da atividade não diz de que curso veio nem se
+          // foi simulado ou caderno. E "Questão 02" por extenso, com zero à frente.
+          const ativ=(atividades||[]).find(a=>a.nome===q.idAtividade);
+          const rotuloTipo=ativ?(tipoLabelCurso[ativ.curso]||(ativ.tipo==='Simulado'?'SIMULADO':'CADERNO')):'';
+          const cabecalho=[ativ?ativ.curso:'', rotuloTipo?rotuloTipo+' '+q.idAtividade:q.idAtividade]
+            .filter(Boolean).join(' · ');
+          const numQ='Questão '+String(q.questao).padStart(2,'0');
+          return `<div class="tipo-errada" onclick="abrirVerQuestaoCompleta('${q.id}')" style="cursor:pointer">
           <div class="tipo-errada-top">
-            <span class="tipo-errada-num">${q.idAtividade||''} · Q${q.questao}</span>
+            <span class="tipo-errada-num">${cabecalho}</span>
             <span class="tipo-errada-resp">marcou ${(q.suaResposta||'–').toUpperCase()} • era ${(q.gabarito||'–').toUpperCase()}</span>
           </div>
-          ${as?`<div class="tipo-errada-assunto">${as}</div>`:''}
+          <div class="tipo-errada-questao">${numQ}</div>
+          ${as?`<div class="tipo-errada-assunto">${as.charAt(0).toUpperCase()+as.slice(1)}</div>`:''}
           <div class="tipo-errada-ref">${q.modulo||'sem módulo'}${q.publicacao?' – '+nomePub(q.publicacao):''}${q.capitulo?', Capítulo '+q.capitulo:''}</div>
         </div>`;
         }).join('')
@@ -7179,10 +7244,26 @@ function abrirVerQuestaoCompleta(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
   if(!q||!q.motivo) return;
   const si=statusInfo(q);
-  document.getElementById('ver-questao-titulo').textContent=`Questão ${q.questao||'–'}`;
+  const ativ=(atividades||[]).find(a=>a.nome===q.idAtividade);
+  const rotuloTipo=ativ?(tipoLabelCurso[ativ.curso]||(ativ.tipo==='Simulado'?'SIMULADO':'CADERNO')):'';
+  const origem=[ativ?ativ.curso:'', rotuloTipo?rotuloTipo+' '+q.idAtividade:q.idAtividade]
+    .filter(Boolean).join(' · ');
+  const ref=[q.modulo, q.publicacao?nomePub(q.publicacao):'', q.capitulo?'Capítulo '+q.capitulo:'']
+    .filter(Boolean).join(' – ');
+
+  document.getElementById('ver-questao-titulo').textContent=
+    `Questão ${String(q.questao||'').padStart(2,'0')}`;
+  // Contexto antes do enunciado: de onde veio, o que aconteceu, e o que você marcou. Sem isso o
+  // pop-up mostrava só o texto, sem dizer de que prova era nem qual foi o erro.
   document.getElementById('ver-questao-conteudo').innerHTML=`
-    <div style="margin-bottom:10px"><span class="cap-res" style="color:${si.color};font-weight:600">${si.label}</span></div>
-    <div class="enunciado-box" style="margin-top:0">${formatQuestaoCompleta(q.motivo,q)}</div>
+    ${origem?`<div class="vq-origem">${origem}</div>`:''}
+    <div class="vq-linha">
+      <span class="cap-res" style="color:${si.color};font-weight:600">${si.label}</span>
+      ${q.suaResposta||q.gabarito?`<span class="vq-resp">marcou ${(q.suaResposta||'–').toUpperCase()} • era ${(q.gabarito||'–').toUpperCase()}</span>`:''}
+    </div>
+    ${ref?`<div class="vq-ref">${ref}</div>`:''}
+    ${q.assuntoPrincipal?`<div class="vq-assunto">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}</div>`:''}
+    <div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>
   `;
   document.getElementById('ver-questao-modal').style.display='flex';
 }
@@ -7465,8 +7546,11 @@ function renderQuestoes(){
     // - "manual": nenhuma detecção, mas pelo menos 1 questão já foi tocada no modo manual (mesmo
     //   sem ter confirmado o caderno ainda) — aqui sim vale a regra de "tudo Verdadeiro por padrão,
     //   só marca as erradas"
-    const temDeteccaoCard=qsDessa.some(q=>q.suaResposta);
-    const algumaTocadaCard=qsDessa.some(q=>q.acertouSimplificado!=null);
+    // "Detectado" só quando a letra veio do PDF. Se todas foram informadas no app, o caderno é
+    // manual — antes qualquer resposta contava como detecção, e o rótulo mentia.
+    const temRespostaCard=qsDessa.some(q=>q.suaResposta);
+    const temDeteccaoCard=qsDessa.some(q=>q.suaResposta&&!q.respostaManual);
+    const algumaTocadaCard=temRespostaCard||qsDessa.some(q=>q.acertouSimplificado!=null);
     const modoCard=temDeteccaoCard?'detectado':(algumaTocadaCard?'manual':'fresco');
     let faltando,respondidas;
     if(modoCard==='fresco'){
