@@ -561,7 +561,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .enunciado-box{font-size:var(--fs-d);color:#111;line-height:1.6;margin-top:25px}
 .enunciado-linha{margin-top:6px}
 .enunciado-alternativa{display:flex;align-items:flex-start;gap:4px}
+/* Marcador de assertiva: coluna um pouco mais larga que a das alternativas, porque "III)" e
+   "( )" ocupam mais que "(a)" */
 .alt-bullet{flex-shrink:0;width:26px;color:#111}
+.alt-bullet-assertiva{width:34px}
+.enunciado-assertiva{display:flex;gap:2px}
 .alt-texto{flex:1}
 .enunciado-linha-clicavel{cursor:pointer;border-radius:6px;padding:4px 6px;margin-left:-6px;margin-right:-6px}
 @media(hover:hover){
@@ -7633,7 +7637,7 @@ async function salvarEditarAssunto(){
 // esse gesto em tela sensível ao toque, então a alça aparece mas não faz nada. Aqui a alça é
 // um elemento próprio, e o arraste é tratado com eventos de ponteiro, que funcionam nos dois.
 (function(){
-  let alvo=null, xInicial=0, yInicial=0, larguraInicial=0, alturaInicial=0;
+  let alvo=null, xInicial=0, yInicial=0, larguraInicial=0, alturaInicial=0, areasAlturaInicial=0;
 
   function iniciar(ev){
     const alca=ev.target.closest('.modal-resize');
@@ -7642,6 +7646,8 @@ async function salvarEditarAssunto(){
     if(!alvo) return;
     const r=alvo.getBoundingClientRect();
     larguraInicial=r.width; alturaInicial=r.height;
+    const ta=alvo.querySelectorAll('textarea');
+    areasAlturaInicial=ta.length===1?ta[0].getBoundingClientRect().height:0;
     const p=ev.touches?ev.touches[0]:ev;
     xInicial=p.clientX; yInicial=p.clientY;
     // Solta os limites do CSS: a partir daqui quem manda é o gesto.
@@ -7661,6 +7667,13 @@ async function salvarEditarAssunto(){
     const alta=Math.max(200, Math.min(window.innerHeight-24, alturaInicial+(p.clientY-yInicial)));
     alvo.style.width=nova+'px';
     alvo.style.height=alta+'px';
+    // A caixa de escrita cresce junto: num modal que só tem o campo de texto, esticar a altura
+    // sem esticar o campo deixaria uma faixa branca inútil embaixo.
+    const areas=alvo.querySelectorAll('textarea');
+    if(areas.length===1){
+      const sobra=alturaInicial-areasAlturaInicial;
+      areas[0].style.height=Math.max(80, alta-sobra)+'px';
+    }
     ev.preventDefault();
   }
 
@@ -7671,6 +7684,32 @@ async function salvarEditarAssunto(){
     document.removeEventListener('touchmove',mover);
     document.removeEventListener('touchend',soltar);
   }
+
+  // O tamanho arrastado vale só enquanto o pop-up está aberto: ao fechar, volta ao padrão.
+  // Guardar seria pior — um modal que abre gigante porque foi esticado uma vez, semanas atrás,
+  // confunde mais do que ajuda.
+  //
+  // Em vez de chamar um reset nos 37 pontos que fecham modal (e depender de lembrar disso em
+  // cada novo), observa-se a mudança de "display": quando o overlay some, o tamanho volta.
+  const observador=new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      const ov=m.target;
+      if(!ov.classList||!ov.classList.contains('modal-overlay')) return;
+      if(ov.style.display==='none'||ov.style.display===''){
+        ov.querySelectorAll('.modal-box').forEach(b=>{
+          b.style.width=''; b.style.height='';
+          b.style.maxWidth=''; b.style.maxHeight='';
+          // A caixa de texto cresce junto com o modal ao arrastar, então precisa voltar junto.
+          b.querySelectorAll('textarea').forEach(t=>{ t.style.height=''; });
+        });
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.modal-overlay').forEach(ov=>{
+      observador.observe(ov,{attributes:true,attributeFilter:['style']});
+    });
+  });
 
   document.addEventListener('pointerdown',iniciar,{passive:false});
   document.addEventListener('touchstart',iniciar,{passive:false});
@@ -7847,9 +7886,24 @@ function formatQuestaoCompleta(texto,q){
     +(q&&(q.notasPessoais||(q.alternativasDuvida||[]).length)?' tem-nota':'');
   const clique=temAcoes?` onclick="abrirAcoesQuestao('${q.id}')"`:'';
 
+  // As assertivas do enunciado também são lista, e precisam do mesmo tratamento de bullet que
+  // as alternativas: marcador numa coluna fixa e texto indentado ao lado. Sem isso, "I) Uma
+  // medida significativa..." saía como parágrafo corrido, e a segunda linha voltava para a
+  // margem, embaixo do marcador.
+  const comBullet=(txt)=>{
+    // Três formatos de marcador de assertiva convivem nos cadernos
+    const m=txt.match(/^(\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s*/);
+    if(!m) return txt;
+    let marcador=m[1];
+    // "( )" de verdadeiro ou falso: dois espaços dentro, para o dedo ter onde marcar e o
+    // parêntese não ficar espremido
+    if(/^\(\s*\)$/.test(marcador)) marcador='(&nbsp;&nbsp;)';
+    return `<span class="alt-bullet alt-bullet-assertiva">${marcador}</span><span class="alt-texto">${txt.slice(m[0].length)}</span>`;
+  };
+
   const linhas=[
     partesEnun[0]?`<div class="${cls}"${clique}>${partesEnun[0]}</div>`:'',
-    ...partesEnun.slice(1).map(p=>`<div class="${cls}"${clique}>${p}</div>`),
+    ...partesEnun.slice(1).map(p=>`<div class="${cls} enunciado-assertiva"${clique}>${comBullet(p)}</div>`),
     ...linhasAlt
   ];
   return linhas.join('');
