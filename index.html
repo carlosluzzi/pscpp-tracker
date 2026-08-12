@@ -230,11 +230,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Alinhada pelo CENTRO com o ✕, não pela borda: os dois têm tamanhos diferentes, então igualar
    o "top" deixaria um mais alto que o outro. Aqui os dois usam a mesma altura de caixa e
    centralizam o conteúdo dentro dela. */
-.tf-ajustes-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:56px;
+.tf-ajustes-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);left:16px;
   color:#6B7280;background:none;border:none;cursor:pointer;padding:0;
   width:40px;height:40px;display:flex;align-items:center;justify-content:center}
 @media(hover:hover){.tf-ajustes-btn:hover{color:#9BA3B7}}
-.tf-ajustes{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);right:20px;
+.tf-ajustes{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);left:16px;
   width:min(300px, calc(100vw - 40px));background:#1A1F2E;border-radius:14px;padding:14px 16px;
   box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:5}
 .tf-ajustes.hidden{display:none}
@@ -414,6 +414,45 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Faixa própria abaixo do cabeçalho, como um segundo header. Antes o botão ficava dentro do
    header e o esticava; depois flutuou sobre ele, o que resolvia a altura mas o deixava colado
    na data. Aqui ele tem espaço próprio e a sombra do scroll passa a ser dele. */
+/* Calendário do mês: grade compacta, com um ponto por natureza de evento. A célula é pequena
+   demais para texto, então o ponto diz "tem algo aqui" e o detalhe abre ao tocar. */
+.cal-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-mes{font-size:var(--fs-d);font-weight:600;color:#202A45}
+.cal-nav{background:none;border:none;font-size:22px;color:#888;cursor:pointer;padding:2px 12px;
+  font-family:inherit;line-height:1}
+@media(hover:hover){.cal-nav:hover{color:#202A45}}
+.cal-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.cal-semana span{text-align:center;font-size:var(--fs-a);color:#aaa;font-weight:600}
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-cel{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;cursor:pointer;background:#F7F8FA}
+.cal-vazia{background:transparent;cursor:default}
+.cal-passou{opacity:.45}
+.cal-hoje{background:#E6F1FB;font-weight:700}
+.cal-sel{outline:2px solid #202A45;outline-offset:-2px}
+.cal-num{font-size:var(--fs-c);color:#202A45;line-height:1}
+.cal-pontos{display:flex;gap:2px;min-height:5px}
+.cal-ponto{width:5px;height:5px;border-radius:50%;display:inline-block}
+.cal-ponto-revisao{background:#EF9F27}
+.cal-ponto-curso{background:#E24B4A}
+.cal-ponto-anki{background:#4A8FD4}
+.cal-ponto-complementar{background:#888}
+.cal-ponto-plano{background:#639922}
+.cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
+.cal-legenda span{display:inline-flex;align-items:center;gap:4px}
+.cal-detalhe{border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px}
+.cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
+.cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
+  cursor:pointer;font-family:inherit;padding:4px 0}
+.cal-item{display:flex;align-items:center;gap:8px;padding:7px 0}
+.cal-item+.cal-item{border-top:0.5px solid #f7f7f5}
+.cal-item-feito{opacity:.5;text-decoration:line-through}
+.cal-item-tag{font-size:var(--fs-a);color:#fff;border-radius:5px;padding:2px 7px;
+  flex-shrink:0;font-weight:600}
+.cal-item-txt{font-size:var(--fs-c);color:#333;flex:1;min-width:0;line-height:1.35}
+.cal-item-x{background:none;border:none;color:#bbb;cursor:pointer;font-size:14px;padding:2px 4px;
+  flex-shrink:0;font-family:inherit}
 /* Bloco do que ainda vai vencer: separado do que é para fazer hoje, e mais discreto — é
    informação para se organizar, não tarefa pendente. */
 .rev-futuras{border-top:0.5px solid #f0f0ee;margin-top:10px;padding-top:8px}
@@ -1082,6 +1121,29 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(30)">+30 min</button>
     </div>
     <button class="modal-btn modal-btn-sim" style="width:100%" onclick="dispensarAlarmeAnki()">Dispensar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="plano-modal" style="display:none;z-index:1000001"
+  onclick="if(event.target===this)fecharNovoPlano()">
+  <div class="modal-box">
+    <div class="config-title">Planejar estudo</div>
+    <input type="hidden" id="plano-data">
+    <select id="plano-tipo" class="filter-select" style="width:100%;margin-bottom:10px">
+      <option value="Leitura">Leitura</option>
+      <option value="Exercício">Exercício</option>
+      <option value="Revisão">Revisão</option>
+      <option value="Anki">Anki</option>
+      <option value="Simulado">Simulado</option>
+    </select>
+    <input type="text" id="plano-descricao" class="filter-select" placeholder="O que vai estudar"
+      style="width:100%;margin-bottom:10px">
+    <input type="number" id="plano-minutos" class="filter-select" placeholder="Minutos (opcional)"
+      style="width:100%;margin-bottom:16px">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharNovoPlano()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarNovoPlano()">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -1765,7 +1827,7 @@ function fmtPct(v){
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='dia',analiseMesRef=null;
 let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
-let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[];
+let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[],planoEstudo=[],ankiPrevisao=[];
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
@@ -1819,7 +1881,9 @@ async function loadDataInterno(){
       {data:ankiRes,error:eAnki},
       {data:ankiSecRes,error:eAnkiSec},
       {data:ankiRevRes,error:eAnkiRev},
-      {data:classAltRes,error:eClassAlt}
+      {data:classAltRes,error:eClassAlt},
+      {data:planoRes,error:ePlano},
+      {data:previsaoRes,error:ePrevisao}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
@@ -1842,6 +1906,8 @@ async function loadDataInterno(){
       buscarTudo('anki_secoes'),
       buscarTudo('anki_revisoes'),
       buscarTudo('classificacao_alternativas'),
+      buscarTudo('plano_estudo'),
+      buscarTudo('anki_previsao_carga'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -2008,6 +2074,16 @@ async function loadDataInterno(){
     }));
     // Classificação no nível da alternativa: diz o que a alternativa marcada errado estava
     // cobrando. É o que transforma "erra números" em "erra a largura de canal do CONAPRA".
+    // O que o Carlos planejou estudar em cada dia. Diferente das sessões: sessão é o que
+    // aconteceu, plano é o que ele pretende fazer.
+    planoEstudo=ePlano?[]:(planoRes||[]).map(p=>({
+      id:p.id, data:p.data, tipo:p.tipo||'Leitura', modulo:p.modulo||'',
+      publicacao:p.publicacao||'', capitulo:p.capitulo||'',
+      descricao:p.descricao||'', minutos:p.minutos||null, feito:!!p.feito,
+    }));
+    ankiPrevisao=ePrevisao?[]:(previsaoRes||[]).map(p=>({
+      data:p.data, deck:p.deck||'', revisoes:p.revisoes||0,
+    }));
     classAlternativas=eClassAlt?[]:(classAltRes||[]).map(p=>({
       idAtividade:p.id_atividade, questao:p.numero_questao, alternativa:p.alternativa,
       tipoConteudo:p.tipo_conteudo||'', assunto:p.assunto||'',
@@ -2066,6 +2142,7 @@ function renderSubAbas(tab){
     slot.innerHTML=`<div class="sub-abas">
       <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')"><span>Nova atividade</span></div>
       <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')"><span>Histórico</span></div>
+      <div class="sub-aba${abaAprovado==='calendario'?' ativa':''}" onclick="setAbaAprovado('calendario')"><span>Calendário</span></div>
     </div>`;
     return;
   }
@@ -3565,6 +3642,10 @@ function renderAprovado(){
   // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
 
+  if(abaAprovado==='calendario'){
+    return `<div class="card-inicio">${renderCalendarioMes()}</div>`;
+  }
+
   if(abaAprovado==='historico'){
     // "Horas por matéria – últimos 7 dias" foi removida: "Onde investi o tempo" mostra a mesma
     // informação de forma mais completa (com hierarquia até o capítulo e filtro de período).
@@ -4945,6 +5026,164 @@ function renderVoltarSlot(){
   return atividadeAtual
     ? `<div class="voltar-faixa"><div class="detail-back" onclick="voltarLista()">← ${origemDetalhe||rotuloAbaAtual()}</div></div>`
     : '';
+}
+
+// ---------- Calendário do mês ----------
+// Data por extenso no cabeçalho do dia aberto: "quinta-feira, 14 de agosto" situa melhor que
+// uma data curta quando se está olhando um mês inteiro.
+const fmtDataLongaCal=d=>{
+  const dt=new Date(d+'T12:00:00');
+  return dt.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+};
+
+// Junta o que o sistema já sabe (revisões vencendo, simulados dos cursos, carga do Anki,
+// atividades com prazo) com o que o Carlos planeja para cada dia. As duas naturezas convivem
+// na mesma célula, distinguidas por cor: agendado é o que o sistema calculou, planejado é
+// decisão dele.
+let calendarioMesRef=null;   // 'AAAA-MM'; null = mês atual
+let calendarioDiaSel=null;   // dia aberto no detalhe
+
+function mesRefCalendario(){
+  if(calendarioMesRef) return calendarioMesRef;
+  const h=new Date();
+  return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}`;
+}
+
+function navegarMesCalendario(delta){
+  const [a,m]=mesRefCalendario().split('-').map(Number);
+  const d=new Date(a,m-1+delta,1);
+  calendarioMesRef=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  calendarioDiaSel=null;
+  renderTab(tabAtual,true);
+}
+
+// Tudo que acontece num dia, das quatro fontes automáticas mais o plano manual.
+function eventosDoDia(dia){
+  const ev=[];
+
+  (revisoesEspacadas||[]).forEach(r=>{
+    if(r.proximaData===dia) ev.push({fonte:'revisao', tipo:'Revisão',
+      texto:(r.publicacao?nomePub(r.publicacao):r.modulo)+(r.capitulo?', Capítulo '+r.capitulo:''),
+      modulo:r.modulo, id:r.id});
+  });
+
+  (calendarioEventos||[]).forEach(c=>{
+    if(c.data===dia&&!c.feito) ev.push({fonte:'curso', tipo:c.curso||'Simulado',
+      texto:(tipoLabelCurso[c.curso]||'SIMULADO')+' '+(c.numero||''), modulo:'', id:c.id});
+  });
+
+  const prev=(ankiPrevisao||[]).filter(p=>p.data===dia).reduce((a,p)=>a+p.revisoes,0);
+  if(prev>0) ev.push({fonte:'anki', tipo:'Anki',
+    texto:prev+' revis'+(prev===1?'ão':'ões')+' no Anki', modulo:'', id:null});
+
+  (complementares||[]).forEach(a=>{
+    if(a.dataLimite===dia&&a.status!=='Feito') ev.push({fonte:'complementar', tipo:'Tarefa',
+      texto:a.nome, modulo:'', id:a.id});
+  });
+
+  (planoEstudo||[]).forEach(pl=>{
+    if(pl.data===dia) ev.push({fonte:'plano', tipo:pl.tipo,
+      texto:pl.descricao||[pl.modulo,pl.publicacao?nomePub(pl.publicacao):'',pl.capitulo?'Capítulo '+pl.capitulo:'']
+        .filter(Boolean).join(' – '),
+      modulo:pl.modulo, id:pl.id, feito:pl.feito, minutos:pl.minutos});
+  });
+
+  return ev;
+}
+
+function renderCalendarioMes(){
+  const ref=mesRefCalendario();
+  const [ano,mes]=ref.split('-').map(Number);
+  const primeiro=new Date(ano,mes-1,1);
+  const diasNoMes=new Date(ano,mes,0).getDate();
+  const inicioSemana=primeiro.getDay();   // 0 = domingo
+  const hojeStr=chaveDia(new Date());
+  const nomeMes=primeiro.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  const celulas=[];
+  for(let i=0;i<inicioSemana;i++) celulas.push('<div class="cal-cel cal-vazia"></div>');
+  for(let d=1;d<=diasNoMes;d++){
+    const dia=`${ano}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ev=eventosDoDia(dia);
+    const ehHoje=dia===hojeStr;
+    const passou=dia<hojeStr;
+    // Um ponto por natureza de evento, não por evento — a célula é pequena e o que importa
+    // ali é "tem algo neste dia", não quantos.
+    const naturezas=[...new Set(ev.map(e=>e.fonte))];
+    const pontos=naturezas.slice(0,4).map(f=>`<span class="cal-ponto cal-ponto-${f}"></span>`).join('');
+    return_cel=`<div class="cal-cel${ehHoje?' cal-hoje':''}${passou?' cal-passou':''}${calendarioDiaSel===dia?' cal-sel':''}"
+      onclick="abrirDiaCalendario('${dia}')">
+      <span class="cal-num">${d}</span>
+      <div class="cal-pontos">${pontos}</div>
+    </div>`;
+    celulas.push(return_cel);
+  }
+
+  const diaAberto=calendarioDiaSel;
+  const evDia=diaAberto?eventosDoDia(diaAberto):[];
+
+  return `
+    <div class="cal-topo">
+      <button class="cal-nav" onclick="navegarMesCalendario(-1)">‹</button>
+      <span class="cal-mes">${nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1)}</span>
+      <button class="cal-nav" onclick="navegarMesCalendario(1)">›</button>
+    </div>
+    <div class="cal-semana">${['D','S','T','Q','Q','S','S'].map(x=>`<span>${x}</span>`).join('')}</div>
+    <div class="cal-grade">${celulas.join('')}</div>
+    <div class="cal-legenda">
+      <span><span class="cal-ponto cal-ponto-revisao"></span>revisão</span>
+      <span><span class="cal-ponto cal-ponto-curso"></span>curso</span>
+      <span><span class="cal-ponto cal-ponto-anki"></span>Anki</span>
+      <span><span class="cal-ponto cal-ponto-plano"></span>planejado</span>
+    </div>
+    ${diaAberto?`
+    <div class="cal-detalhe">
+      <div class="cal-detalhe-topo">
+        <span>${fmtDataLongaCal(diaAberto)}</span>
+        <button class="cal-add" onclick="abrirNovoPlano('${diaAberto}')">+ planejar</button>
+      </div>
+      ${evDia.length?evDia.map(e=>`
+        <div class="cal-item${e.feito?' cal-item-feito':''}">
+          <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
+          <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
+          ${e.fonte==='plano'?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
+        </div>`).join('')
+        :'<div class="empty" style="padding:10px 0">Nada agendado. Toque em planejar para adicionar.</div>'}
+    </div>`:''}`;
+}
+
+function abrirDiaCalendario(dia){
+  calendarioDiaSel=calendarioDiaSel===dia?null:dia;
+  renderTab(tabAtual,true);
+}
+
+function abrirNovoPlano(dia){
+  document.getElementById('plano-data').value=dia;
+  document.getElementById('plano-descricao').value='';
+  document.getElementById('plano-minutos').value='';
+  document.getElementById('plano-modal').style.display='flex';
+}
+function fecharNovoPlano(){ document.getElementById('plano-modal').style.display='none'; }
+
+async function salvarNovoPlano(){
+  const data=document.getElementById('plano-data').value;
+  const tipo=document.getElementById('plano-tipo').value;
+  const descricao=document.getElementById('plano-descricao').value.trim();
+  if(!data||!descricao) return;
+  const minutos=parseInt(document.getElementById('plano-minutos').value,10)||null;
+  fecharNovoPlano();
+  const {data:novo,error}=await sbDados.from('plano_estudo')
+    .insert({data,tipo,descricao,minutos}).select().single();
+  if(error){ mostrarAviso('Não deu para salvar','Tente de novo em instantes.'); return; }
+  planoEstudo.push({id:novo.id,data,tipo,modulo:'',publicacao:'',capitulo:'',
+    descricao,minutos,feito:false});
+  renderTab(tabAtual,true);
+}
+
+async function removerPlano(id){
+  planoEstudo=planoEstudo.filter(p=>p.id!==id);
+  renderTab(tabAtual,true);
+  await sbDados.from('plano_estudo').delete().eq('id',id);
 }
 
 function renderCardSaudacao(){
