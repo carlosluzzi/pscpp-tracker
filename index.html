@@ -225,6 +225,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
 .tf-btns{display:flex;gap:10px;justify-content:center}
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
+/* Pausar e Continuar com a mesma largura: sem isso o botão muda de tamanho ao alternar, e o
+   conjunto "pula" na tela a cada toque. */
 .tf-btn-toggle{min-width:150px}
 /* Ajustes do cronômetro: engrenagem no topo direito, ao lado do fechar */
 /* Alinhada pelo CENTRO com o ✕, não pela borda: os dois têm tamanhos diferentes, então igualar
@@ -440,7 +442,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-plano{background:#639922}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
-.modal-box.cal-dia-box{max-width:400px;max-height:80vh;overflow-y:auto;text-align:left}
+.modal-box.cal-dia-box{width:min(400px, 92vw);max-height:80vh;text-align:left}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
@@ -500,8 +502,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .carrossel-dot{width:6px;height:6px;border-radius:50%;background:#ddd;flex-shrink:0}
 .carrossel-dot.ativo{background:#202A45}
 .mod-detail.open{display:flex}
-/* Publicações dentro do módulo: sem respiro entre elas o bloco vira um amontoado */
-.pub-block{display:flex;flex-direction:column;gap:14px}
+/* O gap interno mantém a barra colada ao nome da publicação — as duas coisas são um bloco só.
+   O respiro vai ENTRE blocos, separando uma publicação da próxima. */
+.pub-block{display:flex;flex-direction:column;gap:5px}
+.pub-block+.pub-block{margin-top:16px}
 .pub-top{display:flex;justify-content:space-between;align-items:center}
 .pub-nm{font-size:var(--fs-d);font-weight:500;flex:1;padding-right:8px}
 .pub-nm-edit{cursor:pointer;border-bottom:0.5px dashed #ccc}
@@ -653,7 +657,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   margin-top:8px;height:16px}
 .detalhe-linha-topo .ativ-logo-curso{margin-bottom:0}
 .detalhe-linha-topo .btn-revisar-caderno{position:relative;z-index:2}
-.detalhe-data{font-size:var(--fs-c);color:#888;flex-shrink:0}
+/* A data alinha pelo topo com o título, mas desce um pouco: acima dela fica o botão de revisar,
+   e sem esse respiro os dois quase se tocam. O deslocamento é só dela — mexer no espaçador
+   acima afastaria a logo do título junto. */
+.detalhe-data{font-size:var(--fs-c);color:#888;flex-shrink:0;padding-top:6px}
 .btn-revisar-caderno{padding:6px 13px;border-radius:8px;border:none;background:#202A45;color:#fff;
   font-size:var(--fs-c);font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;
   transition:opacity .15s ease}
@@ -688,7 +695,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    No celular a tela é que limita, então nada muda por lá.
    O miolo é que rola, não a caixa inteira, para o botão Fechar não descer junto com o
    conteúdo numa sessão com muitos cards errados. */
-.modal-box.sd-box{max-width:600px;max-height:85vh;overflow:hidden;text-align:left;
+.modal-box.sd-box{width:min(600px, 92vw);max-height:85vh;overflow:hidden;text-align:left;
   display:flex;flex-direction:column}
 .sd-miolo{flex:1;min-height:0;overflow-y:auto}
 .sd-rodape{border-top:0.5px solid #eee;margin-top:12px;padding-top:12px;flex-shrink:0}
@@ -741,13 +748,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tipo-errada-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .tipo-errada-num{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .tipo-errada-resp{font-size:var(--fs-a);color:#A32D2D;white-space:nowrap}
-.tipo-errada-questao{font-size:var(--fs-c);font-weight:600;color:#202A45;margin-top:3px}
-/* Cabeçalho do pop-up de questão: origem, resultado e referência antes do enunciado */
-.vq-origem{font-size:var(--fs-a);color:#999;margin-bottom:6px}
-.vq-linha{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
-.vq-resp{font-size:var(--fs-a);color:#A32D2D;white-space:nowrap}
-.vq-ref{font-size:var(--fs-a);color:#888;line-height:1.4}
-.vq-assunto{font-size:var(--fs-c);color:#333;margin-top:4px}
+/* Nota de estudo: caixa maior que a de um modal de confirmação, porque aqui se escreve de
+   verdade — um campo de uma linha convida a anotar menos do que se quer. */
+.modal-box.nota-box{width:min(440px, 92vw)}
+.nota-textarea{width:100%;box-sizing:border-box;font-size:16px;padding:10px 12px;border-radius:8px;
+  border:0.5px solid #ddd;background:#fff;color:#111;font-family:inherit;line-height:1.5;
+  resize:vertical;min-height:96px;margin-bottom:16px}
+.nota-textarea:focus{outline:none;border-color:#202A45}
+/* Nota da questão inteira, acima do enunciado */
+.vq-nota{font-size:var(--fs-c);color:#333;background:#FAEEDA;border-radius:8px;padding:8px 10px;
+  margin:10px 0;line-height:1.45;cursor:pointer}
+.vq-nota-add{font-size:var(--fs-c);color:#888;margin:10px 0;cursor:pointer}
+@media(hover:hover){.vq-nota-add:hover{color:#202A45}}
 .tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:2px;line-height:1.35}
 .tipo-errada-ref{font-size:var(--fs-a);color:#999;margin-top:2px;line-height:1.35}
 .info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
@@ -762,7 +774,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .explicacao strong{color:#222;font-weight:600}
 .explicacao em{color:#666}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
-.nota-questao-textarea{width:100%;min-height:80px;font-size:16px;padding:12px 14px;border-radius:10px;border:0.5px solid #ddd;background:#fff;font-family:inherit;color:#111;resize:vertical;line-height:1.5}
+
 .banco-combine-toggle:hover{color:#111;border-color:#999}
 .q-detail{display:none;padding:14px;border-top:0.5px solid #e0e0e0;flex-direction:column}
 .q-detail.open{display:flex}
@@ -906,7 +918,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .status-feito{background:#EAF3DE;color:#3B6D11}
 .status-atrasado{background:#E24B4A;color:#fff}
 .prox-confirm-btn{font-size:12px;padding:6px 12px;border-radius:6px;border:0.5px solid #ccc;background:#fff;color:#555;cursor:pointer;font-family:inherit;font-weight:500}
-.cadernos-btn-largura{min-width:160px;padding:4px 10px;min-height:35.5px;text-align:center;font-size:var(--fs-c);display:flex;align-items:center;justify-content:center}
+/* Largura acompanha o texto: "Iniciar caderno", "Refazer caderno" e "Voltar ao cronômetro" têm
+   tamanhos bem diferentes, e forçar todos ao maior deixava os curtos com sobra estranha.
+   A altura continua fixa para as linhas da lista ficarem alinhadas entre si. */
+.cadernos-btn-largura{padding:4px 14px;min-height:35.5px;text-align:center;font-size:var(--fs-c);display:flex;align-items:center;justify-content:center}
 .prox-confirm-btn:active{opacity:0.8}
 
 /* NOTAS DE ESTUDO */
@@ -924,7 +939,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 /* MODAL DE CONFIRMAÇÃO */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
-.modal-box{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:320px;max-height:85vh;overflow-y:auto}
+/* Todo modal pode ser aumentado pelo canto inferior direito. O overlay é flex centralizado,
+   então ao crescer ele se recentraliza sozinho — não precisa de cálculo, a margem se redistribui.
+   O max-width vira o tamanho INICIAL (via width), senão ele limitaria o crescimento. */
+.modal-box{background:#fff;border-radius:14px;padding:20px;width:min(320px, 100%);
+  max-width:min(92vw, 900px);max-height:85vh;overflow:auto;resize:both;
+  min-width:260px;min-height:120px}
+/* A alça padrão do navegador é discreta demais sobre fundo branco: esta fica visível sem pesar */
+.modal-box::-webkit-resizer{background:transparent}
+.modal-box{background-image:linear-gradient(135deg,transparent 50%,#d8d8d4 50%,#d8d8d4 60%,transparent 60%,transparent 70%,#d8d8d4 70%,#d8d8d4 80%,transparent 80%);
+  background-size:10px 10px;background-position:right 4px bottom 4px;background-repeat:no-repeat}
 .modal-text{font-size:var(--fs-e);color:#111;line-height:1.5;margin-bottom:18px;text-align:center}
 .modal-actions{display:flex;gap:8px}
 .modal-btn{flex:1;padding:10px;font-size:var(--fs-e);font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
@@ -936,7 +960,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Detalhe do próximo evento: título no tamanho normal (o .config-title usa a maior escala do
    app e ficava desproporcional para um nome curto como "CADERNO 007"), e caixa mais larga
    para a data do Curso Prático caber ao lado da logo sem quebrar. */
-.modal-box.evento-box{max-width:400px}
+.modal-box.evento-box{width:min(400px, 92vw)}
 .evento-titulo{font-size:var(--fs-e);font-weight:600;color:#111;margin-bottom:6px}
 .config-item{margin-bottom:16px}
 .config-label{font-size:var(--fs-d);font-weight:500;color:#111;margin-bottom:6px}
@@ -1052,10 +1076,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 
 <div class="modal-overlay" id="anotar-alternativa-modal" style="display:none;z-index:1000004">
-  <div class="modal-box" style="max-width:480px;width:92%">
-    <div class="config-title">Anotação - alternativa (<span id="anotar-alt-letra"></span>)</div>
-    <textarea id="anotar-alt-textarea" class="nota-questao-textarea" placeholder="Insight" rows="8"></textarea>
-    <div class="modal-actions" style="margin-top:14px">
+  <div class="modal-box nota-box">
+    <div class="config-title">Nota sobre a alternativa (<span id="anotar-alt-letra"></span>)</div>
+    <textarea id="anotar-alt-textarea" class="nota-textarea" rows="4"
+      placeholder="O que você quer lembrar sobre esta alternativa"></textarea>
+    <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="document.getElementById('anotar-alternativa-modal').style.display='none'">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarAnotacaoAlternativa()">Salvar</button>
     </div>
@@ -1108,7 +1133,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   onclick="if(event.target===this)fecharEscolherResposta()">
   <div class="modal-box">
     <div class="config-title" id="escolher-resposta-titulo"></div>
-    <p id="escolher-resposta-texto" style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
+    <p id="escolher-resposta-texto" style="margin:0 0 8px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
       <button class="modal-btn modal-btn-nao" id="esc-alt-a" onclick="confirmarRespostaManual('a')">A</button>
       <button class="modal-btn modal-btn-nao" id="esc-alt-b" onclick="confirmarRespostaManual('b')">B</button>
@@ -1116,7 +1141,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" id="esc-alt-d" onclick="confirmarRespostaManual('d')">D</button>
       <button class="modal-btn modal-btn-nao" id="esc-alt-e" onclick="confirmarRespostaManual('e')">E</button>
     </div>
-    <button class="modal-btn modal-btn-nao" id="esc-apagar" style="width:100%;margin-top:12px"
+    <button class="modal-btn modal-btn-nao" id="esc-apagar" style="width:100%;margin-top:24px"
       onclick="apagarRespostaManual()">Apagar marcação</button>
     <button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px"
       onclick="fecharEscolherResposta()">Cancelar</button>
@@ -1147,12 +1172,27 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="nota-questao-modal" style="display:none;z-index:1000004"
+  onclick="if(event.target===this)fecharNotaQuestao()">
+  <div class="modal-box nota-box">
+    <div class="config-title">Nota sobre a questão</div>
+    <p id="nota-questao-titulo" style="margin:0 0 10px;font-size:var(--fs-c);color:#888"></p>
+    <textarea id="nota-questao-textarea" class="nota-textarea" rows="4"
+      placeholder="O que você quer lembrar sobre esta questão"></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharNotaQuestao()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarNotaQuestao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="nota-nova-modal" style="display:none;z-index:1000001"
   onclick="if(event.target===this)fecharNotaNova()">
-  <div class="modal-box">
+  <div class="modal-box nota-box">
     <div class="config-title">Nova nota de estudo</div>
-    <input type="text" id="nota-nova-input" class="filter-select" placeholder="O que você quer lembrar"
-      style="width:100%;margin-bottom:16px" onkeydown="if(event.key==='Enter')salvarNotaNova()">
+    <textarea id="nota-nova-input" class="nota-textarea" rows="4"
+      placeholder="O que você quer lembrar"
+      onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))salvarNotaNova()"></textarea>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharNotaNova()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarNotaNova()">Salvar</button>
@@ -2587,7 +2627,7 @@ function abrirEscolherRespostaManual(questaoId){
   const jaTem=(q.suaResposta||'').toLowerCase();
   document.getElementById('escolher-resposta-titulo').textContent=`Questão ${q.numeroQuestao}`;
   document.getElementById('escolher-resposta-texto').textContent=
-    jaTem?`Resposta marcada: ${jaTem.toUpperCase()}`:'Marque sua resposta';
+    jaTem?`Resposta marcada: ${jaTem.toUpperCase()}`:'Marque sua resposta:';
   // Apagar só faz sentido quando existe algo marcado.
   const btnApagar=document.getElementById('esc-apagar');
   if(btnApagar) btnApagar.style.display=jaTem?'':'none';
@@ -6968,7 +7008,7 @@ function renderDetalhe(a){
       ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
       <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
     </div>
-    <div style="height:18px"></div>
+    <div style="height:10px"></div>
     <div class="ativ-top" style="margin-top:0">
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
@@ -7047,15 +7087,18 @@ function renderTiposCards(qs){
           // foi simulado ou caderno. E "Questão 02" por extenso, com zero à frente.
           const ativ=(atividades||[]).find(a=>a.nome===q.idAtividade);
           const rotuloTipo=ativ?(tipoLabelCurso[ativ.curso]||(ativ.tipo==='Simulado'?'SIMULADO':'CADERNO')):'';
-          const cabecalho=[ativ?ativ.curso:'', rotuloTipo?rotuloTipo+' '+q.idAtividade:q.idAtividade]
+          const rotuloCap=rotuloTipo?rotuloTipo.charAt(0)+rotuloTipo.slice(1).toLowerCase():'';
+          const cabecalho=[ativ?ativ.curso:'', rotuloCap?rotuloCap+' '+q.idAtividade:q.idAtividade]
             .filter(Boolean).join(' · ');
           const numQ='Questão '+String(q.questao).padStart(2,'0');
+          // Na LISTA o contexto é necessário — são erros de vários cadernos misturados, e sem
+          // dizer de onde veio cada um não dá para se situar. No pop-up ele sai, porque lá já
+          // se está dentro de uma questão só.
           return `<div class="tipo-errada" onclick="abrirVerQuestaoCompleta('${q.id}')" style="cursor:pointer">
           <div class="tipo-errada-top">
-            <span class="tipo-errada-num">${cabecalho}</span>
-            <span class="tipo-errada-resp">marcou ${(q.suaResposta||'–').toUpperCase()} • era ${(q.gabarito||'–').toUpperCase()}</span>
+            <span class="tipo-errada-num">${cabecalho} · ${numQ}</span>
+            <span class="tipo-errada-resp">${(q.suaResposta||'–').toUpperCase()} → ${(q.gabarito||'–').toUpperCase()}</span>
           </div>
-          <div class="tipo-errada-questao">${numQ}</div>
           ${as?`<div class="tipo-errada-assunto">${as.charAt(0).toUpperCase()+as.slice(1)}</div>`:''}
           <div class="tipo-errada-ref">${q.modulo||'sem módulo'}${q.publicacao?' – '+nomePub(q.publicacao):''}${q.capitulo?', Capítulo '+q.capitulo:''}</div>
         </div>`;
@@ -7243,30 +7286,67 @@ function togglePub(pubId){
 function abrirVerQuestaoCompleta(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
   if(!q||!q.motivo) return;
-  const si=statusInfo(q);
-  const ativ=(atividades||[]).find(a=>a.nome===q.idAtividade);
-  const rotuloTipo=ativ?(tipoLabelCurso[ativ.curso]||(ativ.tipo==='Simulado'?'SIMULADO':'CADERNO')):'';
-  const origem=[ativ?ativ.curso:'', rotuloTipo?rotuloTipo+' '+q.idAtividade:q.idAtividade]
-    .filter(Boolean).join(' · ');
-  const ref=[q.modulo, q.publicacao?nomePub(q.publicacao):'', q.capitulo?'Capítulo '+q.capitulo:'']
-    .filter(Boolean).join(' – ');
 
   document.getElementById('ver-questao-titulo').textContent=
     `Questão ${String(q.questao||'').padStart(2,'0')}`;
-  // Contexto antes do enunciado: de onde veio, o que aconteceu, e o que você marcou. Sem isso o
-  // pop-up mostrava só o texto, sem dizer de que prova era nem qual foi o erro.
+
+  // Mesmo formato de "Sua resposta → Gabarito" usado na lista de questões do caderno: quem já
+  // conhece aquela tela reconhece aqui sem precisar reaprender. Anulada não tem resposta a
+  // comparar, então recebe só o selo.
+  const ehAnulada=q.status==='Anulada';
+  const cabecalho = ehAnulada
+    ? `<div class="rs"><span class="q-status-badge" style="background:#FAEEDA;color:#854F0B">Anulada</span></div>`
+    : `<div class="rs">
+         <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'–'}</span>
+         <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
+       </div>`;
+
+  // A nota da questão inteira fica acima do enunciado; as das alternativas aparecem coladas em
+  // cada uma, pelo formatQuestaoCompleta. Nos dois casos dá para tocar e editar.
+  const nota=(q.notasPessoais||'').trim();
+  const notaHtml = nota
+    ? `<div class="vq-nota" onclick="abrirNotaQuestao('${q.id}')">📝 ${escapeHtml(nota)}</div>`
+    : `<div class="vq-nota-add" onclick="abrirNotaQuestao('${q.id}')">+ nota sobre a questão</div>`;
+
   document.getElementById('ver-questao-conteudo').innerHTML=`
-    ${origem?`<div class="vq-origem">${origem}</div>`:''}
-    <div class="vq-linha">
-      <span class="cap-res" style="color:${si.color};font-weight:600">${si.label}</span>
-      ${q.suaResposta||q.gabarito?`<span class="vq-resp">marcou ${(q.suaResposta||'–').toUpperCase()} • era ${(q.gabarito||'–').toUpperCase()}</span>`:''}
-    </div>
-    ${ref?`<div class="vq-ref">${ref}</div>`:''}
-    ${q.assuntoPrincipal?`<div class="vq-assunto">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}</div>`:''}
+    ${cabecalho}
+    ${notaHtml}
     <div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>
   `;
   document.getElementById('ver-questao-modal').style.display='flex';
 }
+
+// Nota da questão inteira — diferente das notas por alternativa, que já existem. Serve para o
+// que não cabe em nenhuma alternativa específica.
+let notaQuestaoId=null;
+function abrirNotaQuestao(questaoId){
+  const q=questoes.find(qq=>qq.id===questaoId);
+  if(!q) return;
+  notaQuestaoId=questaoId;
+  document.getElementById('nota-questao-titulo').textContent=`Questão ${q.questao||''}`;
+  document.getElementById('nota-questao-textarea').value=q.notasPessoais||'';
+  document.getElementById('nota-questao-modal').style.display='flex';
+}
+function fecharNotaQuestao(){
+  document.getElementById('nota-questao-modal').style.display='none';
+  notaQuestaoId=null;
+}
+async function salvarNotaQuestao(){
+  if(!notaQuestaoId) return;
+  const id=notaQuestaoId;
+  const texto=document.getElementById('nota-questao-textarea').value.trim();
+  fecharNotaQuestao();
+  const q=questoes.find(qq=>qq.id===id);
+  if(q) q.notasPessoais=texto;
+  // Reabre o pop-up da questão já com a nota atualizada, sem recarregar tudo.
+  abrirVerQuestaoCompleta(id);
+  try{
+    await sbDados.from('banco_questoes').update({notas_pessoais:texto||null}).eq('id',id);
+  }catch(e){
+    mostrarAviso('Não deu para salvar a nota','Tente de novo em instantes.');
+  }
+}
+
 function toggleCap(capId){
   const d=document.getElementById('cdet-'+capId);
   const c=document.getElementById('cchev-'+capId);
