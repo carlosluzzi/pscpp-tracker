@@ -425,7 +425,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 @media(hover:hover){.cal-nav:hover{color:#202A45}}
 .cal-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
 .cal-semana span{text-align:center;font-size:var(--fs-a);color:#aaa;font-weight:600}
-.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+/* touch-action:pan-y deixa a rolagem vertical passar mas reserva o gesto horizontal para a
+   troca de mês — sem isso o navegador poderia interpretar como rolagem lateral. */
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;touch-action:pan-y}
+.cal-semana,.cal-topo{touch-action:pan-y}
 .cal-cel{position:relative;aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:3px;cursor:pointer;background:#F7F8FA}
 .cal-vazia{background:transparent;cursor:default}
@@ -457,11 +460,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Calendário completo de um curso: data à esquerda, o que é no meio, e quanto falta à direita */
 .curso-cal-topo{display:flex;justify-content:center;padding:4px 0 2px}
 .curso-cal-logo{height:20px;width:auto;object-fit:contain}
-.curso-cal-linha{display:flex;align-items:baseline;gap:10px;padding:8px 0}
+/* Cada evento em UMA linha: a coluna de data com largura fixa espremia o nome e forçava
+   quebra. Agora a data ocupa o que precisa, o nome cresce, e nada quebra. */
+.curso-cal-linha{display:flex;align-items:baseline;gap:8px;padding:8px 0;white-space:nowrap}
 .curso-cal-linha+.curso-cal-linha{border-top:0.5px solid #f7f7f5}
 .curso-cal-passou{opacity:.45}
-.curso-cal-data{font-size:var(--fs-a);color:#888;width:74px;flex-shrink:0}
-.curso-cal-nome{font-size:var(--fs-c);color:#202A45;font-weight:500;flex:1;min-width:0}
+.curso-cal-data{font-size:var(--fs-a);color:#888;flex-shrink:0}
+.curso-cal-nome{font-size:var(--fs-c);color:#202A45;font-weight:500;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis}
+/* Modalidade colada ao nome, mais discreta — presencial é o que importa saber de relance */
+.curso-cal-mod{font-size:var(--fs-a);color:#888;font-weight:400;margin-left:6px}
 .curso-cal-quando{font-size:var(--fs-a);color:#888;flex-shrink:0}
 .cal-item-clicavel{cursor:pointer;border-radius:8px;margin-left:-6px;margin-right:-6px;padding-left:6px;padding-right:6px}
 @media(hover:hover){.cal-item-clicavel:hover{background:#FAFAF8}}
@@ -5355,6 +5363,37 @@ const fmtDataLongaCal=d=>{
 let calendarioMesRef=null;   // 'AAAA-MM'; null = mês atual
 let calendarioDiaSel=null;   // dia aberto no detalhe
 
+// ---------- Trocar de mês arrastando ----------
+// A seta funciona, mas navegar vários meses por ela é lento. Arrastar é o gesto natural em
+// tela sensível ao toque, e o calendário é justamente onde se navega bastante.
+(function(){
+  let xIni=0, yIni=0, arrastando=false;
+  const MINIMO=45;   // distância para valer como troca de mês, e não como toque no dia
+
+  function inicio(ev){
+    const grade=ev.target.closest('.cal-grade,.cal-semana,.cal-topo');
+    if(!grade) return;
+    const p=ev.touches?ev.touches[0]:ev;
+    xIni=p.clientX; yIni=p.clientY; arrastando=true;
+  }
+
+  function fim(ev){
+    if(!arrastando) return;
+    arrastando=false;
+    const p=ev.changedTouches?ev.changedTouches[0]:ev;
+    const dx=p.clientX-xIni, dy=p.clientY-yIni;
+    // Só conta como horizontal se andou mais na horizontal que na vertical — senão um scroll
+    // levemente torto trocaria o mês sem querer.
+    if(Math.abs(dx)<MINIMO||Math.abs(dx)<Math.abs(dy)*1.5) return;
+    navegarMesCalendario(dx<0?1:-1);   // arrasta para a esquerda = mês seguinte
+  }
+
+  document.addEventListener('touchstart',inicio,{passive:true});
+  document.addEventListener('touchend',fim,{passive:true});
+  document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch') inicio(e); },{passive:true});
+  document.addEventListener('pointerup',e=>{ if(e.pointerType!=='touch') fim(e); },{passive:true});
+})();
+
 function mesRefCalendario(){
   if(calendarioMesRef) return calendarioMesRef;
   const h=new Date();
@@ -7624,6 +7663,16 @@ function abrirCalendarioCurso(curso){
   const rot=tipoLabelCurso[curso]||'SIMULADO';
   const rotuloTipo=rot.charAt(0)+rot.slice(1).toLowerCase();
 
+  // Quando o mesmo simulado tem versão presencial e online, mostra só a presencial — é a que
+  // vale, e listar as duas duplicaria a linha sem acrescentar informação.
+  const modalidadeDo=(c)=>{
+    const irmaos=eventos.filter(x=>x.data===c.data&&x.numero===c.numero);
+    const temPresencial=irmaos.some(x=>(x.modalidade||'').toLowerCase()==='presencial');
+    if(temPresencial) return 'Presencial';
+    const online=irmaos.find(x=>x.modalidade);
+    return online?online.modalidade:'';
+  };
+
   const linha=(c,passou)=>{
     const d=new Date(c.data+'T12:00:00');
     const diaSemana=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
@@ -7634,9 +7683,10 @@ function abrirCalendarioCurso(curso){
     const faltam=Math.round((d-new Date(hoje+'T12:00:00'))/86400000);
     const quando=passou?(c.feito?'feito':'passou')
       : faltam===0?'hoje' : faltam===1?'amanhã' : `em ${faltam} dias`;
+    const mod=modalidadeDo(c);
     return `<div class="curso-cal-linha${passou?' curso-cal-passou':''}">
       <span class="curso-cal-data">${diaSemana} · ${dataFmt}</span>
-      <span class="curso-cal-nome">${c.numero?rotuloTipo+' '+c.numero:rotuloTipo}</span>
+      <span class="curso-cal-nome">${c.numero?rotuloTipo+' '+c.numero:rotuloTipo}${mod?`<span class="curso-cal-mod">${mod}</span>`:''}</span>
       <span class="curso-cal-quando">${quando}</span>
     </div>`;
   };
