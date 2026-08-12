@@ -5695,6 +5695,68 @@ async function salvarMetaDiaria(novaMeta){
   }
 }
 
+// Mantém a fila do Banco Prático abastecida: quando ela fica curta, adiciona as matérias com
+// pior aproveitamento que ainda não estão lá. A fila é o que o card sugere estudar no site
+// externo — sem reposição, ela esvazia e o card fica sem o que recomendar.
+// Marca um item da fila como feito. Chamado pelo popup de confirmação do card Banco Prático.
+async function marcarFilaBancoFeito(id){
+  const item=(filaBancoPratico||[]).find(f=>f.id===id);
+  if(item) item.status='Feito';
+  renderTab(tabAtual,true);
+  try{
+    const {error}=await sbDados.from('fila_banco_pratico').update({status:'Feito'}).eq('id',id);
+    if(error) throw error;
+    // Feito um item, a fila pode ter ficado curta — repõe na hora, não no próximo carregamento.
+    await verificarFilaBancoPratico();
+    renderTab(tabAtual,true);
+  }catch(e){
+    mostrarAviso('Não deu para marcar como feito','Tente de novo em instantes.');
+  }
+}
+
+async function verificarFilaBancoPratico(){
+  try{
+    const pendentes=(filaBancoPratico||[]).filter(f=>f.status==='Pendente');
+    if(pendentes.length>=5) return;   // ainda tem o suficiente
+
+    const mods=calcularModsPct().filter(m=>m.total>0).sort((a,b)=>a.pct-b.pct);
+    if(!mods.length) return;
+
+    // Não repete o que já está na fila
+    const jaNaFila=new Set(pendentes.map(f=>`${f.modulo}|${f.publicacao}|${f.capitulo}`));
+    const novos=[];
+    for(const m of mods){
+      if(pendentes.length+novos.length>=5) break;
+      // Publicação e capítulo onde ele mais erra dentro do módulo
+      const erradas=questoes.filter(q=>q.modulo===m.nome&&!isAcerto(q));
+      const cont={};
+      erradas.forEach(q=>{
+        if(!q.publicacao) return;
+        const ch=`${q.publicacao}|${q.capitulo||''}`;
+        cont[ch]=(cont[ch]||0)+1;
+      });
+      const alvo=Object.entries(cont).sort((a,b)=>b[1]-a[1])[0];
+      const [pub,cap]=alvo?alvo[0].split('|'):['',''];
+      const chave=`${m.nome}|${pub}|${cap}`;
+      if(jaNaFila.has(chave)) continue;
+      jaNaFila.add(chave);
+      novos.push({materia:m.nome,modulo:m.nome,publicacao:pub||null,capitulo:cap||null,
+        data_entrada:new Date().toISOString().slice(0,10),status:'Pendente',quantidade:1});
+    }
+    if(!novos.length) return;
+
+    const {data,error}=await sbDados.from('fila_banco_pratico').insert(novos).select();
+    if(error) throw error;
+    (data||[]).forEach(p=>filaBancoPratico.push({
+      id:p.id,materia:p.materia||'',publicacao:p.publicacao||'',capitulo:p.capitulo||'',
+      modulo:p.modulo||'',dataEntrada:p.data_entrada||null,status:p.status||'Pendente',
+      quantidade:p.quantidade||1,
+    }));
+  }catch(e){
+    // Fila cheia ou não é o caminho crítico do carregamento — nunca deve derrubar o app
+  }
+}
+
 function renderCardBancoPratico(){
   if(!bancoPratico) return '';
   const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
