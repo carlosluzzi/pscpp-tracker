@@ -426,7 +426,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
 .cal-semana span{text-align:center;font-size:var(--fs-a);color:#aaa;font-weight:600}
 .cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cal-cel{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;
+.cal-cel{position:relative;aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:3px;cursor:pointer;background:#F7F8FA}
 .cal-vazia{background:transparent;cursor:default}
 .cal-passou{opacity:.45}
@@ -441,12 +441,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-complementar{background:#888}
 .cal-ponto-plano{background:#639922}
 .cal-ponto-evento{background:#7C5BC7}
+/* Ícone do curso: no canto da célula do calendário, e no lugar do badge dentro do dia */
+.cal-cel-icone{position:absolute;top:3px;left:3px;height:11px;width:auto;object-fit:contain}
+.cal-item-icone{height:17px;width:auto;object-fit:contain;display:block}
 .cal-add-grupo{display:flex;gap:14px}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
 /* Coluna com o miolo rolando: sem isso, ao esticar o modal o conteúdo fica no topo e o botão
    de fechar sobe junto, deixando um vazio embaixo. Assim ele acompanha a borda inferior. */
-.modal-box.cal-dia-box{width:min(400px, 92vw);max-height:80vh;text-align:left;
+.modal-box.cal-dia-box{width:min(440px, 92vw);max-height:80vh;text-align:left;
   display:flex;flex-direction:column;overflow:hidden}
 .modal-box.cal-dia-box #cal-dia-corpo{flex:1;min-height:0;overflow-y:auto}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -872,7 +875,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .prox-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .prox-list-compact{margin-bottom:0}
 .prox-list-compact{gap:0}
-.prox-list-compact .prox-item{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent;position:relative}
+.prox-list-compact /* Item inteiro clicável, no lugar do botão "feito" na ponta: alvo maior e mais natural no
+   toque. A confirmação antes de gravar continua igual, então não há risco de toque acidental. */
+.prox-item-clicavel,.fila-item-clicavel,.foco-materia-clicavel{cursor:pointer}
+@media(hover:hover){.prox-item-clicavel:hover,.fila-item-clicavel:hover,.foco-materia-clicavel:hover{background:#FAFAF8}}
+.prox-item{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent;position:relative}
 .prox-list-compact .prox-item+.prox-item{border-top:none}
 .prox-list-compact .prox-item+.prox-item::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,#e6e6e3 12%,#e6e6e3 88%,transparent 100%)}
 .prox-row-top{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -3780,12 +3787,14 @@ function renderAprovado(){
       detalhe=`${faltam===1?'Amanhã':'Em '+faltam+' dias'} • nível ${r.nivel+1}`;
       cor='#888';
     }
-    return `<div class="prox-item" style="cursor:default">
+    // O item inteiro é o alvo do toque, em vez de um botão pequeno na ponta: a confirmação já
+    // pergunta antes de gravar, então não há risco em ampliar a área clicável.
+    const acao=situacao==='futura'?'':` onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')"`;
+    return `<div class="prox-item${situacao==='futura'?'':' prox-item-clicavel'}"${acao}>
       <div class="prox-left">
         <span class="prox-nome">${nomeRev}</span>
         <span class="prox-modalidade" style="color:${cor}">${detalhe}</span>
       </div>
-      ${situacao==='futura'?'':`<button class="prox-confirm-btn" onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')">feito</button>`}
     </div>`;
   };
 
@@ -5299,7 +5308,8 @@ function eventosDoDia(dia){
 
   (calendarioEventos||[]).forEach(c=>{
     if(c.data===dia&&!c.feito) ev.push({fonte:'curso', tipo:c.curso||'Simulado',
-      texto:(tipoLabelCurso[c.curso]||'SIMULADO')+' '+(c.numero||''), modulo:'', id:c.id});
+      texto:(()=>{ const r=tipoLabelCurso[c.curso]||'SIMULADO';
+        return r.charAt(0)+r.slice(1).toLowerCase()+' '+(c.numero||''); })(), modulo:'', id:c.id});
   });
 
   const prev=(ankiPrevisao||[]).filter(p=>p.data===dia).reduce((a,p)=>a+p.revisoes,0);
@@ -5350,8 +5360,16 @@ function renderCalendarioMes(){
     // ali é "tem algo neste dia", não quantos.
     const naturezas=[...new Set(ev.map(e=>e.fonte))];
     const pontos=naturezas.slice(0,4).map(f=>`<span class="cal-ponto cal-ponto-${f}"></span>`).join('');
+    // Curso do dia vira ícone no canto: um ponto vermelho diz "tem curso", o ícone diz qual —
+    // e é o que o Carlos precisa saber sem abrir o dia.
+    const evCurso=ev.find(e=>e.fonte==='curso'&&iconesCursos[e.tipo]);
+    const iconeCurso=evCurso
+      ? `<img src="${iconesCursos[evCurso.tipo]}" alt="${evCurso.tipo}" class="cal-cel-icone"
+           style="aspect-ratio:${proporcaoIcones[evCurso.tipo]||1}" loading="lazy">`
+      : '';
     return_cel=`<div class="cal-cel${ehHoje?' cal-hoje':''}${passou?' cal-passou':''}${calendarioDiaSel===dia?' cal-sel':''}"
       onclick="abrirDiaCalendario('${dia}')">
+      ${iconeCurso}
       <span class="cal-num">${d}</span>
       <div class="cal-pontos">${pontos}</div>
     </div>`;
@@ -5383,7 +5401,10 @@ function renderDetalheDia(){
   if(!dia) return '';
   // Evento vem primeiro, sempre: é a única coisa da lista que não é estudo, e misturado no meio
   // dos capítulos e revisões passa despercebido — que é justamente o que ele existe para evitar.
-  const ev=eventosDoDia(dia).sort((a,b)=>(a.fonte==='evento'?0:1)-(b.fonte==='evento'?0:1));
+  // Ordem: evento primeiro (é o que não é estudo e some no meio), depois curso (tem data
+  // marcada e não se remarca), e o resto em seguida.
+  const ordem={evento:0,curso:1};
+  const ev=eventosDoDia(dia).sort((a,b)=>(ordem[a.fonte]??9)-(ordem[b.fonte]??9));
   return `
     <div class="cal-detalhe-topo">
       <span>${fmtDataLongaCal(dia)}</span>
@@ -5392,7 +5413,10 @@ function renderDetalheDia(){
     ${ev.length?ev.map(e=>`
       <div class="cal-item${e.feito?' cal-item-feito':''}">
         <div class="cal-item-corpo">
-          <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
+          ${e.fonte==='curso'&&iconesCursos[e.tipo]
+            ? `<img src="${iconesCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-icone"
+                 style="aspect-ratio:${proporcaoIcones[e.tipo]||1}" loading="lazy">`
+            : `<span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>`}
           <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
         </div>
         ${(e.fonte==='plano'||e.fonte==='evento')?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
@@ -5606,7 +5630,7 @@ function renderFocoItem(m,i){
       ${linhas.length?linhas.map(l=>{
         const acPct=l.total?Math.round(l.ac/l.total*100):0;
         const erPct=100-acPct;
-        return `<div class="foco-materia-row">
+        return `<div class="foco-materia-row foco-materia-clicavel" onclick="confirmarFocoAssunto('${l.chave.replace(/'/g,"\\'")}','${l.label.replace(/'/g,"\\'")}')">
         <div class="foco-materia-info">
           <div class="foco-materia-top">
             <span class="foco-materia-nome">${l.label}</span>
@@ -5615,7 +5639,7 @@ function renderFocoItem(m,i){
           ${l.refEstudo!==l.label?`<span class="foco-materia-ref">Estudar: ${l.refEstudo}</span>`:''}
           <div class="foco-materia-bar-bg"><div class="foco-materia-bar-ac" style="width:${acPct}%"></div><div class="foco-materia-bar-er" style="width:${erPct}%"></div></div>
         </div>
-        <button class="foco-materia-feito" onclick="abrirConfirmacao('${l.chave.replace(/'/g,"\\'")}','${l.label.replace(/'/g,"\\'")}','focoAssunto','Marcar &quot;${l.label}&quot; como estudado?')">feito</button>
+        
       </div>`;
       }).join(''):'<div class="empty">Nenhum erro registrado nesse módulo ainda.</div>'}
     </div>
@@ -5663,6 +5687,19 @@ async function marcarFocoEstudado(chave){
 // PRÓXIMOS SIMULADOS / EXERCÍCIOS
 const mesesAbrev=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const tipoLabelCurso={'Curso H':'SIMULADO','Curso Prático':'SIMULADO','MPX':'CADERNO','Catavento':'CADERNO'};
+// Ícone compacto de cada curso — só a marca, sem o nome escrito. Usado onde não cabe a logo
+// completa: na célula do calendário e nos itens do dia. O do Curso Prático já existia, criado
+// para o card do Banco Prático.
+const iconesCursos={
+  'Curso H':'assets/icone-curso-h.png',
+  'Curso Prático':'assets/banco-pratico-icon.png',
+  'MPX':'assets/icone-mpx.png',
+  'Catavento':'assets/icone-catavento.png',
+};
+// Proporção largura/altura, medida nos arquivos. Sem isso a imagem ocupa zero espaço até
+// carregar e empurra o layout na primeira rolagem.
+const proporcaoIcones={'Curso H':0.868,'Curso Prático':1,'MPX':2.874,'Catavento':1.018};
+
 const logosCursos={
   'Curso H':'assets/logo-curso-h.png',
   'Curso Prático':'assets/logo-curso-pratico.png',
@@ -5757,6 +5794,12 @@ async function verificarFilaBancoPratico(){
   }
 }
 
+// Wrapper para o item de foco: montar a mensagem de confirmação direto no atributo onclick
+// exigia aspas dentro de aspas, que cortavam o atributo no meio.
+function confirmarFocoAssunto(chave,label){
+  abrirConfirmacao(chave,label,'focoAssunto',`Marcar "${label}" como estudado?`);
+}
+
 function renderCardBancoPratico(){
   if(!bancoPratico) return '';
   const fila=filaBancoPratico.filter(f=>f.status==='Pendente');
@@ -5785,7 +5828,7 @@ function renderCardBancoPratico(){
         const pctMod=modsPctMap[f.modulo];
         const pubInfoFila=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
         const capituloFila=formatarCapituloExibicao(pubInfoFila,f.capitulo);
-        return `<div class="fila-item">
+        return `<div class="fila-item fila-item-clicavel" onclick="abrirConfirmacao('${f.id}','${f.materia.replace(/'/g,"\\'")}','filaBanco')">
         <span class="foco-icone" style="flex-shrink:0">${iconeSvgModulo(f.modulo,modCores[f.modulo]?modCores[f.modulo].tx:'#5F5E5A')}</span>
         <div class="fila-info">
           <span class="fila-modulo">${f.modulo||'–'}</span>
@@ -5796,7 +5839,7 @@ function renderCardBancoPratico(){
             <span class="fila-qtd">${qtd} ${qtd===1?'questão':'questões'}</span>
           </div>
         </div>
-        <button class="foco-materia-feito" onclick="abrirConfirmacao('${f.id}','${f.materia.replace(/'/g,"\\'")}','filaBanco')">feito</button>
+
       </div>`;
       }).join(''):'<div class="empty">Nenhuma sugestão ainda – processe um simulado com erros pra começar.</div>'}
     </div>
@@ -5838,7 +5881,7 @@ function renderCardComplementares(){
       <div class="prox-list">
         ${pendentes.map(c=>{
           const pc=prioCor[c.prioridade];
-          return `<div class="prox-item">
+          return `<div class="prox-item prox-item-clicavel" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">
             <div class="prox-left">
               <span class="prox-nome">${c.nome}</span>
               <div class="prox-badges">
@@ -5846,7 +5889,6 @@ function renderCardComplementares(){
                 ${c.recorrenciaDias?`<span class="ativ-badge" style="background:${COR_APP.bg};color:${COR_APP.tx}">A cada ${c.recorrenciaDias} ${c.recorrenciaDias===1?'dia':'dias'}<span class="tx" onclick="event.stopPropagation();abrirConfirmacao('${c.id}','recorrência de ${c.nome.replace(/'/g,"\\'")}','pararRecorrencia','Parar a recorrência de \"${c.nome.replace(/'/g,"\\'")}\"? Ela vira uma atividade única a partir de agora.')">✕</span></span>`:''}
               </div>
             </div>
-            <button class="prox-confirm-btn" onclick="abrirConfirmacao('${c.id}','${c.nome.replace(/'/g,"\\'")}','complementar')">feito</button>
           </div>`;
         }).join('')}
         <div class="nota-add" onclick="abrirComplementarModal()">+ nova atividade complementar</div>
