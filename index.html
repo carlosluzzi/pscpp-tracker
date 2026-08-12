@@ -757,8 +757,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .nota-textarea:focus{outline:none;border-color:#202A45}
 /* Pop-up da questão: redimensionável pelo canto, e com o cabeçalho junto do título — a
    distância padrão do modal sobrava aqui, onde a primeira informação é curta. */
-.modal-box.vq-box{max-width:680px;width:92%;max-height:85vh;display:flex;flex-direction:column;
-  padding:0;overflow:hidden;resize:both;min-width:300px;min-height:240px}
+/* Sem "resize": a alça do CSS depende de arrastar com cursor, e no iPad — que é onde o Carlos
+   usa — o Safari não implementa esse gesto em tela sensível ao toque. Em vez de uma alça que
+   não funciona, o pop-up já abre no tamanho útil e rola por dentro. */
+.modal-box.vq-box{max-width:680px;width:94%;max-height:88vh;display:flex;flex-direction:column;
+  padding:0;overflow:hidden}
 .vq-titulo{padding:20px 24px 0;flex-shrink:0;margin-bottom:0}
 .vq-corpo{padding:8px 24px 12px;overflow-y:auto;flex:1}
 .vq-corpo .rs{margin-top:6px}
@@ -976,12 +979,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    então ao crescer ele se recentraliza sozinho — não precisa de cálculo, a margem se redistribui.
    O max-width vira o tamanho INICIAL (via width), senão ele limitaria o crescimento. */
 .modal-box{background:#fff;border-radius:14px;padding:20px;width:min(320px, 100%);
-  max-width:min(92vw, 900px);max-height:85vh;overflow:auto;resize:both;
+  max-width:min(92vw, 900px);max-height:85vh;overflow:auto;
   min-width:260px;min-height:120px}
-/* A alça padrão do navegador é discreta demais sobre fundo branco: esta fica visível sem pesar */
-.modal-box::-webkit-resizer{background:transparent}
-.modal-box{background-image:linear-gradient(135deg,transparent 50%,#d8d8d4 50%,#d8d8d4 60%,transparent 60%,transparent 70%,#d8d8d4 70%,#d8d8d4 80%,transparent 80%);
-  background-size:10px 10px;background-position:right 4px bottom 4px;background-repeat:no-repeat}
+/* Alça própria, em vez do "resize" do CSS: a nativa depende de arrastar com cursor e o Safari
+   do iPad não implementa esse gesto no toque. Esta é um elemento de verdade, com área generosa
+   para o dedo — 28px, contra os 6px da alça nativa. */
+.modal-resize{position:absolute;right:0;bottom:0;width:28px;height:28px;cursor:nwse-resize;
+  touch-action:none;background-image:linear-gradient(135deg,transparent 50%,#c8c8c4 50%,#c8c8c4 60%,transparent 60%,transparent 70%,#c8c8c4 70%,#c8c8c4 80%,transparent 80%);
+  background-size:11px 11px;background-position:right 6px bottom 6px;background-repeat:no-repeat}
+.modal-box{position:relative}
 .modal-text{font-size:var(--fs-e);color:#111;line-height:1.5;margin-bottom:18px;text-align:center}
 .modal-actions{display:flex;gap:8px}
 .modal-btn{flex:1;padding:10px;font-size:var(--fs-e);font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
@@ -1117,6 +1123,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="document.getElementById('anotar-alternativa-modal').style.display='none'">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarAnotacaoAlternativa()">Salvar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -1124,6 +1131,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div class="modal-box vq-box">
     <div class="config-title vq-titulo" id="ver-questao-titulo"></div>
     <div id="ver-questao-conteudo" class="vq-corpo"></div>
+    <div class="modal-resize" aria-hidden="true"></div>
     <div class="modal-actions" style="padding:16px 24px 24px 24px;flex-shrink:0;margin-top:0;border-top:0.5px solid #eee">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="document.getElementById('ver-questao-modal').style.display='none'">Fechar</button>
     </div>
@@ -1202,6 +1210,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="sd-rodape">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDiaCalendario()">Fechar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -1244,6 +1253,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="fecharEditarAssunto()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarEditarAssunto()">Salvar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -1269,6 +1279,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="fecharAcoesQuestao()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarAcoesQuestao()">Salvar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -1283,6 +1294,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="fecharNotaNova()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarNotaNova()">Salvar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -1335,6 +1347,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="sd-rodape">
       <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDetalheSessao()">Fechar</button>
     </div>
+      <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -7615,6 +7628,54 @@ async function salvarEditarAssunto(){
 
 // Escapa texto que vem do banco antes de entrar no HTML. Notas pessoais são digitadas pelo
 // Carlos e podem conter < ou &, que quebrariam a marcação se inseridos crus.
+// ---------- Redimensionar por toque ----------
+// O "resize" do CSS depende de arrastar a alça com cursor — o Safari do iPad não implementa
+// esse gesto em tela sensível ao toque, então a alça aparece mas não faz nada. Aqui a alça é
+// um elemento próprio, e o arraste é tratado com eventos de ponteiro, que funcionam nos dois.
+(function(){
+  let alvo=null, xInicial=0, yInicial=0, larguraInicial=0, alturaInicial=0;
+
+  function iniciar(ev){
+    const alca=ev.target.closest('.modal-resize');
+    if(!alca) return;
+    alvo=alca.closest('.modal-box');
+    if(!alvo) return;
+    const r=alvo.getBoundingClientRect();
+    larguraInicial=r.width; alturaInicial=r.height;
+    const p=ev.touches?ev.touches[0]:ev;
+    xInicial=p.clientX; yInicial=p.clientY;
+    // Solta os limites do CSS: a partir daqui quem manda é o gesto.
+    alvo.style.maxWidth='none'; alvo.style.maxHeight='none';
+    ev.preventDefault();
+    // Listeners só durante o arraste, removidos ao soltar — não fica processando movimento à toa.
+    document.addEventListener('pointermove',mover,{passive:false});
+    document.addEventListener('pointerup',soltar);
+    document.addEventListener('touchmove',mover,{passive:false});
+    document.addEventListener('touchend',soltar);
+  }
+
+  function mover(ev){
+    if(!alvo) return;
+    const p=ev.touches?ev.touches[0]:ev;
+    const nova=Math.max(280, Math.min(window.innerWidth-24, larguraInicial+(p.clientX-xInicial)));
+    const alta=Math.max(200, Math.min(window.innerHeight-24, alturaInicial+(p.clientY-yInicial)));
+    alvo.style.width=nova+'px';
+    alvo.style.height=alta+'px';
+    ev.preventDefault();
+  }
+
+  function soltar(){
+    alvo=null;
+    document.removeEventListener('pointermove',mover);
+    document.removeEventListener('pointerup',soltar);
+    document.removeEventListener('touchmove',mover);
+    document.removeEventListener('touchend',soltar);
+  }
+
+  document.addEventListener('pointerdown',iniciar,{passive:false});
+  document.addEventListener('touchstart',iniciar,{passive:false});
+})();
+
 function escapeHtml(txt){
   return String(txt==null?'':txt)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
