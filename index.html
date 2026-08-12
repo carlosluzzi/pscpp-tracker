@@ -227,8 +227,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
 .tf-btn-toggle{min-width:150px}
 /* Ajustes do cronômetro: engrenagem no topo direito, ao lado do fechar */
-.tf-ajustes-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 22px);right:60px;
-  color:#6B7280;background:none;border:none;cursor:pointer;padding:8px;display:flex}
+/* Alinhada pelo CENTRO com o ✕, não pela borda: os dois têm tamanhos diferentes, então igualar
+   o "top" deixaria um mais alto que o outro. Aqui os dois usam a mesma altura de caixa e
+   centralizam o conteúdo dentro dela. */
+.tf-ajustes-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:56px;
+  color:#6B7280;background:none;border:none;cursor:pointer;padding:0;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center}
 @media(hover:hover){.tf-ajustes-btn:hover{color:#9BA3B7}}
 .tf-ajustes{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);right:20px;
   width:min(300px, calc(100vw - 40px));background:#1A1F2E;border-radius:14px;padding:14px 16px;
@@ -246,7 +250,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-cancelar{display:block;margin:22px auto 0;background:none;border:none;color:#6B7280;
   font-size:var(--fs-c);font-family:inherit;cursor:pointer;padding:8px 14px}
 @media(hover:hover){.tf-cancelar:hover{color:#9BA3B7}}
-.tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:20px;color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:8px}
+.tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:16px;
+  color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:0;
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;line-height:1}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
 #splash-screen.hidden{display:none}
 #splash-screen.fade-out{opacity:0;pointer-events:none}
@@ -3718,7 +3724,7 @@ function renderTimerFullscreenConteudo(){
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
     <button class="tf-ajustes-btn" onclick="abrirAjusteApito()" aria-label="Ajustes de som">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
     <div class="tf-ajustes hidden" id="tf-ajustes">
       <div class="tf-ajustes-topo">
@@ -3727,7 +3733,14 @@ function renderTimerFullscreenConteudo(){
       </div>
       <input type="range" class="ritmo-slider" min="0" max="1" step="0.05" value="${apitoVolume}"
         oninput="setApitoVolume(this.value)">
-      <div class="tf-ajustes-nota">Toca a cada 30 segundos com o cronômetro pausado, depois de 1 minuto parado.</div>
+      <div class="tf-ajustes-topo" style="margin-top:12px">
+        <span>A cada</span>
+        <span id="int-valor">${fmtIntervaloApito(apitoIntervaloSeg)}</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="15" max="180" step="15" value="${apitoIntervaloSeg}"
+        oninput="setApitoIntervalo(this.value)" list="passos-intervalo">
+      <datalist id="passos-intervalo"><option value="30"></option><option value="60"></option><option value="120"></option></datalist>
+      <div class="tf-ajustes-nota">Começa 1 minuto depois de pausar.</div>
     </div>
     <div>
       ${cadernoTimer?cabecalhoCaderno:`
@@ -3802,7 +3815,9 @@ function timerCamposObrigatoriosCompletos(){
 // apitar no instante da pausa seria só barulho, já que a pausa foi intencional.
 let apitoPausaId=null, apitoContextoAudio=null;
 const APITO_ESPERA_MS=60000;    // silêncio no primeiro minuto de pausa
-const APITO_INTERVALO_MS=30000; // depois disso, a cada 30 segundos
+// Intervalo entre os lembretes, ajustável na engrenagem. 30s é o padrão; quem pausa muito para
+// consultar algo pode preferir mais espaçado.
+let apitoIntervaloSeg=parseInt(localStorage.getItem('apitoIntervalo')||'30',10);
 // Volume de 0 a 1, ajustável na engrenagem do cronômetro. O padrão sobe para 0,45: o valor
 // anterior (0,12) ficava inaudível num iPad a alguns metros de distância, que é justamente o
 // cenário de uso — cronômetro num aparelho, estudo em outro.
@@ -3861,6 +3876,21 @@ function setApitoVolume(v){
   tocarApitoPausa();
 }
 
+const fmtIntervaloApito=seg=>{
+  if(seg<60) return seg+'s';
+  const m=Math.floor(seg/60), r=seg%60;
+  return r? m+'min'+String(r).padStart(2,'0') : m+'min';
+};
+
+function setApitoIntervalo(seg){
+  apitoIntervaloSeg=parseInt(seg,10);
+  localStorage.setItem('apitoIntervalo',String(apitoIntervaloSeg));
+  const el=document.getElementById('int-valor');
+  if(el) el.textContent=fmtIntervaloApito(apitoIntervaloSeg);
+  // Se já estiver pausado, reinicia o ciclo com o novo intervalo em vez de esperar o próximo.
+  if(!timerRodando&&timerAcumuladoSeg>0) iniciarApitoPausa();
+}
+
 function abrirAjusteApito(){
   const el=document.getElementById('tf-ajustes');
   if(!el) return;
@@ -3874,7 +3904,7 @@ function iniciarApitoPausa(){
   prepararAudioApito();   // precisa acontecer dentro do gesto que pausou
   apitoPausaId=setTimeout(()=>{
     tocarApitoPausa();
-    apitoPausaId=setInterval(tocarApitoPausa,APITO_INTERVALO_MS);
+    apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
   },APITO_ESPERA_MS);
 }
 
@@ -3990,7 +4020,7 @@ function fecharTimerFullscreen(){
     const segAtual=timerRodando
       ? timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000)
       : timerAcumuladoSeg;
-    mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(segAtual),timerPublicacao||'');
+    mostrarTimerFlutuante(nomeCurtoWidget(timerModulo||timerTipo),formatarTempoTimer(segAtual),timerPublicacao||'');
   }
   renderTab(tabAtual,true);
 }
@@ -4151,6 +4181,14 @@ async function finalizarCadernoTimer(){
 let timerFlutuanteFechadoManualmente=false;
 let timerReexibirId=null;   // volta a mostrar o widget depois de escondido no ✕
 let timerFlutuanteArrastadoManualmente=false;
+// Nomes curtos SÓ para o widget flutuante: a caixa é estreita e "Meteorologia e Oceanografia"
+// ou "Navegação em Águas Restritas" estouram. Em todo o resto do app o nome completo é mantido.
+const NOME_CURTO_WIDGET={
+  'Meteorologia e Oceanografia':'Meteorologia',
+  'Navegação em Águas Restritas':'Navegação',
+};
+const nomeCurtoWidget=n=>NOME_CURTO_WIDGET[n]||n;
+
 function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   if(timerFlutuanteFechadoManualmente) return;
   document.getElementById('timer-flutuante-nome').textContent=nome;
@@ -4211,7 +4249,7 @@ function fecharTimerFlutuante(){
       mostrarTimerFlutuante(ap?ap.curso:'Caderno',formatarTempoTimer(restante),ap?ap.nome:'');
     } else {
       const seg=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
-      mostrarTimerFlutuante(timerModulo||timerTipo,formatarTempoTimer(seg),timerPublicacao||'');
+      mostrarTimerFlutuante(nomeCurtoWidget(timerModulo||timerTipo),formatarTempoTimer(seg),timerPublicacao||'');
     }
   },30000);
 }
