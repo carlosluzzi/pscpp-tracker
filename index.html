@@ -828,6 +828,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 @media(hover:hover){.cap-row-q:hover{background:#FAFAF8}}
 .acoes-rotulo{font-size:var(--fs-a);color:#888;margin-bottom:6px;font-weight:600}
 .acoes-duvida{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+/* Três botões de largura igual, ocupando a linha toda */
+.iniciar-tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.iniciar-tipos .filter-btn{text-align:center}
 .duvida-letra{padding:10px 0;border-radius:9px;border:1px solid #ddd;background:#fff;color:#888;
   font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
 .duvida-letra.ativa{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
@@ -1287,10 +1290,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="iniciar-modal" style="display:none;z-index:1000005"
   onclick="if(event.target===this)fecharIniciarEstudo()">
   <div class="modal-box">
-    <div class="config-title">Começar agora</div>
+    <div class="config-title" id="iniciar-cabecalho">Começar agora</div>
     <p id="iniciar-titulo" style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4"></p>
-    <div class="acoes-rotulo">Tipo de estudo</div>
-    <div class="filter-row" id="iniciar-tipos" style="margin-bottom:16px"></div>
+    <div class="acoes-rotulo" id="iniciar-rotulo-tipo">Tipo de estudo</div>
+    <div class="iniciar-tipos" id="iniciar-tipos"></div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharIniciarEstudo()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarIniciarEstudo()">Iniciar</button>
@@ -1745,6 +1748,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 
 
 <script>
+// Os sete módulos do edital. Estava declarado dentro de abrirRegistroManual, então qualquer
+// outra função que precisasse da lista quebrava — foi o que aconteceu com o modal de planejar.
+const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação',
+  'Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
+
 // Cor única do app para todos os módulos. Antes cada matéria tinha sua própria paleta; a
 // identificação passou a ser feita pelo texto, não pela cor. Mantido como objeto (em vez de
 // remover as chamadas) para que os ~11 pontos que consultam modCores continuem funcionando —
@@ -4894,6 +4902,7 @@ function pausarTimer(){
 
 function zerarTimer(){
   pararApitoPausa();
+  timerRevisaoId=null;
   timerAcumuladoSeg=0;
   timerRodando=false;
   timerInicio=null;
@@ -4979,7 +4988,14 @@ async function confirmarSalvarTimer(){
       origem:timerOrigem||null,   // curso, quando a sessão nasceu de um caderno
     });
     if(error) throw error;
-    await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
+    // Sessão nascida de uma revisão programada: conclui a revisão, que avança de nível e some
+    // do dia de hoje. Sem isso ela continuaria aparecendo como pendente depois de feita.
+    if(timerRevisaoId){
+      await concluirRevisao(timerRevisaoId);
+      timerRevisaoId=null;
+    }else{
+      await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
+    }
     fecharConfirmarSalvarTimer();
     zerarTimer();
     await loadData();
@@ -4991,7 +5007,6 @@ async function confirmarSalvarTimer(){
 }
 
 function abrirRegistroManual(){
-  const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restritas','Legislação','Meteorologia e Oceanografia','Comunicações','Conhecimentos Gerais'];
   document.getElementById('registro-manual-modulo').innerHTML='<option value="">Selecione o módulo</option>'+[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
   atualizarPublicacoesRegistroManual();
   document.getElementById('registro-manual-duracao').value='';
@@ -7588,6 +7603,7 @@ let assuntoEditando=null;
 // Tocar numa revisão programada abre a escolha do tipo e começa o cronômetro já com módulo,
 // publicação e capítulo preenchidos — sem precisar ir à aba Aprovado e digitar tudo de novo.
 let iniciarCtx=null;
+let timerRevisaoId=null;   // revisão programada que originou a sessão atual
 
 // ---------- Calendário completo de um curso ----------
 // Tocar num evento de curso abre tudo que está agendado para ele — o card antigo mostrava só o
@@ -7649,24 +7665,27 @@ function fecharCalendarioCurso(){
 }
 
 function abrirIniciarEstudo(fonte,id){
-  let modulo='',publicacao='',capitulo='',rotulo='',tipoSugerido='Revisão';
+  let modulo='',publicacao='',capitulo='',rotulo='',tipoSugerido='Leitura';
 
   if(fonte==='revisao'){
     const r=(revisoesEspacadas||[]).find(x=>x.id===id);
     if(!r) return;
     modulo=r.modulo||''; publicacao=r.publicacao||''; capitulo=r.capitulo||'';
-    rotulo=[modulo,publicacao?nomePub(publicacao):'',capitulo?'Capítulo '+capitulo:'']
-      .filter(Boolean).join(' – ');
+    // Mesmo formato da linha que foi tocada: publicação e capítulo, sem repetir o módulo
+    rotulo=(publicacao?nomePub(publicacao):modulo)+(capitulo?', Capítulo '+capitulo:'');
   }else if(fonte==='plano'){
     const pl=(planoEstudo||[]).find(x=>x.id===id);
     if(!pl) return;
     modulo=pl.modulo||''; publicacao=pl.publicacao||''; capitulo=pl.capitulo||'';
-    tipoSugerido=['Leitura','Exercício','Revisão','Anki'].includes(pl.tipo)?pl.tipo:'Leitura';
-    rotulo=pl.descricao||[modulo,publicacao?nomePub(publicacao):'',capitulo?'Capítulo '+capitulo:'']
-      .filter(Boolean).join(' – ');
+    tipoSugerido=['Leitura','Exercício','Anki'].includes(pl.tipo)?pl.tipo:'Leitura';
+    rotulo=pl.descricao||((publicacao?nomePub(publicacao):modulo)+(capitulo?', Capítulo '+capitulo:''));
   }else return;
 
-  iniciarCtx={modulo,publicacao,capitulo,tipo:tipoSugerido};
+  iniciarCtx={modulo,publicacao,capitulo,tipo:tipoSugerido,fonte,id};
+  document.getElementById('iniciar-cabecalho').textContent=
+    fonte==='revisao'?'Revisar agora':'Começar agora';
+  document.getElementById('iniciar-rotulo-tipo').textContent=
+    fonte==='revisao'?'Tipo de revisão':'Tipo de estudo';
   document.getElementById('iniciar-titulo').textContent=rotulo;
   renderTiposIniciar();
   document.getElementById('iniciar-modal').style.display='flex';
@@ -7675,7 +7694,9 @@ function abrirIniciarEstudo(fonte,id){
 function renderTiposIniciar(){
   const el=document.getElementById('iniciar-tipos');
   if(!el||!iniciarCtx) return;
-  el.innerHTML=['Leitura','Exercício','Revisão','Anki']
+  // Sem "Revisão" na lista: toda leitura que não é a primeira já é uma revisão, então o tipo
+  // diz COMO se revisa (lendo, resolvendo, no Anki), não se é revisão.
+  el.innerHTML=['Leitura','Exercício','Anki']
     .map(t=>`<div class="filter-btn${iniciarCtx.tipo===t?' active':''}"
       onclick="escolherTipoIniciar('${t}')">${t}</div>`).join('');
 }
@@ -7699,10 +7720,13 @@ function confirmarIniciarEstudo(){
       'Já existe um estudo sendo cronometrado. Pause ou finalize antes de começar outro.');
     return;
   }
-  const {modulo,publicacao,capitulo,tipo}=iniciarCtx;
+  const {modulo,publicacao,capitulo,tipo,fonte,id}=iniciarCtx;
   fecharIniciarEstudo();
   fecharDiaCalendario();
 
+  // Guarda a origem para, ao salvar a sessão, avançar a revisão de nível — assim ela sai do
+  // calendário e reaparece só na próxima data da sequência.
+  timerRevisaoId=(fonte==='revisao')?id:null;
   timerTipo=tipo;
   timerModulo=modulo;
   timerPublicacao=publicacao;
