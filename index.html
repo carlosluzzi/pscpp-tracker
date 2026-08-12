@@ -1810,9 +1810,13 @@ function registrarGrupoPilotTransfer(){
 function publicacoesParaEstudo(modulo){
   const todas=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
   if(modulo!=='Arte Naval') return todas.sort((a,b)=>a.localeCompare(b,'pt'));
+  // O grupo já foi acrescentado à bibliografia por registrarGrupoPilotTransfer, então ele vem
+  // dentro de "todas" — usar um Set evita que apareça duas vezes quando o código abaixo
+  // garante a presença dele.
   const fora=todas.filter(n=>!PILOT_TRANSFER_MEMBROS.includes(n));
-  const temGrupo=todas.some(n=>PILOT_TRANSFER_MEMBROS.includes(n));
-  return (temGrupo?[...fora,GRUPO_PILOT_TRANSFER]:fora).sort((a,b)=>a.localeCompare(b,'pt'));
+  const temMembros=todas.some(n=>PILOT_TRANSFER_MEMBROS.includes(n));
+  const lista=temMembros?[...fora,GRUPO_PILOT_TRANSFER]:fora;
+  return [...new Set(lista)].sort((a,b)=>a.localeCompare(b,'pt'));
 }
 
 // Cor única do app para todos os módulos. Antes cada matéria tinha sua própria paleta; a
