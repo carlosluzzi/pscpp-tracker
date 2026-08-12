@@ -1203,8 +1203,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div class="modal-overlay" id="acoes-questao-modal" style="display:none;z-index:1000004"
   onclick="if(event.target===this)fecharAcoesQuestao()">
   <div class="modal-box nota-box">
-    <div class="config-title">Anotar questão</div>
-    <p id="acoes-questao-titulo" style="margin:0 0 14px;font-size:var(--fs-c);color:#888"></p>
+    <div class="config-title" id="acoes-questao-titulo" style="margin-bottom:14px"></div>
 
     <div class="acoes-rotulo">Nota sobre a questão</div>
     <textarea id="acoes-nota" class="nota-textarea" rows="3"
