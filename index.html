@@ -763,9 +763,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .vq-corpo{padding:8px 24px 12px;overflow-y:auto;flex:1}
 .vq-corpo .rs{margin-top:6px}
 /* Ações da questão: rótulos de seção e os botões de letra para marcar a dúvida */
-/* Ponto de resultado no lugar do número posicional, na lista de questões do capítulo */
+/* Linha de questão no capítulo. O ponto de resultado alinha pelo centro do texto do assunto,
+   não pelo topo da linha — a linha usa align-items:flex-start, então o ajuste é manual. */
+.cap-row-q{cursor:pointer;padding-top:7px;padding-bottom:7px;align-items:center}
+.cap-row-q .cap-tit{flex:1;min-width:0}
 .q-ponto{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
-.cap-row-q{cursor:pointer;padding-top:7px;padding-bottom:7px}
 @media(hover:hover){.cap-row-q:hover{background:#FAFAF8}}
 .acoes-rotulo{font-size:var(--fs-a);color:#888;margin-bottom:6px;font-weight:600}
 .acoes-duvida{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
@@ -7297,19 +7299,15 @@ function renderPubsCards(qs,prefixoId){
       // da outra visualmente — não é o número real, só uma contagem local.
       const questoesHtml=capQsOrdenadas.map(q=>{
         const si=statusInfo(q);
-        // Um ponto colorido no lugar do número: a contagem posicional não identificava nada
-        // (não é o número real da questão, que perde sentido quando várias atividades se
-        // misturam aqui) e era um alvo pequeno demais para tocar. O ponto diz o que interessa
-        // — acertou ou errou — e a linha inteira já é clicável.
+        // Só o assunto principal como rótulo — o tipo de questão diz do formato, não do tema,
+        // e misturar os dois na mesma coluna confundiria o que a linha representa.
+        // O resultado vira um ponto colorido alinhado ao texto, sem ocupar largura.
         const assuntoHtml=q.assuntoPrincipal
           ?`<span class="cap-tit">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}</span>`
           :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
-        // Sem assunto, mostra a referência para a linha não ficar anônima
-        const semAssunto=!q.assuntoPrincipal;
         return `<div class="cap-row cap-row-q" onclick="abrirVerQuestaoCompleta('${q.id}')">
         <span class="q-ponto" style="background:${si.color}"></span>
         ${assuntoHtml}
-        <span class="cap-res" style="color:${si.color}">${si.label}</span>
       </div>`;
       }).join('');
       return `<div class="cap-group">
