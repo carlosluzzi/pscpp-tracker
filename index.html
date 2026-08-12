@@ -2132,6 +2132,13 @@ function sectionTitle(texto,icone,bg,tx,opts){
 }
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
+// Pontuação com vírgula e sem casa desnecessária: 54,2 em vez de 54.19999999999999, e 54 em
+// vez de 54,00. O resíduo vem de somar pesos decimais em ponto flutuante.
+function fmtPontos(v){
+  const n=Math.round((Number(v)||0)*100)/100;
+  return Number.isInteger(n)?String(n):n.toFixed(2).replace(/0$/,'').replace('.',',');
+}
+
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
 
 // Totais de uma atividade contados a partir das questões que restaram. O registro em
@@ -3137,8 +3144,11 @@ async function confirmarNomeAtividade(){
       data:ap.dataAtividade||new Date().toISOString().slice(0,10),
       tipo:ap.tipo,
       curso:ap.curso,
-      pontuacao_obtida:pontuacaoObtida,
-      pontuacao_total:pontuacaoTotal,
+      // Arredonda a soma: pesos decimais (0,6 · 0,8 · 1,2) somados em ponto flutuante acumulam
+      // resíduo e viram "54.19999999999999" na tela. Nenhum peso tem mais que uma casa, então
+      // duas casas não perdem nada de real.
+      pontuacao_obtida:Math.round(pontuacaoObtida*100)/100,
+      pontuacao_total:Math.round(pontuacaoTotal*100)/100,
       acertos_efetivos:acertos,
       erros_efetivos:erros,
       anuladas:anuladas,
@@ -3198,7 +3208,7 @@ async function confirmarNomeAtividade(){
     fecharMarcacaoPendente();
     await loadData();
     document.getElementById('caderno-finalizado-titulo').textContent='Caderno finalizado!';
-    document.getElementById('caderno-finalizado-texto').textContent=`${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${pontuacaoObtida}/${pontuacaoTotal} pontos.`;
+    document.getElementById('caderno-finalizado-texto').textContent=`${acertos}/${qs.length} acertos${anuladas?` (+${anuladas} anulada${anuladas>1?'s':''})`:''}, ${fmtPontos(pontuacaoObtida)}/${fmtPontos(pontuacaoTotal)} pontos.`;
     document.getElementById('caderno-finalizado-modal').style.display='flex';
   }catch(e){
     alert('Erro ao finalizar caderno: '+e.message+'\n\nNada foi salvo pela metade – pode tentar de novo com segurança.');
@@ -5339,7 +5349,7 @@ function ativCard(a,clicavel=true){
     </div>
     ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-metrics">
-      <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao||'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
+      <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao?fmtPontos(a.pontuacao):'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveit.</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#A32D2D">${a.erros??'–'}</div><div class="ativ-metric-lbl">erros</div></div>
     </div>
@@ -7356,7 +7366,7 @@ function renderDetalhe(a){
     </div>
     ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
-      <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao||'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal||'–'}</span></div></div>
+      <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao?fmtPontos(a.pontuacao):'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal?fmtPontos(a.pontuacaoTotal):'–'}</span></div></div>
       <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Acertos</div><div class="mtr-val" style="color:#3B6D11">${a.acertos!=null?a.acertos+(a.anuladas||0):'–'}</div></div>
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
