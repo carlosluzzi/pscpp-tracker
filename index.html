@@ -440,6 +440,8 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-anki{background:#4A8FD4}
 .cal-ponto-complementar{background:#888}
 .cal-ponto-plano{background:#639922}
+.cal-ponto-evento{background:#7C5BC7}
+.cal-add-grupo{display:flex;gap:14px}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
 /* Coluna com o miolo rolando: sem isso, ao esticar o modal o conteúdo fica no topo e o botão
@@ -451,12 +453,15 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
   cursor:pointer;font-family:inherit;padding:4px 0}
-.cal-item{display:flex;align-items:center;gap:8px;padding:7px 0}
+/* Badge em cima, texto embaixo: lado a lado, um badge largo como "Catavento" empurrava o texto
+   para longe, e as linhas não alinhavam entre si. Em coluna, todo texto começa na mesma margem. */
+.cal-item{display:flex;align-items:flex-start;gap:8px;padding:9px 0}
+.cal-item-corpo{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .cal-item+.cal-item{border-top:0.5px solid #f7f7f5}
 .cal-item-feito{opacity:.5;text-decoration:line-through}
 .cal-item-tag{font-size:var(--fs-a);color:#fff;border-radius:5px;padding:2px 7px;
   flex-shrink:0;font-weight:600}
-.cal-item-txt{font-size:var(--fs-c);color:#333;flex:1;min-width:0;line-height:1.35}
+.cal-item-txt{font-size:var(--fs-c);color:#333;line-height:1.35}
 .cal-item-x{background:none;border:none;color:#bbb;cursor:pointer;font-size:14px;padding:2px 4px;
   flex-shrink:0;font-family:inherit}
 /* Bloco do que ainda vai vencer: separado do que é para fazer hoje, e mais discreto — é
@@ -1311,12 +1316,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   <div class="modal-box">
     <div class="config-title">Planejar estudo</div>
     <input type="hidden" id="plano-data">
-    <select id="plano-tipo" class="filter-select" style="width:100%;margin-bottom:10px">
-      <option value="Leitura">Leitura</option>
-      <option value="Exercício">Exercício</option>
-      <option value="Revisão">Revisão</option>
-      <option value="Anki">Anki</option>
-      <option value="Simulado">Simulado</option>
+    <select id="plano-tipo" class="filter-select" style="width:100%;margin-bottom:10px"
+      onchange="atualizarPlaceholderPlano()">
+      <optgroup label="Estudo">
+        <option value="Leitura">Leitura</option>
+        <option value="Exercício">Exercício</option>
+        <option value="Revisão">Revisão</option>
+        <option value="Anki">Anki</option>
+        <option value="Simulado">Simulado</option>
+      </optgroup>
+      <optgroup label="Outros">
+        <option value="Evento">Evento</option>
+      </optgroup>
     </select>
     <input type="text" id="plano-descricao" class="filter-select" placeholder="O que vai estudar"
       style="width:100%;margin-bottom:10px">
@@ -5301,7 +5312,9 @@ function eventosDoDia(dia){
   });
 
   (planoEstudo||[]).forEach(pl=>{
-    if(pl.data===dia) ev.push({fonte:'plano', tipo:pl.tipo,
+    // Evento pessoal ganha fonte própria: cor diferente no calendário, porque não é estudo e
+    // misturá-lo com o que foi planejado estudar apagaria a distinção.
+    if(pl.data===dia) ev.push({fonte:pl.tipo==='Evento'?'evento':'plano', tipo:pl.tipo,
       texto:pl.descricao||[pl.modulo,pl.publicacao?nomePub(pl.publicacao):'',pl.capitulo?'Capítulo '+pl.capitulo:'']
         .filter(Boolean).join(' – '),
       modulo:pl.modulo, id:pl.id, feito:pl.feito, minutos:pl.minutos});
@@ -5358,6 +5371,7 @@ function renderCalendarioMes(){
       <span><span class="cal-ponto cal-ponto-curso"></span>Curso</span>
       <span><span class="cal-ponto cal-ponto-anki"></span>Anki</span>
       <span><span class="cal-ponto cal-ponto-plano"></span>Planejado</span>
+      <span><span class="cal-ponto cal-ponto-evento"></span>Evento</span>
     </div>
 `;
 }
@@ -5367,17 +5381,21 @@ function renderCalendarioMes(){
 function renderDetalheDia(){
   const dia=calendarioDiaSel;
   if(!dia) return '';
-  const ev=eventosDoDia(dia);
+  // Evento vem primeiro, sempre: é a única coisa da lista que não é estudo, e misturado no meio
+  // dos capítulos e revisões passa despercebido — que é justamente o que ele existe para evitar.
+  const ev=eventosDoDia(dia).sort((a,b)=>(a.fonte==='evento'?0:1)-(b.fonte==='evento'?0:1));
   return `
     <div class="cal-detalhe-topo">
       <span>${fmtDataLongaCal(dia)}</span>
-      <button class="cal-add" onclick="abrirNovoPlano('${dia}')">+ planejar</button>
+      <div class="cal-add-grupo"><button class="cal-add" onclick="abrirNovoPlano('${dia}','Leitura')">+ estudo</button><button class="cal-add" onclick="abrirNovoPlano('${dia}','Evento')">+ evento</button></div>
     </div>
     ${ev.length?ev.map(e=>`
       <div class="cal-item${e.feito?' cal-item-feito':''}">
-        <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
-        <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
-        ${e.fonte==='plano'?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
+        <div class="cal-item-corpo">
+          <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
+          <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
+        </div>
+        ${(e.fonte==='plano'||e.fonte==='evento')?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
       </div>`).join('')
       :'<div class="empty" style="padding:14px 0">Nada agendado neste dia. Toque em planejar para adicionar.</div>'}`;
 }
@@ -5392,13 +5410,26 @@ function fecharDiaCalendario(){
   calendarioDiaSel=null;
 }
 
-function abrirNovoPlano(dia){
+function abrirNovoPlano(dia,tipo){
   document.getElementById('plano-data').value=dia;
+  document.getElementById('plano-tipo').value=tipo||'Leitura';
   document.getElementById('plano-descricao').value='';
   document.getElementById('plano-minutos').value='';
+  atualizarPlaceholderPlano();
   document.getElementById('plano-modal').style.display='flex';
 }
 function fecharNovoPlano(){ document.getElementById('plano-modal').style.display='none'; }
+
+// Evento não é estudo: não faz sentido pedir minutos de dedicação nem falar em "estudar".
+function atualizarPlaceholderPlano(){
+  const tipo=document.getElementById('plano-tipo').value;
+  const desc=document.getElementById('plano-descricao');
+  const min=document.getElementById('plano-minutos');
+  const ehEvento=tipo==='Evento';
+  desc.placeholder=ehEvento?'O que é':'O que vai estudar';
+  min.style.display=ehEvento?'none':'';
+  if(ehEvento) min.value='';
+}
 
 async function salvarNovoPlano(){
   const data=document.getElementById('plano-data').value;
@@ -5459,7 +5490,6 @@ function renderInicio(){
   return `
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
-    ${renderCardCalendario()}
     ${renderCardPlanejamento()}
     ${renderCardBancoPratico()}
     ${renderCardFoco()}
@@ -5644,222 +5674,10 @@ const logosCursos={
 // baixar a imagem, causando um salto de layout bem na hora que ela chega — se isso coincidir com
 // o momento em que a pessoa começa a rolar a tela, trava o primeiro gesto de scroll.
 const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025};
-function renderCardCalendario(){
-  const cursos=['Curso H','Curso Prático','MPX','Catavento'];
-  const cards=cursos.map(curso=>{
-    const logoMaior=curso==='Catavento'||curso==='Curso Prático';
-    const logoCurso=`<img src="${logosCursos[curso]}" alt="${curso}" class="${logoMaior?'prox-logo-curso-18':'prox-logo-curso'}" style="aspect-ratio:${proporcaoLogosCursos[curso]||4.4}">`;
-    const headerRowClass=logoMaior?'card-header-row card-header-row-compacto':'card-header-row';
-    const ev=calcularProximoDoCurso(curso);
-    if(!ev){
-      return `<div class="card-inicio">
-        <div class="${headerRowClass}">
-          <div class="card-header-left">${logoCurso}</div>
-        </div>
-        <div class="empty" style="padding:16px 8px">Nada programado.</div>
-      </div>`;
-    }
-    const urgente=eventoUrgente(ev);
-    const dataObj=new Date(ev.data+'T00:00:00');
-    const mes=mesesAbrev[dataObj.getMonth()];
-    const dia=String(dataObj.getDate()).padStart(2,'0');
-    const labelVisivel=`${tipoLabelCurso[curso]}${ev.numero?' '+ev.numero:''}`;
-    return `<div class="card-inicio">
-      <div class="${headerRowClass}">
-        <div class="card-header-left">${logoCurso}</div>
-      </div>
-      <div class="prox-list prox-list-compact">
-        <div class="prox-item${urgente?' prox-due':''}" onclick="abrirDetalheEvento('${ev.id}','${tipoLabelCurso[curso]}')" style="cursor:pointer">
-          <div class="prox-row-top">
-            <div class="prox-cal">
-              <div class="prox-cal-mes-wrap">
-                <span class="prox-cal-dia">${dia}</span>
-                <span class="prox-cal-mes">${mes}</span>
-              </div>
-            </div>
-            <div class="prox-left">
-              <span class="prox-nome prox-nome-calendario">${labelVisivel}</span>
-              ${ev.modalidade?`<span class="prox-modalidade">${ev.modalidade}</span>`:''}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  return `<div class="calendario-grid">${cards}</div>`;
-}
-
-// BANCO PRÁTICO
-function calcularFocoSugerido(moduloNome){
-  const erros=questoes.filter(q=>q.modulo===moduloNome&&!isAcertoEfetivo(q));
-  if(!erros.length) return moduloNome;
-  const contagemTags={};
-  erros.forEach(q=>(q.tags||[]).forEach(t=>{contagemTags[t]=(contagemTags[t]||0)+1;}));
-  const tagsOrdenadas=Object.entries(contagemTags).sort((a,b)=>b[1]-a[1]);
-  if(tagsOrdenadas.length){
-    const tagTop=tagsOrdenadas[0][0];
-    const qsComTag=erros.filter(q=>(q.tags||[]).includes(tagTop));
-    const contagemPub={};
-    qsComTag.forEach(q=>{
-      const chave=`${q.publicacao||'–'}|||${q.capitulo||''}`;
-      contagemPub[chave]=(contagemPub[chave]||0)+1;
-    });
-    const [chaveTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
-    const [pubOrig,cap]=chaveTop.split('|||');
-    const pubInfoBP=bibliografia.find(b=>b.nome===pubOrig&&b.modulo===moduloNome);
-    const capFormatadoBP=formatarCapituloExibicao(pubInfoBP,cap);
-    return capFormatadoBP?`${moduloNome} → ${nomePub(pubOrig)}, ${capFormatadoBP}`:`${moduloNome} → ${nomePub(pubOrig)}`;
-  }
-  const contagemPub={};
-  erros.forEach(q=>{
-    const pub=q.publicacao||'–';
-    contagemPub[pub]=(contagemPub[pub]||0)+1;
-  });
-  const [pubTop]=Object.entries(contagemPub).sort((a,b)=>b[1]-a[1])[0];
-  return `${moduloNome} → ${nomePub(pubTop)}`;
-}
-
-function wilsonScoreLowerBound(k,n){
-  if(n===0) return 50;
-  const z=1.96;
-  const p=k/n;
-  const denom=1+(z*z)/n;
-  const centro=p+(z*z)/(2*n);
-  const margem=z*Math.sqrt((p*(1-p))/n+(z*z)/(4*n*n));
-  return Math.max(0,Math.round(((centro-margem)/denom)*100));
-}
-function calcularMateriasGlobais(){
-  const materiaInfo={};
-  questoes.forEach(q=>{
-    if(isAcertoEfetivo(q)) return;
-    if(q.tags&&q.tags.length){
-      q.tags.forEach(t=>{materiaInfo[t]={isTag:true,label:t};});
-    }else{
-      const pub=q.publicacao||'–';
-      materiaInfo['pub::'+pub]={isTag:false,label:pub,pubFallback:pub};
-    }
-  });
-  return Object.values(materiaInfo).map(info=>{
-    let qsDaMateria;
-    if(info.isTag){
-      qsDaMateria=questoes.filter(q=>(q.tags||[]).includes(info.label));
-    }else{
-      qsDaMateria=questoes.filter(q=>q.publicacao===info.pubFallback&&(!q.tags||!q.tags.length));
-    }
-    const ac=qsDaMateria.filter(isAcertoEfetivo).length;
-    const er=qsDaMateria.filter(q=>!isAcertoEfetivo(q)).length;
-    const total=ac+er;
-    const peso=wilsonScoreLowerBound(er,total);
-    const modulo=qsDaMateria[0]?qsDaMateria[0].modulo:'';
-    const contagem={};
-    qsDaMateria.forEach(q=>{
-      const k=`${q.publicacao||'–'}|||${q.capitulo||''}`;
-      contagem[k]=(contagem[k]||0)+1;
-    });
-    const [chaveTop]=Object.entries(contagem).sort((a,b)=>b[1]-a[1])[0];
-    const [pubOrig,cap]=chaveTop.split('|||');
-    return {nome:info.label,modulo,peso,publicacao:pubOrig,capitulo:cap};
-  });
-}
-
-async function verificarFilaBancoPratico(){
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const hojeStr=hoje.toISOString().slice(0,10);
-
-  // Proteção real contra rodar mais de uma vez no mesmo dia — checa diretamente se já existe
-  // qualquer entrada de hoje, em vez de só olhar a "última data" (que falhava quando a fila estava vazia).
-  const jaTemEntradaHoje=filaBancoPratico.some(f=>f.dataEntrada===hojeStr);
-  if(jaTemEntradaHoje) return;
-
-  const datasExistentes=filaBancoPratico.map(f=>f.dataEntrada).filter(Boolean).sort();
-  const ultimaData=datasExistentes.length?new Date(datasExistentes[datasExistentes.length-1]+'T00:00:00'):null;
-
-  let diasParaPreencher=[];
-  if(!ultimaData){
-    diasParaPreencher=[hojeStr];
-  }else{
-    const diffDias=Math.round((hoje-ultimaData)/(1000*60*60*24));
-    const diasAPreencher=Math.min(diffDias,7); // teto de 7 dias – não compensa além disso
-    for(let i=diasAPreencher-1;i>=0;i--){
-      const d=new Date(hoje);
-      d.setDate(d.getDate()-i);
-      diasParaPreencher.push(d.toISOString().slice(0,10));
-    }
-  }
-
-  const materias=calcularMateriasGlobais();
-  if(!materias.length) return;
-
-  let mudou=false;
-  try{
-    for(const dataStr of diasParaPreencher){
-      const pendentesNomes=new Set(filaBancoPratico.filter(f=>f.status==='Pendente').map(f=>f.materia));
-      const candidatas=materias.filter(m=>!pendentesNomes.has(m.nome));
-      if(!candidatas.length) break;
-      const dataRef=new Date(dataStr+'T00:00:00');
-      const comCredito=candidatas.map(m=>{
-        const entradas=filaBancoPratico.filter(f=>f.materia===m.nome).map(f=>f.dataEntrada).filter(Boolean).sort();
-        let dias;
-        if(entradas.length){
-          const ultima=new Date(entradas[entradas.length-1]+'T00:00:00');
-          dias=Math.max(1,Math.round((dataRef-ultima)/(1000*60*60*24)));
-        }else{
-          dias=999; // nunca sugerida ainda – prioridade máxima
-        }
-        return {...m,credito:m.peso*dias};
-      });
-      comCredito.sort((a,b)=>b.credito-a.credito);
-      const escolhidas=comCredito.slice(0,3); // até 3 matérias novas por "safra" de dia
-      const meta=bancoPratico?.metaDiaria||10;
-      const somaPesosLote=escolhidas.reduce((s,e)=>s+e.peso,0)||1;
-      for(const escolhida of escolhidas){
-        const qtd=Math.max(1,Math.round((escolhida.peso/somaPesosLote)*meta));
-        const {error}=await sbDados.from('fila_banco_pratico').insert({
-          materia:escolhida.nome,
-          modulo:escolhida.modulo||'',
-          publicacao:escolhida.publicacao||'',
-          capitulo:escolhida.capitulo||'',
-          data_entrada:dataStr,
-          status:'Pendente',
-          quantidade:qtd,
-        });
-        if(error) throw error;
-        // atualiza localmente também, pra a "safra" do dia seguinte já contar com isso no cálculo de crédito
-        filaBancoPratico.push({materia:escolhida.nome,modulo:escolhida.modulo,publicacao:escolhida.publicacao,capitulo:escolhida.capitulo,dataEntrada:dataStr,status:'Pendente',quantidade:qtd});
-        mudou=true;
-      }
-    }
-    if(mudou){
-      const {data:filaRes,error}=await sbDados.from('fila_banco_pratico').select('*');
-      if(error) throw error;
-      filaBancoPratico=filaRes.map(p=>({
-        id:p.id,
-        materia:p.materia||'',
-        publicacao:p.publicacao||'',
-        capitulo:p.capitulo||'',
-        modulo:p.modulo||'',
-        dataEntrada:p.data_entrada||null,
-        status:p.status||'Pendente',
-        quantidade:p.quantidade||1,
-      }));
-    }
-  }catch(e){
-    console.error('Erro ao atualizar fila do banco prático:',e);
-  }
-}
-
-async function marcarFilaBancoFeito(id){
-  try{
-    const {error}=await sbDados.from('fila_banco_pratico').update({status:'Feito'}).eq('id',id);
-    if(error) throw error;
-    await loadData();
-  }catch(e){
-    alert('Erro ao confirmar: '+e.message);
-  }
-}
-
+// Meta diária do Banco Prático. Estava junto do card de calendário que foi removido — só a
+// posição no arquivo era acidental, a função não tinha relação com aquele card.
 function editarMetaDiaria(){
-  const atual=bancoPratico.metaDiaria||10;
+  const atual=(bancoPratico&&bancoPratico.metaDiaria)||10;
   abrirTextoModal({titulo:'Meta diária',sub:'Quantas questões por dia',
     valor:String(atual),tipo:'number'},texto=>{
     const novaMeta=parseInt(texto,10);
