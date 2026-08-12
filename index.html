@@ -427,7 +427,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-semana span{text-align:center;font-size:var(--fs-a);color:#aaa;font-weight:600}
 /* touch-action:pan-y deixa a rolagem vertical passar mas reserva o gesto horizontal para a
    troca de mês — sem isso o navegador poderia interpretar como rolagem lateral. */
-.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;touch-action:pan-y}
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;touch-action:pan-y;
+  will-change:transform,opacity}
+/* Esconde o que desliza para fora, para a grade não aparecer por cima do resto do card */
+.cal-grade-wrap{overflow:hidden}
 .cal-semana,.cal-topo{touch-action:pan-y}
 .cal-cel{position:relative;aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:3px;cursor:pointer;background:#F7F8FA}
@@ -465,7 +468,9 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .curso-cal-linha{display:flex;align-items:baseline;gap:8px;padding:8px 0;white-space:nowrap}
 .curso-cal-linha+.curso-cal-linha{border-top:0.5px solid #f7f7f5}
 .curso-cal-passou{opacity:.45}
-.curso-cal-data{font-size:var(--fs-a);color:#888;flex-shrink:0}
+/* Largura fixa de volta, mas medida para caber a data mais longa ("qua · 30 dez") sem apertar
+   o nome — antes eram 74px, curtos demais, e o nome quebrava linha. */
+.curso-cal-data{font-size:var(--fs-a);color:#888;flex-shrink:0;width:88px}
 .curso-cal-nome{font-size:var(--fs-c);color:#202A45;font-weight:500;flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis}
 /* Modalidade colada ao nome, mais discreta — presencial é o que importa saber de relance */
@@ -839,6 +844,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Três botões de largura igual, ocupando a linha toda */
 .iniciar-tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .iniciar-tipos .filter-btn{text-align:center}
+/* Excluir é destrutivo: fica separado dos botões de ação, discreto, no fim do modal */
+.acoes-excluir{display:block;width:100%;margin-top:14px;background:none;border:none;
+  color:#A32D2D;font-size:var(--fs-c);cursor:pointer;font-family:inherit;padding:8px 0}
+@media(hover:hover){.acoes-excluir:hover{color:#7d2222}}
 .duvida-letra{padding:10px 0;border-radius:9px;border:1px solid #ddd;background:#fff;color:#888;
   font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
 .duvida-letra.ativa{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
@@ -1360,6 +1369,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="fecharAcoesQuestao()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarAcoesQuestao()">Salvar</button>
     </div>
+    <button class="acoes-excluir" onclick="confirmarExcluirQuestao()">Excluir esta questão</button>
       <div class="modal-resize" aria-hidden="true"></div>
   </div>
 </div>
@@ -2079,6 +2089,18 @@ function sectionTitle(texto,icone,bg,tx,opts){
 // Anulada conta como acerto em TODOS os cálculos agregados (%, Foco Recomendado, Acertos/Erros),
 // mas mantém o rótulo próprio "Anulada" quando exibida individualmente.
 function isAcerto(q){ return q.status==='Acertei'||q.status==='Anulada'; }
+
+// Totais de uma atividade contados a partir das questões que restaram. O registro em
+// "atividades" guarda os números de quando a prova foi processada — se uma questão for
+// excluída depois, aquele número fica velho, e o aproveitamento continuaria contando o que
+// não vale mais.
+function totaisAtividade(nome){
+  const qs=questoes.filter(q=>q.idAtividade===nome);
+  const acertos=qs.filter(isAcerto).length;
+  const total=qs.length;
+  return {acertos, erros:total-acertos, total,
+    pct: total? (acertos/total*100) : 0};
+}
 // Versão "efetiva" pro cálculo de métricas de estudo (Foco Recomendado, Banco Prático):
 // usa a revisão mais recente quando existir, senão cai pro status original do simulado.
 // Diferente de isAcerto() pura, que é usada na aba Atividades pra manter o histórico intacto.
@@ -2104,6 +2126,7 @@ let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[],planoEstudo=[],ankiPrevisao=[];
 let notasAssunto={};   // assunto -> texto da nota
+let questoesExcluidas=[];   // fora dos cálculos, mantidas para poder reverter
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
@@ -2239,7 +2262,15 @@ async function loadDataInterno(){
       total:p.total_questoes||null,
       tempoGastoMinutos:p.tempo_gasto_minutos||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-    questoes=qRaw.map(p=>({
+    // Questões excluídas somem de todos os cálculos e telas. Filtrar aqui, na origem, em vez de
+    // em cada lugar que usa "questoes" — assim nenhum cálculo futuro esquece de considerar.
+    // A linha continua no banco, então dá para reverter.
+    questoesExcluidas=qRaw.filter(p=>p.excluida).map(p=>({
+      id:p.id, questao:p.numero_questao, idAtividade:p.id_atividade,
+      modulo:p.modulo_pscpp||'', publicacao:p.publicacao||'', capitulo:p.capitulo||'',
+      status:p.status||null, motivo:p.questao_completa||'',
+    }));
+    questoes=qRaw.filter(p=>!p.excluida).map(p=>({
       id:p.id,
       questao:p.numero_questao||null,
       idAtividade:p.id_atividade||null,
@@ -2361,6 +2392,19 @@ async function loadDataInterno(){
       publicacao:p.publicacao||'', capitulo:p.capitulo||'',
       descricao:p.descricao||'', minutos:p.minutos||null, feito:!!p.feito,
     }));
+    // Recalcula os totais de cada atividade a partir das questões que sobraram. O registro em
+    // "atividades" foi gravado no processamento e não sabe de exclusões feitas depois — sem
+    // isso, o aproveitamento continuaria contando questões que não valem mais.
+    atividades.forEach(a=>{
+      const qs=questoes.filter(q=>q.idAtividade===a.nome);
+      if(!qs.length) return;
+      const acertos=qs.filter(isAcerto).length;
+      a.acertos=acertos;
+      a.erros=qs.length-acertos;
+      a.total=qs.length;
+      a.aproveitamento=qs.length?(acertos/qs.length*100):0;
+    });
+
     // Notas ligadas ao assunto em si, não a uma questão: o que vale saber sobre o tema, lido
     // antes de estudar qualquer questão dele.
     notasAssunto={};
@@ -5385,13 +5429,49 @@ let calendarioDiaSel=null;   // dia aberto no detalhe
     // Só conta como horizontal se andou mais na horizontal que na vertical — senão um scroll
     // levemente torto trocaria o mês sem querer.
     if(Math.abs(dx)<MINIMO||Math.abs(dx)<Math.abs(dy)*1.5) return;
-    navegarMesCalendario(dx<0?1:-1);   // arrasta para a esquerda = mês seguinte
+    animarTrocaMes(dx<0?1:-1);   // arrasta para a esquerda = mês seguinte
+  }
+
+  // A troca seca não diz de onde o mês novo veio. Aqui a grade desliza para fora no sentido do
+  // gesto, o conteúdo é trocado enquanto está invisível, e ela volta deslizando do lado oposto —
+  // o que dá a sensação de folhear.
+  function animarTrocaMes(direcao){
+    const grade=document.querySelector('.cal-grade');
+    const mes=document.querySelector('.cal-mes');
+    if(!grade){ navegarMesCalendario(direcao); return; }
+
+    const saida=direcao>0?-1:1;   // avançando, a grade atual sai para a esquerda
+    grade.style.transition='transform .16s ease-in, opacity .16s ease-in';
+    grade.style.transform=`translateX(${saida*22}%)`;
+    grade.style.opacity='0';
+    if(mes){ mes.style.transition='opacity .16s'; mes.style.opacity='0'; }
+
+    setTimeout(()=>{
+      navegarMesCalendario(direcao);
+      // Depois do render, a grade é outro elemento — pega de novo e traz do lado oposto.
+      const nova=document.querySelector('.cal-grade');
+      const novoMes=document.querySelector('.cal-mes');
+      if(!nova) return;
+      nova.style.transition='none';
+      nova.style.transform=`translateX(${-saida*22}%)`;
+      nova.style.opacity='0';
+      if(novoMes){ novoMes.style.transition='none'; novoMes.style.opacity='0'; }
+      // Força o navegador a aplicar o estado inicial antes de animar de volta
+      void nova.offsetWidth;
+      nova.style.transition='transform .2s cubic-bezier(.22,.61,.36,1), opacity .2s ease-out';
+      nova.style.transform='translateX(0)';
+      nova.style.opacity='1';
+      if(novoMes){ novoMes.style.transition='opacity .2s'; novoMes.style.opacity='1'; }
+    },160);
   }
 
   document.addEventListener('touchstart',inicio,{passive:true});
   document.addEventListener('touchend',fim,{passive:true});
   document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch') inicio(e); },{passive:true});
   document.addEventListener('pointerup',e=>{ if(e.pointerType!=='touch') fim(e); },{passive:true});
+
+  // As setas usam a mesma animação do arraste — seria estranho um caminho deslizar e o outro não
+  window.trocarMesAnimado=animarTrocaMes;
 })();
 
 function mesRefCalendario(){
@@ -5490,12 +5570,12 @@ function renderCalendarioMes(){
 
   return `
     <div class="cal-topo">
-      <button class="cal-nav" onclick="navegarMesCalendario(-1)">‹</button>
+      <button class="cal-nav" onclick="trocarMesAnimado(-1)">‹</button>
       <span class="cal-mes">${nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1)}</span>
-      <button class="cal-nav" onclick="navegarMesCalendario(1)">›</button>
+      <button class="cal-nav" onclick="trocarMesAnimado(1)">›</button>
     </div>
     <div class="cal-semana">${['D','S','T','Q','Q','S','S'].map(x=>`<span>${x}</span>`).join('')}</div>
-    <div class="cal-grade">${celulas.join('')}</div>
+    <div class="cal-grade-wrap"><div class="cal-grade">${celulas.join('')}</div></div>
     <div class="cal-legenda">
       <span><span class="cal-ponto cal-ponto-revisao"></span>Revisão</span>
       <span><span class="cal-ponto cal-ponto-curso"></span>Curso</span>
@@ -6146,6 +6226,7 @@ function confirmarFeitoSim(){
   else if(tipo==='foco'||tipo==='focoAssunto') marcarFocoEstudado(id);
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
   else if(tipo==='revisao') concluirRevisao(id);
+  else if(tipo==='excluirQuestao') excluirQuestaoDoBanco(id);
 }
 
 async function marcarEventoFeito(eventoId){
@@ -7598,6 +7679,31 @@ function fecharAcoesQuestao(){
   document.getElementById('acoes-questao-modal').style.display='none';
   acoesQuestaoId=null;
   duvidaSelecionada=[];
+}
+
+// Excluir tira a questão de tudo: some das listas e sai dos cálculos, então o aproveitamento
+// daquela prova é recontado sobre as que restaram. Serve para questão ruim, fora do edital,
+// que só distorce a média.
+function confirmarExcluirQuestao(){
+  if(!acoesQuestaoId) return;
+  const q=questoes.find(x=>x.id===acoesQuestaoId);
+  if(!q) return;
+  abrirConfirmacao(acoesQuestaoId,`Questão ${q.questao}`,'excluirQuestao',
+    `Excluir a questão ${q.questao}? Ela sai das estatísticas e o aproveitamento de "${q.idAtividade}" será recalculado.`);
+}
+
+async function excluirQuestaoDoBanco(id){
+  const q=questoes.find(x=>x.id===id);
+  fecharAcoesQuestao();
+  try{
+    const {error}=await sbDados.from('banco_questoes').update({excluida:true}).eq('id',id);
+    if(error) throw error;
+    await loadData();
+    if(q) mostrarAviso('Questão excluída',
+      `A questão ${q.questao} saiu das estatísticas. O aproveitamento foi recalculado.`);
+  }catch(e){
+    mostrarAviso('Não deu para excluir','Tente de novo em instantes.');
+  }
 }
 
 async function salvarAcoesQuestao(){
