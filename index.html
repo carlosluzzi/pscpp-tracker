@@ -7613,6 +7613,22 @@ async function salvarEditarAssunto(){
   }
 }
 
+// Escapa texto que vem do banco antes de entrar no HTML. Notas pessoais são digitadas pelo
+// Carlos e podem conter < ou &, que quebrariam a marcação se inseridos crus.
+function escapeHtml(txt){
+  return String(txt==null?'':txt)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Nome da publicação como o Carlos escolheu ver. A tabela de apelidos permite renomear na
+// exibição sem alterar o dado salvo no processamento — "IMO — CIS Código Internacional de
+// Sinais" pode virar "CIS", e o original continua intacto para casar com a bibliografia.
+function nomePub(original){
+  if(!original) return '';
+  return apelidos[original]||original;
+}
+
 function editarApelidoPublicacao(original){
   const atual=apelidos[original]||original;
   abrirTextoModal({titulo:'Apelido da publicação',sub:original,valor:atual,
