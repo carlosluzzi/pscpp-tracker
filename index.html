@@ -440,7 +440,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-plano{background:#639922}
 .cal-legenda{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:var(--fs-a);color:#888}
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
-.cal-detalhe{border-top:0.5px solid #f0f0ee;margin-top:12px;padding-top:10px}
+.modal-box.cal-dia-box{max-width:400px;max-height:80vh;overflow-y:auto;text-align:left}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
@@ -1121,6 +1121,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <button class="modal-btn modal-btn-nao" onclick="sonecaAlarmeAnki(30)">+30 min</button>
     </div>
     <button class="modal-btn modal-btn-sim" style="width:100%" onclick="dispensarAlarmeAnki()">Dispensar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cal-dia-modal" style="display:none;z-index:1000000"
+  onclick="if(event.target===this)fecharDiaCalendario()">
+  <div class="modal-box cal-dia-box">
+    <div id="cal-dia-corpo"></div>
+    <div class="sd-rodape">
+      <button class="modal-btn modal-btn-sim" style="width:100%" onclick="fecharDiaCalendario()">Fechar</button>
+    </div>
   </div>
 </div>
 
@@ -2142,7 +2152,6 @@ function renderSubAbas(tab){
     slot.innerHTML=`<div class="sub-abas">
       <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')"><span>Nova atividade</span></div>
       <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')"><span>Histórico</span></div>
-      <div class="sub-aba${abaAprovado==='calendario'?' ativa':''}" onclick="setAbaAprovado('calendario')"><span>Calendário</span></div>
     </div>`;
     return;
   }
@@ -2358,7 +2367,6 @@ function renderizarListaMarcacao(){
   // volta o comportamento de "assume certa por padrão, só marca as erradas" (mais rápido de revisar).
   // Se tiver PELO MENOS 1 detecção, é digital/misto — exige toque explícito em todas, sem presumir nada
   // (protege contra esquecer 1 questão sem perceber, que é o risco real nesse modo).
-  const modoManualPuro=!qs.some(q=>q.suaResposta);
 
   lista.innerHTML=qs.map(q=>{
     const pubInfoQ=bibliografia.find(b=>b.nome===q.publicacao&&b.modulo===q.modulo);
@@ -2372,15 +2380,13 @@ function renderizarListaMarcacao(){
       controleHtml=`<span class="marcacao-toggle anulada">ANULADA</span>`;
     }else if(detectada){
       controleHtml=`<span class="marcacao-detectada">Detectado: ${q.suaResposta.toUpperCase()}</span>`;
-    }else if(modoManualPuro){
-      // 2 estados só: certa (padrão, inclusive null) <-> errada
-      const errada=q.acertouSimplificado===false;
-      controleHtml=`<button class="marcacao-toggle${errada?' errada':''}" onclick="toggleMarcacaoQuestao('${q.id}')">${errada?'Errado':'Certo'}</button>`;
     }else{
-      // Sem detecção automática, mas outras questões da atividade têm — em vez do modo
-      // simplificado (Certo/Errado, sem saber a letra), deixa escolher a letra de verdade. Grava
-      // direto em sua_resposta (o mesmo campo que a extração automática usa) — depois de escolher,
-      // a questão passa a cair no ramo "detectada" acima, igual as que vieram do PDF.
+      // Sempre deixa escolher a LETRA, inclusive quando nenhuma questão foi detectada
+      // automaticamente. Antes, um caderno todo sem detecção caía num modo de Certo/Errado que
+      // guardava só o resultado — foi o que aconteceu com o 218, cujas 70 respostas se
+      // perderam: o desempenho ficou salvo, mas "marquei (c) na questão 12" sumiu para sempre.
+      // Grava em sua_resposta, o mesmo campo da extração automática, então depois de escolher a
+      // questão cai no ramo "detectada" acima, igual às que vieram do PDF.
       controleHtml=`<button class="marcacao-toggle" onclick="abrirEscolherRespostaManual('${q.id}')">Escolher</button>`;
     }
     return `<div class="marcacao-item">
@@ -2392,8 +2398,9 @@ function renderizarListaMarcacao(){
     </div>`;
   }).join('');
 
-  // completa: no modo manual puro, null conta como respondida (certa implícita) — no modo misto, não
-  const faltando=modoManualPuro?[]:qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false);
+  // Agora toda questão precisa da letra escolhida, sem exceção de modo — é ela que permite
+  // saber depois o que exatamente derrubou o Carlos, não só que ele errou.
+  const faltando=qs.filter(q=>q.gabarito!=='Anulada'&&!q.suaResposta);
   const incompletas=qs.filter(q=>q.statusExtracao==='incompleta');
   const semModuloAviso=qs.filter(q=>!q.modulo&&q.gabarito!=='Anulada');
   const semPublicacaoAviso=qs.filter(q=>!q.publicacao&&q.gabarito!=='Anulada');
@@ -2559,32 +2566,6 @@ async function confirmarRespostaManual(letra){
     alert('Erro ao salvar resposta: '+e.message);
   }
 }
-async function toggleMarcacaoQuestao(questaoId){
-  const q=questoesPendentes.find(qq=>qq.id===questaoId);
-  if(!q) return;
-  const qsAtividade=questoesPendentes.filter(qq=>qq.atividadePendenteId===q.atividadePendenteId);
-  const modoManualPuro=!qsAtividade.some(qq=>qq.suaResposta);
-  let novoValor;
-  if(modoManualPuro){
-    // 2 estados: certa (null ou true) <-> errada (false)
-    novoValor=q.acertouSimplificado===false?true:false;
-  }else{
-    // 3 estados: não respondida (null) -> certa (true) -> errada (false) -> não respondida (null)
-    if(q.acertouSimplificado===null||q.acertouSimplificado===undefined) novoValor=true;
-    else if(q.acertouSimplificado===true) novoValor=false;
-    else novoValor=null;
-  }
-  try{
-    const {error}=await sbDados.from('questoes_pendentes').update({acertou_simplificado:novoValor,respondida:novoValor!==null}).eq('id',questaoId);
-    if(error) throw error;
-    q.acertouSimplificado=novoValor;
-    q.respondida=novoValor!==null;
-    renderizarListaMarcacao();
-  }catch(e){
-    alert('Erro ao marcar questão: '+e.message);
-  }
-}
-
 async function solicitarReextracao(questaoId){
   try{
     const {error}=await sbDados.from('questoes_pendentes').update({reextracao_solicitada:true}).eq('id',questaoId);
@@ -2648,16 +2629,13 @@ async function finalizarCadernoPendente(){
   const qs=questoesPendentes.filter(q=>q.atividadePendenteId===resolucaoAtividadeId);
   if(!qs.length) return;
 
-  // Caderno 100% manual (zero detecção no arquivo inteiro): assume certa por padrão — não bloqueia
-  // por "falta responder", já que questão nunca tocada já conta como certa implícita nesse modo.
-  const modoManualPuro=!qs.some(q=>q.suaResposta);
-
-  // Modo misto/digital: NUNCA finaliza com questão sem resposta — seja por detecção (marcação
-  // azul no PDF) ou por toque manual (Certa/Errada). Nunca assume nada sozinho nesse modo.
-  if(!modoManualPuro){
-    const semResposta=qs.filter(q=>!q.suaResposta&&q.acertouSimplificado!==true&&q.acertouSimplificado!==false).map(q=>q.numeroQuestao);
+  // NUNCA finaliza com questão sem a letra marcada, venha ela da detecção no PDF ou da escolha
+  // no app. Antes existia uma exceção para o caderno todo manual, que assumia "certa" por
+  // padrão — foi assim que as 70 respostas do 218 se perderam.
+  {
+    const semResposta=qs.filter(q=>q.gabarito!=='Anulada'&&!q.suaResposta).map(q=>q.numeroQuestao);
     if(semResposta.length){
-      alert(`Ainda falta${semResposta.length>1?'m':''} ${semResposta.length} questão${semResposta.length>1?'ões':''} sem resposta: ${semResposta.join(', ')}.\n\nMarque no app (Certa/Errada) ou no PDF Expert e salve o arquivo – o que vier primeiro resolve a questão.`);
+      alert(`Ainda falta${semResposta.length>1?'m':''} ${semResposta.length} questão${semResposta.length>1?'ões':''} sem resposta: ${semResposta.join(', ')}.\n\nToque em "Escolher" e informe a letra que você marcou, ou marque no PDF Expert e salve o arquivo.`);
       return;
     }
   }
@@ -2715,8 +2693,6 @@ async function confirmarNomeAtividade(){
     return;
   }
 
-  const modoManualPuro=!qs.some(q=>q.suaResposta);
-
   let pontuacaoObtida=0,pontuacaoTotal=0,acertos=0,erros=0,anuladas=0;
   const resultados=qs.map(q=>{
     const peso=q.peso||1;
@@ -2726,12 +2702,10 @@ async function confirmarNomeAtividade(){
       statusFinal='Anulada';
     }else if(q.suaResposta&&q.gabarito){
       statusFinal=q.suaResposta.toUpperCase()===q.gabarito.toUpperCase()?'Acertei':'Errei';
-    }else if(modoManualPuro){
-      // nunca tocada (null) conta como certa nesse modo — só marcada explicitamente errada conta como erro
-      statusFinal=q.acertouSimplificado!==false?'Acertei':'Errei';
     }else{
-      // aqui só chega quem foi tocado manualmente de propósito — nunca null (bloqueio acima já garante isso)
-      statusFinal=q.acertouSimplificado===true?'Acertei':'Errei';
+      // Só chega aqui questão sem letra, que o bloqueio acima já impede de existir. Mantido por
+      // segurança, usando o campo antigo para não quebrar cadernos gravados antes da mudança.
+      statusFinal=q.acertouSimplificado===false?'Errei':'Acertei';
     }
     pontuacaoTotal+=peso;
     if(statusFinal==='Anulada'){ pontuacaoObtida+=peso; anuladas++; }
@@ -3641,10 +3615,6 @@ function renderAprovado(){
 
   // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
-
-  if(abaAprovado==='calendario'){
-    return `<div class="card-inicio">${renderCalendarioMes()}</div>`;
-  }
 
   if(abaAprovado==='historico'){
     // "Horas por matéria – últimos 7 dias" foi removida: "Onde investi o tempo" mostra a mesma
@@ -5094,6 +5064,13 @@ function eventosDoDia(dia){
   return ev;
 }
 
+function renderCardPlanejamento(){
+  return `<div class="card-inicio">
+    ${sectionTitle('Planejamento','calendario','#E6F1FB','#202A45')}
+    ${renderCalendarioMes()}
+  </div>`;
+}
+
 function renderCalendarioMes(){
   const ref=mesRefCalendario();
   const [ano,mes]=ref.split('-').map(Number);
@@ -5122,9 +5099,6 @@ function renderCalendarioMes(){
     celulas.push(return_cel);
   }
 
-  const diaAberto=calendarioDiaSel;
-  const evDia=diaAberto?eventosDoDia(diaAberto):[];
-
   return `
     <div class="cal-topo">
       <button class="cal-nav" onclick="navegarMesCalendario(-1)">‹</button>
@@ -5139,25 +5113,37 @@ function renderCalendarioMes(){
       <span><span class="cal-ponto cal-ponto-anki"></span>Anki</span>
       <span><span class="cal-ponto cal-ponto-plano"></span>planejado</span>
     </div>
-    ${diaAberto?`
-    <div class="cal-detalhe">
-      <div class="cal-detalhe-topo">
-        <span>${fmtDataLongaCal(diaAberto)}</span>
-        <button class="cal-add" onclick="abrirNovoPlano('${diaAberto}')">+ planejar</button>
-      </div>
-      ${evDia.length?evDia.map(e=>`
-        <div class="cal-item${e.feito?' cal-item-feito':''}">
-          <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
-          <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
-          ${e.fonte==='plano'?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
-        </div>`).join('')
-        :'<div class="empty" style="padding:10px 0">Nada agendado. Toque em planejar para adicionar.</div>'}
-    </div>`:''}`;
+`;
+}
+
+// O dia abre num modal, não numa faixa abaixo da grade: o calendário fica no meio da tela
+// Início, e empurrar o conteúdo seguinte a cada toque desloca tudo que vem depois.
+function renderDetalheDia(){
+  const dia=calendarioDiaSel;
+  if(!dia) return '';
+  const ev=eventosDoDia(dia);
+  return `
+    <div class="cal-detalhe-topo">
+      <span>${fmtDataLongaCal(dia)}</span>
+      <button class="cal-add" onclick="abrirNovoPlano('${dia}')">+ planejar</button>
+    </div>
+    ${ev.length?ev.map(e=>`
+      <div class="cal-item${e.feito?' cal-item-feito':''}">
+        <span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>
+        <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
+        ${e.fonte==='plano'?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
+      </div>`).join('')
+      :'<div class="empty" style="padding:14px 0">Nada agendado neste dia. Toque em planejar para adicionar.</div>'}`;
 }
 
 function abrirDiaCalendario(dia){
-  calendarioDiaSel=calendarioDiaSel===dia?null:dia;
-  renderTab(tabAtual,true);
+  calendarioDiaSel=dia;
+  document.getElementById('cal-dia-corpo').innerHTML=renderDetalheDia();
+  document.getElementById('cal-dia-modal').style.display='flex';
+}
+function fecharDiaCalendario(){
+  document.getElementById('cal-dia-modal').style.display='none';
+  calendarioDiaSel=null;
 }
 
 function abrirNovoPlano(dia){
@@ -5181,11 +5167,20 @@ async function salvarNovoPlano(){
   planoEstudo.push({id:novo.id,data,tipo,modulo:'',publicacao:'',capitulo:'',
     descricao,minutos,feito:false});
   renderTab(tabAtual,true);
+  // O modal do dia continua aberto atrás: atualiza o conteúdo dele para o novo item aparecer.
+  if(calendarioDiaSel){
+    const corpo=document.getElementById('cal-dia-corpo');
+    if(corpo) corpo.innerHTML=renderDetalheDia();
+  }
 }
 
 async function removerPlano(id){
   planoEstudo=planoEstudo.filter(p=>p.id!==id);
   renderTab(tabAtual,true);
+  if(calendarioDiaSel){
+    const corpo=document.getElementById('cal-dia-corpo');
+    if(corpo) corpo.innerHTML=renderDetalheDia();
+  }
   await sbDados.from('plano_estudo').delete().eq('id',id);
 }
 
@@ -5218,6 +5213,7 @@ function renderInicio(){
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
     ${renderCardCalendario()}
+    ${renderCardPlanejamento()}
     ${renderCardBancoPratico()}
     ${renderCardFoco()}
     ${renderCardComplementares()}
