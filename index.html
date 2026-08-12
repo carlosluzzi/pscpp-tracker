@@ -979,7 +979,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 </div>
 
-<div id="timer-fullscreen" class="hidden">
+<div id="timer-fullscreen" class="hidden" onclick="fecharAjusteApitoSeFora(event)">
   <div id="timer-fullscreen-conteudo"></div>
 </div>
 
@@ -1096,17 +1096,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
-<div class="modal-overlay" id="escolher-resposta-modal" style="display:none;z-index:1000001">
+<div class="modal-overlay" id="escolher-resposta-modal" style="display:none;z-index:1000001"
+  onclick="if(event.target===this)fecharEscolherResposta()">
   <div class="modal-box">
     <div class="config-title">Qual foi sua resposta?</div>
     <p id="escolher-resposta-texto" style="margin:0 0 16px 0;line-height:1.5;font-size:var(--fs-c);color:#5F5E5A"></p>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('a')">A</button>
-      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('b')">B</button>
-      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('c')">C</button>
-      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('d')">D</button>
-      <button class="modal-btn modal-btn-nao" onclick="confirmarRespostaManual('e')">E</button>
+      <button class="modal-btn modal-btn-nao" id="esc-alt-a" onclick="confirmarRespostaManual('a')">A</button>
+      <button class="modal-btn modal-btn-nao" id="esc-alt-b" onclick="confirmarRespostaManual('b')">B</button>
+      <button class="modal-btn modal-btn-nao" id="esc-alt-c" onclick="confirmarRespostaManual('c')">C</button>
+      <button class="modal-btn modal-btn-nao" id="esc-alt-d" onclick="confirmarRespostaManual('d')">D</button>
+      <button class="modal-btn modal-btn-nao" id="esc-alt-e" onclick="confirmarRespostaManual('e')">E</button>
     </div>
+    <button class="modal-btn modal-btn-nao" style="width:100%;margin-top:12px"
+      onclick="fecharEscolherResposta()">Cancelar</button>
   </div>
 </div>
 
@@ -2112,6 +2115,7 @@ async function loadDataInterno(){
       peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,pagina:p.pagina,
       questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
       respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
+      respostaManual:!!p.resposta_manual,
       zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
       acertouSimplificado:p.acertou_simplificado,
     })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
@@ -2379,7 +2383,10 @@ function renderizarListaMarcacao(){
     if(q.gabarito==='Anulada'){
       controleHtml=`<span class="marcacao-toggle anulada">ANULADA</span>`;
     }else if(detectada){
-      controleHtml=`<span class="marcacao-detectada">Detectado: ${q.suaResposta.toUpperCase()}</span>`;
+      // A letra pode ter vindo do PDF (detectada) ou de um toque no app (marcada). São coisas
+      // diferentes e o rótulo precisa dizer qual — e nos dois casos dá para trocar, tocando de novo.
+      controleHtml=`<span class="marcacao-detectada" onclick="abrirEscolherRespostaManual('${q.id}')"
+        style="cursor:pointer">${q.respostaManual?'Marcado':'Detectado'}: ${q.suaResposta.toUpperCase()}</span>`;
     }else{
       // Sempre deixa escolher a LETRA, inclusive quando nenhuma questão foi detectada
       // automaticamente. Antes, um caderno todo sem detecção caía num modo de Certo/Errado que
@@ -2410,9 +2417,19 @@ function renderizarListaMarcacao(){
     const q=incompletas[0];
     avisoEl.classList.remove('hidden');
     avisoEl.innerHTML=`<span>⚠ Questão ${q.numeroQuestao} veio incompleta na extração</span>${q.reextracaoSolicitada?'<span>Reextração já solicitada</span>':`<button class="resolucao-puxar-btn" onclick="solicitarReextracao('${q.id}')">Puxar de novo</button>`}`;
-  }else if(faltando.length){
+  }else if(faltando.length===qs.length){
+    // Caderno ainda não respondido: listar as 70 uma a uma como "faltando" não é aviso, é ruído.
+    // Aqui o estado normal é estar vazio — a mensagem explica o que fazer em vez de alarmar.
     avisoEl.classList.remove('hidden');
-    avisoEl.innerHTML=`<span>⚠ Falta${faltando.length>1?'m':''} ${faltando.length} questão${faltando.length>1?'ões':''} responder: ${faltando.map(q=>q.numeroQuestao).join(', ')}</span>`;
+    avisoEl.innerHTML=`<span>Caderno ainda não respondido. Marque no PDF Expert e salve, ou informe as respostas aqui.</span>`;
+  }else if(faltando.length){
+    // Já respondeu parte: aí sim vale apontar exatamente o que falta. Acima de 10, mostra só a
+    // contagem — uma lista de 40 números não ajuda a achar nada.
+    const lista=faltando.length<=10
+      ? ': '+faltando.map(q=>q.numeroQuestao).join(', ')
+      : '';
+    avisoEl.classList.remove('hidden');
+    avisoEl.innerHTML=`<span>⚠ Falta${faltando.length>1?'m':''} ${faltando.length} questão${faltando.length>1?'ões':''} responder${lista}</span>`;
   }else if(semModuloAviso.length||semPublicacaoAviso.length||semCapitulo.length){
     avisoEl.classList.remove('hidden');
     const partes=[];
@@ -2544,8 +2561,20 @@ function abrirEscolherRespostaManual(questaoId){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
   escolherRespostaQuestaoId=questaoId;
-  document.getElementById('escolher-resposta-texto').textContent=`Questão ${q.numeroQuestao}`;
+  const jaTem=(q.suaResposta||'').toLowerCase();
+  document.getElementById('escolher-resposta-texto').textContent=
+    `Questão ${q.numeroQuestao}` + (jaTem?` · marcada como ${jaTem.toUpperCase()}`:'');
+  // Destaca a letra atual: sem isso, ao reabrir para trocar, não dá para saber qual está valendo.
+  ['a','b','c','d','e'].forEach(l=>{
+    const b=document.getElementById('esc-alt-'+l);
+    if(b) b.className='modal-btn '+(l===jaTem?'modal-btn-sim':'modal-btn-nao');
+  });
   document.getElementById('escolher-resposta-modal').style.display='flex';
+}
+
+function fecharEscolherResposta(){
+  document.getElementById('escolher-resposta-modal').style.display='none';
+  escolherRespostaQuestaoId=null;
 }
 async function confirmarRespostaManual(letra){
   if(!escolherRespostaQuestaoId) return;
@@ -2555,12 +2584,13 @@ async function confirmarRespostaManual(letra){
   const q=questoesPendentes.find(qq=>qq.id===questaoId);
   if(!q) return;
   try{
-    const {error}=await sbDados.from('questoes_pendentes').update({sua_resposta:letra,respondida:true}).eq('id',questaoId);
+    const {error}=await sbDados.from('questoes_pendentes').update({sua_resposta:letra,respondida:true,resposta_manual:true}).eq('id',questaoId);
     if(error) throw error;
     // Atualiza localmente também, sem precisar recarregar tudo do banco — a partir de agora essa
     // questão cai no mesmo ramo visual das que vieram detectadas automaticamente do PDF.
     q.suaResposta=letra;
     q.respondida=true;
+    q.respostaManual=true;
     renderizarListaMarcacao();
   }catch(e){
     alert('Erro ao salvar resposta: '+e.message);
@@ -3774,7 +3804,7 @@ function renderTimerFullscreenConteudo(){
 
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
-    <button class="tf-ajustes-btn" onclick="abrirAjusteApito()" aria-label="Ajustes de som">
+    <button class="tf-ajustes-btn" onclick="abrirAjusteApito(event)" aria-label="Ajustes de som">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
     <div class="tf-ajustes hidden" id="tf-ajustes">
@@ -3942,12 +3972,23 @@ function setApitoIntervalo(seg){
   if(!timerRodando&&timerAcumuladoSeg>0) iniciarApitoPausa();
 }
 
-function abrirAjusteApito(){
+function abrirAjusteApito(ev){
+  if(ev) ev.stopPropagation();   // senão o clique na engrenagem já fecharia o painel que abriu
   const el=document.getElementById('tf-ajustes');
   if(!el) return;
   const abrindo=el.classList.contains('hidden');
   el.classList.toggle('hidden',!abrindo);
   if(abrindo) prepararAudioApito();   // destrava o áudio no gesto que abriu o painel
+}
+
+// Tocar em qualquer lugar da tela cheia fecha o painel de ajustes — só cliques DENTRO dele
+// são ignorados, para arrastar os controles sem que ele suma no meio do gesto.
+function fecharAjusteApitoSeFora(ev){
+  const el=document.getElementById('tf-ajustes');
+  if(!el||el.classList.contains('hidden')) return;
+  if(el.contains(ev.target)) return;
+  if(ev.target.closest&&ev.target.closest('.tf-ajustes-btn')) return;
+  el.classList.add('hidden');
 }
 
 function iniciarApitoPausa(){
@@ -5108,10 +5149,10 @@ function renderCalendarioMes(){
     <div class="cal-semana">${['D','S','T','Q','Q','S','S'].map(x=>`<span>${x}</span>`).join('')}</div>
     <div class="cal-grade">${celulas.join('')}</div>
     <div class="cal-legenda">
-      <span><span class="cal-ponto cal-ponto-revisao"></span>revisão</span>
-      <span><span class="cal-ponto cal-ponto-curso"></span>curso</span>
+      <span><span class="cal-ponto cal-ponto-revisao"></span>Revisão</span>
+      <span><span class="cal-ponto cal-ponto-curso"></span>Curso</span>
       <span><span class="cal-ponto cal-ponto-anki"></span>Anki</span>
-      <span><span class="cal-ponto cal-ponto-plano"></span>planejado</span>
+      <span><span class="cal-ponto cal-ponto-plano"></span>Planejado</span>
     </div>
 `;
 }
