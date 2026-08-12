@@ -450,7 +450,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-cel .cal-num{margin-top:9px}
 /* Dentro do dia cabe a logo completa, com o nome do curso — o ícone compacto é só para a
    célula do calendário, onde não há espaço. */
-.cal-item-logo{height:15px;width:auto;object-fit:contain;display:block}
+/* Catavento e Curso Prático têm logo mais "achatada" e precisam de altura maior para ficarem
+   com peso visual equivalente ao Curso H e ao MPX — mesma regra usada no resto do app. */
+.cal-item-logo{width:auto;object-fit:contain;display:block;height:14px}
+.cal-item-logo.logo-maior{height:16px}
 /* Calendário completo de um curso: data à esquerda, o que é no meio, e quanto falta à direita */
 .curso-cal-topo{display:flex;justify-content:center;padding:4px 0 2px}
 .curso-cal-logo{height:20px;width:auto;object-fit:contain}
@@ -467,10 +470,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-legenda span{display:inline-flex;align-items:center;gap:4px}
 /* Coluna com o miolo rolando: sem isso, ao esticar o modal o conteúdo fica no topo e o botão
    de fechar sobe junto, deixando um vazio embaixo. Assim ele acompanha a borda inferior. */
-.modal-box.cal-dia-box{width:min(440px, 92vw);max-height:80vh;text-align:left;
+/* O padding sai da caixa e vai para o miolo: com overflow:hidden na caixa, o conteúdo que rola
+   perdia a margem esquerda e ficava cortado rente à borda. */
+.modal-box.cal-dia-box{width:min(440px, 92vw);max-height:80vh;text-align:left;padding:0;
   display:flex;flex-direction:column;overflow:hidden}
 .modal-box.cal-dia-box #cal-dia-corpo,
-.modal-box.cal-dia-box #curso-cal-corpo{flex:1;min-height:0;overflow-y:auto}
+.modal-box.cal-dia-box #curso-cal-corpo{flex:1;min-height:0;overflow-y:auto;padding:20px 20px 0}
+.modal-box.cal-dia-box .sd-rodape{padding:12px 20px 20px}
 .cal-detalhe-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-detalhe-topo span{font-size:var(--fs-c);font-weight:600;color:#202A45}
 .cal-add{background:none;border:none;color:#202A45;font-size:var(--fs-c);font-weight:500;
@@ -5468,7 +5474,8 @@ function renderDetalheDia(){
           :(e.fonte==='revisao'||e.fonte==='plano')?`onclick="abrirIniciarEstudo('${e.fonte}','${e.id}')"`:''}>
         <div class="cal-item-corpo">
           ${e.fonte==='curso'&&logosCursos[e.tipo]
-            ? `<img src="${logosCursos[e.tipo]}" alt="${e.tipo}" class="cal-item-logo"
+            ? `<img src="${logosCursos[e.tipo]}" alt="${e.tipo}"
+                 class="cal-item-logo${(e.tipo==='Catavento'||e.tipo==='Curso Prático')?' logo-maior':''}"
                  style="aspect-ratio:${proporcaoLogosCursos[e.tipo]||4.4}" loading="lazy">`
             : `<span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>`}
           <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
