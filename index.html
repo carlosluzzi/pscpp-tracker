@@ -449,9 +449,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .cal-ponto-evento{background:#7C5BC7}
 /* Ícone do curso: no canto da célula do calendário, e no lugar do badge dentro do dia */
 /* Ícone do curso na célula: afastado da borda e limitado em largura — o MPX é quase três vezes
-   mais largo que os outros e transbordaria a célula na altura em que os demais ficam bons. */
+   mais largo que os outros e transbordaria a célula na altura em que os demais ficam bons.
+   Os ícones REDONDOS (catavento e timão) ganham 2px a mais: um círculo com a mesma altura de
+   uma letra parece menor, porque as pontas se afastam nos cantos. Medido: o H preenche 54% do
+   próprio retângulo, o catavento só 45%. */
 .cal-cel-icone{position:absolute;top:5px;left:5px;height:13px;width:auto;max-width:calc(100% - 10px);
   object-fit:contain}
+.cal-cel-icone.icone-redondo{height:15px;top:4px;left:4px}
 /* O número desce para não encostar no ícone */
 .cal-cel .cal-num{margin-top:9px}
 /* Dentro do dia cabe a logo completa, com o nome do curso — o ícone compacto é só para a
@@ -5556,7 +5560,8 @@ function renderCalendarioMes(){
     // e é o que o Carlos precisa saber sem abrir o dia.
     const evCurso=ev.find(e=>e.fonte==='curso'&&iconesCursos[e.tipo]);
     const iconeCurso=evCurso
-      ? `<img src="${iconesCursos[evCurso.tipo]}" alt="${evCurso.tipo}" class="cal-cel-icone"
+      ? `<img src="${iconesCursos[evCurso.tipo]}" alt="${evCurso.tipo}"
+           class="cal-cel-icone${(evCurso.tipo==='Catavento'||evCurso.tipo==='Curso Prático')?' icone-redondo':''}"
            style="aspect-ratio:${proporcaoIcones[evCurso.tipo]||1}" loading="lazy">`
       : '';
     return_cel=`<div class="cal-cel${ehHoje?' cal-hoje':''}${passou?' cal-passou':''}${calendarioDiaSel===dia?' cal-sel':''}"
