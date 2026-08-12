@@ -762,6 +762,19 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .vq-titulo{padding:20px 24px 0;flex-shrink:0;margin-bottom:0}
 .vq-corpo{padding:8px 24px 12px;overflow-y:auto;flex:1}
 .vq-corpo .rs{margin-top:6px}
+/* Edição do assunto principal: renomear para um nome já existente junta as questões, que é
+   como dois temas parecidos viram um só sem nenhum passo extra. */
+.assunto-sugs{display:flex;flex-wrap:wrap;gap:6px;max-height:96px;overflow-y:auto}
+.assunto-sug{font-size:var(--fs-a);color:#202A45;background:#E6F1FB;border:none;border-radius:7px;
+  padding:5px 10px;cursor:pointer;font-family:inherit}
+@media(hover:hover){.assunto-sug:hover{background:#d5e6f7}}
+.assunto-sug-vazio{font-size:var(--fs-a);color:#aaa}
+.assunto-todas{display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;
+  font-size:var(--fs-c);color:#5F5E5A}
+.assunto-todas input{width:18px;height:18px;flex-shrink:0}
+.cap-tit-edit{cursor:pointer}
+@media(hover:hover){.cap-tit-edit:hover{color:#202A45}}
+.assunto-tem-nota{font-size:10px}
 /* Ações da questão: rótulos de seção e os botões de letra para marcar a dúvida */
 /* Linha de questão no capítulo. O ponto de resultado alinha pelo centro do texto do assunto,
    não pelo topo da linha — a linha usa align-items:flex-start, então o ajuste é manual. */
@@ -1202,6 +1215,34 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharTextoModal()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarTextoModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assunto-modal" style="display:none;z-index:1000005"
+  onclick="if(event.target===this)fecharEditarAssunto()">
+  <div class="modal-box nota-box">
+    <div class="config-title" id="assunto-modal-titulo" style="margin-bottom:14px"></div>
+
+    <div class="acoes-rotulo">Assunto</div>
+    <input type="text" id="assunto-input" class="filter-select" style="width:100%"
+      placeholder="Em uma palavra ou termo curto">
+
+    <div class="acoes-rotulo" style="margin-top:10px">Já usados</div>
+    <div class="assunto-sugs" id="assunto-sugestoes"></div>
+
+    <label class="assunto-todas" id="assunto-todas-wrap">
+      <input type="checkbox" id="assunto-todas">
+      <span id="assunto-todas-txt"></span>
+    </label>
+
+    <div class="acoes-rotulo" style="margin-top:14px">Nota sobre o assunto</div>
+    <textarea id="assunto-nota" class="nota-textarea" rows="3"
+      placeholder="O que vale saber sobre este tema"></textarea>
+
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharEditarAssunto()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarEditarAssunto()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1949,6 +1990,7 @@ let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='dia',analiseMesRef
 let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[],planoEstudo=[],ankiPrevisao=[];
+let notasAssunto={};   // assunto -> texto da nota
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
 let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
@@ -2004,7 +2046,8 @@ async function loadDataInterno(){
       {data:ankiRevRes,error:eAnkiRev},
       {data:classAltRes,error:eClassAlt},
       {data:planoRes,error:ePlano},
-      {data:previsaoRes,error:ePrevisao}
+      {data:previsaoRes,error:ePrevisao},
+      {data:notasAssuntoRes,error:eNotasAssunto}
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
@@ -2029,6 +2072,7 @@ async function loadDataInterno(){
       buscarTudo('classificacao_alternativas'),
       buscarTudo('plano_estudo'),
       buscarTudo('anki_previsao_carga'),
+      buscarTudo('notas_assunto'),
     ]);
     const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
@@ -2204,6 +2248,10 @@ async function loadDataInterno(){
       publicacao:p.publicacao||'', capitulo:p.capitulo||'',
       descricao:p.descricao||'', minutos:p.minutos||null, feito:!!p.feito,
     }));
+    // Notas ligadas ao assunto em si, não a uma questão: o que vale saber sobre o tema, lido
+    // antes de estudar qualquer questão dele.
+    notasAssunto={};
+    if(!eNotasAssunto) (notasAssuntoRes||[]).forEach(p=>{ if(p.texto) notasAssunto[p.assunto]=p.texto; });
     ankiPrevisao=ePrevisao?[]:(previsaoRes||[]).map(p=>({
       data:p.data, deck:p.deck||'', revisoes:p.revisoes||0,
     }));
@@ -7302,9 +7350,10 @@ function renderPubsCards(qs,prefixoId){
         // Só o assunto principal como rótulo — o tipo de questão diz do formato, não do tema,
         // e misturar os dois na mesma coluna confundiria o que a linha representa.
         // O resultado vira um ponto colorido alinhado ao texto, sem ocupar largura.
+        const temNota=q.assuntoPrincipal&&notasAssunto[q.assuntoPrincipal];
         const assuntoHtml=q.assuntoPrincipal
-          ?`<span class="cap-tit">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}</span>`
-          :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();adicionarAssuntoPrincipal('${q.id}')">+ assunto principal</span>`;
+          ?`<span class="cap-tit cap-tit-edit" onclick="event.stopPropagation();abrirEditarAssunto('${q.id}')">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}${temNota?' <span class="assunto-tem-nota">📝</span>':''}</span>`
+          :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();abrirEditarAssunto('${q.id}')">+ assunto principal</span>`;
         return `<div class="cap-row cap-row-q" onclick="abrirVerQuestaoCompleta('${q.id}')">
         <span class="q-ponto" style="background:${si.color}"></span>
         ${assuntoHtml}
@@ -7480,31 +7529,90 @@ function toggleCap(capId){
   if(c) c.classList.toggle('open',!open);
 }
 
-function adicionarAssuntoPrincipal(questaoId){
+// ---------- Assunto principal: editar, juntar e anotar ----------
+// Renomear e juntar são a mesma operação: se o novo nome já existe, as questões passam a
+// compartilhar o assunto — que é justamente o objetivo. Três questões sobre quebra de onda,
+// resistência de onda e padrão de ondas viram todas "Wave resistance" sem nenhum passo extra.
+let assuntoEditando=null;
+
+function abrirEditarAssunto(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
-  abrirTextoModal({titulo:'Assunto principal',
-    sub:q?`Questão ${q.questao}`:'',
-    valor:q?(q.assuntoPrincipal||''):'',
-    placeholder:'Em uma palavra, do que é esta questão'},texto=>{
-    if(texto) salvarAssuntoPrincipal(questaoId,texto);
-  });
+  if(!q) return;
+  const atual=q.assuntoPrincipal||'';
+  assuntoEditando={questaoId, original:atual};
+
+  document.getElementById('assunto-modal-titulo').textContent=atual||'Novo assunto';
+  document.getElementById('assunto-input').value=atual;
+  document.getElementById('assunto-nota').value=(notasAssunto[atual]||'');
+
+  // Quantas questões usam esse assunto hoje — define se renomear afeta uma ou várias
+  const quantas=atual?questoes.filter(x=>x.assuntoPrincipal===atual).length:0;
+  const wrap=document.getElementById('assunto-todas-wrap');
+  document.getElementById('assunto-todas-txt').textContent=
+    `Aplicar às ${quantas} questões com este assunto`;
+  wrap.style.display=quantas>1?'':'none';
+  document.getElementById('assunto-todas').checked=quantas>1;
+
+  renderSugestoesAssunto(atual);
+  document.getElementById('assunto-modal').style.display='flex';
 }
-async function salvarAssuntoPrincipal(questaoId,texto){
+
+// Mostra os assuntos já em uso: tocar num deles é o caminho mais rápido para juntar, e evita
+// criar variação nova de algo que já existe.
+function renderSugestoesAssunto(atual){
+  const el=document.getElementById('assunto-sugestoes');
+  if(!el) return;
+  const usados=[...new Set(questoes.map(q=>q.assuntoPrincipal).filter(Boolean))]
+    .filter(a=>a!==atual).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  el.innerHTML=usados.length
+    ? usados.map(a=>`<button class="assunto-sug" onclick="usarSugestaoAssunto('${a.replace(/'/g,"\\'")}')">${a}</button>`).join('')
+    : '<span class="assunto-sug-vazio">Nenhum assunto cadastrado ainda.</span>';
+}
+
+function usarSugestaoAssunto(nome){
+  const input=document.getElementById('assunto-input');
+  input.value=nome;
+  document.getElementById('assunto-nota').value=(notasAssunto[nome]||'');
+}
+
+function fecharEditarAssunto(){
+  document.getElementById('assunto-modal').style.display='none';
+  assuntoEditando=null;
+}
+
+async function salvarEditarAssunto(){
+  if(!assuntoEditando) return;
+  const {questaoId,original}=assuntoEditando;
+  const novo=document.getElementById('assunto-input').value.trim();
+  const nota=document.getElementById('assunto-nota').value.trim();
+  const todas=document.getElementById('assunto-todas').checked;
+  if(!novo) return;
+  fecharEditarAssunto();
+
+  // Alvo: só esta questão, ou todas que compartilham o assunto antigo
+  const alvos=(todas&&original)
+    ? questoes.filter(q=>q.assuntoPrincipal===original)
+    : questoes.filter(q=>q.id===questaoId);
+  alvos.forEach(q=>{ q.assuntoPrincipal=novo; });
+  if(nota) notasAssunto[novo]=nota; else delete notasAssunto[novo];
+  renderTab(tabAtual,true);
+
   try{
-    const {error}=await sbDados.from('banco_questoes').update({assunto_principal:texto}).eq('id',questaoId);
-    if(error) throw error;
-    await loadData();
+    if(todas&&original){
+      await sbDados.from('banco_questoes').update({assunto_principal:novo}).eq('assunto_principal',original);
+    }else{
+      await sbDados.from('banco_questoes').update({assunto_principal:novo}).eq('id',questaoId);
+    }
+    if(nota){
+      await sbDados.from('notas_assunto').upsert({assunto:novo,texto:nota,atualizado_em:new Date().toISOString()});
+    }else{
+      await sbDados.from('notas_assunto').delete().eq('assunto',novo);
+    }
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
 }
 
-function escapeHtml(str){
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function nomePub(original){
-  return apelidos[original]||original;
-}
 function editarApelidoPublicacao(original){
   const atual=apelidos[original]||original;
   abrirTextoModal({titulo:'Apelido da publicação',sub:original,valor:atual,
