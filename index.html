@@ -809,6 +809,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Nota de estudo: caixa maior que a de um modal de confirmação, porque aqui se escreve de
    verdade — um campo de uma linha convida a anotar menos do que se quer. */
 .modal-box.nota-box{width:min(440px, 92vw)}
+/* Campo travado que mostra a composição de um grupo: não é escolha, é informação. Sem borda,
+   sem seta e podendo quebrar linha — assim o texto longo aparece inteiro em vez de cortado. */
+/* Uma linha só: fonte menor, porque o texto é longo e quebrar em duas empurra os campos
+   seguintes a cada troca de publicação. */
+.filter-select.select-como-texto{border:none;background:none;padding:2px 0;height:auto;
+  font-size:11px;color:#888;white-space:nowrap;line-height:1.4;-webkit-appearance:none;
+  appearance:none;text-overflow:ellipsis}
 .nota-textarea{width:100%;box-sizing:border-box;font-size:16px;padding:10px 12px;border-radius:8px;
   border:0.5px solid #ddd;background:#fff;color:#111;font-family:inherit;line-height:1.5;
   resize:vertical;min-height:96px;margin-bottom:16px}
@@ -1799,9 +1806,7 @@ function registrarGrupoPilotTransfer(){
     capitulosValidos:null,
     // No lugar de "Capítulo Único", lista o que o grupo contém — assim fica claro o que se está
     // registrando, sem precisar abrir outra tela para lembrar.
-    // Sem o prefixo das circulares: cinco nomes completos não cabem na largura do seletor e o
-    // texto cortava. Os números identificam sozinhos.
-    faixaCapitulos:'SOLAS · 1045 · 1108 · 1428 · 1495',
+    faixaCapitulos:'SOLAS · A.1045(27) · A.1108(29) · Circ.1428 · Circ.1495',   // cabe em uma linha a 11px
     rotuloCapitulo:'Capítulo',
   });
 }
@@ -4229,10 +4234,18 @@ function renderTimerFullscreenConteudo(){
     <div>
       ${cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
-      ${(timerPublicacao||capituloFormatadoTf)?`<div class="tf-ref-wrap">
-        ${timerPublicacao?`<div class="tf-ref">${nomePub(timerPublicacao)}</div>`:''}
-        ${capituloFormatadoTf?`<div class="tf-ref">${capituloFormatadoTf}</div>`:''}
-      </div>`:''}`}
+      ${(()=>{
+        // Publicação de capítulo único com descrição própria (o grupo Pilot Transfer, por
+        // exemplo) mostra as fontes que a compõem no lugar do capítulo — que ali seria vazio.
+        const pubTf=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
+        const complemento=capituloFormatadoTf
+          || ((pubTf&&pubTf.capituloUnico&&pubTf.faixaCapitulos)?pubTf.faixaCapitulos:'');
+        if(!timerPublicacao&&!complemento) return '';
+        return `<div class="tf-ref-wrap">
+          ${timerPublicacao?`<div class="tf-ref">${nomePub(timerPublicacao)}</div>`:''}
+          ${complemento?`<div class="tf-ref">${complemento}</div>`:''}
+        </div>`;
+      })()}`}
       <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
       <div class="tf-tipo">${timerTipo}</div>
       <div class="tf-btns">
@@ -5153,6 +5166,7 @@ function atualizarCapitulosRegistroManual(){
   if(pubInfo.capituloUnico){
     capSelect.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`;
     capSelect.disabled=true;
+    capSelect.classList.add('select-como-texto');
     return;
   }
   if(!pubInfo.capitulosValidos||!pubInfo.capitulosValidos.length){
@@ -5166,6 +5180,7 @@ function atualizarCapitulosRegistroManual(){
     return;
   }
   capSelect.disabled=false;
+  capSelect.classList.remove('select-como-texto');
   capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
 }
 // Caracteres lidos só existem em Leitura — nos outros tipos o campo some do formulário.
@@ -5743,8 +5758,14 @@ function atualizarCapitulosPlano(){
     sel.innerHTML='<option value="">Capítulo/Seção</option>'; sel.disabled=true; return;
   }
   sel.disabled=false;
+  sel.classList.remove('select-como-texto');
   if(pubInfo.capituloUnico){
-    sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`; sel.disabled=true; return;
+    // Texto no lugar do seletor: um campo travado com seta sugere escolha que não existe, e a
+    // seta ainda rouba espaço de um texto que já é longo.
+    sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`;
+    sel.disabled=true;
+    sel.classList.add('select-como-texto');
+    return;
   }
   const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length
     ? pubInfo.capitulosValidos
