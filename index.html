@@ -855,10 +855,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Três botões de largura igual, ocupando a linha toda */
 .iniciar-tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .iniciar-tipos .filter-btn{text-align:center}
-/* Excluir é destrutivo: fica separado dos botões de ação, discreto, no fim do modal */
-.acoes-excluir{display:block;width:100%;margin-top:14px;background:none;border:none;
-  color:#A32D2D;font-size:var(--fs-c);cursor:pointer;font-family:inherit;padding:8px 0}
-@media(hover:hover){.acoes-excluir:hover{color:#7d2222}}
+/* Excluir é botão de verdade, no vermelho sólido que o app já usa para ação destrutiva.
+   Separado dos outros por um espaço maior, para não ser tocado por engano. */
+.acoes-excluir{display:block;width:100%;margin-top:18px;background:#A32D2D;border:none;
+  color:#fff;font-size:var(--fs-e);font-weight:500;cursor:pointer;font-family:inherit;
+  padding:10px;border-radius:8px}
+@media(hover:hover){.acoes-excluir:hover{background:#8d2626}}
 .duvida-letra{padding:10px 0;border-radius:9px;border:1px solid #ddd;background:#fff;color:#888;
   font-size:var(--fs-d);font-weight:600;cursor:pointer;font-family:inherit}
 .duvida-letra.ativa{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
@@ -1151,7 +1153,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       <input type="number" min="0" class="filter-select" id="timer-caracteres-input" placeholder="Ex: 8500" style="margin-bottom:14px">
     </div>
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-nao" id="timer-confirmar-cancelar-btn" onclick="fecharConfirmarSalvarTimer()">Cancelar</button>
+      <button class="modal-btn modal-btn-nao" id="timer-confirmar-cancelar-btn" onclick="fecharConfirmarSalvarTimer(true)">Cancelar</button>
       <button class="modal-btn modal-btn-sim" id="timer-confirmar-salvar-btn" onclick="confirmarSalvarTimer()">Salvar</button>
     </div>
   </div>
@@ -1368,7 +1370,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
       placeholder="O que você quer lembrar"></textarea>
 
     <div class="acoes-rotulo" style="margin-top:14px">Fiquei em dúvida entre</div>
-    <div class="acoes-duvida" id="acoes-duvida-letras"></div>
+    <div class="acoes-duvida" id="acoes-duvida-letras" style="margin-bottom:20px"></div>
 
     <div id="acoes-motivo-wrap" style="display:none">
       <div class="acoes-rotulo" style="margin-top:14px">Por que confundiram</div>
@@ -5092,11 +5094,27 @@ function pararESalvarTimer(){
   document.getElementById('timer-caracteres-input').value='';
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
+
+  // Congela a contagem enquanto o pop-up está aberto: o tempo gasto preenchendo caracteres não
+  // é estudo, e sem isso ele entrava na sessão. O valor mostrado no resumo é o que será salvo.
+  if(timerRodando){
+    timerAcumuladoSeg=segFinal;
+    timerRodando=false;
+    timerInicio=null;
+    if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
+    if(timerFullscreenAberto){
+      document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
+    }
+  }
+
   document.getElementById('timer-confirmar-salvar-modal').style.display='flex';
 }
 
-function fecharConfirmarSalvarTimer(){
+function fecharConfirmarSalvarTimer(retomar){
   document.getElementById('timer-confirmar-salvar-modal').style.display='none';
+  // Ao cancelar, volta a contar de onde parou — quem desistiu de finalizar quer continuar
+  // estudando, não recomeçar pausado.
+  if(retomar&&!timerRodando&&timerAcumuladoSeg>0) iniciarTimer();
 }
 
 async function confirmarSalvarTimer(){
