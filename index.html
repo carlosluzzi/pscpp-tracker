@@ -4951,12 +4951,34 @@ function atualizarTickTimer(){
 // incrementalmente antes, só no momento explícito de Finalizar. Um snapshot leve no localStorage,
 // atualizado a cada tick, permite oferecer "retomar de onde parou" ao reabrir o app.
 const SNAPSHOT_SESSAO_KEY='pscpp_sessao_ativa';
+// Grava o snapshot no momento exato em que o app sai de vista, e não só a cada 10 segundos.
+// Sem isso, perderiam-se até 10 segundos — e, mais importante, o tempo seria congelado num
+// instante anterior ao fechamento real.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'&&(timerRodando||timerAcumuladoSeg>0||cadernoTimerAtivo)){
+    salvarSnapshotSessao();
+  }
+});
+window.addEventListener('pagehide',()=>{
+  if(timerRodando||timerAcumuladoSeg>0||cadernoTimerAtivo) salvarSnapshotSessao();
+});
+
 function salvarSnapshotSessao(){
   try{
-    if(timerRodando){
+    // Salva também com o cronômetro PAUSADO: fechar o app pausado apagava o tempo acumulado,
+    // porque a pausa limpava o registro e nada era gravado no lugar. Com timerInicio nulo, a
+    // recuperação sabe que estava parado e não conta o tempo com o app fechado.
+    if(timerRodando||timerAcumuladoSeg>0){
+      // Guarda o tempo já CONSOLIDADO, não o instante de início: com o app fechado não há como
+      // saber se o estudo continuou ou não, então a contagem para junto — mesmo comportamento
+      // de quando o cronômetro é pausado.
+      const segAgora=timerRodando
+        ? timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000)
+        : timerAcumuladoSeg;
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
         tipo:'timer',timerModulo,timerPublicacao,timerCapitulo,timerTipo,
-        timerInicio,timerAcumuladoSeg,timerAnkiAlvoSeg,
+        timerInicio:null,
+        timerAcumuladoSeg:segAgora,timerAnkiAlvoSeg,
       }));
     }else if(cadernoTimerAtivo){
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
@@ -4977,8 +4999,10 @@ function verificarSessaoRecuperavel(){
   }catch(e){ return; }
   if(!snap||!snap.tipo) return;
   if(snap.tipo==='timer'){
-    const minutosDecorridos=Math.round((snap.timerAcumuladoSeg+Math.floor((Date.now()-snap.timerInicio)/1000))/60);
-    document.getElementById('sessao-recuperavel-texto').textContent=`Existe uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+    // O snapshot já traz o tempo consolidado do momento em que o app fechou.
+    const minutosDecorridos=Math.round(snap.timerAcumuladoSeg/60);
+    document.getElementById('sessao-recuperavel-texto').textContent=
+      `Existe uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else if(snap.tipo==='caderno'){
     const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
     const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
@@ -4997,7 +5021,12 @@ function restaurarSessaoRecuperavel(){
   if(snap.tipo==='timer'){
     timerModulo=snap.timerModulo||'';timerPublicacao=snap.timerPublicacao||'';timerCapitulo=snap.timerCapitulo||'';
     timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
-    timerAcumuladoSeg=snap.timerAcumuladoSeg;timerInicio=snap.timerInicio;timerRodando=true;
+    timerAcumuladoSeg=snap.timerAcumuladoSeg;
+    // Volta rodando nos dois casos: quem confirma "continuar" quer estudar agora, não retomar
+    // pausado e ter que tocar de novo. Se estava pausado, o tempo com o app fechado não entra
+    // — timerInicio passa a contar a partir de agora.
+    timerInicio=Date.now();   // retoma a partir de agora, sobre o tempo já acumulado
+    timerRodando=true;
     if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
     abrirTimerFullscreen(true);
   }else if(snap.tipo==='caderno'){
@@ -5046,7 +5075,7 @@ function pausarTimer(){
   timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
   timerRodando=false;
   timerInicio=null;
-  limparSnapshotSessao();
+  salvarSnapshotSessao();   // guarda o acumulado, para sobreviver ao fechamento do app
   esconderTimerFlutuante();
   iniciarApitoPausa();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
