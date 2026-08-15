@@ -4356,18 +4356,38 @@ function tocarApitoPausa(){
     // O iOS suspende o contexto quando o app perde o foco; retomar é barato e necessário.
     if(apitoContextoAudio.state==='suspended') apitoContextoAudio.resume().catch(()=>{});
     const ctx=apitoContextoAudio;
-    // Dois toques curtos em 660 Hz — "tu... tu". Frequência média e volume baixo, com envelope
-    // suave nas pontas: sem isso o corte abrupto vira um clique desagradável.
-    [0, 0.18].forEach(atraso=>{
-      const osc=ctx.createOscillator(), ganho=ctx.createGain();
-      osc.type='sine';
-      osc.frequency.value=660;
+
+    // Duas notas curtas, como um sino pequeno. A versão anterior usava onda pura com ataque e
+    // corte rápidos — timbre sem harmônicos soa artificial, e o corte abrupto dá a impressão
+    // de "seco". Três mudanças resolvem isso:
+    //   1. cada nota tem uma segunda voz uma oitava acima, bem baixinha, que dá corpo
+    //   2. a cauda decai devagar em vez de cortar, como um objeto que ressoa
+    //   3. um filtro tira o excesso de agudo, arredondando o ataque
+    const notas=[
+      {atraso:0,    freq:784},   // sol
+      {atraso:0.16, freq:1047},  // dó, uma quarta acima — intervalo agradável, não alarmante
+    ];
+
+    const filtro=ctx.createBiquadFilter();
+    filtro.type='lowpass';
+    filtro.frequency.value=2600;   // corta o brilho excessivo, que é o que "arranha"
+    filtro.connect(ctx.destination);
+
+    notas.forEach(({atraso,freq})=>{
       const t0=ctx.currentTime+atraso;
-      ganho.gain.setValueAtTime(0.0001,t0);
-      ganho.gain.exponentialRampToValueAtTime(Math.max(0.0002,apitoVolume),t0+0.02);
-      ganho.gain.exponentialRampToValueAtTime(0.0001,t0+0.12);
-      osc.connect(ganho); ganho.connect(ctx.destination);
-      osc.start(t0); osc.stop(t0+0.14);
+      const dur=0.9;               // cauda longa: o som some, não é interrompido
+
+      [[freq,1],[freq*2,0.22]].forEach(([f,peso])=>{
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.type='sine';
+        osc.frequency.value=f;
+        const pico=Math.max(0.0002,apitoVolume*peso*0.55);
+        g.gain.setValueAtTime(0.0001,t0);
+        g.gain.exponentialRampToValueAtTime(pico,t0+0.012);   // ataque suave, sem estalo
+        g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);   // decaimento natural
+        osc.connect(g); g.connect(filtro);
+        osc.start(t0); osc.stop(t0+dur+0.05);
+      });
     });
   }catch(e){}   // som é conforto, não função — nunca deve quebrar o cronômetro
 }
@@ -8086,7 +8106,7 @@ async function salvarEditarAssunto(){
 // esse gesto em tela sensível ao toque, então a alça aparece mas não faz nada. Aqui a alça é
 // um elemento próprio, e o arraste é tratado com eventos de ponteiro, que funcionam nos dois.
 (function(){
-  let alvo=null, xInicial=0, yInicial=0, larguraInicial=0, alturaInicial=0, areasAlturaInicial=0;
+  let alvo=null, xInicial=0, yInicial=0, larguraInicial=0, alturaInicial=0, areasAlturaInicial=0, areasBase=[];
 
   function iniciar(ev){
     const alca=ev.target.closest('.modal-resize');
@@ -8096,7 +8116,8 @@ async function salvarEditarAssunto(){
     const r=alvo.getBoundingClientRect();
     larguraInicial=r.width; alturaInicial=r.height;
     const ta=alvo.querySelectorAll('textarea');
-    areasAlturaInicial=ta.length===1?ta[0].getBoundingClientRect().height:0;
+    areasBase=[...ta].map(t=>t.getBoundingClientRect().height);
+    areasAlturaInicial=areasBase.reduce((a,b)=>a+b,0);
     const p=ev.touches?ev.touches[0]:ev;
     xInicial=p.clientX; yInicial=p.clientY;
     // Solta os limites do CSS: a partir daqui quem manda é o gesto.
@@ -8116,12 +8137,17 @@ async function salvarEditarAssunto(){
     const alta=Math.max(200, Math.min(window.innerHeight-24, alturaInicial+(p.clientY-yInicial)));
     alvo.style.width=nova+'px';
     alvo.style.height=alta+'px';
-    // A caixa de escrita cresce junto: num modal que só tem o campo de texto, esticar a altura
-    // sem esticar o campo deixaria uma faixa branca inútil embaixo.
+    // As caixas de escrita crescem junto. Antes só valia quando havia exatamente uma — num
+    // modal com duas (nota e motivo da dúvida) nenhuma crescia, e a altura extra virava faixa
+    // branca. O ganho é dividido entre elas, então as duas aumentam proporcionalmente.
     const areas=alvo.querySelectorAll('textarea');
-    if(areas.length===1){
-      const sobra=alturaInicial-areasAlturaInicial;
-      areas[0].style.height=Math.max(80, alta-sobra)+'px';
+    if(areas.length&&areasAlturaInicial>0){
+      const ganho=alta-alturaInicial;
+      const porArea=ganho/areas.length;
+      areas.forEach((t,i)=>{
+        const base=areasBase[i]||0;
+        t.style.height=Math.max(60, base+porArea)+'px';
+      });
     }
     ev.preventDefault();
   }
