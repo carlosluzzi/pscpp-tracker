@@ -2833,7 +2833,7 @@ async function concluirRevisao(id){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao concluir revisão: '+e.message);
+    mostrarAviso('Não deu para concluir revisão','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -3049,7 +3049,7 @@ async function salvarEdicaoModuloQuestao(){
     fecharEdicaoModuloQuestao();
     renderizarListaMarcacao();
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -3087,7 +3087,7 @@ async function apagarRespostaManual(){
     q.suaResposta=null; q.respondida=false; q.respostaManual=false;
     renderizarListaMarcacao();
   }catch(e){
-    alert('Erro ao apagar marcação: '+e.message);
+    mostrarAviso('Não deu para apagar marcação','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -3112,7 +3112,7 @@ async function confirmarRespostaManual(letra){
     q.respostaManual=true;
     renderizarListaMarcacao();
   }catch(e){
-    alert('Erro ao salvar resposta: '+e.message);
+    mostrarAviso('Não deu para salvar resposta','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 async function solicitarReextracao(questaoId){
@@ -3124,7 +3124,7 @@ async function solicitarReextracao(questaoId){
     renderizarListaMarcacao();
     alert('Solicitado. Da próxima vez que você rodar o Claude Code na pasta dos PDFs, essa questão específica será reextraída.');
   }catch(e){
-    alert('Erro ao solicitar reextração: '+e.message);
+    mostrarAviso('Não deu para solicitar reextração','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -3137,7 +3137,7 @@ async function solicitarReextracaoAtividade(atividadeId){
     renderTab(tabAtual,true);
     alert('Solicitado. Se você já corrigiu o arquivo (ex: reexportou o PDF corrompido), o script vai tentar reabrir e extrair de novo na próxima vez que rodar.');
   }catch(e){
-    alert('Erro ao solicitar reextração: '+e.message);
+    mostrarAviso('Não deu para solicitar reextração','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -3161,14 +3161,14 @@ async function salvarResolverTipoCurso(){
   const curso=document.getElementById('resolver-curso-select').value;
   const tipo=document.getElementById('resolver-tipo-select').value;
   const nome=document.getElementById('resolver-nome-input').value.trim();
-  if(!curso||!tipo||!nome){ alert('Preenche Curso, Tipo e Nome antes de confirmar.'); return; }
+  if(!curso||!tipo||!nome){ mostrarAviso('Faltam dados','Preencha Curso, Tipo e Nome antes de confirmar.'); return; }
   try{
     const {error}=await sbDados.from('atividades_pendentes').update({curso,tipo,nome,status:'Pendente'}).eq('id',resolverTipoCursoAtividadeId);
     if(error) throw error;
     fecharResolverTipoCurso();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -4891,7 +4891,7 @@ async function confirmarApagarTempoGasto(){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao apagar: '+e.message);
+    mostrarAviso('Não deu para apagar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 function abrirFinalizarCadernoTimer(){
@@ -5684,12 +5684,12 @@ async function salvarRegistroManual(){
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   const data=document.getElementById('registro-manual-data').value;
   if(tipo!=='Anki'){
-    if(!modulo){ alert('Escolhe o módulo.'); return; }
-    if(!publicacao){ alert('Escolhe a publicação.'); return; }
+    if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+    if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
     const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
     if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe o ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   }
-  if(!duracao||duracao<1){ alert('Preenche a duração em minutos.'); return; }
+  if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   const dadosSessao={
     modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,
@@ -5737,7 +5737,7 @@ async function salvarConfigCiclo(){
     fecharConfigCiclo();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar configuração: '+e.message);
+    mostrarAviso('Não deu para salvar configuração','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -5773,7 +5773,7 @@ async function salvarConfigMetas(){
     fecharConfigMetas();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar metas: '+e.message);
+    mostrarAviso('Não deu para salvar metas','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -5901,7 +5901,7 @@ async function confirmarExcluirSessao(){
     fecharExcluirSessaoModal();
     await loadData();
   }catch(e){
-    alert('Erro ao excluir sessão: '+e.message);
+    mostrarAviso('Não deu para excluir sessão','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -5982,7 +5982,7 @@ async function salvarDataProva(texto){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar data da prova: '+e.message);
+    mostrarAviso('Não deu para salvar data da prova','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -6441,7 +6441,7 @@ async function salvarSaudacaoSubtexto(novo){
     saudacaoSubtexto=novo;
     renderTab(tabAtual,true);
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -6615,7 +6615,7 @@ async function marcarFocoEstudado(chave){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao confirmar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -6786,7 +6786,7 @@ async function marcarBancoPraticoFeito(id){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao confirmar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -6867,7 +6867,7 @@ async function salvarComplementar(){
     fecharComplementarModal();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 async function marcarComplementarFeito(id){
@@ -6885,7 +6885,7 @@ async function marcarComplementarFeito(id){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao confirmar: '+e.message);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 async function pararRecorrencia(id){
@@ -6894,7 +6894,7 @@ async function pararRecorrencia(id){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao parar recorrência: '+e.message);
+    mostrarAviso('Não deu para parar recorrência','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -6930,7 +6930,7 @@ async function marcarEventoFeito(eventoId){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao confirmar evento: '+e.message);
+    mostrarAviso('Não deu para confirmar evento','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -7020,7 +7020,7 @@ async function removerNota(id){
     if(error) throw error;
     await loadData();
   }catch(e){
-    alert('Erro ao remover nota: '+e.message);
+    mostrarAviso('Não deu para remover nota','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
@@ -8881,7 +8881,17 @@ async function salvarAnotacaoAlternativa(){
     anotarAltContexto=null;
     await loadData();
   }catch(e){
-    alert('Erro ao salvar anotação: '+e.message);
+    // Texto digitado é trabalho: guarda e reenvia sozinho, em vez de perder se o app fechar.
+    if(texto){
+      enfileirar('anotacoes_alternativas','upsert',{
+        banco_questao_id:questaoId,numero_questao:q.questao,id_atividade:q.idAtividade,
+        alternativa:letra,modulo_pscpp:q.modulo||null,publicacao:q.publicacao||null,
+        capitulo:q.capitulo||null,texto,atualizado_em:new Date().toISOString(),
+      },`nota da alternativa (${letra}) da questão ${q.questao}`);
+      mostrarAviso('Nota guardada','Será enviada sozinha quando a conexão voltar.');
+    }else{
+      mostrarAviso('Não deu para apagar','Tente de novo em instantes.');
+    }
   }
 }
 function formatQuestaoCompleta(texto,q){
