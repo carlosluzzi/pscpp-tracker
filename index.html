@@ -16,6 +16,72 @@
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
+
+<!-- Telas de abertura do iOS, só com o fundo do app. Sem elas, o sistema improvisa ampliando o
+     ícone no centro — a logo aparecia enorme e desbotada e depois encolhia de golpe para o
+     tamanho do splash, o que o olho lê como um salto de posição. Com o fundo liso a transição
+     fica invisível: o app abre no mesmo tom e o splash simplesmente aparece.
+     São arquivos de cor sólida, menos de 1 KB cada. -->
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-15-pro-portrait.png"
+  media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-15-pro-landscape.png"
+  media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-15-pro-max-portrait.png"
+  media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-15-pro-max-landscape.png"
+  media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-13-portrait.png"
+  media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-13-landscape.png"
+  media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-13-pro-max-portrait.png"
+  media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-13-pro-max-landscape.png"
+  media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-x-portrait.png"
+  media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-x-landscape.png"
+  media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-xs-max-portrait.png"
+  media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-xs-max-landscape.png"
+  media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-xr-portrait.png"
+  media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-xr-landscape.png"
+  media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-8-portrait.png"
+  media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-8-landscape.png"
+  media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-8-plus-portrait.png"
+  media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-8-plus-landscape.png"
+  media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-se-portrait.png"
+  media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/iphone-se-landscape.png"
+  media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-10-portrait.png"
+  media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-10-landscape.png"
+  media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-11-portrait.png"
+  media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-11-landscape.png"
+  media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-129-portrait.png"
+  media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-129-landscape.png"
+  media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-97-portrait.png"
+  media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-97-landscape.png"
+  media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-105-portrait.png"
+  media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/ipad-pro-105-landscape.png"
+  media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon/icon-192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/icon/favicon-16x16.png">
@@ -55,7 +121,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .app.tem-voltar.scrolled .voltar-faixa{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .app.tem-sub-abas.scrolled #sub-abas-slot{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
+.logo-completa{height:28px;width:auto;aspect-ratio:4.4;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .appname b{font-weight:700}
@@ -268,7 +334,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
 #splash-screen.hidden{display:none}
 #splash-screen.fade-out{opacity:0;pointer-events:none}
-#splash-logo{height:38px;width:auto;object-fit:contain;display:block}
+/* aspect-ratio reserva o espaço ANTES da imagem carregar. Sem isso a largura era zero até o
+   arquivo chegar, e a logo aparecia deslocada antes de saltar para o lugar certo — visível toda
+   vez que o app abre. O valor é a proporção real do arquivo. */
+#splash-logo{height:38px;width:auto;aspect-ratio:4.4;object-fit:contain;display:block}
 #splash-bar-track{width:120px;height:4px;border-radius:2px;background:#EEE;overflow:hidden}
 #splash-bar-fill{width:40%;height:100%;background:#202A45;border-radius:2px;animation:splashCarregando 1.1s ease-in-out infinite}
 @keyframes splashCarregando{
@@ -1121,7 +1190,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div id="view-login" class="hidden">
 <div class="login-inner">
   <div style="text-align:center;margin-bottom:16px">
-    <img src="assets/logo-completa.png" alt="PSCPP Tracker" style="height:32px;width:auto">
+    <img src="assets/logo-completa.png" alt="PSCPP Tracker" style="height:32px;width:auto;aspect-ratio:4.4">
   </div>
 
   <form id="form-login-entrar" onsubmit="event.preventDefault(); entrar();">
@@ -6283,7 +6352,7 @@ function renderCardBancoPratico(){
   return `
     <div class="card-inicio">
       <div class="card-header-row">
-        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático" loading="lazy"></span><span style="color:#202A45">Banco prático</span></div>
+        <div class="card-header-left"><span class="card-icone-mini" style="background:transparent"><img src="assets/banco-pratico-icon.png" alt="Banco Prático" loading="lazy" style="aspect-ratio:1"></span><span style="color:#202A45">Banco prático</span></div>
         <span class="banco-meta" onclick="editarMetaDiaria()">Meta: ${meta}/dia <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
       </div>
       ${bancoPratico.url?`<a href="${bancoPratico.url}" target="_blank" class="prox-confirm-btn" style="background:#fff;color:#111;border:0.5px solid #ccc;text-decoration:none;display:inline-block;margin-bottom:6px">abrir ↗</a>`:''}
