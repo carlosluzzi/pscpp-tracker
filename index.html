@@ -888,6 +888,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Nota de estudo: caixa maior que a de um modal de confirmação, porque aqui se escreve de
    verdade — um campo de uma linha convida a anotar menos do que se quer. */
 .modal-box.nota-box{width:min(440px, 92vw)}
+/* Aviso de itens aguardando envio: discreto, no rodapé, sem bloquear nada. Só existe quando
+   há algo pendente, e some sozinho quando tudo é enviado. */
+.aviso-fila{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom, 0px) + 78px);z-index:400000;
+  background:#202A45;color:#fff;font-size:var(--fs-a);padding:8px 14px;border-radius:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;max-width:88vw;text-align:center}
+.aviso-fila.travado{background:#A32D2D}
 /* Campo travado que mostra a composição de um grupo: não é escolha, é informação. Sem borda,
    sem seta e podendo quebrar linha — assim o texto longo aparece inteiro em vez de cortado. */
 /* Uma linha só: fonte menor, porque o texto é longo e quebrar em duas empurra os campos
@@ -5163,6 +5170,114 @@ async function verificarSessaoNoServidor(){
   }catch(e){}
 }
 
+// ---------- Fila de gravações pendentes ----------
+// Rede de segurança para dado que não pode se perder. Quando uma gravação falha (rede caiu,
+// servidor fora), em vez de só avisar e torcer para o Carlos tentar de novo, a operação entra
+// numa fila no aparelho e é reenviada sozinha assim que a conexão volta.
+//
+// A fila é gravada no localStorage, então sobrevive a fechar o app. E cada item guarda o que
+// era para ser feito — tabela, operação e dados — de forma que possa ser refeito sem contexto.
+const FILA_KEY='pscpp_fila_pendente';
+
+function lerFila(){
+  try{ return JSON.parse(localStorage.getItem(FILA_KEY)||'[]'); }catch(e){ return []; }
+}
+function gravarFila(fila){
+  try{ localStorage.setItem(FILA_KEY,JSON.stringify(fila)); }catch(e){}
+}
+
+// Enfileira uma gravação que falhou. O "rotulo" aparece para o Carlos, então precisa dizer o
+// que é em linguagem humana: "sessão de estudo de 45 min", não "insert em sessoes_estudo".
+function enfileirar(tabela,operacao,dados,rotulo){
+  const fila=lerFila();
+  fila.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),
+    tabela,operacao,dados,rotulo,tentativas:0,criadoEm:new Date().toISOString()});
+  gravarFila(fila);
+  atualizarAvisoFila();
+}
+
+// Grava no banco com rede de segurança: se falhar, entra na fila em vez de se perder.
+// Devolve true se gravou na hora, false se ficou pendente.
+async function gravarComRedundancia(tabela,operacao,dados,rotulo){
+  if(!sbDados){ enfileirar(tabela,operacao,dados,rotulo); return false; }
+  try{
+    const q=sbDados.from(tabela);
+    const {error}= operacao==='insert' ? await q.insert(dados)
+                 : operacao==='upsert' ? await q.upsert(dados)
+                 : operacao==='update' ? await q.update(dados.valores).eq('id',dados.id)
+                 : await q.delete().eq('id',dados.id);
+    if(error) throw error;
+    return true;
+  }catch(e){
+    enfileirar(tabela,operacao,dados,rotulo);
+    return false;
+  }
+}
+
+// Tenta reenviar tudo que está pendente. Chamado ao abrir o app, ao voltar do segundo plano e
+// quando a conexão retorna.
+let reenviando=false;
+async function reenviarFila(){
+  if(reenviando||!sbDados) return;
+  const fila=lerFila();
+  if(!fila.length) return;
+  reenviando=true;
+  const restantes=[];
+  for(const item of fila){
+    try{
+      const q=sbDados.from(item.tabela);
+      const {error}= item.operacao==='insert' ? await q.insert(item.dados)
+                   : item.operacao==='upsert' ? await q.upsert(item.dados)
+                   : item.operacao==='update' ? await q.update(item.dados.valores).eq('id',item.dados.id)
+                   : await q.delete().eq('id',item.dados.id);
+      if(error) throw error;
+    }catch(e){
+      item.tentativas=(item.tentativas||0)+1;
+      // Depois de 20 tentativas o problema não é passageiro — mantém na fila para o Carlos ver,
+      // mas para de tentar sozinho, para não ficar batendo no servidor à toa.
+      if(item.tentativas<20) restantes.push(item);
+      else { item.travado=true; restantes.push(item); }
+    }
+  }
+  gravarFila(restantes);
+  reenviando=false;
+  atualizarAvisoFila();
+  if(restantes.length<fila.length) await loadData();
+}
+
+// Aviso discreto de que há coisa pendente. Some sozinho quando tudo é enviado.
+function atualizarAvisoFila(){
+  const fila=lerFila().filter(i=>!i.travado);
+  const travados=lerFila().filter(i=>i.travado);
+  let el=document.getElementById('aviso-fila');
+  if(!fila.length&&!travados.length){ if(el) el.remove(); return; }
+  if(!el){
+    el=document.createElement('div');
+    el.id='aviso-fila';
+    el.onclick=()=>abrirDetalheFila();
+    document.body.appendChild(el);
+  }
+  const n=fila.length+travados.length;
+  el.className=travados.length?'aviso-fila travado':'aviso-fila';
+  el.textContent=travados.length
+    ? `${n} ${n>1?'itens':'item'} não ${n>1?'foram salvos':'foi salvo'} – tocar para ver`
+    : `${n} ${n>1?'itens aguardando':'item aguardando'} conexão`;
+}
+
+function abrirDetalheFila(){
+  const fila=lerFila();
+  if(!fila.length) return;
+  const lista=fila.map(i=>`• ${i.rotulo}${i.travado?' (falhou várias vezes)':''}`).join('\n');
+  mostrarAviso('Aguardando envio',
+    `${lista}\n\nEsses dados estão guardados no aparelho e serão enviados assim que a conexão permitir. Nada foi perdido.`);
+}
+
+// Reenvia quando a conexão volta e quando o app retorna do segundo plano
+window.addEventListener('online',reenviarFila);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') reenviarFila();
+});
+
 function salvarSnapshotSessao(){
   try{
     // Salva também com o cronômetro PAUSADO: fechar o app pausado apagava o tempo acumulado,
@@ -5207,6 +5322,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     verificarSessaoRecuperavel();
     // Segunda tentativa, pelo servidor, caso o registro local tenha se perdido.
     setTimeout(verificarSessaoNoServidor,2500);
+    setTimeout(reenviarFila,3000);   // reenvia o que ficou pendente de sessões anteriores
   },400);   // dá tempo de a tela montar, sem esperar dado nenhum
 });
 
@@ -5417,9 +5533,19 @@ async function confirmarSalvarTimer(){
     zerarTimer();
     await loadData();
   }catch(e){
-    btn.disabled=false;
-    btn.textContent='Salvar';
-    alert('Erro ao salvar sessão: '+e.message);
+    // Em vez de só avisar e deixar o Carlos tentar de novo (e perder tudo se fechar o app), a
+    // sessão entra na fila e é enviada sozinha quando a conexão voltar. O cronômetro é zerado
+    // porque o dado já está guardado — não há mais nada a preservar em memória.
+    const min=Math.round(segFinal/60);
+    enfileirar('sessoes_estudo','insert',{
+      data:new Date().toISOString().slice(0,10),
+      modulo:timerModulo||null, publicacao:timerPublicacao||null, capitulo:timerCapitulo||null,
+      tipo:timerTipo, minutos:min, caracteres_lidos:caracteresLidos, origem:timerOrigem||null,
+    },`sessão de ${timerTipo} de ${min} min`);
+    fecharConfirmarSalvarTimer();
+    zerarTimer();
+    mostrarAviso('Sessão guardada',
+      `Não deu para enviar agora, mas a sessão de ${min} min está guardada no aparelho e será enviada sozinha quando a conexão voltar.`);
   }
 }
 
@@ -5496,16 +5622,22 @@ async function salvarRegistroManual(){
   }
   if(!duracao||duracao<1){ alert('Preenche a duração em minutos.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
+  const dadosSessao={
+    modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,
+    tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
+  };
   try{
-    const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
-    });
+    const {error}=await sbDados.from('sessoes_estudo').insert(dadosSessao);
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo,numCapitulo);
     fecharRegistroManual();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar sessão: '+e.message);
+    // Guarda e reenvia sozinho, em vez de só avisar e perder o registro se o app fechar.
+    enfileirar('sessoes_estudo','insert',dadosSessao,`sessão de ${tipo} de ${duracao} min`);
+    fecharRegistroManual();
+    mostrarAviso('Sessão guardada',
+      'Não deu para enviar agora, mas está guardada no aparelho e será enviada sozinha quando a conexão voltar.');
   }
 }
 
