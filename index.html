@@ -4689,6 +4689,22 @@ function pararApitoPausa(){
   if(apitoPausaId){ clearTimeout(apitoPausaId); clearInterval(apitoPausaId); apitoPausaId=null; }
 }
 
+// O Safari SUSPENDE temporizadores quando a tela apaga ou o app vai para segundo plano — o
+// alerta simplesmente para de tocar, sem nada no código desligá-lo. É o pior momento para
+// falhar: justamente quando o Carlos se distraiu e mais precisa do lembrete.
+// Ao voltar, se o cronômetro continua pausado, o ciclo é recriado.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  if(!timerRodando&&timerAcumuladoSeg>0){
+    // Sem espera: voltar à tela já indica que o Carlos está de volta, e o alerta serve para
+    // lembrar de retomar agora.
+    pararApitoPausa();
+    prepararAudioApito();
+    apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
+    tocarApitoPausa();
+  }
+});
+
 let wakeLockAtivo=null;
 async function solicitarWakeLock(){
   // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
