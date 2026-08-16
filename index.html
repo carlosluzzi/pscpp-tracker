@@ -23,8 +23,13 @@
 <link rel="mask-icon" href="assets/icon/mask-icon.svg" color="#202A45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- A fonte é carregada sem bloquear a pintura: como "stylesheet" direto, o navegador não
+     desenha NADA até baixá-la, e numa conexão lenta isso atrasa o splash em centenas de
+     milissegundos. Com media="print" ela baixa em paralelo e passa a valer quando chega. -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap"
+  rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet"></noscript>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 button{transition:transform 0.12s ease,opacity 0.12s ease}
@@ -405,6 +410,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
 .filter-btn.active{background:#202A45;color:#fff;border-color:#202A45}
 .filter-select{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
+/* Campo de data: o Safari dá a ele um estilo nativo próprio, com largura mínima e preenchimento
+   internos que ignoram o width da classe — por isso ele passava da margem dos outros campos.
+   Zerar a aparência nativa faz o campo obedecer ao mesmo box dos demais. */
+.filter-select[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;
+  box-sizing:border-box;display:block;height:auto}
+.filter-select[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
+.filter-select[type="date"]::-webkit-calendar-picker-indicator{margin-left:auto;padding:0}
 .filter-btn.active.status-errei{background:#A32D2D;border-color:#A32D2D;color:#fff}
 .filter-btn.active.status-duvida{background:#EF9F27;border-color:#EF9F27;color:#fff}
 .filter-btn.active.status-acertei{background:#3B6D11;border-color:#3B6D11;color:#fff}
@@ -1617,6 +1629,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<!-- A biblioteca do Supabase carrega AQUI, depois do splash já existir no HTML. No <head> ela
+     travava a montagem da página inteira: o navegador parava, baixava, executava, e só então
+     começava a desenhar — por isso a tela demorava a mostrar o splash. Sem defer de propósito,
+     porque o script principal do app usa window.supabase assim que roda. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <div id="bg-fixed"></div>
 <div class="app">
   <div class="topbar">
@@ -1768,7 +1785,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
     <input type="number" class="filter-select" id="registro-manual-duracao" placeholder="Duração em minutos" min="1">
     <input type="number" class="filter-select" id="registro-manual-caracteres" placeholder="Caracteres lidos (opcional)" min="0">
     <!-- o campo acima some fora de Leitura, via atualizarCamposRegistroManual() -->
-    <input type="date" class="filter-select" id="registro-manual-data" style="width:100%;box-sizing:border-box">
+    <input type="date" class="filter-select" id="registro-manual-data">
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarRegistroManual()">Salvar</button>
