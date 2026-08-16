@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" id="meta-viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- Sem theme-color estático de propósito: no PWA instalado o iOS ignora essa tag na carga inicial
-     e usa o cinza padrão da barra de status – que é justamente o visual desejado no app normal.
-     A cor só é aplicada dinamicamente (via aplicarThemeColor) enquanto a tela cheia do cronômetro
-     está aberta, pra barra de status combinar com o fundo escuro dela. -->
+<!-- A barra de status usa sempre a cor padrão do sistema, em qualquer tela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- "default" (barra de status sólida) em vez de "black-translucent": com black-translucent o
@@ -163,7 +160,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-icon svg{width:15px;height:15px;display:block}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
-#timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
@@ -221,9 +218,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-modulo{font-size:var(--fs-e);color:#9BA3B7;text-align:center;margin-bottom:8px}
 .tf-ref-wrap{margin-bottom:32px}
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center}
-.tf-tempo{font-size:88px;font-weight:700;color:#fff;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
+/* Relógio proporcional à largura: 88px fixos ocupavam 360px de um iPhone de 390, empurrando
+   tudo e desalinhando os botões. Com vw ele encolhe onde precisa e mantém o tamanho no iPad. */
+.tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
+  font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1}
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
-.tf-btns{display:flex;gap:10px;justify-content:center}
+.tf-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
 /* Pausar e Continuar com a mesma largura: sem isso o botão muda de tamanho ao alternar, e o
    conjunto "pula" na tela a cada toque. */
@@ -247,6 +247,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-ajustes .ritmo-slider::-moz-range-track{background:#2A3141}
 .tf-ajustes .ritmo-slider::-webkit-slider-thumb{background:#fff;border-color:#1A1F2E}
 .tf-ajustes .ritmo-slider::-moz-range-thumb{background:#fff;border-color:#1A1F2E}
+/* Escolha do tom: dois por linha, com o nome de cada um. Tocar já ouve — escolher som sem
+   ouvir não faz sentido. */
+.tf-tons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:2px}
+.tom-btn{padding:8px 4px;border-radius:8px;border:1px solid #2A3141;background:transparent;
+  color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
+.tom-btn.ativo{background:#2A3141;border-color:#4A5468;color:#fff}
+@media(hover:hover){.tom-btn:hover{border-color:#4A5468}}
 .tf-ajustes-nota{font-size:var(--fs-a);color:#6B7280;line-height:1.4;margin-top:6px}
 /* Cancelar fica separado e discreto: é destrutivo, não deve competir com Pausar e Finalizar */
 .tf-cancelar{display:block;margin:22px auto 0;background:none;border:none;color:#6B7280;
@@ -1129,7 +1136,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 
 <div id="timer-fullscreen" class="hidden" onclick="fecharAjusteApitoSeFora(event)">
-  <div id="timer-fullscreen-conteudo"></div>
+  <div id="timer-fullscreen-conteudo" style="width:100%;max-width:520px"></div>
 </div>
 
 <div id="caderno-timer-fullscreen" class="hidden">
@@ -4231,6 +4238,8 @@ function renderTimerFullscreenConteudo(){
       <input type="range" class="ritmo-slider" min="15" max="180" step="15" value="${apitoIntervaloSeg}"
         oninput="setApitoIntervalo(this.value)" list="passos-intervalo">
       <datalist id="passos-intervalo"><option value="30"></option><option value="60"></option><option value="120"></option></datalist>
+      <div class="tf-ajustes-topo" style="margin-top:14px"><span>Som</span></div>
+      <div class="tf-tons" id="tf-tons"></div>
       <div class="tf-ajustes-nota">Começa 1 minuto depois de pausar.</div>
     </div>
     <div>
@@ -4348,48 +4357,113 @@ function prepararAudioApito(){
   }catch(e){}
 }
 
+// ---------- Tons do lembrete ----------
+// O que separa um som agradável de um bipe: nenhum instrumento real soa numa frequência só.
+// Cada tom aqui é feito de um fundamental mais parciais em proporções específicas, com
+// envelope de decaimento exponencial (o som some, não é cortado) e um filtro passa-baixa que
+// arredonda o ataque. As proporções dos parciais é o que define o timbre — 2, 3, 4 dá som
+// harmônico e cheio; razões não inteiras dão o brilho metálico de sino.
+const TONS_LEMBRETE={
+  marimba:{
+    nome:'Marimba',
+    notas:[{t:0,f:698},{t:0.14,f:880}],
+    parciais:[[1,1],[4.0,0.30],[9.2,0.08]],   // barra de madeira: 4º e 9º parciais marcados
+    decaimento:0.55, corte:2400, ataque:0.006,
+  },
+  sino:{
+    nome:'Sino',
+    notas:[{t:0,f:784},{t:0.20,f:1047}],
+    parciais:[[1,1],[2.0,0.42],[2.76,0.22],[5.4,0.09]],   // 2,76 é o parcial que dá o "metal"
+    decaimento:1.6, corte:3200, ataque:0.004,
+  },
+  cristal:{
+    nome:'Cristal',
+    notas:[{t:0,f:1319},{t:0.13,f:1760}],
+    parciais:[[1,1],[2,0.28],[3,0.10]],
+    decaimento:1.1, corte:5000, ataque:0.003,
+  },
+  gota:{
+    nome:'Gota',
+    notas:[{t:0,f:1047,desliza:0.72}],   // a frequência cai durante a nota, como água
+    parciais:[[1,1],[2,0.18]],
+    decaimento:0.7, corte:2800, ataque:0.008,
+  },
+  harpa:{
+    nome:'Harpa',
+    notas:[{t:0,f:523},{t:0.09,f:659},{t:0.18,f:784}],   // arpejo de três notas
+    parciais:[[1,1],[2,0.35],[3,0.16],[4,0.07]],
+    decaimento:1.3, corte:3600, ataque:0.005,
+  },
+  eco:{
+    nome:'Eco',
+    notas:[{t:0,f:659},{t:0.34,f:659,ganho:0.45},{t:0.62,f:659,ganho:0.18}],
+    parciais:[[1,1],[2,0.22]],
+    decaimento:0.9, corte:2200, ataque:0.010,
+  },
+};
+
+let tomLembrete=localStorage.getItem('tomLembrete')||'sino';
+
 function tocarApitoPausa(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC) return;
     if(!apitoContextoAudio) apitoContextoAudio=new AC();
-    // O iOS suspende o contexto quando o app perde o foco; retomar é barato e necessário.
     if(apitoContextoAudio.state==='suspended') apitoContextoAudio.resume().catch(()=>{});
     const ctx=apitoContextoAudio;
+    const tom=TONS_LEMBRETE[tomLembrete]||TONS_LEMBRETE.sino;
 
-    // Duas notas curtas, como um sino pequeno. A versão anterior usava onda pura com ataque e
-    // corte rápidos — timbre sem harmônicos soa artificial, e o corte abrupto dá a impressão
-    // de "seco". Três mudanças resolvem isso:
-    //   1. cada nota tem uma segunda voz uma oitava acima, bem baixinha, que dá corpo
-    //   2. a cauda decai devagar em vez de cortar, como um objeto que ressoa
-    //   3. um filtro tira o excesso de agudo, arredondando o ataque
-    const notas=[
-      {atraso:0,    freq:784},   // sol
-      {atraso:0.16, freq:1047},  // dó, uma quarta acima — intervalo agradável, não alarmante
-    ];
-
+    // Um filtro para todo o tom: tira o excesso de agudo que faz o som "arranhar".
     const filtro=ctx.createBiquadFilter();
     filtro.type='lowpass';
-    filtro.frequency.value=2600;   // corta o brilho excessivo, que é o que "arranha"
+    filtro.frequency.value=tom.corte;
+    filtro.Q.value=0.7;
     filtro.connect(ctx.destination);
 
-    notas.forEach(({atraso,freq})=>{
-      const t0=ctx.currentTime+atraso;
-      const dur=0.9;               // cauda longa: o som some, não é interrompido
+    tom.notas.forEach(nota=>{
+      const t0=ctx.currentTime+nota.t;
+      const dur=tom.decaimento;
+      const ganhoNota=nota.ganho!=null?nota.ganho:1;
 
-      [[freq,1],[freq*2,0.22]].forEach(([f,peso])=>{
+      tom.parciais.forEach(([razao,peso])=>{
         const osc=ctx.createOscillator(), g=ctx.createGain();
         osc.type='sine';
-        osc.frequency.value=f;
-        const pico=Math.max(0.0002,apitoVolume*peso*0.55);
+        const freq=nota.f*razao;
+        osc.frequency.setValueAtTime(freq,t0);
+        // "desliza" faz a frequência cair durante a nota — é o que dá a sensação de gota
+        if(nota.desliza) osc.frequency.exponentialRampToValueAtTime(freq*nota.desliza,t0+dur*0.7);
+
+        // Parcial agudo decai mais rápido que o fundamental, como num instrumento de verdade:
+        // o brilho some primeiro e sobra o corpo da nota.
+        const durParcial=dur/(1+Math.log2(Math.max(1,razao))*0.35);
+        const pico=Math.max(0.0002, apitoVolume*peso*ganhoNota*0.5);
+
         g.gain.setValueAtTime(0.0001,t0);
-        g.gain.exponentialRampToValueAtTime(pico,t0+0.012);   // ataque suave, sem estalo
-        g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);   // decaimento natural
+        g.gain.exponentialRampToValueAtTime(pico,t0+tom.ataque);
+        g.gain.exponentialRampToValueAtTime(0.0001,t0+durParcial);
+
         osc.connect(g); g.connect(filtro);
-        osc.start(t0); osc.stop(t0+dur+0.05);
+        osc.start(t0); osc.stop(t0+durParcial+0.05);
       });
     });
   }catch(e){}   // som é conforto, não função — nunca deve quebrar o cronômetro
+}
+
+function setTomLembrete(chave){
+  if(!TONS_LEMBRETE[chave]) return;
+  tomLembrete=chave;
+  localStorage.setItem('tomLembrete',chave);
+  renderTonsLembrete();
+  prepararAudioApito();
+  tocarApitoPausa();   // ouvir na hora é a única forma de escolher
+}
+
+function renderTonsLembrete(){
+  const el=document.getElementById('tf-tons');
+  if(!el) return;
+  el.innerHTML=Object.entries(TONS_LEMBRETE).map(([chave,t])=>
+    `<button class="tom-btn${tomLembrete===chave?' ativo':''}"
+      onclick="setTomLembrete('${chave}')">${t.nome}</button>`).join('');
 }
 
 // Ajuste do volume. Cada mudança toca o som na hora — sem ouvir, escolher um número é chute.
@@ -4423,7 +4497,10 @@ function abrirAjusteApito(ev){
   if(!el) return;
   const abrindo=el.classList.contains('hidden');
   el.classList.toggle('hidden',!abrindo);
-  if(abrindo) prepararAudioApito();   // destrava o áudio no gesto que abriu o painel
+  if(abrindo){
+    prepararAudioApito();   // destrava o áudio no gesto que abriu o painel
+    renderTonsLembrete();
+  }
 }
 
 // Tocar em qualquer lugar da tela cheia fecha o painel de ajustes — só cliques DENTRO dele
@@ -4482,22 +4559,6 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
-// Aplica ou remove o theme-color (cor da barra de status do iOS) dinamicamente. No app normal a
-// tag não existe, e o iOS usa o cinza padrão — que é o visual desejado. Ao abrir a tela cheia do
-// cronômetro, a tag é criada com a mesma cor do fundo dela (#0B0F19), fazendo a barra de status
-// se integrar em vez de destoar. Ao fechar, a tag é removida e o cinza volta.
-// A tag é criada/removida do zero (em vez de só trocar o content) porque foi assim que o iOS
-// reagiu de forma confiável nos testes — trocar o valor de uma tag existente nem sempre pega.
-function aplicarThemeColor(cor){
-  document.querySelectorAll('meta[name="theme-color"]').forEach(el=>el.remove());
-  if(!cor) return;
-  const meta=document.createElement('meta');
-  meta.name='theme-color';
-  meta.content=cor;
-  document.head.appendChild(meta);
-}
-const COR_FUNDO_FULLSCREEN='#0B0F19';
-
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
@@ -4519,7 +4580,6 @@ function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
   document.getElementById('timer-fullscreen').classList.remove('hidden');
   document.body.classList.add('timer-fullscreen-ativo');
   solicitarWakeLock();
-  aplicarThemeColor(COR_FUNDO_FULLSCREEN);
 }
 
 // Cancelar é ação explícita: descarta o tempo sem gravar sessão. Antes, a única forma de
@@ -4551,7 +4611,6 @@ function fecharTimerFullscreen(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  aplicarThemeColor(null);
   // O widget aparece também com o cronômetro PAUSADO: sem isso, pausar e fechar fazia o timer
   // sumir da tela, dando a impressão de ter sido cancelado — quando na verdade o tempo continua
   // guardado. Cancelar é uma ação explícita, não um efeito colateral de fechar a tela.
@@ -4583,7 +4642,6 @@ function abrirCadernoTimerFullscreen(atividadeId){
   document.body.classList.add('timer-fullscreen-ativo');
   if(!cadernoTimerIntervalId) cadernoTimerIntervalId=setInterval(tickCadernoTimer,1000);
   solicitarWakeLock();
-  aplicarThemeColor(COR_FUNDO_FULLSCREEN);
 }
 
 function tickCadernoTimer(){
@@ -4620,7 +4678,6 @@ function fecharCadernoTimerFullscreen(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  aplicarThemeColor(null);
   if(cadernoTimerAtivo){
     timerFlutuanteFechadoManualmente=false;
     const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
@@ -4691,7 +4748,6 @@ function cancelarCadernoTimer(){
   document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  aplicarThemeColor(null);
   renderTab(tabAtual,true);
 }
 async function finalizarCadernoTimer(){
@@ -4708,7 +4764,6 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
-    aplicarThemeColor(null);
     await loadData();
   }catch(e){
     alert('Erro ao salvar o tempo do caderno: '+e.message);
@@ -5103,7 +5158,6 @@ function zerarTimer(){
   document.getElementById('timer-fullscreen').classList.add('hidden');
   document.body.classList.remove('timer-fullscreen-ativo');
   liberarWakeLock();
-  aplicarThemeColor(null);
   renderTab(tabAtual,true);
 }
 
@@ -5116,7 +5170,6 @@ function saiuDoFullscreenReal(){
     document.getElementById('timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
-    aplicarThemeColor(null);
     renderTab(tabAtual,true);
   }
 }
