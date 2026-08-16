@@ -1988,19 +1988,26 @@ function toggleSenhaVisivel(idCampo, botao){
   campo.type=campo.type==='password'?'text':'password';
 }
 
-// Cliente Supabase apontando pro projeto do PilotQuest — usado pra login (conta unificada) e
-// também pra ler a tabela bibliografia (fonte única, nunca alterada por aqui, só consultada)
-const sbAuth=window.supabase.createClient(
-  'https://jenzxycerdtjpkrzesia.supabase.co',
-  'sb_publishable_ne9lVc82Tdp6tloAbqm4xA_imwugeXg'
-);
-
-// Cliente Supabase apontando pro projeto PRÓPRIO do PSCPP Tracker — é daqui que vêm os
-// dados de verdade do app (Atividades, Banco de Questões, etc.), projeto separado do PilotQuest
-const sbDados=window.supabase.createClient(
-  'https://sdqhwsmuldsmyvwqlsuh.supabase.co',
-  'sb_publishable_qP5zH44_6VjXLGR9NIjifg_cevH8PIn'
-);
+// Clientes Supabase. A criação vai dentro de try porque, se a biblioteca não carregar (rede
+// ruim no instante da abertura, cache do PWA falhando), o erro parava o script inteiro AQUI —
+// e tudo declarado depois, incluindo o estado do cronômetro, nunca era inicializado. O sintoma
+// era o pior possível: abrir o app e não receber a oferta de retomar a sessão, perdendo o
+// tempo já estudado. Agora uma falha de rede não leva o cronômetro junto.
+let sbAuth=null, sbDados=null;
+try{
+  // PilotQuest — login (conta unificada) e leitura da bibliografia
+  sbAuth=window.supabase.createClient(
+    'https://jenzxycerdtjpkrzesia.supabase.co',
+    'sb_publishable_ne9lVc82Tdp6tloAbqm4xA_imwugeXg'
+  );
+  // PSCPP Tracker — dados do app (Atividades, Banco de Questões, etc.)
+  sbDados=window.supabase.createClient(
+    'https://sdqhwsmuldsmyvwqlsuh.supabase.co',
+    'sb_publishable_qP5zH44_6VjXLGR9NIjifg_cevH8PIn'
+  );
+}catch(e){
+  console.error('Supabase indisponível na carga:',e);
+}
 
 async function entrar(){
   const erro=document.getElementById('login-erro');
@@ -2585,7 +2592,6 @@ async function loadDataInterno(){
     await verificarFilaBancoPratico();
     setSyncStatus('ok');
     renderTab(tabAtual,true);
-    if(!primeiroCarregamentoFeito){ primeiroCarregamentoFeito=true; verificarSessaoRecuperavel(); }
     finalizarSplash();
   }catch(e){
     setSyncStatus('error');
@@ -5138,6 +5144,18 @@ function salvarSnapshotSessao(){
 function limparSnapshotSessao(){
   try{ localStorage.removeItem(SNAPSHOT_SESSAO_KEY); }catch(e){}
 }
+// A recuperação da sessão NÃO pode depender do banco: ela vive no armazenamento local e é o
+// único registro do tempo estudado. Estava dentro do try do carregamento de dados — se o
+// Supabase demorasse ou falhasse, o cronômetro se perdia junto. Agora roda assim que a tela
+// existe, antes e independentemente de qualquer rede.
+document.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{
+    if(primeiroCarregamentoFeito) return;
+    primeiroCarregamentoFeito=true;
+    verificarSessaoRecuperavel();
+  },400);   // dá tempo de a tela montar, sem esperar dado nenhum
+});
+
 function verificarSessaoRecuperavel(){
   let snap;
   try{
@@ -8930,10 +8948,22 @@ function finalizarSplash(){
 // Checa se já existe sessão salva (login anterior lembrado): se tiver, pula direto pro
 // app sem pedir login de novo; se não tiver, mostra a tela de login e espera.
 (async function initAuth(){
-  const {data:{session}}=await sbAuth.auth.getSession();
-  if(session){
-    await posLogin();
-  }else{
+  // Sem Supabase (rede ruim na abertura) mostra a tela de login em vez de travar no splash.
+  // A oferta de retomar o cronômetro roda antes disto e não depende de rede.
+  if(!sbAuth){
+    document.getElementById('view-login').classList.remove('hidden');
+    finalizarSplash();
+    return;
+  }
+  try{
+    const {data:{session}}=await sbAuth.auth.getSession();
+    if(session){
+      await posLogin();
+    }else{
+      document.getElementById('view-login').classList.remove('hidden');
+      finalizarSplash();
+    }
+  }catch(e){
     document.getElementById('view-login').classList.remove('hidden');
     finalizarSplash();
   }
