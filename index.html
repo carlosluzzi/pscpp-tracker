@@ -121,7 +121,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .app.tem-voltar.scrolled .voltar-faixa{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .app.tem-sub-abas.scrolled #sub-abas-slot{box-shadow:0 8px 10px -8px rgba(0,0,0,0.16)}
 .appname{font-size:var(--fs-h);font-weight:400;display:flex;align-items:center;gap:5px;color:#202A45;letter-spacing:-0.6px;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-.logo-completa{height:28px;width:auto;aspect-ratio:4.4;flex-shrink:0;object-fit:contain;display:block}
+.logo-completa{height:28px;width:auto;flex-shrink:0;object-fit:contain;display:block}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .topbar-pill{background:#fff;border:0.5px solid #eee;border-radius:20px;padding:6px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .appname b{font-weight:700}
@@ -331,13 +331,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-fechar{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);right:16px;
   color:#6B7280;background:none;border:none;font-size:24px;cursor:pointer;padding:0;
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;line-height:1}
-#splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity 0.4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 86px) 24px;box-sizing:border-box}
+/* Centralização sem padding e sem env(): os valores de safe-area do iOS só resolvem DEPOIS da
+   primeira pintura. Enquanto valem zero a caixa tem um tamanho; quando chegam, ela muda e o
+   conteúdo centralizado salta — era esse o deslocamento visível ao abrir o app.
+   Aqui o miolo é posicionado pelo centro geométrico da tela, que não muda. */
+#splash-screen{position:fixed;inset:0;z-index:9999;background:#F9F9F7;
+  transition:opacity 0.4s ease}
+#splash-conteudo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:22px;width:max-content;max-width:88vw}
 #splash-screen.hidden{display:none}
 #splash-screen.fade-out{opacity:0;pointer-events:none}
-/* aspect-ratio reserva o espaço ANTES da imagem carregar. Sem isso a largura era zero até o
-   arquivo chegar, e a logo aparecia deslocada antes de saltar para o lugar certo — visível toda
-   vez que o app abre. O valor é a proporção real do arquivo. */
-#splash-logo{height:38px;width:auto;aspect-ratio:4.4;object-fit:contain;display:block}
+/* Sem aspect-ratio: o valor era um palpite e, com object-fit:contain, encolhia a logo para
+   caber numa proporção que não é a do arquivo. A largura reservada não vale o tamanho errado —
+   e, com o miolo centralizado por transform, a imagem chegar depois não desloca mais nada. */
+#splash-logo{height:38px;width:auto;object-fit:contain;display:block}
 #splash-bar-track{width:120px;height:4px;border-radius:2px;background:#EEE;overflow:hidden}
 #splash-bar-fill{width:40%;height:100%;background:#202A45;border-radius:2px;animation:splashCarregando 1.1s ease-in-out infinite}
 @keyframes splashCarregando{
@@ -1197,7 +1204,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 <div id="view-login" class="hidden">
 <div class="login-inner">
   <div style="text-align:center;margin-bottom:16px">
-    <img src="assets/logo-completa.png" alt="PSCPP Tracker" style="height:32px;width:auto;aspect-ratio:4.4">
+    <img src="assets/logo-completa.png" alt="PSCPP Tracker" style="height:32px;width:auto">
   </div>
 
   <form id="form-login-entrar" onsubmit="event.preventDefault(); entrar();">
@@ -1664,8 +1671,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 </div>
 
 <div id="splash-screen">
-  <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
-  <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
+  <div id="splash-conteudo">
+    <img id="splash-logo" src="assets/logo-completa.png" alt="PSCPP Tracker">
+    <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
+  </div>
 </div>
 <div id="bg-fixed"></div>
 <div class="app">
