@@ -978,6 +978,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .prox-list-compact{gap:0}
 .prox-list-compact /* Item inteiro clicável, no lugar do botão "feito" na ponta: alvo maior e mais natural no
    toque. A confirmação antes de gravar continua igual, então não há risco de toque acidental. */
+/* Revisões agrupadas por módulo: o nome do módulo vira cabeçalho do grupo em vez de se repetir
+   em cada linha, e o capítulo fica colado no nome do livro. */
+.rev-grupo+.rev-grupo{margin-top:16px}
+.rev-modulo{font-size:var(--fs-a);color:#aaa;text-transform:uppercase;letter-spacing:.04em;
+  margin-bottom:5px}
+.rev-item{padding:7px 0}
+.rev-item+.rev-item{border-top:0.5px solid #f2f2ef}
+.rev-item-clicavel{cursor:pointer;border-radius:6px;margin-left:-6px;margin-right:-6px;
+  padding-left:6px;padding-right:6px}
+@media(hover:hover){.rev-item-clicavel:hover{background:#FAFAF8}}
+.rev-nome{display:block;font-size:var(--fs-c);color:#202A45;line-height:1.35}
+.rev-quando{display:block;font-size:var(--fs-a);margin-top:2px}
 .prox-item-clicavel,.fila-item-clicavel,.foco-materia-clicavel{cursor:pointer}
 @media(hover:hover){.prox-item-clicavel:hover,.fila-item-clicavel:hover,.foco-materia-clicavel:hover{background:#FAFAF8}}
 .prox-item{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-radius:0;box-shadow:none;background:transparent;position:relative}
@@ -4064,19 +4076,35 @@ function renderAprovado(){
     // O item inteiro é o alvo do toque, em vez de um botão pequeno na ponta: a confirmação já
     // pergunta antes de gravar, então não há risco em ampliar a área clicável.
     const acao=situacao==='futura'?'':` onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')"`;
-    return `<div class="prox-item${situacao==='futura'?'':' prox-item-clicavel'}"${acao}>
-      <div class="prox-left">
-        <span class="prox-nome">${nomeRev}</span>
-        <span class="prox-modalidade" style="color:${cor}">${detalhe}</span>
-      </div>
+    // Sem o módulo no texto: ele vira cabeçalho do grupo, uma vez só. Capítulo colado no nome
+    // do livro, que é como se fala — "Tug Use in Port, Capítulo 4".
+    const semModulo=(r.publicacao?nomePub(r.publicacao):r.modulo)
+      +(r.capitulo?', Capítulo '+r.capitulo:'');
+    return `<div class="rev-item${situacao==='futura'?'':' rev-item-clicavel'}"${acao}>
+      <span class="rev-nome">${semModulo}</span>
+      <span class="rev-quando" style="color:${cor}">${detalhe}</span>
     </div>`;
   };
 
-  const revisoesHtml=[
-    ...revisoesAtrasadas.map(r=>linhaRevisao(r,'atrasada')),
-    ...revisoesHoje.map(r=>linhaRevisao(r,'hoje')),
-  ].join('');
-  const revisoesProximasHtml=revisoesProximas.map(r=>linhaRevisao(r,'futura')).join('');
+  // Agrupa por módulo, preservando a ordem de urgência: o módulo aparece na posição da sua
+  // revisão mais urgente, e as demais do mesmo módulo vêm logo abaixo.
+  const agruparPorModulo=(lista)=>{
+    const ordem=[]; const mapa=new Map();
+    lista.forEach(({r,situacao})=>{
+      const m=r.modulo||'Sem módulo';
+      if(!mapa.has(m)){ mapa.set(m,[]); ordem.push(m); }
+      mapa.get(m).push(linhaRevisao(r,situacao));
+    });
+    return ordem.map(m=>
+      `<div class="rev-grupo"><div class="rev-modulo">${m}</div>${mapa.get(m).join('')}</div>`
+    ).join('');
+  };
+
+  const revisoesHtml=agruparPorModulo([
+    ...revisoesAtrasadas.map(r=>({r,situacao:'atrasada'})),
+    ...revisoesHoje.map(r=>({r,situacao:'hoje'})),
+  ]);
+  const revisoesProximasHtml=agruparPorModulo(revisoesProximas.map(r=>({r,situacao:'futura'})));
 
   // Sessões de Anki do mesmo dia e mesmo módulo aparecem juntas. O sincronizador separa em
   // blocos de 30 minutos, o que é correto para medir tempo, mas gera linhas de 2 e 7 minutos
