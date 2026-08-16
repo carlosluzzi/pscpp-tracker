@@ -5117,6 +5117,52 @@ window.addEventListener('pagehide',()=>{
   if(timerRodando||timerAcumuladoSeg>0||cadernoTimerAtivo) salvarSnapshotSessao();
 });
 
+// Grava o estado da sessão no servidor, sem travar nada se falhar — é rede de segurança,
+// não caminho crítico. O envio é espaçado para não fazer uma chamada a cada 10 segundos.
+let ultimoEspelho=0;
+async function espelharSessaoNoServidor(dados){
+  if(!sbDados) return;
+  const agora=Date.now();
+  if(agora-ultimoEspelho<25000) return;   // no máximo a cada 25 segundos
+  ultimoEspelho=agora;
+  try{
+    await sbDados.from('sessao_ativa').upsert({
+      id:1, tipo:dados.tipo, modulo:dados.modulo||null, publicacao:dados.publicacao||null,
+      capitulo:dados.capitulo||null, tipo_estudo:dados.tipoEstudo||null,
+      segundos:dados.segundos||0, atualizado_em:new Date().toISOString(),
+    });
+  }catch(e){ /* nunca deve atrapalhar o cronômetro */ }
+}
+
+async function limparSessaoNoServidor(){
+  if(!sbDados) return;
+  ultimoEspelho=0;
+  try{ await sbDados.from('sessao_ativa').delete().eq('id',1); }catch(e){}
+}
+
+// Se o registro local sumiu mas o servidor tem uma sessão recente, oferece recuperar. Roda
+// depois do carregamento, sem atrasar a checagem local, que é instantânea.
+async function verificarSessaoNoServidor(){
+  if(!sbDados) return;
+  try{
+    if(localStorage.getItem(SNAPSHOT_SESSAO_KEY)) return;   // o local já resolveu
+    if(timerRodando||timerAcumuladoSeg>0) return;           // já existe sessão em andamento
+    const {data,error}=await sbDados.from('sessao_ativa').select('*').eq('id',1).maybeSingle();
+    if(error||!data||!data.segundos) return;
+    // Sessão de mais de 24h provavelmente foi esquecida, não interrompida.
+    const horas=(Date.now()-new Date(data.atualizado_em).getTime())/3600000;
+    if(horas>24) return;
+    window._snapshotSessaoRecuperada={
+      tipo:'timer', timerModulo:data.modulo||'', timerPublicacao:data.publicacao||'',
+      timerCapitulo:data.capitulo||'', timerTipo:data.tipo_estudo||'Leitura',
+      timerInicio:null, timerAcumuladoSeg:data.segundos, timerAnkiAlvoSeg:null,
+    };
+    document.getElementById('sessao-recuperavel-texto').textContent=
+      `Existe uma sessão de ${data.tipo_estudo||'estudo'} em andamento (${data.modulo||'Anki'}), com ${Math.round(data.segundos/60)} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+    document.getElementById('sessao-recuperavel-modal').style.display='flex';
+  }catch(e){}
+}
+
 function salvarSnapshotSessao(){
   try{
     // Salva também com o cronômetro PAUSADO: fechar o app pausado apagava o tempo acumulado,
@@ -5134,6 +5180,11 @@ function salvarSnapshotSessao(){
         timerInicio:null,
         timerAcumuladoSeg:segAgora,timerAnkiAlvoSeg,
       }));
+      // Espelha no servidor. O armazenamento local já falhou uma vez — um erro de script na
+      // abertura impediu a leitura e o tempo estudado ficou inacessível. Com a cópia remota,
+      // a sessão é recuperável mesmo se o aparelho perder o registro.
+      espelharSessaoNoServidor({tipo:'timer',modulo:timerModulo,publicacao:timerPublicacao,
+        capitulo:timerCapitulo,tipoEstudo:timerTipo,segundos:segAgora});
     }else if(cadernoTimerAtivo){
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
         tipo:'caderno',cadernoTimerAtivo,cadernoTimerInicio,
@@ -5143,6 +5194,7 @@ function salvarSnapshotSessao(){
 }
 function limparSnapshotSessao(){
   try{ localStorage.removeItem(SNAPSHOT_SESSAO_KEY); }catch(e){}
+  limparSessaoNoServidor();
 }
 // A recuperação da sessão NÃO pode depender do banco: ela vive no armazenamento local e é o
 // único registro do tempo estudado. Estava dentro do try do carregamento de dados — se o
@@ -5153,6 +5205,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(primeiroCarregamentoFeito) return;
     primeiroCarregamentoFeito=true;
     verificarSessaoRecuperavel();
+    // Segunda tentativa, pelo servidor, caso o registro local tenha se perdido.
+    setTimeout(verificarSessaoNoServidor,2500);
   },400);   // dá tempo de a tela montar, sem esperar dado nenhum
 });
 
