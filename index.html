@@ -2301,6 +2301,7 @@ let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[],planoEstudo=[],ankiPrevisao=[];
 let notasAssunto={};   // assunto -> texto da nota
+let quadranteCalculado='';   // HTML do "Tempo investido × desempenho", usado na aba Nova atividade
 let questoesExcluidas=[];   // fora dos cálculos, mantidas para poder reverter
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
@@ -3973,6 +3974,9 @@ function renderAnalise(parte){
     const v=modsCruzados.map(m=>tempoPorMod.get(m)||0).sort((a,b)=>a-b);
     return v.length?v[Math.floor(v.length/2)]:0;
   })();
+  // Guardado em variável de módulo porque o bloco "Tempo investido × desempenho" foi para a aba
+  // Nova atividade, que é montada por outra função — e o cálculo depende de "sessoes", que só
+  // existe aqui. Mover o cálculo inteiro seria pior: ele usa meia dúzia de variáveis locais.
   const quadHtml=modsCruzados.map(m=>{
     const o=qPorMod.get(m), tm=tempoPorMod.get(m)||0;
     const aprov=Math.round(o.a/o.t*100);
@@ -3994,6 +3998,11 @@ function renderAnalise(parte){
     </div>`).join('');
 
   // ---------- montagem ----------
+  // Guarda para a aba Nova atividade, montada por outra função: o cálculo acima depende de
+  // "sessoes" e de meia dúzia de variáveis locais desta função, então mover o bloco inteiro
+  // seria pior que compartilhar o resultado.
+  quadranteCalculado=quadHtml;
+
   const periodos=[['dia','Hoje'],['ontem','Ontem'],['semana','Semana'],['mes','Mês'],['tudo','Tudo'],['personalizado','📅']];
   // A aba única virou duas: Controle responde "o que fiz e como está minha rotina", e muda com o
   // filtro de período; Histórico responde "como está minha preparação", e é acumulado. O corpo
@@ -4195,6 +4204,11 @@ function renderAprovado(){
   // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
 
+  // O quadrante da aba Nova atividade é calculado dentro de renderAnalise. Se o Carlos abrir
+  // direto em Nova atividade, sem passar pelo Controle, o cálculo nunca teria rodado e a seção
+  // apareceria vazia — então dispara aqui, descartando o HTML e guardando só o resultado.
+  if(abaAprovado==='nova'&&!quadranteCalculado) renderAnalise('controle');
+
   // Controle: rotina do dia a dia, muda com o filtro de período.
   if(abaAprovado==='controle') return renderAnalise('controle');
   // Histórico: preparação acumulada, não depende de filtro.
@@ -4300,7 +4314,7 @@ function renderAprovado(){
 
     ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45',{direita:botaoInfo('quadrante')})}
     <div class="card-inicio">
-      ${quadHtml||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
+      ${quadranteCalculado||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
     </div>
   `;
 }
