@@ -690,7 +690,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
    (escolher entre opções exclusivas) deixavam a interface incoerente.
    A linha de base separa a navegação do conteúdo; os 12px abaixo dela são fundo opaco, pra o
    conteúdo não encostar na linha ao passar por trás durante a rolagem. */
-.sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:12px;height:1px;background:#ececea}
+/* A linha fica na borda inferior. O valor era bottom:12px porque compensava um padding de 12px
+   que existia embaixo dos botões — removido o padding, aquele deslocamento passou a empurrar a
+   linha para DENTRO do botão, quase encostando no texto. */
+.sub-abas::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:#ececea}
 #sub-abas-slot{flex-shrink:0;background:#F9F9F7;position:relative;z-index:3}
 .sub-aba{flex:1;cursor:pointer;user-select:none;text-align:center;
   padding:14px 8px;transition:background .15s ease}
@@ -890,6 +893,12 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Linha de questão no capítulo. O ponto de resultado alinha pelo centro do texto do assunto,
    não pelo topo da linha — a linha usa align-items:flex-start, então o ajuste é manual. */
 .cap-row-q{cursor:pointer;padding-top:7px;padding-bottom:7px;align-items:center}
+/* Sessão dentro de "Onde investi o tempo": clicável para corrigir, com o X de excluir à direita. */
+.cap-row-sessao{cursor:pointer;align-items:center}
+@media(hover:hover){.cap-row-sessao:hover{background:#FAFAF8}}
+.sessao-excluir{flex-shrink:0;margin-left:auto;padding:2px 6px;color:#ccc;font-size:var(--fs-a);
+  cursor:pointer;line-height:1}
+@media(hover:hover){.sessao-excluir:hover{color:#A32D2D}}
 .cap-row-q .cap-tit{flex:1;min-width:0}
 .q-ponto{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
 @media(hover:hover){.cap-row-q:hover{background:#FAFAF8}}
@@ -915,9 +924,13 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .vq-duvida-motivo{display:block;color:#5F5E5A;margin-top:3px}
 .tipo-errada-assunto{font-size:var(--fs-c);color:#333;margin-top:2px;line-height:1.35}
 .tipo-errada-ref{font-size:var(--fs-a);color:#999;margin-top:2px;line-height:1.35}
-.info-btn{cursor:pointer;color:#bbb;display:inline-flex;align-items:center;padding:2px;flex-shrink:0;vertical-align:middle}
-.info-btn svg{width:13px;height:13px}
-@media(hover:hover){.info-btn:hover{color:#888}}
+/* Mesmo padrão do Pilotquest: caixa de 24px com borda finíssima e fundo branco, em vez do
+   ícone solto. Fica reconhecível como botão em qualquer contexto. */
+.info-btn{width:24px;height:24px;border-radius:7px;border:0.5px solid #ddd;background:#fff;
+  color:#888;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  flex-shrink:0;padding:0;vertical-align:middle}
+.info-btn svg{width:14px;height:14px}
+@media(hover:hover){.info-btn:hover{color:#555;border-color:#ccc}}
 /* Texto das explicacoes dentro do modal */
 .explicacao{font-size:var(--fs-c);color:#444;line-height:1.55}
 .explicacao p{margin:0 0 10px 0}
@@ -3781,9 +3794,13 @@ function renderAnalise(){
           // Mostra o tipo quando não for Leitura: dentro de um mesmo capítulo pode haver
           // leitura, revisão e Anki, e sem isso as três linhas ficariam indistinguíveis.
           const rotuloTipo = x.tipo && x.tipo!=='Leitura' ? x.tipo+' • ' : '';
-          return `<div class="cap-row">
+          // Cada passagem é uma sessão: tocar corrige, o X exclui. Antes isso só existia no
+          // Histórico corrido, que saiu — e este é o lugar natural, porque é aqui que a sessão
+          // errada é encontrada.
+          return `<div class="cap-row cap-row-sessao" onclick="abrirEditarSessao('${x.id}')">
             <span class="cap-loc" style="flex-shrink:0">${arr.length-n}ª</span>
             <span class="cap-tit">${rotuloTipo}${fmtData(x.data)} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+            <span class="sessao-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${x.id}','${x.tipo}','${(x.modulo||'').replace(/'/g,"\\'")}','${fmtData(x.data)}')">✕</span>
           </div>`;
         }).join('');
         return `<div class="cap-group">
@@ -4015,11 +4032,6 @@ function renderAnalise(){
     <div class="card-inicio">
       ${coberturaHtml||'<div class="empty" style="padding:16px 8px">Bibliografia não carregada.</div>'}
     </div>
-
-    ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45',{direita:botaoInfo('quadrante')})}
-    <div class="card-inicio">
-      ${quadHtml||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
-    </div>
   `;
 }
 
@@ -4184,10 +4196,6 @@ function renderAprovado(){
     return `
     ${renderAnalise()}
 
-    ${sectionTitle('Histórico','lista','#E6F1FB','#202A45')}
-    <div class="card-inicio">
-      ${historicoHtml}
-    </div>
     `;
   }
 
@@ -4287,6 +4295,11 @@ function renderAprovado(){
     </div>
     <div class="card-inicio">
       ${metasHtml||'<div class="empty" style="padding:16px 8px">Nenhuma meta configurada ainda.</div>'}
+    </div>
+
+    ${sectionTitle('Tempo investido × desempenho','grafico','#E6F1FB','#202A45',{direita:botaoInfo('quadrante')})}
+    <div class="card-inicio">
+      ${quadHtml||'<div class="empty" style="padding:16px 8px">Ainda sem questões respondidas para cruzar.</div>'}
     </div>
   `;
 }
