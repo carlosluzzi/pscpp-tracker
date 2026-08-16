@@ -247,13 +247,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-ajustes .ritmo-slider::-moz-range-track{background:#2A3141}
 .tf-ajustes .ritmo-slider::-webkit-slider-thumb{background:#fff;border-color:#1A1F2E}
 .tf-ajustes .ritmo-slider::-moz-range-thumb{background:#fff;border-color:#1A1F2E}
-/* Escolha do tom: dois por linha, com o nome de cada um. Tocar já ouve — escolher som sem
-   ouvir não faz sentido. */
-.tf-tons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:2px}
-.tom-btn{padding:8px 4px;border-radius:8px;border:1px solid #2A3141;background:transparent;
+/* Som em destaque no topo, duas colunas para os nomes respirarem. A linha separadora agrupa
+   o que é som e o que é comportamento do alerta. */
+.tf-som-topo{text-align:center;padding:2px 0 12px}
+.tf-som-nome{font-size:22px;font-weight:600;color:#fff}
+.tf-tons{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.tom-btn{padding:10px 4px;border-radius:10px;border:none;background:#1A2030;
   color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
-.tom-btn.ativo{background:#2A3141;border-color:#4A5468;color:#fff}
-@media(hover:hover){.tom-btn:hover{border-color:#4A5468}}
+.tom-btn.ativo{background:#2E3A52;color:#fff;font-weight:600}
+@media(hover:hover){.tom-btn:hover{background:#232B3D}}
+.tf-ajustes-sep{height:1px;background:#232A3A;margin:16px 0 12px}
 .tf-ajustes-nota{font-size:var(--fs-a);color:#6B7280;line-height:1.4;margin-top:6px}
 /* Cancelar fica separado e discreto: é destrutivo, não deve competir com Pausar e Finalizar */
 .tf-cancelar{display:block;margin:22px auto 0;background:none;border:none;color:#6B7280;
@@ -4225,22 +4228,30 @@ function renderTimerFullscreenConteudo(){
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
     <div class="tf-ajustes hidden" id="tf-ajustes">
+      <div class="tf-som-topo"><div class="tf-som-nome" id="tf-som-nome"></div></div>
+      <div class="tf-tons" id="tf-tons"></div>
+      <div class="tf-ajustes-sep"></div>
+
       <div class="tf-ajustes-topo">
-        <span>Volume do lembrete</span>
+        <span>Intervalo para início</span>
+        <span id="esp-valor">${fmtIntervaloApito(apitoEsperaSeg)}</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="15" max="300" step="15" value="${apitoEsperaSeg}"
+        oninput="setApitoEspera(this.value)">
+
+      <div class="tf-ajustes-topo" style="margin-top:12px">
+        <span>Intervalo entre alertas</span>
+        <span id="int-valor">${fmtIntervaloApito(apitoIntervaloSeg)}</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="15" max="180" step="15" value="${apitoIntervaloSeg}"
+        oninput="setApitoIntervalo(this.value)">
+
+      <div class="tf-ajustes-topo" style="margin-top:12px">
+        <span>Volume do alerta</span>
         <span id="vol-valor">${Math.round(apitoVolume*100)}%</span>
       </div>
       <input type="range" class="ritmo-slider" min="0" max="1" step="0.05" value="${apitoVolume}"
         oninput="setApitoVolume(this.value)">
-      <div class="tf-ajustes-topo" style="margin-top:12px">
-        <span>A cada</span>
-        <span id="int-valor">${fmtIntervaloApito(apitoIntervaloSeg)}</span>
-      </div>
-      <input type="range" class="ritmo-slider" min="15" max="180" step="15" value="${apitoIntervaloSeg}"
-        oninput="setApitoIntervalo(this.value)" list="passos-intervalo">
-      <datalist id="passos-intervalo"><option value="30"></option><option value="60"></option><option value="120"></option></datalist>
-      <div class="tf-ajustes-topo" style="margin-top:14px"><span>Som</span></div>
-      <div class="tf-tons" id="tf-tons"></div>
-      <div class="tf-ajustes-nota">Começa 1 minuto depois de pausar.</div>
     </div>
     <div>
       ${cadernoTimer?cabecalhoCaderno:`
@@ -4329,7 +4340,9 @@ function timerCamposObrigatoriosCompletos(){
 // em outro. Um som discreto a cada 30 segundos resolve, mas só depois de 1 minuto parado —
 // apitar no instante da pausa seria só barulho, já que a pausa foi intencional.
 let apitoPausaId=null, apitoContextoAudio=null;
-const APITO_ESPERA_MS=60000;    // silêncio no primeiro minuto de pausa
+// Quanto tempo de silêncio antes do primeiro alerta, ajustável. Quem pausa muito para consultar
+// algo prefere esperar mais; quem esquece fácil, menos.
+let apitoEsperaSeg=parseInt(localStorage.getItem('apitoEspera')||'60',10);
 // Intervalo entre os lembretes, ajustável na engrenagem. 30s é o padrão; quem pausa muito para
 // consultar algo pode preferir mais espaçado.
 let apitoIntervaloSeg=parseInt(localStorage.getItem('apitoIntervalo')||'30',10);
@@ -4464,6 +4477,9 @@ function renderTonsLembrete(){
   el.innerHTML=Object.entries(TONS_LEMBRETE).map(([chave,t])=>
     `<button class="tom-btn${tomLembrete===chave?' ativo':''}"
       onclick="setTomLembrete('${chave}')">${t.nome}</button>`).join('');
+  // Nome grande no topo: confirma o que acabou de ser escolhido enquanto o som toca.
+  const nome=document.getElementById('tf-som-nome');
+  if(nome) nome.textContent=(TONS_LEMBRETE[tomLembrete]||TONS_LEMBRETE.sino).nome;
 }
 
 // Ajuste do volume. Cada mudança toca o som na hora — sem ouvir, escolher um número é chute.
@@ -4481,6 +4497,14 @@ const fmtIntervaloApito=seg=>{
   const m=Math.floor(seg/60), r=seg%60;
   return r? m+'min'+String(r).padStart(2,'0') : m+'min';
 };
+
+function setApitoEspera(seg){
+  apitoEsperaSeg=parseInt(seg,10);
+  localStorage.setItem('apitoEspera',String(apitoEsperaSeg));
+  const el=document.getElementById('esp-valor');
+  if(el) el.textContent=fmtIntervaloApito(apitoEsperaSeg);
+  if(!timerRodando&&timerAcumuladoSeg>0) iniciarApitoPausa();
+}
 
 function setApitoIntervalo(seg){
   apitoIntervaloSeg=parseInt(seg,10);
@@ -4519,7 +4543,7 @@ function iniciarApitoPausa(){
   apitoPausaId=setTimeout(()=>{
     tocarApitoPausa();
     apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
-  },APITO_ESPERA_MS);
+  },apitoEsperaSeg*1000);
 }
 
 function pararApitoPausa(){
