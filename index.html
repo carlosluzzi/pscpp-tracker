@@ -679,7 +679,10 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* A linha de base atravessa a tela inteira (de ponta a ponta, graças às margens negativas que
    compensam o padding do .content). As abas se apoiam nela; a ativa a interrompe, ficando
    contínua com o conteúdo abaixo, e as inativas permanecem fechadas acima dela. */
-.sub-abas{display:flex;background:#F9F9F7;padding:0 0 12px;position:relative;flex-shrink:0}
+/* Sem espaço abaixo dos botões: aquele padding criava uma faixa morta entre o fim do botão e o
+   início da rolagem, e a sombra do scroll nascia depois dela, solta. Colada, a sombra marca
+   exatamente a borda inferior do botão e o conteúdo passa por baixo dele ao rolar. */
+.sub-abas{display:flex;background:#F9F9F7;padding:0;position:relative;flex-shrink:0}
 /* Navegação secundária no topo, seguindo a mesma linguagem do menu de baixo: sem fundo de
    botão, só o texto mudando de peso e cor, com um realce sutil no item ativo. Antes isso era
    desenhado como aba de fichário (lateral inclinada, sobreposição) — trocado porque o app já
@@ -1505,6 +1508,31 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   </div>
 </div>
 
+<div class="modal-overlay" id="editar-sessao-modal" style="display:none;z-index:1000002"
+  onclick="if(event.target===this)fecharEditarSessao()">
+  <div class="modal-box">
+    <div class="config-title" style="margin-bottom:14px">Corrigir sessão</div>
+    <select class="filter-select" id="editar-sessao-tipo" onchange="atualizarCamposEditarSessao()">
+      <option value="Leitura">Leitura</option>
+      <option value="Exercício">Exercício</option>
+      <option value="Revisão">Revisão</option>
+      <option value="Anki">Anki</option>
+    </select>
+    <div id="editar-sessao-materia">
+      <select class="filter-select" id="editar-sessao-modulo" onchange="atualizarPublicacoesEditarSessao()"></select>
+      <select class="filter-select" id="editar-sessao-publicacao" onchange="atualizarCapitulosEditarSessao()"></select>
+      <select class="filter-select" id="editar-sessao-capitulo"></select>
+    </div>
+    <input type="number" class="filter-select" id="editar-sessao-duracao" placeholder="Duração em minutos" min="1">
+    <input type="number" class="filter-select" id="editar-sessao-caracteres" placeholder="Caracteres lidos (opcional)" min="0">
+    <input type="date" class="filter-select" id="editar-sessao-data">
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn modal-btn-nao" onclick="fecharEditarSessao()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="salvarEditarSessao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sessao-detalhe-modal" style="display:none;z-index:1000000" onclick="if(event.target===this)fecharDetalheSessao()">
   <div class="modal-box sd-box">
     <div class="sd-miolo">
@@ -2309,21 +2337,21 @@ async function loadDataInterno(){
     ]=await Promise.all([
       sbDados.from('atividades').select('*'),
       buscarTudo('banco_questoes'),
-      sbDados.from('calendario_eventos').select('*'),
+      buscarTudo('calendario_eventos','*'),
       sbDados.from('notas_estudo').select('*'),
       sbDados.from('atividades_complementares').select('*'),
       sbDados.from('banco_pratico_config').select('*'),
       sbDados.from('foco_estudado').select('*'),
       sbDados.from('apelidos_publicacao').select('*'),
       sbDados.from('fila_banco_pratico').select('*'),
-      sbDados.from('sessoes_estudo').select('*'),
+      buscarTudo('sessoes_estudo','*'),
       sbDados.from('ciclo_estudos_config').select('*'),
       sbDados.from('metas_estudo').select('*'),
       sbDados.from('revisoes_espacadas').select('*'),
       sbDados.from('atividades_pendentes').select('*'),
       buscarTudo('questoes_pendentes'),
       sbDados.from('app_config').select('*'),
-      sbDados.from('anotacoes_alternativas').select('*'),
+      buscarTudo('anotacoes_alternativas','*'),
       buscarTudo('anki_cards'),
       buscarTudo('anki_secoes'),
       buscarTudo('anki_revisoes'),
@@ -3490,7 +3518,9 @@ function mostrarDiaAnalise(key){
     const total=doDia.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
     const itens=doDia.map(s=>{
       const r=(s.caracteresLidos>0&&s.duracaoMinutos>0)?Math.round(s.caracteresLidos/s.duracaoMinutos):null;
-      return `<div class="quad-item">
+      // Também clicável aqui: a sessão errada pode ser encontrada por qualquer caminho, e ter
+      // que voltar ao histórico para corrigir seria um passo a mais sem motivo.
+      return `<div class="quad-item prox-item-clicavel" onclick="document.getElementById('ver-questao-modal').style.display='none';abrirEditarSessao('${s.id}')">
         <span class="quad-tag tag-tempo">${fmtDur(s.duracaoMinutos)}</span>
         <div class="quad-txt">
           <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}${seloOrigem(s)}</div>
@@ -4077,12 +4107,16 @@ function renderAprovado(){
       ? ` • ${Math.round(s.caracteresLidos/s.duracaoMinutos).toLocaleString('pt-BR')} car/min`
       : '';
     const blocosTexto=s.blocos>1?` • ${s.blocos} sessões`:'';
-    return `<div class="prox-item" style="cursor:default">
+    // Item clicável para corrigir: errar o tempo é comum, e antes só dava para excluir e
+    // lançar tudo de novo. Sessões agrupadas (vários blocos) não são editáveis — cada bloco é
+    // um registro, e editar o conjunto não teria como distribuir a mudança.
+    const podeEditar=s.blocos===1;
+    return `<div class="prox-item${podeEditar?' prox-item-clicavel':''}"${podeEditar?` onclick="abrirEditarSessao('${s.id}')"`:' style="cursor:default"'}>
       <div class="prox-left">
         <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}${seloOrigem(s)}</span>
         <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto}${blocosTexto} • ${fmtData(s.data)}</span>
       </div>
-      ${s.blocos===1?`<span class="historico-excluir" onclick="abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>`:''}
+      ${s.blocos===1?`<span class="historico-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>`:''}
     </div>`;
   });
   const POR_PAGINA_HIST=5;
@@ -4839,7 +4873,19 @@ async function finalizarCadernoTimer(){
     liberarWakeLock();
     await loadData();
   }catch(e){
-    alert('Erro ao salvar o tempo do caderno: '+e.message);
+    // Tempo cronometrado é insubstituível: entra na fila e é reenviado sozinho, em vez de
+    // só avisar e sumir se o app fechar.
+    enfileirar('atividades_pendentes','update',{id,valores:{tempo_gasto_segundos:decorrido}},
+      `tempo do caderno (${Math.round(decorrido/60)} min)`);
+    if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
+    cadernoTimerAtivo=null;
+    limparSnapshotSessao();
+    esconderTimerFlutuante();
+    document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
+    document.body.classList.remove('timer-fullscreen-ativo');
+    liberarWakeLock();
+    mostrarAviso('Tempo guardado',
+      'Não deu para enviar agora, mas está guardado no aparelho e será enviado sozinho quando a conexão voltar.');
   }
 }
 
@@ -5676,6 +5722,111 @@ async function salvarConfigMetas(){
 }
 
 let sessaoParaExcluirId=null;
+// ---------- Editar sessão de estudo ----------
+// Antes só dava para excluir e lançar de novo. Errar o tempo é comum — e refazer significa
+// digitar módulo, publicação e capítulo tudo outra vez.
+let editandoSessaoId=null;
+
+function abrirEditarSessao(id){
+  const s=(sessoesEstudo||[]).find(x=>x.id===id);
+  if(!s) return;
+  editandoSessaoId=id;
+
+  document.getElementById('editar-sessao-modulo').innerHTML='<option value="">Módulo</option>'
+    +[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt'))
+      .map(m=>`<option value="${m}"${s.modulo===m?' selected':''}>${m}</option>`).join('');
+  atualizarPublicacoesEditarSessao(s.publicacao,s.capitulo);
+
+  document.getElementById('editar-sessao-tipo').value=s.tipo||'Leitura';
+  document.getElementById('editar-sessao-duracao').value=s.duracaoMinutos||'';
+  document.getElementById('editar-sessao-caracteres').value=s.caracteresLidos||'';
+  document.getElementById('editar-sessao-data').value=s.data||'';
+  atualizarCamposEditarSessao();
+  document.getElementById('editar-sessao-modal').style.display='flex';
+}
+
+function atualizarPublicacoesEditarSessao(pubAtual,capAtual){
+  const modulo=document.getElementById('editar-sessao-modulo').value;
+  const sel=document.getElementById('editar-sessao-publicacao');
+  sel.innerHTML='<option value="">Publicação</option>'
+    +publicacoesParaEstudo(modulo).map(p=>
+      `<option value="${p}"${p===pubAtual?' selected':''}>${nomePub(p)}</option>`).join('');
+  atualizarCapitulosEditarSessao(capAtual);
+}
+
+function atualizarCapitulosEditarSessao(capAtual){
+  const modulo=document.getElementById('editar-sessao-modulo').value;
+  const publicacao=document.getElementById('editar-sessao-publicacao').value;
+  const sel=document.getElementById('editar-sessao-capitulo');
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!publicacao||!pubInfo){
+    sel.innerHTML='<option value="">Capítulo</option>'; sel.disabled=true;
+    sel.classList.remove('select-como-texto'); return;
+  }
+  sel.disabled=false;
+  sel.classList.remove('select-como-texto');
+  if(pubInfo.capituloUnico){
+    sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`;
+    sel.disabled=true; sel.classList.add('select-como-texto'); return;
+  }
+  const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length
+    ? pubInfo.capitulosValidos
+    : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
+  const rot=pubInfo.rotuloCapitulo||'Capítulo';
+  sel.innerHTML='<option value="">Capítulo</option>'
+    +caps.map(c=>`<option value="${c}"${String(c)===String(capAtual)?' selected':''}>${rot} ${c}</option>`).join('');
+}
+
+// Caracteres lidos só fazem sentido em leitura; Anki não tem módulo nem publicação.
+function atualizarCamposEditarSessao(){
+  const tipo=document.getElementById('editar-sessao-tipo').value;
+  const ehAnki=tipo==='Anki';
+  document.getElementById('editar-sessao-materia').style.display=ehAnki?'none':'';
+  document.getElementById('editar-sessao-caracteres').style.display=tipo==='Leitura'?'':'none';
+}
+
+function fecharEditarSessao(){
+  document.getElementById('editar-sessao-modal').style.display='none';
+  editandoSessaoId=null;
+}
+
+async function salvarEditarSessao(){
+  if(!editandoSessaoId) return;
+  const id=editandoSessaoId;
+  const tipo=document.getElementById('editar-sessao-tipo').value;
+  const ehAnki=tipo==='Anki';
+  const modulo=ehAnki?'':document.getElementById('editar-sessao-modulo').value;
+  const publicacao=ehAnki?'':document.getElementById('editar-sessao-publicacao').value;
+  const capitulo=ehAnki?'':document.getElementById('editar-sessao-capitulo').value;
+  const duracao=parseInt(document.getElementById('editar-sessao-duracao').value,10);
+  const carInput=document.getElementById('editar-sessao-caracteres').value;
+  const caracteres=(tipo==='Leitura'&&carInput)?parseInt(carInput,10):null;
+  const data=document.getElementById('editar-sessao-data').value;
+
+  if(!duracao||duracao<1){ mostrarAviso('Duração inválida','Informe quantos minutos, a partir de 1.'); return; }
+  if(!data){ mostrarAviso('Falta a data','Escolha a data da sessão.'); return; }
+  if(!ehAnki&&!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+
+  const valores={modulo:modulo||null,publicacao:publicacao||null,capitulo:capitulo||null,
+    tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteres};
+  fecharEditarSessao();
+
+  // Atualiza na tela antes de confirmar com o servidor: a correção aparece na hora.
+  const s=(sessoesEstudo||[]).find(x=>x.id===id);
+  if(s){ s.modulo=modulo; s.publicacao=publicacao; s.capitulo=capitulo;
+         s.tipo=tipo; s.duracaoMinutos=duracao; s.data=data; s.caracteresLidos=caracteres; }
+  renderTab(tabAtual,true);
+
+  try{
+    const {error}=await sbDados.from('sessoes_estudo').update(valores).eq('id',id);
+    if(error) throw error;
+    await loadData();
+  }catch(e){
+    enfileirar('sessoes_estudo','update',{id,valores},`correção da sessão de ${tipo}`);
+    mostrarAviso('Guardado','A correção será enviada sozinha quando a conexão voltar.');
+  }
+}
+
 function abrirExcluirSessaoModal(id,tipo,modulo,dataFormatada){
   sessaoParaExcluirId=id;
   document.getElementById('excluir-sessao-texto').textContent=`Excluir a sessão de ${tipo} em ${modulo} (${dataFormatada})? Isso não pode ser desfeito.`;
@@ -6079,7 +6230,7 @@ function renderDetalheDia(){
                  class="cal-item-logo${(e.tipo==='Catavento'||e.tipo==='Curso Prático')?' logo-maior':''}"
                  style="aspect-ratio:${proporcaoLogosCursos[e.tipo]||4.4}" loading="lazy">`
             : `<span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>`}
-          <span class="cal-item-txt">${e.texto}${e.minutos?' · '+e.minutos+'min':''}</span>
+          <span class="cal-item-txt">${escapeHtml(e.texto)}${e.minutos?' · '+e.minutos+'min':''}</span>
         </div>
         ${(e.fonte==='plano'||e.fonte==='evento')?`<button class="cal-item-x" onclick="removerPlano('${e.id}')">✕</button>`:''}
       </div>`).join('')
@@ -6173,10 +6324,20 @@ async function salvarNovoPlano(){
   const publicacao=ehEvento?'':document.getElementById('plano-publicacao').value;
   const capitulo=ehEvento?'':document.getElementById('plano-capitulo').value;
   fecharNovoPlano();
-  const {data:novo,error}=await sbDados.from('plano_estudo')
-    .insert({data,tipo,descricao,minutos,modulo:modulo||null,publicacao:publicacao||null,
-             capitulo:capitulo||null}).select().single();
-  if(error){ mostrarAviso('Não deu para salvar','Tente de novo em instantes.'); return; }
+  const dadosPlano={data,tipo,descricao,minutos,modulo:modulo||null,
+    publicacao:publicacao||null,capitulo:capitulo||null};
+  let novo=null;
+  try{
+    const r=await sbDados.from('plano_estudo').insert(dadosPlano).select().single();
+    if(r.error) throw r.error;
+    novo=r.data;
+  }catch(e){
+    // Guarda e reenvia: planejar de novo é chato, e o item some da tela sem aviso se falhar.
+    enfileirar('plano_estudo','insert',dadosPlano,`${tipo} planejado para ${data}`);
+    mostrarAviso('Guardado',
+      'Não deu para enviar agora, mas será enviado sozinho quando a conexão voltar.');
+    return;
+  }
   planoEstudo.push({id:novo.id,data,tipo,modulo,publicacao,capitulo,
     descricao,minutos,feito:false});
   renderTab(tabAtual,true);
@@ -6194,7 +6355,13 @@ async function removerPlano(id){
     const corpo=document.getElementById('cal-dia-corpo');
     if(corpo) corpo.innerHTML=renderDetalheDia();
   }
-  await sbDados.from('plano_estudo').delete().eq('id',id);
+  try{
+    const {error}=await sbDados.from('plano_estudo').delete().eq('id',id);
+    if(error) throw error;
+  }catch(e){
+    // Sem isto, o item sumia da tela e voltava no próximo carregamento — parecia bug.
+    enfileirar('plano_estudo','delete',{id},'remoção de item planejado');
+  }
 }
 
 function renderCardSaudacao(){
@@ -6752,7 +6919,7 @@ function renderCardNotas(){
       <div class="notas-list">
         ${notasEstudo.map(n=>`<div class="notas-postit">
           <span class="nota-quote">&#10077;</span>
-          <span class="nota-texto">${n.texto}</span>
+          <span class="nota-texto">${escapeHtml(n.texto)}</span>
           <span class="nota-close" onclick="removerNota('${n.id}')">✕</span>
         </div>`).join('')}
         <div class="nota-add" onclick="adicionarNota()">+ nova nota</div>
@@ -8008,7 +8175,7 @@ function renderPubsCards(qs,prefixoId){
         // O resultado vira um ponto colorido alinhado ao texto, sem ocupar largura.
         const temNota=q.assuntoPrincipal&&notasAssunto[q.assuntoPrincipal];
         const assuntoHtml=q.assuntoPrincipal
-          ?`<span class="cap-tit cap-tit-edit" onclick="event.stopPropagation();abrirEditarAssunto('${q.id}')">${q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1)}${temNota?' <span class="assunto-tem-nota">📝</span>':''}</span>`
+          ?`<span class="cap-tit cap-tit-edit" onclick="event.stopPropagation();abrirEditarAssunto('${q.id}')">${escapeHtml(q.assuntoPrincipal.charAt(0).toUpperCase()+q.assuntoPrincipal.slice(1))}${temNota?' <span class="assunto-tem-nota">📝</span>':''}</span>`
           :`<span class="cap-tit cap-tit-add" onclick="event.stopPropagation();abrirEditarAssunto('${q.id}')">+ assunto principal</span>`;
         return `<div class="cap-row cap-row-q" onclick="abrirVerQuestaoCompleta('${q.id}')">
         <span class="q-ponto" style="background:${si.color}"></span>
