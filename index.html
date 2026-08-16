@@ -2646,6 +2646,7 @@ function renderSubAbas(tab){
   if(tab==='aprovado'){
     slot.innerHTML=`<div class="sub-abas">
       <div class="sub-aba${abaAprovado==='nova'?' ativa':''}" onclick="setAbaAprovado('nova')"><span>Nova atividade</span></div>
+      <div class="sub-aba${abaAprovado==='controle'?' ativa':''}" onclick="setAbaAprovado('controle')"><span>Controle</span></div>
       <div class="sub-aba${abaAprovado==='historico'?' ativa':''}" onclick="setAbaAprovado('historico')"><span>Histórico</span></div>
     </div>`;
     return;
@@ -3610,7 +3611,7 @@ function chaveDia(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function renderAnalise(){
+function renderAnalise(parte){
   const sessoes=sessoesEstudo||[];
   if(!sessoes.length){
     return `<div class="empty" style="padding:40px 20px">Nenhuma sessão de estudo registrada ainda.<br><span style="font-size:var(--fs-c)">Use o cronômetro em "Nova atividade" para começar.</span></div>`;
@@ -3994,7 +3995,10 @@ function renderAnalise(){
 
   // ---------- montagem ----------
   const periodos=[['dia','Hoje'],['ontem','Ontem'],['semana','Semana'],['mes','Mês'],['tudo','Tudo'],['personalizado','📅']];
-  return `
+  // A aba única virou duas: Controle responde "o que fiz e como está minha rotina", e muda com o
+  // filtro de período; Histórico responde "como está minha preparação", e é acumulado. O corpo
+  // do template é o mesmo, dividido no marcador — assim os dados são calculados uma vez só.
+  const html=`
     ${sectionTitle('Resumo','grafico','#E6F1FB','#202A45',{customSvg:`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.002 19.732L16.351 22h-1.004l.982-2.143H15V17h3.002zm3.998 0L20.349 22h-1.003l.982-2.143H19V17h3zM13 20H2v-2h11zm9-7H2v-2h20zM3.672 4.143H5V7H2V4.268L3.651 2h1.003zm3.999 0H9V7H5.998V4.268L7.649 2h1.004zM22 6H11V4h11z"/></svg>`})}
     <div class="filter-row periodo-row" style="margin-bottom:${analisePeriodo==='personalizado'?'8':'12'}px">
       ${periodos.map(([k,l])=>`<div class="filter-btn${analisePeriodo===k?' active':''}" onclick="setAnalisePeriodo('${k}')">${l}</div>`).join('')}
@@ -4021,7 +4025,7 @@ function renderAnalise(){
     <div class="card-inicio">
       ${detalheHtml||'<div class="empty" style="padding:16px 8px">Nenhuma sessão no período selecionado.</div>'}
     </div>
-
+    <!--CORTE-->
     ${sectionTitle('Histórico por matéria','livro','#E6F1FB','#202A45',{direita:botaoInfo('histCapitulo')})}
     <div class="card-inicio">
       ${filtroHistHtml}
@@ -4033,6 +4037,8 @@ function renderAnalise(){
       ${coberturaHtml||'<div class="empty" style="padding:16px 8px">Bibliografia não carregada.</div>'}
     </div>
   `;
+  const [controle,historico]=html.split('<!--CORTE-->');
+  return parte==='historico' ? historico : controle;
 }
 
 function renderAprovado(){
@@ -4189,15 +4195,10 @@ function renderAprovado(){
   // Duas abas: "Nova atividade" (o que se faz agora) e "Histórico" (o que já foi feito).
   // A antiga tela separada de Análise foi absorvida pela aba Histórico.
 
-  if(abaAprovado==='historico'){
-    // "Horas por matéria – últimos 7 dias" foi removida: "Onde investi o tempo" mostra a mesma
-    // informação de forma mais completa (com hierarquia até o capítulo e filtro de período).
-    // O Histórico corrido fica por último, depois das análises.
-    return `
-    ${renderAnalise()}
-
-    `;
-  }
+  // Controle: rotina do dia a dia, muda com o filtro de período.
+  if(abaAprovado==='controle') return renderAnalise('controle');
+  // Histórico: preparação acumulada, não depende de filtro.
+  if(abaAprovado==='historico') return renderAnalise('historico');
 
   return `
     <div class="card-inicio">
