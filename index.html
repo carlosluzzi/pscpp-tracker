@@ -232,7 +232,10 @@ body.em-intervalo #timer-fullscreen{background:#8C2B22}
 body.em-intervalo .tf-modulo,body.em-intervalo .tf-ref{color:#F0C9C5}
 body.em-intervalo .tf-tipo{color:#E0A8A2}
 /* No intervalo, a contagem regressiva OCUPA o lugar do cronômetro, no mesmo tamanho e posição —
-   nada é empurrado, e o tempo estudado passa para a linha de baixo, onde ficava o tipo. */
+   nada é empurrado, e o tempo estudado passa para a linha de baixo, onde ficava o tipo.
+   As cores dos botões seguem a mesma lógica do tema escuro, transposta para o vermelho: o
+   botão principal é 1,35x mais claro que o fundo (#AE352A sobre #8C2B22, a mesma proporção de
+   #202A45 sobre #0B0F19), e o secundário é branco com o texto na cor do fundo. */
 /* Escolha do intervalo, só no estado pausado */
 .tf-pausas{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;
   flex-wrap:wrap;min-height:34px}
@@ -4428,11 +4431,11 @@ function renderTimerFullscreenConteudo(){
            <div class="tf-tipo">${timerTipo}</div>`}
       <div class="tf-btns">
         ${pausaPrazoFim
-          ? `<button class="tf-btn tf-btn-toggle" style="background:#fff;color:#B02A26" onclick="continuarDoIntervalo()">Continuar agora</button>`
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Continuar</button>`
           : !timerRodando
           ? `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
           : `<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Finalizar</button>
+        <button class="tf-btn" style="background:#fff;color:${pausaPrazoFim?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">Finalizar</button>
       </div>
       <div class="tf-pausas">
         ${(!timerRodando&&!pausaPrazoFim)?`<span class="tf-pausas-rot">Intervalo de</span>
