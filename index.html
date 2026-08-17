@@ -166,7 +166,7 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .section-icon svg{width:15px;height:15px;display:block}
 .section-title:first-child{margin-top:0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#888;gap:12px;font-size:var(--fs-e)}
-#timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
+#timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .4s ease;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #caderno-timer-fullscreen{position:fixed;inset:0;z-index:999999;background:#0B0F19;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px) 24px;box-sizing:border-box}
 #timer-flutuante{position:fixed;z-index:500000;background:#202A45;color:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:130px;max-width:200px;cursor:move;touch-action:none;user-select:none;-webkit-user-select:none;right:16px;bottom:calc(var(--nav-clear, 76px) + env(safe-area-inset-bottom, 0px) + 16px)}
 @media(min-width:768px) and (max-width:1099px){
@@ -226,6 +226,20 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 .tf-ref{font-size:var(--fs-c);color:#6B7280;text-align:center}
 /* Relógio proporcional à largura: 88px fixos ocupavam 360px de um iPhone de 390, empurrando
    tudo e desalinhando os botões. Com vw ele encolhe onde precisa e mantém o tamanho no iPad. */
+/* Intervalo com prazo: a tela inteira vira vermelho-tomate. A mudança de cor é o sinal — de
+   relance, sem ler nada, dá para saber que é descanso marcado e não estudo esquecido. */
+body.em-intervalo #timer-fullscreen{background:#8C2B22}
+body.em-intervalo .tf-modulo,body.em-intervalo .tf-ref{color:#F0C9C5}
+body.em-intervalo .tf-tipo{color:#E0A8A2}
+/* No intervalo, a contagem regressiva OCUPA o lugar do cronômetro, no mesmo tamanho e posição —
+   nada é empurrado, e o tempo estudado passa para a linha de baixo, onde ficava o tipo. */
+/* Escolha do intervalo, só no estado pausado */
+.tf-pausas{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;
+  flex-wrap:wrap;min-height:34px}
+.tf-pausas-rot{font-size:var(--fs-a);color:#6B7280}
+.tf-pausa-btn{padding:7px 14px;border-radius:20px;border:1px solid #2A3141;background:transparent;
+  color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
+@media(hover:hover){.tf-pausa-btn:hover{border-color:#8C2B22;color:#E0A8A2}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1}
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
@@ -4407,13 +4421,24 @@ function renderTimerFullscreenConteudo(){
           ${complemento?`<div class="tf-ref">${complemento}</div>`:''}
         </div>`;
       })()}`}
-      <div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
-      <div class="tf-tipo">${timerTipo}</div>
+      ${pausaPrazoFim
+        ? `<div class="tf-tempo">${fmtRestante(pausaPrazoFim-Date.now())}</div>
+           <div class="tf-tipo">Intervalo · ${formatarTempoTimer(segAtual)} estudados</div>`
+        : `<div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
+           <div class="tf-tipo">${timerTipo}</div>`}
       <div class="tf-btns">
-        ${!timerRodando?
-          `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
-          :`<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
+        ${pausaPrazoFim
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#fff;color:#B02A26" onclick="continuarDoIntervalo()">Continuar agora</button>`
+          : !timerRodando
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
+          : `<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
         <button class="tf-btn" style="background:#fff;color:#202A45" onclick="pararESalvarTimer()">Finalizar</button>
+      </div>
+      <div class="tf-pausas">
+        ${(!timerRodando&&!pausaPrazoFim)?`<span class="tf-pausas-rot">Intervalo de</span>
+        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
+        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(10)">10 min</button>
+        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>`:''}
       </div>
       <button class="tf-cancelar" onclick="abrirCancelarTimer()">Cancelar sem salvar</button>
     </div>
@@ -4674,6 +4699,66 @@ function fecharAjusteApitoSeFora(ev){
   if(el.contains(ev.target)) return;
   if(ev.target.closest&&ev.target.closest('.tf-ajustes-btn')) return;
   el.classList.add('hidden');
+}
+
+// ---------- Pausa com prazo ----------
+// Pausa comum é aberta: o Carlos sai e volta quando lembrar. Aqui ele escolhe 5 ou 10 minutos,
+// a tela muda de cor para deixar claro que é um intervalo (não um estudo esquecido), e um
+// contador regressivo mostra quanto falta. Ao zerar, o lembrete sonoro entra.
+let pausaPrazoFim=null;          // instante em que o intervalo termina
+let pausaPrazoIntervalId=null;
+
+function iniciarPausaComPrazo(minutos){
+  if(timerRodando) pausarTimer();
+  pausaPrazoFim=Date.now()+minutos*60*1000;
+  document.body.classList.add('em-intervalo');
+  if(pausaPrazoIntervalId) clearInterval(pausaPrazoIntervalId);
+  pausaPrazoIntervalId=setInterval(tickPausaPrazo,1000);
+  // Enquanto o intervalo corre, o lembrete de "volte a estudar" não faz sentido — ele existe
+  // para pausa esquecida, e aqui a pausa é intencional e tem fim marcado.
+  pararApitoPausa();
+  prepararAudioApito();
+  atualizarTelaTimer();
+}
+
+function tickPausaPrazo(){
+  if(!pausaPrazoFim) return;
+  const restante=pausaPrazoFim-Date.now();
+  if(restante<=0){
+    // Acabou: sai do modo intervalo e começa a lembrar que é hora de voltar.
+    encerrarPausaComPrazo();
+    tocarApitoPausa();
+    apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
+    return;
+  }
+  atualizarTelaTimer();
+}
+
+function encerrarPausaComPrazo(){
+  pausaPrazoFim=null;
+  if(pausaPrazoIntervalId){ clearInterval(pausaPrazoIntervalId); pausaPrazoIntervalId=null; }
+  document.body.classList.remove('em-intervalo');
+  atualizarTelaTimer();
+}
+
+// Continuar durante o intervalo: encerra o descanso e volta a contar o estudo.
+function continuarDoIntervalo(){
+  encerrarPausaComPrazo();
+  pararApitoPausa();
+  iniciarTimer();
+}
+
+function atualizarTelaTimer(){
+  if(!timerFullscreenAberto) return;
+  const el=document.getElementById('timer-fullscreen-conteudo');
+  if(el) el.innerHTML=renderTimerFullscreenConteudo();
+}
+
+function fmtRestante(ms){
+  const s=Math.max(0,Math.ceil(ms/1000));
+  // Zero à frente nos minutos também: sem ele o número muda de largura ao passar de 10 para 9
+  // e o texto inteiro se desloca a cada segundo naquele instante.
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
 
 function iniciarApitoPausa(){
@@ -5483,6 +5568,7 @@ function revisarCaderno(id){
 }
 
 function iniciarTimer(){
+  if(pausaPrazoFim) encerrarPausaComPrazo();   // retomar estudo encerra o descanso
   pararApitoPausa();
   if(!timerCamposObrigatoriosCompletos()) return;
   timerRodando=true;
@@ -5506,6 +5592,7 @@ function pausarTimer(){
 
 function zerarTimer(){
   pararApitoPausa();
+  encerrarPausaComPrazo();   // sai do modo intervalo junto com a sessão
   timerRevisaoId=null;
   timerAcumuladoSeg=0;
   timerRodando=false;
@@ -5911,13 +5998,22 @@ function fecharExcluirSessaoModal(){
 async function confirmarExcluirSessao(){
   if(!sessaoParaExcluirId) return;
   const id=sessaoParaExcluirId;
+
+  // Some da tela IMEDIATAMENTE, antes de falar com o servidor. Antes o modal ficava parado
+  // esperando a resposta e o recarregamento de todas as tabelas — dava a sensação de travado,
+  // quando na verdade a exclusão já estava a caminho.
+  const antes=sessoesEstudo.find(x=>x.id===id);
+  sessoesEstudo=sessoesEstudo.filter(x=>x.id!==id);
+  fecharExcluirSessaoModal();
+  renderTab(tabAtual,true);
+
   try{
     const {error}=await sbDados.from('sessoes_estudo').delete().eq('id',id);
     if(error) throw error;
-    fecharExcluirSessaoModal();
-    await loadData();
   }catch(e){
-    mostrarAviso('Não deu para excluir sessão','Tente de novo em instantes. Nada foi perdido.');
+    // Falhou: devolve a sessão à lista, para a tela não mentir sobre o que existe.
+    if(antes){ sessoesEstudo.push(antes); renderTab(tabAtual,true); }
+    mostrarAviso('Não deu para excluir','Tente de novo em instantes. A sessão continua registrada.');
   }
 }
 
@@ -6623,15 +6719,19 @@ function toggleFoco(i){
 }
 
 async function marcarFocoEstudado(chave){
+  const hoje=new Date().toISOString().slice(0,10);
+  // Sai do Foco Recomendado na hora, sem esperar o servidor.
+  focoEstudado.push({chave,data:hoje});   // mesmo formato do carregamento
+  renderTab(tabAtual,true);
   try{
     const {error}=await sbDados.from('foco_estudado').upsert({
-      modulo:chave,
-      data_confirmada:new Date().toISOString().slice(0,10),
+      modulo:chave, data_confirmada:hoje,
     },{onConflict:'modulo'});
     if(error) throw error;
-    await loadData();
   }catch(e){
-    mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
+    focoEstudado=focoEstudado.filter(f=>f.chave!==chave);
+    renderTab(tabAtual,true);
+    mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
 }
 
@@ -7031,12 +7131,17 @@ async function salvarNotaNova(){
 }
 
 async function removerNota(id){
+  // Some da tela na hora; o servidor confirma depois. Esperar a resposta antes de atualizar
+  // dá sensação de travamento numa ação que deveria ser instantânea.
+  const antes=notasEstudo.find(n=>n.id===id);
+  notasEstudo=notasEstudo.filter(n=>n.id!==id);
+  renderTab(tabAtual,true);
   try{
     const {error}=await sbDados.from('notas_estudo').delete().eq('id',id);
     if(error) throw error;
-    await loadData();
   }catch(e){
-    mostrarAviso('Não deu para remover nota','Tente de novo em instantes. Nada foi perdido.');
+    if(antes){ notasEstudo.push(antes); renderTab(tabAtual,true); }
+    mostrarAviso('Não deu para remover','Tente de novo em instantes. A nota continua lá.');
   }
 }
 
