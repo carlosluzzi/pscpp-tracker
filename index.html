@@ -305,10 +305,13 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 /* Desvio: discreto e separado dos controles principais — é exceção, não rotina. */
 /* Ancorado no canto, FORA do fluxo: no meio da coluna ele ocupava uma linha que não existe nos
    outros estados, e o conjunto inteiro saltava a cada troca (pausado -> pomodoro -> refeição).
-   Como é ação de exceção, o canto também é o lugar certo em termos de hierarquia. */
-.tf-desvio{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 20px);
+   Fica no topo, embaixo do ✕: mesma margem lateral (16px) e o mesmo padrão vertical que o
+   painel de ajustes já usa para ficar "colado" ao botão de cima (+62px = topo + altura do botão
+   + respiro), então guarda a mesma relação de distância que a engrenagem tem com o topo. */
+.tf-desvio{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);right:16px;
   margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
-  font-size:var(--fs-a);font-family:inherit;cursor:pointer;padding:8px 16px;max-width:45vw}
+  font-size:11px;letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
+  padding:7px 14px;z-index:2}
 @media(hover:hover){.tf-desvio:hover{border-color:#4A5468;color:#fff}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1}
@@ -4595,15 +4598,15 @@ function renderTimerFullscreenConteudo(){
       })()}
       <div class="tf-btns">
         ${descansoAcabou
-          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar a estudar</button>`
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar</button>`
           : refeicaoInicio
-          ? `<button class="tf-btn tf-btn-toggle" style="background:#C9800F;color:#fff" onclick="continuarDaRefeicao()">Voltar a estudar</button>`
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#C9800F;color:#fff" onclick="continuarDaRefeicao()">Voltar</button>`
           : pausaPrazoFim
-          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Continuar</button>`
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar</button>`
           : !timerRodando
           ? `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
           : `<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn" style="background:#fff;color:${refeicaoInicio?'#A9660D':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
+        <button class="tf-btn tf-btn-toggle" style="background:#fff;color:${refeicaoInicio?'#A9660D':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
       </div>
       <div class="tf-pausas">
         ${descansoAcabou?`<span class="tf-pausas-rot">Mais</span>
@@ -4616,7 +4619,7 @@ function renderTimerFullscreenConteudo(){
         <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`:''}
       </div>
       ${(!desvioPilha&&!refeicaoInicio&&!pausaPrazoFim&&!descansoAcabou)
-        ? `<button class="tf-desvio" onclick="abrirDesvio()">Consultar outra obra</button>` : ''}
+        ? `<button class="tf-desvio" onclick="abrirDesvio()">CONSULTAR</button>` : ''}
 
       <button class="tf-cancelar" onclick="abrirCancelarTimer()">${desvioPilha?'Descartar desvio':'Cancelar sem salvar'}</button>
     </div>
