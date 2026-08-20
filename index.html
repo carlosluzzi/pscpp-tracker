@@ -207,11 +207,11 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   font-size:9px;letter-spacing:.08em;color:#F0C9C5;font-weight:700}
 #timer-flutuante.descanso-acabou::after{content:'DESCANSO TERMINADO';position:absolute;left:14px;
   bottom:6px;font-size:9px;letter-spacing:.08em;color:#FAD9D5;font-weight:700}
-#timer-flutuante.refeicao{background:#A9660D;padding-bottom:20px}
+#timer-flutuante.refeicao{background:#B8503A;padding-bottom:20px}
 #timer-flutuante.refeicao #timer-flutuante-tempo{color:#fff}
-#timer-flutuante.refeicao #timer-flutuante-nome{color:#F6D9A0}
+#timer-flutuante.refeicao #timer-flutuante-nome{color:#F3B8A8}
 #timer-flutuante.refeicao::after{content:'REFEIÇÃO';position:absolute;left:14px;bottom:6px;
-  font-size:9px;letter-spacing:.08em;color:#F6D9A0;font-weight:700}
+  font-size:9px;letter-spacing:.08em;color:#F3B8A8;font-weight:700}
 /* Pulsação lenta, não piscar: a 1,5s o olho percebe de longe sem incomodar quem está a meio
    metro da tela. Piscar rápido cansa e, numa sessão longa, vira motivo para fechar o app. */
 @keyframes pulsoDescanso{0%,100%{background-color:#8C2B22}50%{background-color:#C24436}}
@@ -263,15 +263,15 @@ body.descanso-acabou #timer-fullscreen{animation:pulsoDescanso 1.5s ease-in-out 
 body.em-intervalo #timer-fullscreen{background:#8C2B22}
 /* Refeição usa âmbar, não vermelho: é parada planejada e não conta como tempo perdido, então
    precisa ser distinguível do descanso de relance, sem ler nada. */
-body.em-refeicao #timer-fullscreen{background:#A9660D}
-body.em-refeicao .tf-modulo,body.em-refeicao .tf-ref{color:#FBE6C4}
-body.em-refeicao .tf-tipo{color:#F6D9A0}
+body.em-refeicao #timer-fullscreen{background:#B8503A}
+body.em-refeicao .tf-modulo,body.em-refeicao .tf-ref{color:#FBDDD3}
+body.em-refeicao .tf-tipo{color:#F3B8A8}
 body.em-refeicao .tf-cancelar,body.em-refeicao .tf-fechar,
-body.em-refeicao .tf-ajustes-btn{color:#F6D9A0}
-body.em-refeicao .tf-desvio{border-color:#7A4B0A;color:#F6D9A0}
+body.em-refeicao .tf-ajustes-btn{color:#F3B8A8}
+body.em-refeicao .tf-desvio{border-color:#8C3D2A;color:#F3B8A8}
 body.em-intervalo .tf-desvio{border-color:#A9483C;color:#E0A8A2}
 @media(hover:hover){
-  body.em-refeicao .tf-cancelar:hover,body.em-refeicao .tf-ajustes-btn:hover{color:#FBE6C4}
+  body.em-refeicao .tf-cancelar:hover,body.em-refeicao .tf-ajustes-btn:hover{color:#FBDDD3}
 }
 body.em-intervalo .tf-modulo,body.em-intervalo .tf-ref{color:#F0C9C5}
 body.em-intervalo .tf-tipo{color:#E0A8A2}
@@ -300,15 +300,15 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
   color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
 @media(hover:hover){.tf-pausa-btn:hover{border-color:#8C2B22;color:#E0A8A2}}
 /* Refeição fica ao lado dos intervalos, mas em âmbar: mesma linha, natureza diferente. */
-.tf-pausa-refeicao{border-color:#7A4B0A;color:#D9B26A}
-@media(hover:hover){.tf-pausa-refeicao:hover{border-color:#A9660D;color:#F6D9A0}}
+.tf-pausa-refeicao{border-color:#8C3D2A;color:#E28A6E}
+@media(hover:hover){.tf-pausa-refeicao:hover{border-color:#B8503A;color:#F3B8A8}}
 /* Desvio: discreto e separado dos controles principais — é exceção, não rotina. */
-/* Ancorado no canto, FORA do fluxo: no meio da coluna ele ocupava uma linha que não existe nos
-   outros estados, e o conjunto inteiro saltava a cada troca (pausado -> pomodoro -> refeição).
-   Fica no topo, embaixo do ✕: mesma margem lateral (16px) e o mesmo padrão vertical que o
-   painel de ajustes já usa para ficar "colado" ao botão de cima (+62px = topo + altura do botão
-   + respiro), então guarda a mesma relação de distância que a engrenagem tem com o topo. */
-.tf-desvio{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 62px);right:16px;
+/* Ancorado no canto inferior direito, FORA do fluxo: no meio da coluna ele ocupava uma linha
+   que não existe nos outros estados, e o conjunto inteiro saltava a cada troca (pausado ->
+   pomodoro -> refeição). A borda direita alinha exatamente com a borda direita do ✕ (mesmo
+   right:16px dos dois), e a margem até o rodapé é igual à margem lateral — mesma distância dos
+   dois lados, como no desenho de referência. */
+.tf-desvio{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
   margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
   font-size:11px;letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
   padding:7px 14px;z-index:2}
@@ -1238,7 +1238,7 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
    vindo de outro lugar. Aqui ele acompanha a cor do estado em que a decisão está sendo tomada. */
 body.em-intervalo #cancelar-timer-modal .modal-btn-sim,
 body.descanso-acabou #cancelar-timer-modal .modal-btn-sim{background:#8C2B22}
-body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#A9660D}
+body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#B8503A}
 .modal-btn-sim:disabled{background:#ddd;color:#999;cursor:not-allowed}
 .config-box{max-width:340px;text-align:left}
 .config-title{font-size:var(--fs-f);font-weight:500;margin-bottom:16px}
@@ -4600,13 +4600,13 @@ function renderTimerFullscreenConteudo(){
         ${descansoAcabou
           ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar</button>`
           : refeicaoInicio
-          ? `<button class="tf-btn tf-btn-toggle" style="background:#C9800F;color:#fff" onclick="continuarDaRefeicao()">Voltar</button>`
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#E06E52;color:#fff" onclick="continuarDaRefeicao()">Voltar</button>`
           : pausaPrazoFim
           ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar</button>`
           : !timerRodando
           ? `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
           : `<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn tf-btn-toggle" style="background:#fff;color:${refeicaoInicio?'#A9660D':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
+        <button class="tf-btn tf-btn-toggle" style="background:#fff;color:${refeicaoInicio?'#B8503A':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
       </div>
       <div class="tf-pausas">
         ${descansoAcabou?`<span class="tf-pausas-rot">Mais</span>
