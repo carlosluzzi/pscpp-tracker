@@ -189,7 +189,39 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
   font-size:9px;letter-spacing:.08em;color:#EF9F27;font-weight:700}
 #timer-flutuante-fechar{position:absolute;top:2px;right:6px;font-size:13px;color:#9BA3B7;padding:6px;cursor:pointer}
 #timer-flutuante-nome{font-size:11px;color:#9BA3B7;text-transform:uppercase;letter-spacing:0.03em;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
-#timer-flutuante-subtitulo{font-size:12px;color:#fff;font-weight:600;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+/* Duas linhas SÓ quando precisa: o line-clamp não força altura, então nome curto continua
+   ocupando uma linha e nada muda. Antes o texto era cortado com reticências e uma publicação
+   de nome longo virava um pedaço sem sentido. */
+#timer-flutuante-subtitulo{font-size:12px;color:#fff;font-weight:600;padding-right:14px;
+  white-space:normal;overflow:hidden;max-width:180px;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+/* A ilha acompanha o estado da tela cheia: mesma cor, mesmo selo, mesmo número. Sem isso,
+   fechar a tela cheia durante o descanso mostrava um cronômetro azul parado, que parecia
+   sessão esquecida em vez de pomodoro correndo. */
+#timer-flutuante.descanso,#timer-flutuante.descanso-acabou{background:#8C2B22;padding-bottom:20px}
+#timer-flutuante.descanso #timer-flutuante-tempo,
+#timer-flutuante.descanso-acabou #timer-flutuante-tempo{color:#fff}
+#timer-flutuante.descanso #timer-flutuante-nome,
+#timer-flutuante.descanso-acabou #timer-flutuante-nome{color:#F0C9C5}
+#timer-flutuante.descanso::after{content:'DESCANSO';position:absolute;left:14px;bottom:6px;
+  font-size:9px;letter-spacing:.08em;color:#F0C9C5;font-weight:700}
+#timer-flutuante.descanso-acabou::after{content:'DESCANSO TERMINADO';position:absolute;left:14px;
+  bottom:6px;font-size:9px;letter-spacing:.08em;color:#FAD9D5;font-weight:700}
+#timer-flutuante.refeicao{background:#7A4B08;padding-bottom:20px}
+#timer-flutuante.refeicao #timer-flutuante-tempo{color:#fff}
+#timer-flutuante.refeicao #timer-flutuante-nome{color:#F5DCA8}
+#timer-flutuante.refeicao::after{content:'REFEIÇÃO';position:absolute;left:14px;bottom:6px;
+  font-size:9px;letter-spacing:.08em;color:#F5DCA8;font-weight:700}
+/* Pulsação lenta, não piscar: a 1,5s o olho percebe de longe sem incomodar quem está a meio
+   metro da tela. Piscar rápido cansa e, numa sessão longa, vira motivo para fechar o app. */
+@keyframes pulsoDescanso{0%,100%{background-color:#8C2B22}50%{background-color:#C24436}}
+#timer-flutuante.descanso-acabou{animation:pulsoDescanso 1.5s ease-in-out infinite}
+body.descanso-acabou #timer-fullscreen{animation:pulsoDescanso 1.5s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){
+  /* Quem pediu menos movimento no sistema recebe o tom claro fixo, sem pulsar. */
+  #timer-flutuante.descanso-acabou,body.descanso-acabou #timer-fullscreen{
+    animation:none;background-color:#C24436}
+}
 #timer-flutuante-subtitulo:empty{display:none}
 #timer-flutuante-tempo{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
 #caderno-timer-fullscreen.hidden{display:none}
@@ -229,6 +261,16 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 /* Intervalo com prazo: a tela inteira vira vermelho-tomate. A mudança de cor é o sinal — de
    relance, sem ler nada, dá para saber que é descanso marcado e não estudo esquecido. */
 body.em-intervalo #timer-fullscreen{background:#8C2B22}
+/* Refeição usa âmbar, não vermelho: é parada planejada e não conta como tempo perdido, então
+   precisa ser distinguível do descanso de relance, sem ler nada. */
+body.em-refeicao #timer-fullscreen{background:#7A4B08}
+body.em-refeicao .tf-modulo,body.em-refeicao .tf-ref{color:#F7E4BE}
+body.em-refeicao .tf-tipo{color:#F5DCA8}
+body.em-refeicao .tf-cancelar,body.em-refeicao .tf-fechar,
+body.em-refeicao .tf-ajustes-btn{color:#F5DCA8}
+@media(hover:hover){
+  body.em-refeicao .tf-cancelar:hover,body.em-refeicao .tf-ajustes-btn:hover{color:#F7E4BE}
+}
 body.em-intervalo .tf-modulo,body.em-intervalo .tf-ref{color:#F0C9C5}
 body.em-intervalo .tf-tipo{color:#E0A8A2}
 /* Os controles auxiliares (cancelar, fechar e engrenagem) também nascem no #6B7280 do tema
@@ -255,6 +297,14 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .tf-pausa-btn{padding:7px 14px;border-radius:20px;border:1px solid #2A3141;background:transparent;
   color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
 @media(hover:hover){.tf-pausa-btn:hover{border-color:#8C2B22;color:#E0A8A2}}
+/* Refeição fica ao lado dos intervalos, mas em âmbar: mesma linha, natureza diferente. */
+.tf-pausa-refeicao{border-color:#5A3B1A;color:#D9B26A}
+@media(hover:hover){.tf-pausa-refeicao:hover{border-color:#7A4B08;color:#F5DCA8}}
+/* Desvio: discreto e separado dos controles principais — é exceção, não rotina. */
+.tf-desvio{display:block;margin:16px auto 0;background:none;border:1px solid #2A3141;
+  border-radius:20px;color:#9BA3B7;font-size:var(--fs-a);font-family:inherit;cursor:pointer;
+  padding:8px 16px}
+@media(hover:hover){.tf-desvio:hover{border-color:#4A5468;color:#fff}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1}
 .tf-tipo{font-size:var(--fs-c);color:#6B7280;text-align:center;margin-top:8px;margin-bottom:36px}
@@ -602,7 +652,10 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .mod-detail{padding:10px 14px 18px 24px;display:none;flex-direction:column;gap:10px}
 .mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
 .mod-top{display:flex;justify-content:space-between;align-items:center}
-.mod-nm{font-size:16px;font-weight:400}
+/* Estava travado em 16px fixos: no iPad e no desktop todo o resto crescia e só o nome do
+   módulo ficava para trás, parecendo menor do que a publicação abaixo dele. Com a escala do
+   app ele acompanha (16 / 18 / 19) e ganha um pouco de peso para firmar a hierarquia. */
+.mod-nm{font-size:var(--fs-e);font-weight:500}
 .mod-right{display:flex;align-items:center;gap:6px}
 .mod-p{font-size:var(--fs-c);font-weight:600;padding:3px 9px;border-radius:20px}
 .chev{display:inline-flex;align-items:center;justify-content:center;color:#888;transition:transform 0.2s}
@@ -645,6 +698,9 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .cap-ref{display:flex;flex-direction:column;gap:1px}
 .cap-loc{font-size:var(--fs-c);font-weight:500}
 .cap-tit{font-size:var(--fs-c);color:#888}
+/* Aproveitamento de tempo da passagem: discreto, abaixo da linha principal. Só aparece nas
+   sessões que têm início e fim medidos — as antigas não mostram nada, em vez de mostrar zero. */
+.sessao-aprov{display:block;font-size:var(--fs-a);color:#202A45;margin-top:1px}
 .cap-tit-add{color:#888;border:0.5px dashed #ccc;border-radius:4px;padding:1px 6px;cursor:pointer}
 .cap-tit-add:hover{color:#111;border-color:#999}
 .cap-res{font-size:var(--fs-c);font-weight:500;flex-shrink:0;margin-top:1px}
@@ -1168,6 +1224,11 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .modal-btn{flex:1;padding:10px;font-size:var(--fs-e);font-weight:500;border-radius:8px;border:none;cursor:pointer;font-family:inherit}
 .modal-btn-nao{background:#f0f0ee;color:#111}
 .modal-btn-sim{background:#202A45;color:#fff}
+/* Durante o descanso e a refeição a tela de trás não é azul: um botão azul no pop-up parece
+   vindo de outro lugar. Aqui ele acompanha a cor do estado em que a decisão está sendo tomada. */
+body.em-intervalo #cancelar-timer-modal .modal-btn-sim,
+body.descanso-acabou #cancelar-timer-modal .modal-btn-sim{background:#8C2B22}
+body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#7A4B08}
 .modal-btn-sim:disabled{background:#ddd;color:#999;cursor:not-allowed}
 .config-box{max-width:340px;text-align:left}
 .config-title{font-size:var(--fs-f);font-weight:500;margin-bottom:16px}
@@ -1544,6 +1605,37 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharNovoPlano()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarNovoPlano()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="desvio-modal" style="display:none;z-index:1000003"
+  onclick="if(event.target===this)fecharDesvio()">
+  <div class="modal-box">
+    <div class="config-title">Consultar outra obra</div>
+    <p style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.45">
+      O cronômetro principal pausa e este tempo é contado à parte, sem entrar no ritmo de
+      leitura da obra que você estava estudando.
+    </p>
+    <select class="filter-select" id="desvio-tipo">
+      <option value="Leitura">Leitura</option>
+      <option value="Exercício">Exercício</option>
+      <option value="Revisão">Revisão</option>
+      <option value="Anki">Anki</option>
+    </select>
+    <select class="filter-select" id="desvio-modulo" onchange="atualizarPublicacoesDesvio()"></select>
+    <select class="filter-select" id="desvio-publicacao" onchange="atualizarCapitulosDesvio()">
+      <option value="">Publicação</option>
+    </select>
+    <select class="filter-select" id="desvio-capitulo"><option value="">Capítulo/Seção</option></select>
+    <div class="acoes-rotulo" style="margin-top:10px">Ou fora da bibliografia</div>
+    <input type="text" id="desvio-livre" class="filter-select" placeholder="Ex: física, cálculo vetorial">
+    <p style="margin:0 0 14px;font-size:var(--fs-a);color:#888;line-height:1.4">
+      O que for digitado aqui fica registrado como estudo avulso, fora da cobertura do edital.
+    </p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharDesvio()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarDesvio()">Começar</button>
     </div>
   </div>
 </div>
@@ -2343,6 +2435,18 @@ let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timer
 // revisar uma matéria solta.
 let timerOrigem='';
 let timerAnkiAlvoSeg=null,timerAnkiAlarmeDisparado=false;
+// Medição de aproveitamento de tempo: quanto do relógio de parede virou estudo de fato.
+// iniciado_em é o primeiro Iniciar; excluído acumula refeições e desvios, que são parada
+// planejada e não desperdício.
+let timerIniciadoEm=null;        // timestamp (ms) do primeiro Iniciar desta sessão
+let timerExcluidoSeg=0;          // refeições + desvios, em segundos
+// Desvio: consulta a outra obra no meio do estudo. Guarda o estado do principal aqui e reusa
+// o MESMO motor de cronômetro — assim pausar, descansar e apitar funcionam dentro do desvio
+// sem nenhuma duplicação de lógica. Um nível só, de propósito: aninhar tornaria o tempo
+// impossível de auditar depois.
+let desvioPilha=null;            // estado do principal enquanto o desvio roda
+let desvioEntrouEm=null;         // instante em que o desvio começou (relógio de parede)
+let desvioNomeLivre='';          // matéria fora da bibliografia, digitada na hora
 let primeiroCarregamentoFeito=false;
 let saudacaoSubtexto='Bora estudar';
 let bancoCadernosAndamentoAberto=false;
@@ -2559,6 +2663,10 @@ async function loadDataInterno(){
       caracteresLidos:p.caracteres_lidos||0,
       origem:p.origem||'',
       criadoEm:p.criado_em,
+      iniciadoEm:p.iniciado_em||null,
+      finalizadoEm:p.finalizado_em||null,
+      tempoExcluidoSeg:p.tempo_excluido_seg||0,
+      ehDesvio:!!p.eh_desvio,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
@@ -2832,7 +2940,7 @@ function calcularProximaDataRevisao(nivel,taxaErroPct,hoje,fatorRitmo){
   const dias=Math.max(1,Math.round(diasBase*fatorAjusteRevisao(taxaErroPct)*(fatorRitmo||1)));
   const proxima=new Date(hoje);
   proxima.setDate(proxima.getDate()+dias);
-  return proxima.toISOString().slice(0,10);
+  return chaveDia(proxima);
 }
 async function agendarRevisaoSeLeitura(modulo,publicacao,tipo,capitulo){
   if(tipo!=='Leitura') return;
@@ -3295,7 +3403,7 @@ async function confirmarNomeAtividade(){
   try{
     const {error:eAtiv}=await sbDados.from('atividades').insert({
       id_atividade:nomeAtividade.trim(),
-      data:ap.dataAtividade||new Date().toISOString().slice(0,10),
+      data:ap.dataAtividade||chaveDia(new Date()),
       tipo:ap.tipo,
       curso:ap.curso,
       // Arredonda a soma: pesos decimais (0,6 · 0,8 · 1,2) somados em ponto flutuante acumulam
@@ -3343,7 +3451,7 @@ async function confirmarNomeAtividade(){
       const {error:eSessao}=await sbDados.from('sessoes_estudo').insert({
         tipo: ap.tipo==='Simulado' ? 'Simulado' : 'Exercício',
         duracao_minutos: minutosGastos,
-        data: ap.dataAtividade||new Date().toISOString().slice(0,10),
+        data: ap.dataAtividade||chaveDia(new Date()),
         modulo: modulos.length===1 ? modulos[0] : null,
         publicacao: nomeAtividade.trim(),
         origem: ap.curso||null,
@@ -3636,6 +3744,27 @@ function fmtDur(min){
   const h=Math.floor(min/60), m=Math.round(min%60);
   return h>0?`${h}h${m>0?' '+m+'min':''}`:`${m}min`;
 }
+// Janela real da sessão: das 14h05 às 15h20. Só existe nas sessões medidas a partir da
+// implantação do relógio de parede — nas antigas fica vazio, sem inventar horário.
+function janelaSessao(s){
+  if(!s.iniciadoEm||!s.finalizadoEm) return '';
+  const hhmm=d=>`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  return `${hhmm(new Date(s.iniciadoEm))} às ${hhmm(new Date(s.finalizadoEm))}`;
+}
+
+// Aproveitamento de tempo: quanto do relógio de parede virou cronômetro rodando.
+// Refeições e desvios saem da conta — são parada planejada, não desperdício. Sessões sem os
+// dois horários devolvem null de propósito: entrar com valor inventado estragaria a média.
+function aproveitamentoSessao(s){
+  if(!s.iniciadoEm||!s.finalizadoEm||!s.duracaoMinutos) return null;
+  const paredeSeg=(new Date(s.finalizadoEm)-new Date(s.iniciadoEm))/1000-(s.tempoExcluidoSeg||0);
+  if(paredeSeg<=0) return null;
+  const estudadoSeg=s.duracaoMinutos*60;
+  const pct=Math.min(100,Math.round(estudadoSeg/paredeSeg*100));
+  return {pct, paredeMin:Math.round(paredeSeg/60),
+    texto:`${fmtDur(s.duracaoMinutos)} de ${fmtDur(Math.round(paredeSeg/60))} • ${pct}% de aproveitamento`};
+}
+
 // Chave YYYY-MM-DD local (sem passar por UTC, que desloca o dia no nosso fuso)
 function chaveDia(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -3822,6 +3951,7 @@ function renderAnalise(parte){
         const ritmoCap=carCap>0&&minCap>0?Math.round(carCap/minCap):null;
         const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
           const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
+          const ap=aproveitamentoSessao(x);
           // Mostra o tipo quando não for Leitura: dentro de um mesmo capítulo pode haver
           // leitura, revisão e Anki, e sem isso as três linhas ficariam indistinguíveis.
           const rotuloTipo = x.tipo && x.tipo!=='Leitura' ? x.tipo+' • ' : '';
@@ -3830,7 +3960,8 @@ function renderAnalise(parte){
           // errada é encontrada.
           return `<div class="cap-row cap-row-sessao" onclick="abrirEditarSessao('${x.id}')">
             <span class="cap-loc" style="flex-shrink:0">${arr.length-n}ª</span>
-            <span class="cap-tit">${rotuloTipo}${fmtData(x.data)} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+            <span class="cap-tit">${rotuloTipo}${fmtData(x.data)}${janelaSessao(x)?' • '+janelaSessao(x):''} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+            ${ap?`<span class="cap-tit sessao-aprov">${ap.texto}</span>`:''}
             <span class="sessao-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${x.id}','${x.tipo}','${(x.modulo||'').replace(/'/g,"\\'")}','${fmtData(x.data)}')">✕</span>
           </div>`;
         }).join('');
@@ -4091,7 +4222,7 @@ function renderAprovado(){
   const tiposEstudo=['Leitura','Exercício','Revisão','Anki'];
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const hojeStr=hoje.toISOString().slice(0,10);
+  const hojeStr=chaveDia(hoje);
   // Três grupos em vez de uma lista só. Antes aparecia apenas o que já tinha vencido, sem
   // distinguir "venceu ontem" de "venceu há duas semanas" — e sem mostrar o que vem, então não
   // dava para se organizar. O atraso é o registro de que a revisão não foi feita: não precisa
@@ -4103,7 +4234,7 @@ function renderAprovado(){
     .sort((a,b)=>a.proximaData.localeCompare(b.proximaData));   // mais atrasada primeiro
   const revisoesHoje=revisoesEspacadas.filter(r=>r.proximaData===hojeStr);
   const limiteFuturo=(()=>{ const d=new Date(hoje); d.setDate(d.getDate()+HORIZONTE_REVISAO);
-    return d.toISOString().slice(0,10); })();
+    return chaveDia(d); })();
   const revisoesProximas=revisoesEspacadas
     .filter(r=>r.proximaData>hojeStr&&r.proximaData<=limiteFuturo)
     .sort((a,b)=>a.proximaData.localeCompare(b.proximaData));
@@ -4415,6 +4546,13 @@ function renderTimerFullscreenConteudo(){
         oninput="setApitoIntervalo(this.value)">
 
       <div class="tf-ajustes-topo" style="margin-top:12px">
+        <span>Alerta do descanso vencido</span>
+        <span id="desc-valor">${fmtIntervaloApito(apitoDescansoSeg)}</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="5" max="120" step="5" value="${apitoDescansoSeg}"
+        oninput="setApitoDescanso(this.value)">
+
+      <div class="tf-ajustes-topo" style="margin-top:12px">
         <span>Volume do alerta</span>
         <span id="vol-valor">${Math.round(apitoVolume*100)}%</span>
       </div>
@@ -4436,26 +4574,44 @@ function renderTimerFullscreenConteudo(){
           ${complemento?`<div class="tf-ref">${complemento}</div>`:''}
         </div>`;
       })()}`}
-      ${pausaPrazoFim
-        ? `<div class="tf-tempo">${fmtRestante(pausaPrazoFim-Date.now())}</div>
-           <div class="tf-tipo">Intervalo · ${formatarTempoTimer(segAtual)} estudados</div>`
-        : `<div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
-           <div class="tf-tipo">${timerTipo}</div>`}
+      ${(()=>{
+        // O relógio grande mostra o que importa AGORA: durante o descanso, quanto falta dele;
+        // no resto, o tempo estudado. Nada é empurrado — a linha de baixo é que troca de papel.
+        if(refeicaoInicio) return `<div class="tf-tempo">${fmtRestante(Date.now()-refeicaoInicio)}</div>
+           <div class="tf-tipo">Refeição · ${formatarTempoTimer(segAtual)} estudados · não conta como tempo perdido</div>`;
+        if(descansoAcabou) return `<div class="tf-tempo">00:00</div>
+           <div class="tf-tipo">Descanso terminado · ${formatarTempoTimer(segAtual)} estudados</div>`;
+        if(pausaPrazoFim) return `<div class="tf-tempo">${fmtRestante(pausaPrazoFim-Date.now())}</div>
+           <div class="tf-tipo">Intervalo · ${formatarTempoTimer(segAtual)} estudados</div>`;
+        return `<div class="tf-tempo">${formatarTempoTimer(segAtual)}</div>
+           <div class="tf-tipo">${timerTipo}${desvioPilha?' · desvio':''}</div>`;
+      })()}
       <div class="tf-btns">
-        ${pausaPrazoFim
+        ${descansoAcabou
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Voltar a estudar</button>`
+          : refeicaoInicio
+          ? `<button class="tf-btn tf-btn-toggle" style="background:#A9700F;color:#fff" onclick="continuarDaRefeicao()">Voltar a estudar</button>`
+          : pausaPrazoFim
           ? `<button class="tf-btn tf-btn-toggle" style="background:#AE352A;color:#fff" onclick="continuarDoIntervalo()">Continuar</button>`
           : !timerRodando
           ? `<button class="tf-btn tf-btn-toggle" style="background:#202A45;color:#fff" onclick="iniciarTimer()">Continuar</button>`
           : `<button class="tf-btn tf-btn-toggle" style="background:#2A3141;color:#fff" onclick="pausarTimer()">Pausar</button>`}
-        <button class="tf-btn" style="background:#fff;color:${pausaPrazoFim?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">Finalizar</button>
+        <button class="tf-btn" style="background:#fff;color:${refeicaoInicio?'#7A4B08':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
       </div>
       <div class="tf-pausas">
-        ${(!timerRodando&&!pausaPrazoFim)?`<span class="tf-pausas-rot">Intervalo de</span>
+        ${descansoAcabou?`<span class="tf-pausas-rot">Mais</span>
+        <button class="tf-pausa-btn" onclick="esticarDescanso(5)">5 min</button>
+        <button class="tf-pausa-btn" onclick="esticarDescanso(10)">10 min</button>
+        <button class="tf-pausa-btn" onclick="esticarDescanso(15)">15 min</button>`
+        :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<span class="tf-pausas-rot">Intervalo de</span>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(10)">10 min</button>
-        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>`:''}
+        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>
+        <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`:''}
       </div>
-      <button class="tf-cancelar" onclick="abrirCancelarTimer()">Cancelar sem salvar</button>
+      ${(!desvioPilha&&!refeicaoInicio&&!pausaPrazoFim&&!descansoAcabou)
+        ? `<button class="tf-desvio" onclick="abrirDesvio()">Consultar outra obra</button>` : ''}
+      <button class="tf-cancelar" onclick="abrirCancelarTimer()">${desvioPilha?'Descartar desvio':'Cancelar sem salvar'}</button>
     </div>
   `;
 }
@@ -4504,6 +4660,9 @@ function formatarCapituloExibicao(pubInfo,identificador){
 
 function timerCamposObrigatoriosCompletos(){
   if(timerTipo==='Anki') return true;
+  // No desvio basta saber o que se está consultando: pode ser algo fora do edital, sem módulo
+  // nem capítulo. Exigir a bibliografia completa aqui impediria justamente o caso de uso.
+  if(desvioPilha&&timerPublicacao) return true;
   // Revisão de caderno: o caderno já identifica o que está sendo revisado, e ele cobre vários
   // módulos ao mesmo tempo — exigir módulo e capítulo aqui não faria sentido.
   if(timerOrigem&&timerPublicacao) return true;
@@ -4529,6 +4688,9 @@ let apitoIntervaloSeg=parseInt(localStorage.getItem('apitoIntervalo')||'30',10);
 // anterior (0,12) ficava inaudível num iPad a alguns metros de distância, que é justamente o
 // cenário de uso — cronômetro num aparelho, estudo em outro.
 let apitoVolume=parseFloat(localStorage.getItem('apitoVolume')||'0.45');
+// Intervalo do alerta QUANDO O DESCANSO JÁ VENCEU. Mais curto que o da pausa comum: ali o
+// alerta lembra de algo esquecido, aqui ele tira o Carlos de um descanso que já acabou.
+let apitoDescansoSeg=parseInt(localStorage.getItem('apitoDescanso')||'15',10);
 
 // O iOS só permite criar e destravar o contexto de áudio DURANTE um gesto do usuário. Como o
 // primeiro apito sai um minuto depois da pausa, criar o contexto lá seria tarde demais — o
@@ -4601,8 +4763,21 @@ function tocarApitoPausa(){
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC) return;
     if(!apitoContextoAudio) apitoContextoAudio=new AC();
-    if(apitoContextoAudio.state==='suspended') apitoContextoAudio.resume().catch(()=>{});
     const ctx=apitoContextoAudio;
+    // O iOS suspende o contexto quando o app vai para segundo plano. O resume() é ASSÍNCRONO:
+    // agendar o som na mesma linha o marcava para um instante em que o contexto ainda estava
+    // parado, e ele simplesmente não saía — sem erro nenhum, o que explicava o alerta que às
+    // vezes tocava e às vezes não. Aqui o som só é montado depois de o contexto voltar.
+    if(ctx.state==='suspended'){
+      ctx.resume().then(()=>emitirTomApito(ctx)).catch(()=>{});
+      return;
+    }
+    emitirTomApito(ctx);
+  }catch(e){}   // som é conforto, não função — nunca deve quebrar o cronômetro
+}
+
+function emitirTomApito(ctx){
+  try{
     const tom=TONS_LEMBRETE[tomLembrete]||TONS_LEMBRETE.sino;
 
     // Um filtro para todo o tom: tira o excesso de agudo que faz o som "arranhar".
@@ -4694,6 +4869,20 @@ function setApitoIntervalo(seg){
   if(!timerRodando&&timerAcumuladoSeg>0) iniciarApitoPausa();
 }
 
+function setApitoDescanso(seg){
+  apitoDescansoSeg=parseInt(seg,10);
+  localStorage.setItem('apitoDescanso',String(apitoDescansoSeg));
+  const el=document.getElementById('desc-valor');
+  if(el) el.textContent=fmtIntervaloApito(apitoDescansoSeg);
+  // Se o descanso já venceu e está apitando, passa a valer agora — esperar o próximo ciclo
+  // para ouvir o efeito do ajuste tornaria o controle difícil de calibrar.
+  if(descansoAcabou){
+    pararApitoPausa();
+    prepararAudioApito();
+    apitoPausaId=setInterval(tocarApitoPausa,apitoDescansoSeg*1000);
+  }
+}
+
 function abrirAjusteApito(ev){
   if(ev) ev.stopPropagation();   // senão o clique na engrenagem já fecharia o painel que abriu
   const el=document.getElementById('tf-ajustes');
@@ -4716,15 +4905,27 @@ function fecharAjusteApitoSeFora(ev){
   el.classList.add('hidden');
 }
 
-// ---------- Pausa com prazo ----------
-// Pausa comum é aberta: o Carlos sai e volta quando lembrar. Aqui ele escolhe 5 ou 10 minutos,
-// a tela muda de cor para deixar claro que é um intervalo (não um estudo esquecido), e um
-// contador regressivo mostra quanto falta. Ao zerar, o lembrete sonoro entra.
-let pausaPrazoFim=null;          // instante em que o intervalo termina
+// ---------- Pausa com prazo, refeição e desvio ----------
+// Três naturezas de parada, que existem porque significam coisas diferentes na conta do
+// aproveitamento de tempo:
+//   PAUSA COMUM  – aberta, sem prazo. Conta como tempo perdido.
+//   DESCANSO     – pomodoro, com prazo e tela vermelha. Também conta como perdido: é descanso.
+//   REFEIÇÃO     – aberta, tela âmbar, SEM apito. NÃO conta como perdido: é parada planejada.
+// O desvio (consulta a outra obra no meio do estudo) vive mais abaixo e também não conta.
+let pausaPrazoFim=null;          // instante em que o descanso termina
 let pausaPrazoIntervalId=null;
+// Descanso que já venceu e o Carlos ainda não voltou: a tela continua vermelha, pulsando, com
+// a opção de esticar ou retomar. Antes ela voltava ao normal e só sobrava o apito, o que
+// escondia justamente o que precisava de decisão.
+let descansoAcabou=false;
+let refeicaoInicio=null;         // instante em que a refeição começou; null fora dela
+let refeicaoIntervalId=null;     // tique próprio: nenhum outro relógio roda durante a refeição
 
 function iniciarPausaComPrazo(minutos){
   if(timerRodando) pausarTimer();
+  encerrarRefeicao();            // uma parada por vez
+  descansoAcabou=false;
+  document.body.classList.remove('descanso-acabou');
   pausaPrazoFim=Date.now()+minutos*60*1000;
   document.body.classList.add('em-intervalo');
   if(pausaPrazoIntervalId) clearInterval(pausaPrazoIntervalId);
@@ -4734,26 +4935,84 @@ function iniciarPausaComPrazo(minutos){
   pararApitoPausa();
   prepararAudioApito();
   atualizarTelaTimer();
+  atualizarIlhaEstado();
+}
+
+// Esticar o descanso a partir de AGORA, não do prazo original: quem aperta "+5" quer mais
+// cinco minutos de descanso, não cinco menos o tempo que levou para decidir.
+function esticarDescanso(minutos){
+  descansoAcabou=false;
+  document.body.classList.remove('descanso-acabou');
+  pararApitoPausa();
+  pausaPrazoFim=Date.now()+minutos*60*1000;
+  if(!pausaPrazoIntervalId) pausaPrazoIntervalId=setInterval(tickPausaPrazo,1000);
+  prepararAudioApito();
+  atualizarTelaTimer();
+  atualizarIlhaEstado();
 }
 
 function tickPausaPrazo(){
   if(!pausaPrazoFim) return;
   const restante=pausaPrazoFim-Date.now();
   if(restante<=0){
-    // Acabou: sai do modo intervalo e começa a lembrar que é hora de voltar.
-    encerrarPausaComPrazo();
+    // Venceu: para a contagem, mas NÃO sai do vermelho. A tela passa a pulsar e o alerta entra
+    // no intervalo próprio do descanso, mais curto que o da pausa comum – aqui o objetivo é
+    // tirar o Carlos do descanso, não lembrá-lo de algo esquecido.
+    pausaPrazoFim=null;
+    if(pausaPrazoIntervalId){ clearInterval(pausaPrazoIntervalId); pausaPrazoIntervalId=null; }
+    descansoAcabou=true;
+    document.body.classList.add('descanso-acabou');
+    pararApitoPausa();
+    prepararAudioApito();
     tocarApitoPausa();
-    apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
+    apitoPausaId=setInterval(tocarApitoPausa,apitoDescansoSeg*1000);
+    atualizarTelaTimer();
+    atualizarIlhaEstado();
     return;
   }
   atualizarTelaTimer();
+  atualizarIlhaEstado();
 }
 
 function encerrarPausaComPrazo(){
   pausaPrazoFim=null;
+  descansoAcabou=false;
   if(pausaPrazoIntervalId){ clearInterval(pausaPrazoIntervalId); pausaPrazoIntervalId=null; }
-  document.body.classList.remove('em-intervalo');
+  document.body.classList.remove('em-intervalo','descanso-acabou');
   atualizarTelaTimer();
+  atualizarIlhaEstado();
+}
+
+// ---------- Refeição ----------
+// Diferente do descanso: é parada planejada dentro de uma sessão longa. Não apita (uma refeição
+// não é um esquecimento) e o tempo dela sai do relógio de parede, para não derrubar o
+// aproveitamento de quem simplesmente almoçou no meio de oito horas de estudo.
+function iniciarRefeicao(){
+  if(timerRodando) pausarTimer();
+  encerrarPausaComPrazo();
+  pararApitoPausa();             // refeição é silenciosa, de propósito
+  refeicaoInicio=Date.now();
+  document.body.classList.add('em-refeicao');
+  if(refeicaoIntervalId) clearInterval(refeicaoIntervalId);
+  refeicaoIntervalId=setInterval(()=>{ atualizarTelaTimer(); atualizarIlhaEstado(); },1000);
+  atualizarTelaTimer();
+  atualizarIlhaEstado();
+}
+
+// Fecha a refeição e credita o tempo dela ao total excluído. Chamada tanto ao retomar quanto
+// ao finalizar a sessão — senão uma refeição aberta na hora de salvar sumiria da conta.
+function encerrarRefeicao(){
+  if(refeicaoIntervalId){ clearInterval(refeicaoIntervalId); refeicaoIntervalId=null; }
+  if(refeicaoInicio){
+    timerExcluidoSeg+=Math.floor((Date.now()-refeicaoInicio)/1000);
+    refeicaoInicio=null;
+  }
+  document.body.classList.remove('em-refeicao');
+}
+
+function continuarDaRefeicao(){
+  encerrarRefeicao();
+  iniciarTimer();
 }
 
 // Continuar durante o intervalo: encerra o descanso e volta a contar o estudo.
@@ -4761,6 +5020,107 @@ function continuarDoIntervalo(){
   encerrarPausaComPrazo();
   pararApitoPausa();
   iniciarTimer();
+}
+
+// ---------- Desvio ----------
+// Parar o principal para consultar outra obra (ou algo fora do edital) e voltar depois.
+// Existe por causa do car/min: sem separar, o tempo gasto em outro livro entraria na conta da
+// publicação principal e falsearia o ritmo de leitura dela — que é justamente o número que
+// ajusta o intervalo da revisão espaçada.
+function abrirDesvio(){
+  if(desvioPilha) return;                    // um nível só
+  if(!timerIniciadoEm) return;               // sem sessão principal não há do que desviar
+  desvioNomeLivre='';
+  document.getElementById('desvio-modulo').innerHTML='<option value="">Módulo (opcional)</option>'
+    +[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('desvio-publicacao').innerHTML='<option value="">Publicação</option>';
+  document.getElementById('desvio-capitulo').innerHTML='<option value="">Capítulo/Seção</option>';
+  document.getElementById('desvio-livre').value='';
+  document.getElementById('desvio-tipo').value='Leitura';
+  document.getElementById('desvio-modal').style.display='flex';
+}
+function fecharDesvio(){ document.getElementById('desvio-modal').style.display='none'; }
+
+function atualizarPublicacoesDesvio(){
+  const modulo=document.getElementById('desvio-modulo').value;
+  document.getElementById('desvio-publicacao').innerHTML='<option value="">Publicação</option>'
+    +publicacoesParaEstudo(modulo).map(x=>`<option value="${x}">${nomePub(x)}</option>`).join('');
+  atualizarCapitulosDesvio();
+}
+function atualizarCapitulosDesvio(){
+  const modulo=document.getElementById('desvio-modulo').value;
+  const publicacao=document.getElementById('desvio-publicacao').value;
+  const sel=document.getElementById('desvio-capitulo');
+  const pubInfo=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!publicacao||!pubInfo){ sel.innerHTML='<option value="">Capítulo/Seção</option>'; sel.disabled=true; return; }
+  sel.disabled=false;
+  if(pubInfo.capituloUnico){ sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`; sel.disabled=true; return; }
+  const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length?pubInfo.capitulosValidos:[];
+  const rot=pubInfo.rotuloCapitulo||'Capítulo';
+  sel.innerHTML='<option value="">'+rot+'</option>'+caps.map(c=>`<option value="${c}">${rot} ${c}</option>`).join('');
+}
+
+// Guarda o principal e zera o motor para o desvio. Como é o MESMO motor, pausar, descansar e
+// apitar continuam funcionando lá dentro sem código próprio.
+function confirmarDesvio(){
+  const modulo=document.getElementById('desvio-modulo').value;
+  const publicacao=document.getElementById('desvio-publicacao').value;
+  const capitulo=document.getElementById('desvio-capitulo').value;
+  const livre=document.getElementById('desvio-livre').value.trim();
+  const tipo=document.getElementById('desvio-tipo').value;
+  if(!publicacao&&!livre){
+    mostrarAviso('Falta a matéria','Escolha uma publicação da bibliografia ou escreva o que vai consultar.');
+    return;
+  }
+  fecharDesvio();
+  if(timerRodando) pausarTimer();
+  encerrarPausaComPrazo();
+  encerrarRefeicao();
+  pararApitoPausa();
+
+  desvioPilha={
+    timerModulo,timerPublicacao,timerCapitulo,timerTipo,timerOrigem,
+    timerAcumuladoSeg,timerIniciadoEm,timerExcluidoSeg,
+    timerAnkiAlvoSeg,timerAnkiAlarmeDisparado,timerRevisaoId,
+  };
+  desvioEntrouEm=Date.now();
+  desvioNomeLivre=livre;
+
+  timerModulo=modulo; timerPublicacao=publicacao||livre; timerCapitulo=capitulo;
+  timerTipo=tipo; timerOrigem=''; timerRevisaoId=null;
+  timerAcumuladoSeg=0; timerIniciadoEm=Date.now(); timerExcluidoSeg=0;
+  timerAnkiAlvoSeg=null; timerAnkiAlarmeDisparado=false;
+
+  document.body.classList.add('em-desvio');
+  abrirTimerFullscreen(true);
+  iniciarTimer();
+}
+
+// Devolve o principal ao ar. O relógio de parede inteiro do desvio entra como tempo excluído
+// dele: o Carlos estava estudando, só não aquilo — não é desperdício.
+function restaurarDoDesvio(){
+  if(!desvioPilha) return;
+  const gasto=Math.floor((Date.now()-desvioEntrouEm)/1000);
+  const s=desvioPilha;
+  desvioPilha=null; desvioEntrouEm=null; desvioNomeLivre='';
+  document.body.classList.remove('em-desvio');
+  timerModulo=s.timerModulo; timerPublicacao=s.timerPublicacao; timerCapitulo=s.timerCapitulo;
+  timerTipo=s.timerTipo; timerOrigem=s.timerOrigem;
+  timerAcumuladoSeg=s.timerAcumuladoSeg; timerIniciadoEm=s.timerIniciadoEm;
+  timerExcluidoSeg=s.timerExcluidoSeg+gasto;
+  timerAnkiAlvoSeg=s.timerAnkiAlvoSeg; timerAnkiAlarmeDisparado=s.timerAnkiAlarmeDisparado;
+  timerRevisaoId=s.timerRevisaoId;
+  iniciarTimer();                 // volta rodando: encerrar o desvio já é o gesto de voltar
+}
+
+// Estado atual do cronômetro em uma palavra. Usado pela ilha flutuante e pelo espelho no
+// servidor, para o outro aparelho saber o que está acontecendo em vez de só ver segundos.
+function estadoTimer(){
+  if(refeicaoInicio)  return 'refeicao';
+  if(descansoAcabou)  return 'descanso-acabou';
+  if(pausaPrazoFim)   return 'descanso';
+  if(timerRodando)    return 'rodando';
+  return 'pausado';
 }
 
 function atualizarTelaTimer(){
@@ -4795,6 +5155,18 @@ function pararApitoPausa(){
 // Ao voltar, se o cronômetro continua pausado, o ciclo é recriado.
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible') return;
+  // Refeição é silenciosa e descanso em andamento também: a condição antiga ("parado e com
+  // tempo acumulado") é verdadeira nos dois casos, então voltar ao app no meio de um pomodoro
+  // fazia o alerta disparar bem no descanso, que deveria ser justamente o momento de silêncio.
+  if(refeicaoInicio||pausaPrazoFim) return;
+  if(descansoAcabou){
+    // Descanso vencido continua cobrando, mas no ritmo dele, não no da pausa comum.
+    pararApitoPausa();
+    prepararAudioApito();
+    apitoPausaId=setInterval(tocarApitoPausa,apitoDescansoSeg*1000);
+    tocarApitoPausa();
+    return;
+  }
   if(!timerRodando&&timerAcumuladoSeg>0){
     // Sem espera: voltar à tela já indica que o Carlos está de volta, e o alerta serve para
     // lembrar de retomar agora.
@@ -4872,11 +5244,24 @@ function fecharCancelarTimerModal(){
 }
 function confirmarCancelarTimer(){
   fecharCancelarTimerModal();
+  // Cancelar dentro do descanso deixava o ciclo do pomodoro vivo em segundo plano: ao vencer,
+  // ele começava a apitar a cada 30 segundos com o cronômetro já desligado e nada na tela para
+  // interromper. É o que faltava aqui — o zerarTimer já fazia certo.
+  encerrarPausaComPrazo();
+  encerrarRefeicao();
   pararApitoPausa();
+  // Descartar um desvio devolve o principal, em vez de matar a sessão inteira junto.
+  if(desvioPilha){
+    restaurarDoDesvio();
+    return;
+  }
+  pararBatimentoSessao();
   if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
   timerRodando=false;
   timerInicio=null;
   timerAcumuladoSeg=0;
+  timerIniciadoEm=null;
+  timerExcluidoSeg=0;
   // Sem isso o snapshot de recuperação sobrevive ao cancelamento, e o app oferece retomar uma
   // sessão que já foi descartada de propósito.
   limparSnapshotSessao();
@@ -4899,6 +5284,7 @@ function fecharTimerFullscreen(){
       ? timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000)
       : timerAcumuladoSeg;
     mostrarTimerFlutuante(nomeCurtoWidget(timerModulo||timerTipo),formatarTempoTimer(segAtual),timerPublicacao||'');
+    atualizarIlhaEstado();
   }
   renderTab(tabAtual,true);
 }
@@ -5083,6 +5469,7 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
   const el=document.getElementById('timer-flutuante');
   // Pausado fica visualmente distinto: sem isso, um número parado pode passar por travado.
   el.classList.toggle('pausado', !timerRodando);
+  el.classList.remove('descanso','descanso-acabou','refeicao');   // reaplicados no fim
   if(el.classList.contains('hidden')){
     // Posição inicial: canto inferior direito, definida de forma 100% explícita aqui (não confia
     // em "limpar" propriedades inline e deixar o CSS assumir sozinho — isso já causou o widget
@@ -5105,12 +5492,43 @@ function mostrarTimerFlutuante(nome,tempoTexto,subtitulo){
     }
   }
   el.classList.remove('hidden');
+  atualizarIlhaEstado();
 }
+// A ilha e a tela cheia mostram a MESMA coisa, sempre. Concentrar a decisão aqui evita que um
+// estado novo apareça na tela cheia e a ilha continue mostrando o cronômetro comum — foi o que
+// acontecia com o descanso: fechar a tela cheia devolvia uma ilha azul e parada.
+function atualizarIlhaEstado(){
+  const el=document.getElementById('timer-flutuante');
+  if(!el||el.classList.contains('hidden')) return;
+  if(cadernoTimerAtivo) return;         // o cronômetro de caderno tem estado próprio
+  const est=estadoTimer();
+  el.classList.toggle('descanso',est==='descanso');
+  el.classList.toggle('descanso-acabou',est==='descanso-acabou');
+  el.classList.toggle('refeicao',est==='refeicao');
+  // Pausado e os estados coloridos são excludentes: os quatro usam o mesmo ::after, e sem isso
+  // o selo PAUSADO ficaria sobreposto ao de DESCANSO.
+  el.classList.toggle('pausado',est==='pausado');
+  const seg=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
+  let texto;
+  if(est==='descanso')             texto=fmtRestante(pausaPrazoFim-Date.now());
+  else if(est==='descanso-acabou') texto='00:00';
+  else if(est==='refeicao')        texto=fmtRestante(Date.now()-refeicaoInicio);
+  else                             texto=formatarTempoTimer(seg);
+  const elTempo=document.getElementById('timer-flutuante-tempo');
+  if(elTempo) elTempo.textContent=texto;
+}
+
 function atualizarTextoTimerFlutuante(tempoTexto){
-  if(document.getElementById('timer-flutuante').classList.contains('hidden')) return;
-  document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
   const elAt=document.getElementById('timer-flutuante');
-  if(elAt) elAt.classList.toggle('pausado', !timerRodando);
+  if(!elAt||elAt.classList.contains('hidden')) return;
+  // Em descanso ou refeição o número exibido não é o tempo estudado, e sim a contagem daquele
+  // estado — então quem escreve é o atualizarIlhaEstado, não o tique do cronômetro.
+  if(!cadernoTimerAtivo&&estadoTimer()!=='rodando'&&estadoTimer()!=='pausado'){
+    atualizarIlhaEstado();
+    return;
+  }
+  document.getElementById('timer-flutuante-tempo').textContent=tempoTexto;
+  elAt.classList.toggle('pausado', !timerRodando);
 }
 function esconderTimerFlutuante(){
   document.getElementById('timer-flutuante').classList.add('hidden');
@@ -5312,6 +5730,20 @@ window.addEventListener('pagehide',()=>{
 // Grava o estado da sessão no servidor, sem travar nada se falhar — é rede de segurança,
 // não caminho crítico. O envio é espaçado para não fazer uma chamada a cada 10 segundos.
 let ultimoEspelho=0;
+// Batimento do espelho. Antes ele só era atualizado pelo tique do cronômetro, que para quando
+// se pausa — então um iPad pausado "parecia morto" em dois minutos e o celular voltava a
+// oferecer a mesma sessão. Enquanto existir sessão, mesmo parada, o batimento continua.
+let batimentoSessaoId=null;
+function iniciarBatimentoSessao(){
+  if(batimentoSessaoId) return;
+  batimentoSessaoId=setInterval(()=>{
+    if(!timerRodando&&timerAcumuladoSeg<=0&&!timerIniciadoEm){ pararBatimentoSessao(); return; }
+    salvarSnapshotSessao();
+  },30000);
+}
+function pararBatimentoSessao(){
+  if(batimentoSessaoId){ clearInterval(batimentoSessaoId); batimentoSessaoId=null; }
+}
 async function espelharSessaoNoServidor(dados){
   if(!sbDados) return;
   const agora=Date.now();
@@ -5321,7 +5753,8 @@ async function espelharSessaoNoServidor(dados){
     await sbDados.from('sessao_ativa').upsert({
       id:1, tipo:dados.tipo, modulo:dados.modulo||null, publicacao:dados.publicacao||null,
       capitulo:dados.capitulo||null, tipo_estudo:dados.tipoEstudo||null,
-      segundos:dados.segundos||0, atualizado_em:new Date().toISOString(),
+      segundos:dados.segundos||0, estado:dados.estado||null,
+      atualizado_em:new Date().toISOString(),
     });
   }catch(e){ /* nunca deve atrapalhar o cronômetro */ }
 }
@@ -5341,9 +5774,13 @@ async function verificarSessaoNoServidor(){
     if(timerRodando||timerAcumuladoSeg>0) return;           // já existe sessão em andamento
     const {data,error}=await sbDados.from('sessao_ativa').select('*').eq('id',1).maybeSingle();
     if(error||!data||!data.segundos) return;
+    // Sessão VIVA em outro aparelho não se oferece: o batimento chega a cada 30 segundos, então
+    // um espelho atualizado há menos de dois minutos significa que o iPad está ali, aberto,
+    // contando. Perguntar no celular nesse momento só cria a chance de duplicar a sessão.
+    const segundosDesdeBatimento=(Date.now()-new Date(data.atualizado_em).getTime())/1000;
+    if(segundosDesdeBatimento<120) return;
     // Sessão de mais de 24h provavelmente foi esquecida, não interrompida.
-    const horas=(Date.now()-new Date(data.atualizado_em).getTime())/3600000;
-    if(horas>24) return;
+    if(segundosDesdeBatimento/3600>24) return;
     window._snapshotSessaoRecuperada={
       tipo:'timer', timerModulo:data.modulo||'', timerPublicacao:data.publicacao||'',
       timerCapitulo:data.capitulo||'', timerTipo:data.tipo_estudo||'Leitura',
@@ -5484,7 +5921,7 @@ function salvarSnapshotSessao(){
       // abertura impediu a leitura e o tempo estudado ficou inacessível. Com a cópia remota,
       // a sessão é recuperável mesmo se o aparelho perder o registro.
       espelharSessaoNoServidor({tipo:'timer',modulo:timerModulo,publicacao:timerPublicacao,
-        capitulo:timerCapitulo,tipoEstudo:timerTipo,segundos:segAgora});
+        capitulo:timerCapitulo,tipoEstudo:timerTipo,segundos:segAgora,estado:estadoTimer()});
     }else if(cadernoTimerAtivo){
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
         tipo:'caderno',cadernoTimerAtivo,cadernoTimerInicio,
@@ -5583,11 +6020,16 @@ function revisarCaderno(id){
 }
 
 function iniciarTimer(){
-  if(pausaPrazoFim) encerrarPausaComPrazo();   // retomar estudo encerra o descanso
+  if(pausaPrazoFim||descansoAcabou) encerrarPausaComPrazo();   // retomar estudo encerra o descanso
+  encerrarRefeicao();                                          // e credita a refeição aberta
   pararApitoPausa();
   if(!timerCamposObrigatoriosCompletos()) return;
+  // O primeiro Iniciar marca o começo do relógio de parede. Só o primeiro: retomar depois de
+  // uma pausa não recomeça a medição, senão o tempo perdido no meio sumiria da conta.
+  if(!timerIniciadoEm) timerIniciadoEm=Date.now();
   timerRodando=true;
   timerInicio=Date.now();
+  iniciarBatimentoSessao();
   if(!timerIntervalId) timerIntervalId=setInterval(atualizarTickTimer,1000);
   if(timerFullscreenAberto) document.getElementById('timer-fullscreen-conteudo').innerHTML=renderTimerFullscreenConteudo();
   else renderTab(tabAtual,true);
@@ -5608,7 +6050,13 @@ function pausarTimer(){
 function zerarTimer(){
   pararApitoPausa();
   encerrarPausaComPrazo();   // sai do modo intervalo junto com a sessão
+  encerrarRefeicao();
+  pararBatimentoSessao();
+  desvioPilha=null; desvioEntrouEm=null; desvioNomeLivre='';
+  document.body.classList.remove('em-desvio');
   timerRevisaoId=null;
+  timerIniciadoEm=null;
+  timerExcluidoSeg=0;
   timerAcumuladoSeg=0;
   timerRodando=false;
   timerInicio=null;
@@ -5649,6 +6097,9 @@ function pararESalvarTimer(){
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
   if(minutos<1){
+    // Num desvio de menos de um minuto não há o que salvar, mas travar aqui deixaria o
+    // principal preso atrás dele — então devolve a sessão e segue.
+    if(desvioPilha){ restaurarDoDesvio(); return; }
     document.getElementById('timer-aviso-curto-modal').style.display='flex';
     return;
   }
@@ -5660,7 +6111,9 @@ function pararESalvarTimer(){
   const linhaRef=partesResumo.length?partesResumo.join(' · ')+'<br>':'';
   document.getElementById('timer-confirmar-resumo').innerHTML=`${linhaRef}${formatarTempoTimer(segFinal)} de ${timerTipo.toLowerCase()}`;
   // Caracteres lidos só fazem sentido em leitura — em Anki/Exercício/Revisão o campo some.
-  document.getElementById('timer-caracteres-wrap').style.display=timerTipo==='Leitura'?'':'none';
+  // Desvio não lança caracteres: é consulta para entender a obra principal, e o número
+  // contaminaria o car/min das duas publicações.
+  document.getElementById('timer-caracteres-wrap').style.display=(timerTipo==='Leitura'&&!desvioPilha)?'':'none';
   document.getElementById('timer-caracteres-input').value='';
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
@@ -5695,18 +6148,28 @@ async function confirmarSalvarTimer(){
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
   const caracteresInput=document.getElementById('timer-caracteres-input').value;
-  const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
+  // No desvio não se lançam caracteres: aquele tempo é consulta para entender a obra principal,
+  // não leitura da outra — contá-lo sujaria o car/min das duas.
+  const caracteresLidos=(!desvioPilha&&caracteresInput)?parseInt(caracteresInput,10):null;
+  // Uma refeição ainda aberta na hora de finalizar precisa ser creditada antes da conta.
+  encerrarRefeicao();
+  const ehDesvio=!!desvioPilha;
+  const linhaSessao={
+    modulo:timerModulo||null,
+    publicacao:timerPublicacao||null,
+    capitulo:timerCapitulo||null,
+    tipo:timerTipo,
+    duracao_minutos:minutos,
+    data:chaveDia(new Date()),
+    caracteres_lidos:caracteresLidos,
+    origem:timerOrigem||null,   // curso, quando a sessão nasceu de um caderno
+    iniciado_em:timerIniciadoEm?new Date(timerIniciadoEm).toISOString():null,
+    finalizado_em:new Date().toISOString(),
+    tempo_excluido_seg:timerExcluidoSeg,
+    eh_desvio:ehDesvio,
+  };
   try{
-    const {error}=await sbDados.from('sessoes_estudo').insert({
-      modulo:timerModulo||null,
-      publicacao:timerPublicacao||null,
-      capitulo:timerCapitulo||null,
-      tipo:timerTipo,
-      duracao_minutos:minutos,
-      data:new Date().toISOString().slice(0,10),
-      caracteres_lidos:caracteresLidos,
-      origem:timerOrigem||null,   // curso, quando a sessão nasceu de um caderno
-    });
+    const {error}=await sbDados.from('sessoes_estudo').insert(linhaSessao);
     if(error) throw error;
     // Sessão nascida de uma revisão programada: conclui a revisão, que avança de nível e some
     // do dia de hoje. Sem isso ela continuaria aparecendo como pendente depois de feita.
@@ -5717,20 +6180,16 @@ async function confirmarSalvarTimer(){
       await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
     }
     fecharConfirmarSalvarTimer();
-    zerarTimer();
+    if(ehDesvio) restaurarDoDesvio(); else zerarTimer();
     await loadData();
   }catch(e){
     // Em vez de só avisar e deixar o Carlos tentar de novo (e perder tudo se fechar o app), a
     // sessão entra na fila e é enviada sozinha quando a conexão voltar. O cronômetro é zerado
     // porque o dado já está guardado — não há mais nada a preservar em memória.
     const min=Math.round(segFinal/60);
-    enfileirar('sessoes_estudo','insert',{
-      data:new Date().toISOString().slice(0,10),
-      modulo:timerModulo||null, publicacao:timerPublicacao||null, capitulo:timerCapitulo||null,
-      tipo:timerTipo, minutos:min, caracteres_lidos:caracteresLidos, origem:timerOrigem||null,
-    },`sessão de ${timerTipo} de ${min} min`);
+    enfileirar('sessoes_estudo','insert',linhaSessao,`sessão de ${timerTipo} de ${min} min`);
     fecharConfirmarSalvarTimer();
-    zerarTimer();
+    if(ehDesvio) restaurarDoDesvio(); else zerarTimer();
     mostrarAviso('Sessão guardada',
       `Não deu para enviar agora, mas a sessão de ${min} min está guardada no aparelho e será enviada sozinha quando a conexão voltar.`);
   }
@@ -5742,7 +6201,7 @@ function abrirRegistroManual(){
   document.getElementById('registro-manual-duracao').value='';
   document.getElementById('registro-manual-caracteres').value='';
   atualizarCamposRegistroManual();
-  document.getElementById('registro-manual-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('registro-manual-data').value=chaveDia(new Date());
   document.getElementById('registro-manual-modal').style.display='flex';
 }
 function atualizarPublicacoesRegistroManual(){
@@ -6129,8 +6588,8 @@ function renderResumoTopo(){
   let sequencia=0;
   { const cursor=new Date(); cursor.setHours(0,0,0,0);
     // se hoje não tem nada ainda, começa contando de ontem
-    if(!diasComAtividade.has(cursor.toISOString().slice(0,10))) cursor.setDate(cursor.getDate()-1);
-    while(diasComAtividade.has(cursor.toISOString().slice(0,10))){ sequencia++; cursor.setDate(cursor.getDate()-1); }
+    if(!diasComAtividade.has(chaveDia(cursor))) cursor.setDate(cursor.getDate()-1);
+    while(diasComAtividade.has(chaveDia(cursor))){ sequencia++; cursor.setDate(cursor.getDate()-1); }
   }
   // performance média dos últimos 30 dias (distinta do aproveitamento geral do anel)
   const trintaDiasAtras=new Date(); trintaDiasAtras.setDate(trintaDiasAtras.getDate()-30);
@@ -6734,7 +7193,7 @@ function toggleFoco(i){
 }
 
 async function marcarFocoEstudado(chave){
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=chaveDia(new Date());
   // Sai do Foco Recomendado na hora, sem esperar o servidor.
   focoEstudado.push({chave,data:hoje});   // mesmo formato do carregamento
   renderTab(tabAtual,true);
@@ -6844,7 +7303,7 @@ async function verificarFilaBancoPratico(){
       if(jaNaFila.has(chave)) continue;
       jaNaFila.add(chave);
       novos.push({materia:m.nome,modulo:m.nome,publicacao:pub||null,capitulo:cap||null,
-        data_entrada:new Date().toISOString().slice(0,10),status:'Pendente',quantidade:1});
+        data_entrada:chaveDia(new Date()),status:'Pendente',quantidade:1});
     }
     if(!novos.length) return;
 
@@ -6872,7 +7331,7 @@ function renderCardBancoPratico(){
   const modsPctMap={};
   calcularModsPct().forEach(m=>{modsPctMap[m.nome]=m.pct;});
   const meta=bancoPratico.metaDiaria||10;
-  const hojeStr=new Date().toISOString().slice(0,10);
+  const hojeStr=chaveDia(new Date());
   const hoje=new Date();hoje.setHours(0,0,0,0);
   return `
     <div class="card-inicio">
@@ -6913,7 +7372,7 @@ function renderCardBancoPratico(){
 }
 async function marcarBancoPraticoFeito(id){
   try{
-    const {error}=await sbDados.from('banco_pratico_config').update({ultima_confirmada:new Date().toISOString().slice(0,10)}).eq('id',id);
+    const {error}=await sbDados.from('banco_pratico_config').update({ultima_confirmada:chaveDia(new Date())}).eq('id',id);
     if(error) throw error;
     await loadData();
   }catch(e){
@@ -7009,7 +7468,7 @@ async function marcarComplementarFeito(id){
     if(item.recorrenciaDias){
       const novaData=new Date();
       novaData.setDate(novaData.getDate()+item.recorrenciaDias);
-      ({error}=await sbDados.from('atividades_complementares').update({data_limite:novaData.toISOString().slice(0,10)}).eq('id',id));
+      ({error}=await sbDados.from('atividades_complementares').update({data_limite:chaveDia(novaData)}).eq('id',id));
     }else{
       ({error}=await sbDados.from('atividades_complementares').update({status:'Feito'}).eq('id',id));
     }
