@@ -268,6 +268,8 @@ body.em-refeicao .tf-modulo,body.em-refeicao .tf-ref{color:#F7E4BE}
 body.em-refeicao .tf-tipo{color:#F5DCA8}
 body.em-refeicao .tf-cancelar,body.em-refeicao .tf-fechar,
 body.em-refeicao .tf-ajustes-btn{color:#F5DCA8}
+body.em-refeicao .tf-desvio{border-color:#5A3B1A;color:#F5DCA8}
+body.em-intervalo .tf-desvio{border-color:#A9483C;color:#E0A8A2}
 @media(hover:hover){
   body.em-refeicao .tf-cancelar:hover,body.em-refeicao .tf-ajustes-btn:hover{color:#F7E4BE}
 }
@@ -301,9 +303,12 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .tf-pausa-refeicao{border-color:#5A3B1A;color:#D9B26A}
 @media(hover:hover){.tf-pausa-refeicao:hover{border-color:#7A4B08;color:#F5DCA8}}
 /* Desvio: discreto e separado dos controles principais — é exceção, não rotina. */
-.tf-desvio{display:block;margin:16px auto 0;background:none;border:1px solid #2A3141;
-  border-radius:20px;color:#9BA3B7;font-size:var(--fs-a);font-family:inherit;cursor:pointer;
-  padding:8px 16px}
+/* Ancorado no canto, FORA do fluxo: no meio da coluna ele ocupava uma linha que não existe nos
+   outros estados, e o conjunto inteiro saltava a cada troca (pausado -> pomodoro -> refeição).
+   Como é ação de exceção, o canto também é o lugar certo em termos de hierarquia. */
+.tf-desvio{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 20px);
+  margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
+  font-size:var(--fs-a);font-family:inherit;cursor:pointer;padding:8px 16px;max-width:45vw}
 @media(hover:hover){.tf-desvio:hover{border-color:#4A5468;color:#fff}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
   font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.1}
@@ -653,6 +658,11 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .mod-header{padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:8px}
 .mod-top{display:flex;justify-content:space-between;align-items:center}
 .mod-nm{font-size:16px;font-weight:400}
+/* Nome do módulo em "Onde investi o tempo": ali ele é o cabeçalho de um bloco inteiro (todas as
+   publicações e capítulos daquela matéria), e no tamanho comum ficava menor que o peso que tem
+   na tela. Classe própria de propósito — o "Desempenho por módulo" usa a mesma .mod-nm e não
+   deve mudar junto. */
+.mod-nm-tempo{font-size:var(--fs-f);font-weight:600}
 .mod-right{display:flex;align-items:center;gap:6px}
 .mod-p{font-size:var(--fs-c);font-weight:600;padding:3px 9px;border-radius:20px}
 .chev{display:inline-flex;align-items:center;justify-content:center;color:#888;transition:transform 0.2s}
@@ -1607,7 +1617,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#7A4B08}
 </div>
 
 <div class="modal-overlay" id="desvio-modal" style="display:none;z-index:1000003"
-  onclick="if(event.target===this)fecharDesvio()">
+  onclick="if(event.target===this)fecharDesvio(true)">
   <div class="modal-box">
     <div class="config-title">Consultar outra obra</div>
     <p style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.45">
@@ -1631,7 +1641,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#7A4B08}
       O que for digitado aqui fica registrado como estudo avulso, fora da cobertura do edital.
     </p>
     <div class="modal-actions">
-      <button class="modal-btn modal-btn-nao" onclick="fecharDesvio()">Cancelar</button>
+      <button class="modal-btn modal-btn-nao" onclick="fecharDesvio(true)">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarDesvio()">Começar</button>
     </div>
   </div>
@@ -3984,7 +3994,7 @@ function renderAnalise(parte){
     return `<div class="mod-linha">
       <div class="mod-header" onclick="toggleMod('an${mi}')">
         <div class="mod-top">
-          <span class="mod-nm">${mod}</span>
+          <span class="mod-nm mod-nm-tempo">${mod}</span>
           <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
@@ -4600,14 +4610,14 @@ function renderTimerFullscreenConteudo(){
         <button class="tf-pausa-btn" onclick="esticarDescanso(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="esticarDescanso(10)">10 min</button>
         <button class="tf-pausa-btn" onclick="esticarDescanso(15)">15 min</button>`
-        :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<span class="tf-pausas-rot">Intervalo de</span>
-        <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
+        :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(10)">10 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>
         <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`:''}
       </div>
       ${(!desvioPilha&&!refeicaoInicio&&!pausaPrazoFim&&!descansoAcabou)
         ? `<button class="tf-desvio" onclick="abrirDesvio()">Consultar outra obra</button>` : ''}
+
       <button class="tf-cancelar" onclick="abrirCancelarTimer()">${desvioPilha?'Descartar desvio':'Cancelar sem salvar'}</button>
     </div>
   `;
@@ -5024,9 +5034,21 @@ function continuarDoIntervalo(){
 // Existe por causa do car/min: sem separar, o tempo gasto em outro livro entraria na conta da
 // publicação principal e falsearia o ritmo de leitura dela — que é justamente o número que
 // ajusta o intervalo da revisão espaçada.
+let desvioPausouAoAbrir=false;
 function abrirDesvio(){
   if(desvioPilha) return;                    // um nível só
   if(!timerIniciadoEm) return;               // sem sessão principal não há do que desviar
+  // Congela na hora do toque, igual ao Finalizar: o tempo gasto escolhendo o que consultar não
+  // é estudo da obra principal. Sem apito, porque não é um esquecimento — a decisão está sendo
+  // tomada agora, na tela.
+  desvioPausouAoAbrir=timerRodando;
+  if(timerRodando){
+    timerAcumuladoSeg+=Math.floor((Date.now()-timerInicio)/1000);
+    timerRodando=false;
+    timerInicio=null;
+    if(timerIntervalId){ clearInterval(timerIntervalId); timerIntervalId=null; }
+    atualizarTelaTimer();
+  }
   desvioNomeLivre='';
   document.getElementById('desvio-modulo').innerHTML='<option value="">Módulo (opcional)</option>'
     +[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
@@ -5036,7 +5058,13 @@ function abrirDesvio(){
   document.getElementById('desvio-tipo').value='Leitura';
   document.getElementById('desvio-modal').style.display='flex';
 }
-function fecharDesvio(){ document.getElementById('desvio-modal').style.display='none'; }
+// retomar=true só quando o Carlos DESISTE: confirmar o desvio segue por outro caminho e não
+// deve religar o principal, que é justamente o que está sendo pausado.
+function fecharDesvio(retomar){
+  document.getElementById('desvio-modal').style.display='none';
+  if(retomar&&desvioPausouAoAbrir&&!timerRodando&&!desvioPilha) iniciarTimer();
+  desvioPausouAoAbrir=false;
+}
 
 function atualizarPublicacoesDesvio(){
   const modulo=document.getElementById('desvio-modulo').value;
