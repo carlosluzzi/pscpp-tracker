@@ -299,6 +299,14 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 .tf-pausa-btn{padding:7px 14px;border-radius:20px;border:1px solid #2A3141;background:transparent;
   color:#9BA3B7;font-size:var(--fs-a);cursor:pointer;font-family:inherit}
 @media(hover:hover){.tf-pausa-btn:hover{border-color:#8C2B22;color:#E0A8A2}}
+/* Sem isso os botões +5/+10/+15 ficavam no cinza-azulado do tema padrão mesmo com a tela
+   inteira vermelha — destoava tanto no descanso contando quanto no vencido, pulsando. */
+body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
+  border-color:#A9483C;color:#E0A8A2}
+@media(hover:hover){
+  body.em-intervalo .tf-pausa-btn:hover,body.descanso-acabou .tf-pausa-btn:hover{
+    border-color:#F0C9C5;color:#F0C9C5}
+}
 /* Refeição fica ao lado dos intervalos, mas em âmbar: mesma linha, natureza diferente. */
 .tf-pausa-refeicao{border-color:#6B5309;color:#D4B25A}
 @media(hover:hover){.tf-pausa-refeicao:hover{border-color:#8A6B10;color:#E8CE86}}
@@ -4613,8 +4621,7 @@ function renderTimerFullscreenConteudo(){
         <button class="tf-btn tf-btn-toggle" style="background:#fff;color:${refeicaoInicio?'#8A6B10':(pausaPrazoFim||descansoAcabou)?'#8C2B22':'#202A45'}" onclick="pararESalvarTimer()">${desvioPilha?'Encerrar desvio':'Finalizar'}</button>
       </div>
       <div class="tf-pausas">
-        ${descansoAcabou?`<span class="tf-pausas-rot">Mais</span>
-        <button class="tf-pausa-btn" onclick="esticarDescanso(5)">5 min</button>
+        ${descansoAcabou?`<button class="tf-pausa-btn" onclick="esticarDescanso(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="esticarDescanso(10)">10 min</button>
         <button class="tf-pausa-btn" onclick="esticarDescanso(15)">15 min</button>`
         :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
