@@ -305,10 +305,14 @@ body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
 /* Desvio: discreto e separado dos controles principais — é exceção, não rotina. */
 /* Ancorado no canto inferior direito, FORA do fluxo: no meio da coluna ele ocupava uma linha
    que não existe nos outros estados, e o conjunto inteiro saltava a cada troca (pausado ->
-   pomodoro -> refeição). A borda direita alinha exatamente com a borda direita do ✕ (mesmo
-   right:16px dos dois), e a margem até o rodapé é igual à margem lateral — mesma distância dos
-   dois lados, como no desenho de referência. */
-.tf-desvio{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
+   pomodoro -> refeição).
+   O offset é 30px, não 16 — medido por cima do print real. O ✕ vive numa caixa invisível de
+   40x40px maior que o próprio traço, então "right:16px" nos dois deixava as CAIXAS alinhadas
+   mas os DESENHOS visivelmente separados (o X sobra ~15px de respiro interno que o CONSULTAR,
+   sendo uma pílula sólida, não tem). Empurrando os dois lados igualmente para 30px, a pílula
+   encosta visualmente no traço do X, e a regra de margem direita = margem inferior continua
+   valendo — só que nos dois casos agora vale 30, não 16. */
+.tf-desvio{position:absolute;right:30px;bottom:calc(env(safe-area-inset-bottom, 0px) + 30px);
   margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
   font-size:11px;letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
   padding:7px 14px;z-index:2}
