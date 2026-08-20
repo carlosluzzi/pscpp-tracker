@@ -231,6 +231,18 @@ body.timer-fullscreen-ativo .bottom-nav,body.timer-fullscreen-ativo .topbar{disp
 body.em-intervalo #timer-fullscreen{background:#8C2B22}
 body.em-intervalo .tf-modulo,body.em-intervalo .tf-ref{color:#F0C9C5}
 body.em-intervalo .tf-tipo{color:#E0A8A2}
+/* Os controles auxiliares (cancelar, fechar e engrenagem) também nascem no #6B7280 do tema
+   escuro — um cinza AZULADO, que sobre o vermelho fica sem contraste e destoa do conjunto.
+   Aqui vale a mesma transposição usada acima: o nível de repouso vira #E0A8A2 (o mesmo do
+   .tf-tipo) e o hover sobe para #F0C9C5 (o mesmo do .tf-modulo), preservando no vermelho a
+   relação de dois níveis que existe no escuro entre #6B7280 e #9BA3B7. */
+body.em-intervalo .tf-cancelar,
+body.em-intervalo .tf-fechar,
+body.em-intervalo .tf-ajustes-btn{color:#E0A8A2}
+@media(hover:hover){
+  body.em-intervalo .tf-cancelar:hover,
+  body.em-intervalo .tf-ajustes-btn:hover{color:#F0C9C5}
+}
 /* No intervalo, a contagem regressiva OCUPA o lugar do cronômetro, no mesmo tamanho e posição —
    nada é empurrado, e o tempo estudado passa para a linha de baixo, onde ficava o tipo.
    As cores dos botões seguem a mesma lógica do tema escuro, transposta para o vermelho: o
