@@ -2967,6 +2967,15 @@ function calcularProximaDataRevisao(nivel,taxaErroPct,hoje,fatorRitmo){
 async function agendarRevisaoSeLeitura(modulo,publicacao,tipo,capitulo){
   if(tipo!=='Leitura') return;
   const cap=capitulo||'';
+  // Só AGENDA a primeira revisão — nunca reescreve uma que já existe. Antes, toda vez que o
+  // capítulo era lido de novo (mesmo um reforço meses depois, com o nível já em 3 e a próxima
+  // revisão marcada para daqui a 90 dias), esta função zerava o nível e remarcava pra amanhã,
+  // sem avisar. Quem faz o capítulo avançar de nível é o ciclo de revisão de verdade
+  // (concluirRevisao, disparado ao finalizar uma sessão que nasceu de uma revisão pendente) —
+  // reler o conteúdo por conta própria não deveria derrubar esse progresso.
+  const jaExiste=(revisoesEspacadas||[]).some(r=>
+    r.modulo===modulo && r.publicacao===(publicacao||'') && r.capitulo===cap);
+  if(jaExiste) return;
   const taxaErro=calcularTaxaErroModulo(modulo,publicacao||'',cap);
   const fr=fatorRitmoRevisao(modulo,publicacao||'',cap);
   const hoje=new Date();hoje.setHours(0,0,0,0);
@@ -4023,7 +4032,12 @@ function renderAnalise(parte){
   // Responde "quantas vezes já li este capítulo, quanto tempo em cada passagem e a que ritmo".
   // Usa TODAS as sessões, ignorando o filtro de período de propósito: a pergunta aqui é sobre o
   // histórico acumulado daquele conteúdo, não sobre um recorte de tempo.
-  const sessComPub=sessoes.filter(s=>s.publicacao);
+  // ehSessaoCaderno já existe mais acima nesta mesma função e reconhece as sessões nascidas
+  // ao finalizar um caderno/simulado — nelas o campo "publicacao" guarda o NOME CURTO do
+  // caderno ("013", "218"), não uma publicação de verdade. Sem filtrar isso aqui, esses
+  // números vazavam para o dropdown de "Todas as publicações" do Histórico, que é sobre
+  // leitura por livro/capítulo — não sobre atividades.
+  const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s));
   const modsHist=[...new Set(sessComPub.map(s=>s.modulo).filter(Boolean))].sort();
   const pubsHist=[...new Set(sessComPub.filter(s=>!histFiltroModulo||s.modulo===histFiltroModulo).map(s=>s.publicacao))].sort();
   const capsHist=[...new Set(sessComPub
