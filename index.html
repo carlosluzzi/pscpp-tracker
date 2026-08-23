@@ -2512,15 +2512,16 @@ async function loadData(){
 
 async function sincronizarPilotquest(){
   if(!sbAuth) return;
-  try{ await sincronizarCadernosPilotquest(); }
-  catch(e){ console.error('Erro ao sincronizar cadernos do Pilotquest:',e); }
+  // Múltipla escolha NÃO passa por aqui — o Carlos decidiu manter o fluxo antigo (botão manual
+  // "Enviar pro Tracker" no Pilotquest, e o aviso de exclusão que já existia). A leitura direta
+  // só vale pro Flash, que nunca teve confirmação manual pra preservar.
   try{ await sincronizarFlashPilotquest(); }
   catch(e){ console.error('Erro ao sincronizar Flash do Pilotquest:',e); }
 }
 
-// Próximo nome curto de uma sequência tipo "PQ 004" / "PQF 012": acha o maior número já usado
-// nas atividades do Tracker com aquele prefixo e soma 1. Zero-padded em 3 dígitos, mesmo
-// padrão que o webhook antigo já usava pro Quest normal.
+// Próximo nome curto de uma sequência tipo "PQF 012": acha o maior número já usado nas
+// atividades do Tracker com aquele prefixo e soma 1. Zero-padded em 3 dígitos, mesmo padrão que
+// o webhook antigo já usava pro Quest normal.
 async function proximoNomeSequencial(prefixo){
   const {data,error}=await sbDados.from('atividades').select('id_atividade')
     .eq('curso','Pilotquest').ilike('id_atividade',prefixo+' %');
@@ -2533,115 +2534,56 @@ async function proximoNomeSequencial(prefixo){
   return `${prefixo} ${String(maior+1).padStart(3,'0')}`;
 }
 
-// ---------- Cadernos de múltipla escolha ----------
-async function sincronizarCadernosPilotquest(){
-  const {data:pendentes,error:eCad}=await sbAuth.from('cadernos').select('*')
-    .eq('status','Concluido').is('enviado_tracker_em',null);
-  if(eCad) throw eCad;
-  if(!pendentes||!pendentes.length) return;
-
-  for(const caderno of pendentes){
-    try{
-      const {data:respostas,error:eResp}=await sbAuth.from('respostas').select('*')
-        .eq('caderno_id',caderno.id).order('respondido_em',{ascending:true});
-      if(eResp) throw eResp;
-      if(!respostas||!respostas.length) continue;   // caderno concluído sem nenhuma resposta — nada a gravar
-
-      const idsQuestoes=[...new Set(respostas.map(r=>r.questao_id))];
-      const {data:questoesRes,error:eQuest}=await sbAuth.from('questoes').select('*').in('id',idsQuestoes);
-      if(eQuest) throw eQuest;
-      const questaoPorId=new Map((questoesRes||[]).map(q=>[q.id,q]));
-
-      const idsBib=[...new Set((questoesRes||[]).map(q=>q.bibliografia_id).filter(Boolean))];
-      const {data:bibRes,error:eBib}=idsBib.length
-        ? await sbAuth.from('bibliografia').select('id,nome_exibicao').in('id',idsBib)
-        : {data:[],error:null};
-      if(eBib) throw eBib;
-      const pubPorId=new Map((bibRes||[]).map(b=>[b.id,b.nome_exibicao]));
-
-      let acertos=0,erros=0,anuladas=0;
-      const linhasQuestoes=respostas.map((r,i)=>{
-        const q=questaoPorId.get(r.questao_id);
-        if(!q) return null;
-        const status=r.foi_anulada?'Anulada':(r.correta?'Acertei':'Errei');
-        if(status==='Anulada') anuladas++; else if(status==='Acertei') acertos++; else erros++;
-        return {
-          numero_questao:String(i+1),
-          status,
-          modulo_pscpp:q.modulo_pscpp||null,
-          publicacao:q.bibliografia_id?(pubPorId.get(q.bibliografia_id)||null):null,
-          capitulo:q.capitulo||null,
-          sua_resposta:r.resposta_dada||null,
-          gabarito:q.gabarito||null,
-          questao_completa:(q.enunciado||'')+'\n\n'+(q.alternativas||''),
-        };
-      }).filter(Boolean);
-      if(!linhasQuestoes.length) continue;
-
-      const nomeAtividade=await proximoNomeSequencial('PQ');
-      const fim=new Date(caderno.finalizado_em||caderno.criado_em);
-      const inicio=new Date(caderno.criado_em);
-      const minutos=Math.max(0,Math.round((fim-inicio)/60000));
-
-      const {error:eAtiv}=await sbDados.from('atividades').insert({
-        id_atividade:nomeAtividade,
-        data:chaveDia(fim),
-        tipo:'Caderno de Exercícios',
-        curso:'Pilotquest',
-        pontuacao_obtida:acertos+anuladas,
-        pontuacao_total:linhasQuestoes.length,
-        acertos_efetivos:acertos,
-        erros_efetivos:erros,
-        anuladas,
-        total_questoes:linhasQuestoes.length,
-        tempo_gasto_minutos:minutos||null,
-      });
-      if(eAtiv) throw eAtiv;
-
-      const {error:eIns}=await sbDados.from('banco_questoes').insert(
-        linhasQuestoes.map(l=>({...l,id_atividade:nomeAtividade}))
-      );
-      if(eIns){
-        await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade);
-        throw eIns;
-      }
-
-      // Sessão de estudo com o mesmo tempo — matéria só entra se TODAS as questões forem da
-      // mesma, igual à regra que o app já segue no resto do arquivo.
-      const modulos=[...new Set(linhasQuestoes.map(l=>l.modulo_pscpp).filter(Boolean))];
-      const pubs=[...new Set(linhasQuestoes.map(l=>l.publicacao).filter(Boolean))];
-      if(minutos>=1){
-        await sbDados.from('sessoes_estudo').insert({
-          tipo:'Exercício',
-          duracao_minutos:minutos,
-          data:chaveDia(fim),
-          modulo:modulos.length===1?modulos[0]:null,
-          publicacao:pubs.length===1?pubs[0]:null,
-          origem:'Pilotquest',
-        });
-      }
-
-      // Fecha o ciclo do lado do Pilotquest: sem isso, o mesmo caderno seria puxado de novo na
-      // próxima sincronização e duplicaria a atividade inteira.
-      await sbAuth.from('cadernos').update({
-        enviado_tracker_em:new Date().toISOString(),
-        id_atividade_tracker:nomeAtividade,
-      }).eq('id',caderno.id);
-    }catch(e){
-      // Um caderno com problema não trava os outros — ele simplesmente continua pendente
-      // (enviado_tracker_em segue null) e é tentado de novo na próxima sincronização.
-      console.error('Erro ao sincronizar caderno do Pilotquest:',caderno.id,e);
-    }
-  }
-}
+// Múltipla escolha ficou de fora de propósito: o Carlos decidiu manter o fluxo antigo
+// (botão manual "Enviar pro Tracker" no Pilotquest, e o aviso explícito na exclusão).
+// Só o Flash usa leitura direta — nunca teve confirmação manual pra preservar, então
+// não há nada que a automação esteja substituindo.
 
 // ---------- Flash (Verdadeiro/Falso) ----------
 // Diferente do caderno, não existe "sessão" gravada no Pilotquest — é log bruto por resposta
 // (log_respostas_vf). O agrupamento em sessões acontece aqui, seguindo a regra já combinada:
 // início = primeira resposta do grupo, fim = última, um novo grupo começa sempre que passam
-// mais de 15 minutos sem nenhuma resposta nova, e sessão com menos de 1 minuto não é gravada.
+// mais de 15 minutos sem nenhuma resposta nova. Um grupo abaixo de 1 minuto não vira sessão
+// própria, mas o tempo dele não se perde: soma na duração da sessão fechada imediatamente
+// anterior (só o tempo — as perguntas dela continuam sendo só as que são de verdade dela).
+// Se não existir nenhuma sessão anterior pra somar (o grupo curto é a primeiríssima coisa que
+// já aconteceu), aí sim o tempo é descartado, por falta de onde ele encostar.
 const GATILHO_SESSAO_FLASH_MS=15*60*1000;
 const MINIMO_SESSAO_FLASH_MIN=1;
+
+// Soma segundos na sessão anterior — a que está em curso NESTA sincronização (ponteiro em
+// memória, o caminho mais comum) ou, se este for o primeiro grupo processado na sincronização,
+// a última sessão do Flash já existente no Tracker de uma vez anterior. Acumula sempre em
+// segundos, nunca reconstrói a partir de minutos já arredondados — um blip de poucos segundos
+// somado repetidas vezes sobre um valor já arredondado corria o risco de evaporar de novo no
+// arredondamento seguinte. Devolve o ponteiro atualizado, ou null se não havia sessão nenhuma
+// pra somar (nesse caso o chamador simplesmente descarta, como sempre foi).
+async function somarTempoNaSessaoAnteriorFlash(ponteiro,segundosAdicionais){
+  let idAtividade,baseSeg;
+  if(ponteiro){
+    idAtividade=ponteiro.idAtividade;
+    baseSeg=ponteiro.segundosAcumulados;
+  }else{
+    const {data,error}=await sbDados.from('atividades').select('id_atividade,tempo_gasto_minutos')
+      .eq('curso','Pilotquest').eq('tipo','Flash')
+      .order('id_atividade',{ascending:false}).limit(1);
+    if(error) throw error;
+    if(!data||!data.length) return null;   // nunca existiu nenhuma sessão do Flash — nada pra somar
+    idAtividade=data[0].id_atividade;
+    baseSeg=(data[0].tempo_gasto_minutos||0)*60;
+  }
+  const novoTotalSeg=baseSeg+segundosAdicionais;
+  const novoMinutos=Math.max(1,Math.round(novoTotalSeg/60));
+
+  const {error:e1}=await sbDados.from('atividades')
+    .update({tempo_gasto_minutos:novoMinutos}).eq('id_atividade',idAtividade);
+  if(e1) throw e1;
+  const {error:e2}=await sbDados.from('sessoes_estudo')
+    .update({duracao_minutos:novoMinutos}).eq('id_atividade',idAtividade);
+  if(e2) throw e2;
+
+  return {idAtividade,segundosAcumulados:novoTotalSeg};
+}
 
 async function sincronizarFlashPilotquest(){
   const {data:cfg,error:eCfg}=await sbDados.from('app_config').select('valor')
@@ -2681,16 +2623,36 @@ async function sincronizarFlashPilotquest(){
 
   const idsBib=[...new Set((questoesRes||[]).map(q=>q.bibliografia_id).filter(Boolean))];
   const {data:bibRes,error:eBib}=idsBib.length
-    ? await sbAuth.from('bibliografia').select('id,nome_exibicao,modulo_pscpp').in('id',idsBib)
+    ? await sbAuth.from('bibliografia').select('id,nome_exibicao,titulo,autor,modulo_pscpp').in('id',idsBib)
     : {data:[],error:null};
   if(eBib) throw eBib;
   const bibPorId=new Map((bibRes||[]).map(b=>[b.id,b]));
 
+  // Ponteiro pra última sessão de verdade materializada — em memória, atualizado a cada sessão
+  // nova criada neste laço. Grupos curtos consecutivos (sem nenhuma sessão de verdade entre
+  // eles) todos encostam na mesma sessão anterior, um atrás do outro.
+  let sessaoAnterior=null;
+
   for(const grupo of gruposFechados){
     const inicio=new Date(grupo.linhas[0].respondida_em);
     const fim=new Date(grupo.linhas[grupo.linhas.length-1].respondida_em);
-    const minutos=Math.round((fim-inicio)/60000);
-    if(minutos<MINIMO_SESSAO_FLASH_MIN) continue;   // curta demais — não é sessão de estudo de verdade
+    const duracaoSeg=Math.round((fim-inicio)/1000);
+    const minutos=Math.round(duracaoSeg/60);
+
+    if(minutos<MINIMO_SESSAO_FLASH_MIN){
+      // Curto demais pra virar sessão própria. Some o tempo na sessão anterior — sem tocar nas
+      // questões nem no aproveitamento dela, que continuam sendo só das respostas que já eram
+      // dela. Se não existir sessão anterior nenhuma (nem nesta sincronização, nem em uma
+      // passada), não tem em que somar — o tempo é descartado, como sempre foi.
+      try{
+        const atualizado=await somarTempoNaSessaoAnteriorFlash(sessaoAnterior,duracaoSeg);
+        if(atualizado) sessaoAnterior=atualizado;
+      }catch(e){
+        console.error('Erro ao somar tempo de grupo curto do Flash:',e);
+        return;   // não avança o cursor — tenta de novo na próxima sincronização
+      }
+      continue;
+    }
 
     try{
       let acertos=0,erros=0,anuladas=0;
@@ -2710,7 +2672,11 @@ async function sincronizarFlashPilotquest(){
           status,
           formato:'verdadeiro_falso',
           modulo_pscpp:bib?bib.modulo_pscpp:null,
-          publicacao:bib?bib.nome_exibicao:null,
+          // Mesmo fallback que o loadData() principal já usa pra bibliografia: nome_exibicao é
+          // um apelido opcional, e 15 das 91 publicações não têm ele preenchido (confirmado
+          // testando com dado real antes de subir isso) — sem o fallback, a sincronização
+          // gravava publicacao:null silenciosamente pra elas, mesmo com o módulo certo.
+          publicacao:bib?(bib.nome_exibicao||bib.titulo):null,
           capitulo:q.capitulo||null,
           afirmacao:q.texto||null,
           resposta_esperada:respostaEsperada,
@@ -2754,7 +2720,11 @@ async function sincronizarFlashPilotquest(){
         modulo:modulos.length===1?modulos[0]:null,
         publicacao:pubs.length===1?pubs[0]:null,
         origem:'Pilotquest',
+        id_atividade:nomeAtividade,
       });
+
+      // Esta é agora a sessão anterior, pra qualquer grupo curto que apareça depois dela.
+      sessaoAnterior={idAtividade:nomeAtividade,segundosAcumulados:duracaoSeg};
     }catch(e){
       // Sem avançar o cursor além deste grupo: ele é tentado de novo na próxima sincronização,
       // em vez de se perder silenciosamente.
@@ -8916,7 +8886,7 @@ function renderDetalhe(a){
         </div>`}
         ${tags?`<div class="tr">${tags}</div>`:''}
         ${e.formato==='verdadeiro_falso'
-          ?`<div class="enunciado-box">${escapeHtml(e.afirmacao||'')}</div>${(e.status==='Errei'&&e.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(e.correcao)}</div>`:''}`
+          ?`<div class="enunciado-box">${escapeHtml(e.afirmacao||'')}</div>${(e.status==='Errei'&&e.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(e.correcao)}</div>`:''}`
           :(e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:'')}
       </div>
     </div>`;
@@ -9250,7 +9220,7 @@ function abrirVerQuestaoCompleta(questaoId){
   const corpoConteudo = ehFlash
     ? `<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>
        ${(!ehAnulada&&q.status==='Errei'&&q.correcao)
-         ? `<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(q.correcao)}</div>` : ''}`
+         ? `<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(q.correcao)}</div>` : ''}`
     : `<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`;
 
   document.getElementById('ver-questao-conteudo').innerHTML=`
@@ -9720,6 +9690,14 @@ function escapeHtml(txt){
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// O Pilotquest grava correção de afirmação do Flash com **palavra** pra negrito, no mesmo
+// sentido que ele já exibe lá. Escapa primeiro (segurança, mesma regra de sempre) e SÓ DEPOIS
+// troca os asteriscos por <strong> — nessa ordem, um "**" que porventura viesse dentro do
+// texto de propósito não vira negrito por acidente, porque nesse ponto ele já é só texto.
+function formatCorrecaoVF(txt){
+  return escapeHtml(txt).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+}
+
 // Nome da publicação como o Carlos escolheu ver. A tabela de apelidos permite renomear na
 // exibição sem alterar o dado salvo no processamento — "IMO — CIS Código Internacional de
 // Sinais" pode virar "CIS", e o original continua intacto para casar com a bibliografia.
@@ -10128,7 +10106,7 @@ function renderQuestoes(){
           </div>`}
           ${tags?`<div class="tr">${tags}</div>`:''}
           ${q.formato==='verdadeiro_falso'
-            ?`<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>${(q.status==='Errei'&&q.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(q.correcao)}</div>`:''}`
+            ?`<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>${(q.status==='Errei'&&q.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(q.correcao)}</div>`:''}`
             :(q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:'')}
         </div>
       </div>`;
