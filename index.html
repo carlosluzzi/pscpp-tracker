@@ -2498,9 +2498,287 @@ async function loadData(){
     loadDataEmAndamento=null;
   }
 }
+// ============================================================================
+// SINCRONIZAÇÃO DIRETA COM O PILOTQUEST — lê o banco dele, não espera ele mandar nada
+//
+// O Pilotquest grava cadernos de múltipla escolha e respostas do Flash no próprio banco dele
+// (projeto "quest", jenzxycerdtjpkrzesia). Em vez de esperar um botão "enviar pro Tracker" ou
+// um webhook, o Tracker lê direto de lá — usando a MESMA sessão logada (sbAuth) que já existe
+// pra puxar a bibliografia. A política de segurança das tabelas de origem já restringe cada
+// leitura ao próprio usuário (usuario_id = auth.uid()), então mesmo o banco sendo compartilhado
+// com outras pessoas, é impossível puxar resposta de outra conta por engano — a garantia vem
+// do Supabase, não de uma cláusula WHERE que eu precise lembrar de escrever certo.
+// ============================================================================
+
+async function sincronizarPilotquest(){
+  if(!sbAuth) return;
+  try{ await sincronizarCadernosPilotquest(); }
+  catch(e){ console.error('Erro ao sincronizar cadernos do Pilotquest:',e); }
+  try{ await sincronizarFlashPilotquest(); }
+  catch(e){ console.error('Erro ao sincronizar Flash do Pilotquest:',e); }
+}
+
+// Próximo nome curto de uma sequência tipo "PQ 004" / "PQF 012": acha o maior número já usado
+// nas atividades do Tracker com aquele prefixo e soma 1. Zero-padded em 3 dígitos, mesmo
+// padrão que o webhook antigo já usava pro Quest normal.
+async function proximoNomeSequencial(prefixo){
+  const {data,error}=await sbDados.from('atividades').select('id_atividade')
+    .eq('curso','Pilotquest').ilike('id_atividade',prefixo+' %');
+  if(error) throw error;
+  let maior=0;
+  (data||[]).forEach(a=>{
+    const m=(a.id_atividade||'').match(new RegExp('^'+prefixo+' (\\d+)$'));
+    if(m) maior=Math.max(maior,parseInt(m[1],10));
+  });
+  return `${prefixo} ${String(maior+1).padStart(3,'0')}`;
+}
+
+// ---------- Cadernos de múltipla escolha ----------
+async function sincronizarCadernosPilotquest(){
+  const {data:pendentes,error:eCad}=await sbAuth.from('cadernos').select('*')
+    .eq('status','Concluido').is('enviado_tracker_em',null);
+  if(eCad) throw eCad;
+  if(!pendentes||!pendentes.length) return;
+
+  for(const caderno of pendentes){
+    try{
+      const {data:respostas,error:eResp}=await sbAuth.from('respostas').select('*')
+        .eq('caderno_id',caderno.id).order('respondido_em',{ascending:true});
+      if(eResp) throw eResp;
+      if(!respostas||!respostas.length) continue;   // caderno concluído sem nenhuma resposta — nada a gravar
+
+      const idsQuestoes=[...new Set(respostas.map(r=>r.questao_id))];
+      const {data:questoesRes,error:eQuest}=await sbAuth.from('questoes').select('*').in('id',idsQuestoes);
+      if(eQuest) throw eQuest;
+      const questaoPorId=new Map((questoesRes||[]).map(q=>[q.id,q]));
+
+      const idsBib=[...new Set((questoesRes||[]).map(q=>q.bibliografia_id).filter(Boolean))];
+      const {data:bibRes,error:eBib}=idsBib.length
+        ? await sbAuth.from('bibliografia').select('id,nome_exibicao').in('id',idsBib)
+        : {data:[],error:null};
+      if(eBib) throw eBib;
+      const pubPorId=new Map((bibRes||[]).map(b=>[b.id,b.nome_exibicao]));
+
+      let acertos=0,erros=0,anuladas=0;
+      const linhasQuestoes=respostas.map((r,i)=>{
+        const q=questaoPorId.get(r.questao_id);
+        if(!q) return null;
+        const status=r.foi_anulada?'Anulada':(r.correta?'Acertei':'Errei');
+        if(status==='Anulada') anuladas++; else if(status==='Acertei') acertos++; else erros++;
+        return {
+          numero_questao:String(i+1),
+          status,
+          modulo_pscpp:q.modulo_pscpp||null,
+          publicacao:q.bibliografia_id?(pubPorId.get(q.bibliografia_id)||null):null,
+          capitulo:q.capitulo||null,
+          sua_resposta:r.resposta_dada||null,
+          gabarito:q.gabarito||null,
+          questao_completa:(q.enunciado||'')+'\n\n'+(q.alternativas||''),
+        };
+      }).filter(Boolean);
+      if(!linhasQuestoes.length) continue;
+
+      const nomeAtividade=await proximoNomeSequencial('PQ');
+      const fim=new Date(caderno.finalizado_em||caderno.criado_em);
+      const inicio=new Date(caderno.criado_em);
+      const minutos=Math.max(0,Math.round((fim-inicio)/60000));
+
+      const {error:eAtiv}=await sbDados.from('atividades').insert({
+        id_atividade:nomeAtividade,
+        data:chaveDia(fim),
+        tipo:'Caderno de Exercícios',
+        curso:'Pilotquest',
+        pontuacao_obtida:acertos+anuladas,
+        pontuacao_total:linhasQuestoes.length,
+        acertos_efetivos:acertos,
+        erros_efetivos:erros,
+        anuladas,
+        total_questoes:linhasQuestoes.length,
+        tempo_gasto_minutos:minutos||null,
+      });
+      if(eAtiv) throw eAtiv;
+
+      const {error:eIns}=await sbDados.from('banco_questoes').insert(
+        linhasQuestoes.map(l=>({...l,id_atividade:nomeAtividade}))
+      );
+      if(eIns){
+        await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade);
+        throw eIns;
+      }
+
+      // Sessão de estudo com o mesmo tempo — matéria só entra se TODAS as questões forem da
+      // mesma, igual à regra que o app já segue no resto do arquivo.
+      const modulos=[...new Set(linhasQuestoes.map(l=>l.modulo_pscpp).filter(Boolean))];
+      const pubs=[...new Set(linhasQuestoes.map(l=>l.publicacao).filter(Boolean))];
+      if(minutos>=1){
+        await sbDados.from('sessoes_estudo').insert({
+          tipo:'Exercício',
+          duracao_minutos:minutos,
+          data:chaveDia(fim),
+          modulo:modulos.length===1?modulos[0]:null,
+          publicacao:pubs.length===1?pubs[0]:null,
+          origem:'Pilotquest',
+        });
+      }
+
+      // Fecha o ciclo do lado do Pilotquest: sem isso, o mesmo caderno seria puxado de novo na
+      // próxima sincronização e duplicaria a atividade inteira.
+      await sbAuth.from('cadernos').update({
+        enviado_tracker_em:new Date().toISOString(),
+        id_atividade_tracker:nomeAtividade,
+      }).eq('id',caderno.id);
+    }catch(e){
+      // Um caderno com problema não trava os outros — ele simplesmente continua pendente
+      // (enviado_tracker_em segue null) e é tentado de novo na próxima sincronização.
+      console.error('Erro ao sincronizar caderno do Pilotquest:',caderno.id,e);
+    }
+  }
+}
+
+// ---------- Flash (Verdadeiro/Falso) ----------
+// Diferente do caderno, não existe "sessão" gravada no Pilotquest — é log bruto por resposta
+// (log_respostas_vf). O agrupamento em sessões acontece aqui, seguindo a regra já combinada:
+// início = primeira resposta do grupo, fim = última, um novo grupo começa sempre que passam
+// mais de 15 minutos sem nenhuma resposta nova, e sessão com menos de 1 minuto não é gravada.
+const GATILHO_SESSAO_FLASH_MS=15*60*1000;
+const MINIMO_SESSAO_FLASH_MIN=1;
+
+async function sincronizarFlashPilotquest(){
+  const {data:cfg,error:eCfg}=await sbDados.from('app_config').select('valor')
+    .eq('chave','flash_ultima_sincronizacao').maybeSingle();
+  if(eCfg) throw eCfg;
+  const desde=(cfg&&cfg.valor)||'2000-01-01T00:00:00Z';
+
+  const {data:logs,error:eLog}=await sbAuth.from('log_respostas_vf').select('*')
+    .gt('respondida_em',desde).order('respondida_em',{ascending:true});
+  if(eLog) throw eLog;
+  if(!logs||!logs.length) return;
+
+  // Agrupa por lacuna de 15 minutos. O ÚLTIMO grupo só é considerado fechado se a resposta mais
+  // recente dele já tem mais de 15 minutos de idade — enquanto isso não acontece, a sessão pode
+  // ainda estar em andamento (o Carlos pode responder mais alguma a qualquer momento), então ela
+  // fica de fora desta rodada e é reconsiderada na próxima, sem perder nenhuma resposta.
+  const grupos=[];
+  let atual=null;
+  logs.forEach(r=>{
+    const t=new Date(r.respondida_em).getTime();
+    if(atual&&t-atual.ultimoT<=GATILHO_SESSAO_FLASH_MS){
+      atual.linhas.push(r); atual.ultimoT=t;
+    }else{
+      atual={linhas:[r],ultimoT:t};
+      grupos.push(atual);
+    }
+  });
+  const agora=Date.now();
+  const grupoAbertoNoFim=grupos.length&&(agora-grupos[grupos.length-1].ultimoT)<GATILHO_SESSAO_FLASH_MS;
+  const gruposFechados=grupoAbertoNoFim?grupos.slice(0,-1):grupos;
+  if(!gruposFechados.length) return;   // nada fechado ainda — tenta de novo na próxima sincronização
+
+  const idsQuestoes=[...new Set(logs.map(r=>r.questao_vf_id))];
+  const {data:questoesRes,error:eQuest}=await sbAuth.from('questoes_vf').select('*').in('id',idsQuestoes);
+  if(eQuest) throw eQuest;
+  const questaoPorId=new Map((questoesRes||[]).map(q=>[q.id,q]));
+
+  const idsBib=[...new Set((questoesRes||[]).map(q=>q.bibliografia_id).filter(Boolean))];
+  const {data:bibRes,error:eBib}=idsBib.length
+    ? await sbAuth.from('bibliografia').select('id,nome_exibicao,modulo_pscpp').in('id',idsBib)
+    : {data:[],error:null};
+  if(eBib) throw eBib;
+  const bibPorId=new Map((bibRes||[]).map(b=>[b.id,b]));
+
+  for(const grupo of gruposFechados){
+    const inicio=new Date(grupo.linhas[0].respondida_em);
+    const fim=new Date(grupo.linhas[grupo.linhas.length-1].respondida_em);
+    const minutos=Math.round((fim-inicio)/60000);
+    if(minutos<MINIMO_SESSAO_FLASH_MIN) continue;   // curta demais — não é sessão de estudo de verdade
+
+    try{
+      let acertos=0,erros=0,anuladas=0;
+      const linhasQuestoes=grupo.linhas.map((r,i)=>{
+        const q=questaoPorId.get(r.questao_vf_id);
+        if(!q) return null;
+        const bib=q.bibliografia_id?bibPorId.get(q.bibliografia_id):null;
+        const status=q.anulada?'Anulada':(r.acertou?'Acertei':'Errei');
+        if(status==='Anulada') anuladas++; else if(status==='Acertei') acertos++; else erros++;
+        // log_respostas_vf guarda só se acertou, não a resposta literal marcada — mas numa
+        // pergunta binária, saber o gabarito e se acertou já deduz a resposta dada: acertou =
+        // mesma resposta do gabarito, errou = a outra.
+        const respostaEsperada=q.resposta?'V':'F';
+        const respostaDada=r.acertou?respostaEsperada:(respostaEsperada==='V'?'F':'V');
+        return {
+          numero_questao:String(i+1),
+          status,
+          formato:'verdadeiro_falso',
+          modulo_pscpp:bib?bib.modulo_pscpp:null,
+          publicacao:bib?bib.nome_exibicao:null,
+          capitulo:q.capitulo||null,
+          afirmacao:q.texto||null,
+          resposta_esperada:respostaEsperada,
+          sua_resposta:respostaDada,
+          correcao:(!r.acertou&&q.correcao)?q.correcao:null,
+        };
+      }).filter(Boolean);
+      if(!linhasQuestoes.length) continue;
+
+      const nomeAtividade=await proximoNomeSequencial('PQF');
+
+      const {error:eAtiv}=await sbDados.from('atividades').insert({
+        id_atividade:nomeAtividade,
+        data:chaveDia(fim),
+        tipo:'Flash',
+        curso:'Pilotquest',
+        pontuacao_obtida:acertos+anuladas,
+        pontuacao_total:linhasQuestoes.length,
+        acertos_efetivos:acertos,
+        erros_efetivos:erros,
+        anuladas,
+        total_questoes:linhasQuestoes.length,
+        tempo_gasto_minutos:minutos,
+      });
+      if(eAtiv) throw eAtiv;
+
+      const {error:eIns}=await sbDados.from('banco_questoes').insert(
+        linhasQuestoes.map(l=>({...l,id_atividade:nomeAtividade}))
+      );
+      if(eIns){
+        await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade);
+        throw eIns;
+      }
+
+      const modulos=[...new Set(linhasQuestoes.map(l=>l.modulo_pscpp).filter(Boolean))];
+      const pubs=[...new Set(linhasQuestoes.map(l=>l.publicacao).filter(Boolean))];
+      await sbDados.from('sessoes_estudo').insert({
+        tipo:'Exercício',
+        duracao_minutos:minutos,
+        data:chaveDia(fim),
+        modulo:modulos.length===1?modulos[0]:null,
+        publicacao:pubs.length===1?pubs[0]:null,
+        origem:'Pilotquest',
+      });
+    }catch(e){
+      // Sem avançar o cursor além deste grupo: ele é tentado de novo na próxima sincronização,
+      // em vez de se perder silenciosamente.
+      console.error('Erro ao sincronizar sessão do Flash:',e);
+      return;
+    }
+  }
+
+  // Cursor avança só até o fim do último grupo FECHADO processado — nunca engole o grupo ainda
+  // em aberto, que continua disponível pra ser reagrupado (com respostas novas) da próxima vez.
+  const novoCursor=new Date(gruposFechados[gruposFechados.length-1].ultimoT).toISOString();
+  await sbDados.from('app_config').upsert({chave:'flash_ultima_sincronizacao',valor:novoCursor});
+}
+
 async function loadDataInterno(){
   setSyncStatus('loading');
   try{
+    // Traz do Pilotquest o que tiver sido concluído desde a última vez — cadernos de múltipla
+    // escolha e sessões do Flash. Roda ANTES da leitura principal de propósito: qualquer coisa
+    // gravada aqui já aparece na mesma leva de dados que vem a seguir, sem precisar de um
+    // segundo recarregamento. Envolvida em try/catch própria — se o Pilotquest estiver fora do
+    // ar, isso nunca deve impedir o resto do app de carregar.
+    try{ await sincronizarPilotquest(); }catch(e){ console.error('Erro ao sincronizar Pilotquest:',e); }
+
     const [
       {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
@@ -2614,6 +2892,12 @@ async function loadDataInterno(){
       suaResposta:p.sua_resposta||null,
       gabarito:p.gabarito||null,
       motivo:p.questao_completa||null,
+      // Campos do Flash (Verdadeiro/Falso), vindos do Pilotquest. Nas questões de múltipla
+      // escolha ficam todos vazios — formato continua no valor padrão 'multipla_escolha'.
+      formato:p.formato||'multipla_escolha',
+      afirmacao:p.afirmacao||null,
+      respostaEsperada:p.resposta_esperada||null,
+      correcao:p.correcao||null,
       revisoesRealizadas:p.revisoes_realizadas||0,
       acertouRevisao:p.acertou_na_revisao||null,
       tipoQuestao:p.tipo_questao||null,
@@ -8623,12 +8907,17 @@ function renderDetalhe(a){
         </div>
       </div>
       <div class="ed" id="ed${i}">
-        <div class="rs">
+        ${e.formato==='verdadeiro_falso'?`<div class="rs">
+          <span class="rl">Você marcou</span><span class="rv re">${e.suaResposta==='V'?'Verdadeiro':e.suaResposta==='F'?'Falso':'–'}</span>
+          <span class="rl">→ Certo era</span><span class="rv rc">${e.respostaEsperada==='V'?'Verdadeiro':e.respostaEsperada==='F'?'Falso':'–'}</span>
+        </div>`:`<div class="rs">
           <span class="rl">Sua resposta</span><span class="rv re">${e.suaResposta||'–'}</span>
           <span class="rl">→ Gabarito</span><span class="rv rc">${e.gabarito||'–'}</span>
-        </div>
+        </div>`}
         ${tags?`<div class="tr">${tags}</div>`:''}
-        ${e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:''}
+        ${e.formato==='verdadeiro_falso'
+          ?`<div class="enunciado-box">${escapeHtml(e.afirmacao||'')}</div>${(e.status==='Errei'&&e.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(e.correcao)}</div>`:''}`
+          :(e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:'')}
       </div>
     </div>`;
   }).join('');
@@ -8919,7 +9208,10 @@ function togglePub(pubId){
 }
 function abrirVerQuestaoCompleta(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
-  if(!q||!q.motivo) return;
+  // Múltipla escolha precisa do enunciado formatado (motivo); o Flash não usa esse campo — a
+  // afirmação mora em outro lugar — então o guard não pode barrar as duas por igual.
+  const ehFlash=q&&q.formato==='verdadeiro_falso';
+  if(!q||(!ehFlash&&!q.motivo)) return;
 
   document.getElementById('ver-questao-titulo').textContent=
     `Questão ${String(q.questao||'').padStart(2,'0')}`;
@@ -8928,17 +9220,24 @@ function abrirVerQuestaoCompleta(questaoId){
   // conhece aquela tela reconhece aqui sem precisar reaprender. Anulada não tem resposta a
   // comparar, então recebe só o selo.
   const ehAnulada=q.status==='Anulada';
+  const rotuloResposta=v=>v==='V'?'Verdadeiro':v==='F'?'Falso':(v||'–');
   const cabecalho = ehAnulada
     ? `<div class="rs"><span class="q-status-badge" style="background:#FAEEDA;color:#854F0B">Anulada</span></div>`
+    : ehFlash
+    ? `<div class="rs">
+         <span class="rl">Você marcou</span><span class="rv re">${rotuloResposta(q.suaResposta)}</span>
+         <span class="rl">→ Certo era</span><span class="rv rc">${rotuloResposta(q.respostaEsperada)}</span>
+       </div>`
     : `<div class="rs">
          <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'–'}</span>
          <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
        </div>`;
 
   // Nota e dúvida aparecem acima do enunciado quando existem. Para criar ou editar, toca-se no
-  // próprio enunciado — mesmo gesto das alternativas, sem link separado.
+  // próprio enunciado — mesmo gesto das alternativas, sem link separado. Não se aplicam ao
+  // Flash, que não tem alternativas pra ficar em dúvida entre.
   const nota=(q.notasPessoais||'').trim();
-  const duvida=q.alternativasDuvida||[];
+  const duvida=ehFlash?[]:(q.alternativasDuvida||[]);
   const notaHtml=nota?`<div class="vq-nota" onclick="abrirAcoesQuestao('${q.id}')">📝 ${escapeHtml(nota)}</div>`:'';
   const duvidaHtml=duvida.length>=2
     ? `<div class="vq-duvida" onclick="abrirAcoesQuestao('${q.id}')">
@@ -8946,11 +9245,19 @@ function abrirVerQuestaoCompleta(questaoId){
          ${q.motivoDuvida?`<span class="vq-duvida-motivo">${escapeHtml(q.motivoDuvida)}</span>`:''}
        </div>` : '';
 
+  // Corpo: a afirmação do Flash é texto simples (sem alternativas pra separar), com a correção
+  // logo abaixo quando existir. A múltipla escolha continua usando o formatador de sempre.
+  const corpoConteudo = ehFlash
+    ? `<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>
+       ${(!ehAnulada&&q.status==='Errei'&&q.correcao)
+         ? `<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(q.correcao)}</div>` : ''}`
+    : `<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`;
+
   document.getElementById('ver-questao-conteudo').innerHTML=`
     ${cabecalho}
     ${notaHtml}
     ${duvidaHtml}
-    <div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>
+    ${corpoConteudo}
   `;
   document.getElementById('ver-questao-modal').style.display='flex';
 }
@@ -9812,12 +10119,17 @@ function renderQuestoes(){
         </div>
         <div class="q-detail" id="qd${i}">
           ${badgesQuestao(q)}
-          <div class="rs">
+          ${q.formato==='verdadeiro_falso'?`<div class="rs">
+            <span class="rl">Você marcou</span><span class="rv re">${q.suaResposta==='V'?'Verdadeiro':q.suaResposta==='F'?'Falso':'–'}</span>
+            <span class="rl">→ Certo era</span><span class="rv rc">${q.respostaEsperada==='V'?'Verdadeiro':q.respostaEsperada==='F'?'Falso':'–'}</span>
+          </div>`:`<div class="rs">
             <span class="rl">Sua resposta</span><span class="rv re">${q.suaResposta||'–'}</span>
             <span class="rl">→ Gabarito</span><span class="rv rc">${q.gabarito||'–'}</span>
-          </div>
+          </div>`}
           ${tags?`<div class="tr">${tags}</div>`:''}
-          ${q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:''}
+          ${q.formato==='verdadeiro_falso'
+            ?`<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>${(q.status==='Errei'&&q.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${escapeHtml(q.correcao)}</div>`:''}`
+            :(q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:'')}
         </div>
       </div>`;
     }).join('')}`:'<div class="empty">Nenhuma questão encontrada.</div>'}
