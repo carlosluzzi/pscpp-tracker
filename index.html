@@ -3030,7 +3030,14 @@ async function loadDataInterno(){
       alternativa:p.alternativa,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
       texto:p.texto,criadoEm:p.criado_em,
     }));
-    await verificarFilaBancoPratico();
+    // Banco Prático PAUSADO (não removido) — o Carlos não usa mais o site externo, e as
+    // questões geradas por IA de lá estão com qualidade ruim segundo ele mesmo. O card já saiu
+    // da Início; sem parar esta chamada também, o app continuaria inserindo sugestões novas em
+    // "fila_banco_pratico" a cada carregamento, escrevendo no banco por baixo dos panos para um
+    // card que ninguém mais vê. Pra reativar no futuro: descomenta a linha abaixo e a chamada
+    // de renderCardBancoPratico() dentro de renderInicio() — o resto (tabela, config, funções
+    // de marcar feito, meta diária) continua todo intacto, só dormente.
+    // await verificarFilaBancoPratico();
     setSyncStatus('ok');
     renderTab(tabAtual,true);
     finalizarSplash();
@@ -7343,7 +7350,6 @@ function renderInicio(){
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
     ${renderCardPlanejamento()}
-    ${renderCardBancoPratico()}
     ${renderCardFoco()}
     ${renderCardComplementares()}
     ${renderCardNotas()}
@@ -7576,7 +7582,11 @@ async function marcarFilaBancoFeito(id){
     const {error}=await sbDados.from('fila_banco_pratico').update({status:'Feito'}).eq('id',id);
     if(error) throw error;
     // Feito um item, a fila pode ter ficado curta — repõe na hora, não no próximo carregamento.
-    await verificarFilaBancoPratico();
+    // PAUSADO junto com o resto do Banco Prático (ver comentário em loadDataInterno) — na
+    // prática esta função já é inalcançável, porque o botão que a chama só existia dentro do
+    // card que saiu da Início, mas fica comentado aqui também pra não sobrar nenhum caminho
+    // ambíguo enquanto o recurso estiver desligado.
+    // await verificarFilaBancoPratico();
     renderTab(tabAtual,true);
   }catch(e){
     mostrarAviso('Não deu para marcar como feito','Tente de novo em instantes.');
