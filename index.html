@@ -2700,6 +2700,8 @@ async function sincronizarFlashPilotquest(){
         anuladas,
         total_questoes:linhasQuestoes.length,
         tempo_gasto_minutos:minutos,
+        iniciado_em:inicio.toISOString(),
+        finalizado_em:fim.toISOString(),
       });
       if(eAtiv) throw eAtiv;
 
@@ -2840,6 +2842,8 @@ async function loadDataInterno(){
       anuladas:p.anuladas||null,
       total:p.total_questoes||null,
       tempoGastoMinutos:p.tempo_gasto_minutos||null,
+      iniciadoEm:p.iniciado_em||null,
+      finalizadoEm:p.finalizado_em||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
     // Questões excluídas somem de todos os cálculos e telas. Filtrar aqui, na origem, em vez de
     // em cada lugar que usa "questoes" — assim nenhum cálculo futuro esquece de considerar.
@@ -3015,6 +3019,7 @@ async function loadDataInterno(){
       reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
       arquivoComFalha:p.arquivo_com_falha||'',motivoFalha:p.motivo_falha||'',
       excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,tempoGastoSegundos:p.tempo_gasto_segundos,
+      iniciadoEm:p.iniciado_em||null,finalizadoEm:p.finalizado_em||null,
     }));
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
@@ -3708,6 +3713,8 @@ async function confirmarNomeAtividade(){
       anuladas:anuladas,
       total_questoes:qs.length,
       tempo_gasto_minutos:ap.tempoGastoSegundos?Math.round(ap.tempoGastoSegundos/60):null,
+      iniciado_em:ap.iniciadoEm||null,
+      finalizado_em:ap.finalizadoEm||null,
     });
     if(eAtiv) throw eAtiv;
 
@@ -4623,10 +4630,14 @@ function renderAprovado(){
     // lançar tudo de novo. Sessões agrupadas (vários blocos) não são editáveis — cada bloco é
     // um registro, e editar o conjunto não teria como distribuir a mudança.
     const podeEditar=s.blocos===1;
+    // Horário só quando a sessão é um bloco só: numa sessão agrupada (blocos>1), iniciadoEm
+    // vem do PRIMEIRO bloco e finalizadoEm não é atualizado pelos blocos seguintes — mostrar
+    // isso daria uma janela de horário enganosa, parecendo mais curta do que realmente foi.
+    const horarioTexto=(podeEditar&&janelaSessao(s))?` • ${janelaSessao(s)}`:'';
     return `<div class="prox-item${podeEditar?' prox-item-clicavel':''}"${podeEditar?` onclick="abrirEditarSessao('${s.id}')"`:' style="cursor:default"'}>
       <div class="prox-left">
         <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}${seloOrigem(s)}</span>
-        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${capTexto}${ritmoTexto}${blocosTexto} • ${fmtData(s.data)}</span>
+        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${horarioTexto}${capTexto}${ritmoTexto}${blocosTexto} • ${fmtData(s.data)}</span>
       </div>
       ${s.blocos===1?`<span class="historico-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>`:''}
     </div>`;
@@ -5492,6 +5503,11 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 let wakeLockAtivo=null;
+// Distingue um release NOSSO (chamado de propósito, ex: fechando a tela cheia) de um release
+// que o PRÓPRIO SISTEMA decide sozinho — o iOS pode soltar a trava por conta própria em certas
+// condições, sem gerar nenhum evento que o app já escutasse. Sem essa distinção, a tela voltava
+// a apagar no meio de uma sessão longa e o app nunca percebia que a trava tinha ido embora.
+let wakeLockLiberadoDePropósito=false;
 async function solicitarWakeLock(){
   // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
   // apaga a tela sozinho no meio de uma sessão de estudo/prova. Suportado no Safari 16.4+
@@ -5503,13 +5519,31 @@ async function solicitarWakeLock(){
       // visibilitychange (acontece bastante: Centro de Controle, notificações, trocar de app),
       // um lock novo era pedido sem nunca soltar o de antes, acumulando handles pendurados ao
       // longo de uma sessão longa (tipo um caderno de 4h) — isso pode ter sido a causa de lentidão.
-      if(wakeLockAtivo){ wakeLockAtivo.release().catch(()=>{}); wakeLockAtivo=null; }
+      if(wakeLockAtivo){
+        wakeLockLiberadoDePropósito=true;
+        wakeLockAtivo.release().catch(()=>{});
+        wakeLockAtivo=null;
+      }
+      wakeLockLiberadoDePropósito=false;
       wakeLockAtivo=await navigator.wakeLock.request('screen');
+      // O sentinel dispara 'release' tanto quando NÓS chamamos release() quanto quando o
+      // SISTEMA solta a trava sozinho. Só reage no segundo caso — e só tenta pedir de volta se
+      // ainda fizer sentido (algum cronômetro em tela cheia continua aberto e a aba está
+      // visível), senão ficaria pedindo trava pra uma tela que o Carlos já fechou.
+      wakeLockAtivo.addEventListener('release',()=>{
+        if(wakeLockLiberadoDePropósito) return;
+        wakeLockAtivo=null;
+        const aindaPrecisa=(timerFullscreenAberto||
+          !document.getElementById('caderno-timer-fullscreen').classList.contains('hidden'))
+          && document.visibilityState==='visible';
+        if(aindaPrecisa) solicitarWakeLock();
+      });
     }
   }catch(e){}
 }
 function liberarWakeLock(){
   if(wakeLockAtivo){
+    wakeLockLiberadoDePropósito=true;
     wakeLockAtivo.release().catch(()=>{});
     wakeLockAtivo=null;
   }
@@ -5606,13 +5640,22 @@ function fecharTimerFullscreen(){
 let cadernoTimerAtivo=null,cadernoTimerInicio=null,cadernoTimerIntervalId=null,cadernoTimerAcabouAvisado=false;
 const CADERNO_TIMER_MAXIMO_SEG=4*3600;
 
-function abrirCadernoTimerFullscreen(atividadeId){
+async function abrirCadernoTimerFullscreen(atividadeId){
   // Se já tem um cronômetro rodando pra essa mesma atividade (voltando de "fechar sem parar"),
   // não reinicia do zero — só reabre a tela por cima do que já estava contando.
   if(cadernoTimerAtivo!==atividadeId){
     cadernoTimerAtivo=atividadeId;
     cadernoTimerInicio=Date.now();
     cadernoTimerAcabouAvisado=false;
+    // Grava o instante real de início na fila pendente, pra sobreviver até o caderno ser
+    // confirmado — sem isso, "que horas comecei" só existia numa variável de memória, perdida
+    // se o app fosse fechado no meio. Falha em silêncio: perder isso não deve travar o estudo.
+    try{
+      await sbDados.from('atividades_pendentes')
+        .update({iniciado_em:new Date().toISOString()}).eq('id',atividadeId);
+      const ap=atividadesPendentes.find(a=>a.id===atividadeId);
+      if(ap) ap.iniciadoEm=new Date().toISOString();
+    }catch(e){ console.error('Não foi possível gravar o início do caderno:',e); }
   }
   esconderTimerFlutuante();
   // Sem viewport-fit=cover — mesma razão do timer normal (ver comentário lá).
@@ -5733,8 +5776,10 @@ async function finalizarCadernoTimer(){
   if(!cadernoTimerAtivo) return;
   const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
   const id=cadernoTimerAtivo;
+  const finalizadoEm=new Date().toISOString();
   try{
-    const {error}=await sbDados.from('atividades_pendentes').update({tempo_gasto_segundos:decorrido}).eq('id',id);
+    const {error}=await sbDados.from('atividades_pendentes')
+      .update({tempo_gasto_segundos:decorrido,finalizado_em:finalizadoEm}).eq('id',id);
     if(error) throw error;
     if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
     cadernoTimerAtivo=null;
@@ -5747,7 +5792,8 @@ async function finalizarCadernoTimer(){
   }catch(e){
     // Tempo cronometrado é insubstituível: entra na fila e é reenviado sozinho, em vez de
     // só avisar e sumir se o app fechar.
-    enfileirar('atividades_pendentes','update',{id,valores:{tempo_gasto_segundos:decorrido}},
+    enfileirar('atividades_pendentes','update',
+      {id,valores:{tempo_gasto_segundos:decorrido,finalizado_em:finalizadoEm}},
       `tempo do caderno (${Math.round(decorrido/60)} min)`);
     if(cadernoTimerIntervalId){ clearInterval(cadernoTimerIntervalId); cadernoTimerIntervalId=null; }
     cadernoTimerAtivo=null;
@@ -8913,7 +8959,7 @@ function renderDetalhe(a){
       <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
     </div>
-    ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder</div>`:''}
+    ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder${janelaSessao(a)?` · ${janelaSessao(a)}`:''}</div>`:''}
     <div class="mtr-grid" style="margin-top:12px">
       <div class="mtr-card"><div class="mtr-label">Pontuação</div><div class="mtr-val">${a.pontuacao?fmtPontos(a.pontuacao):'–'}<span style="font-size:var(--fs-e);color:#888"> / ${a.pontuacaoTotal?fmtPontos(a.pontuacaoTotal):'–'}</span></div></div>
       <div class="mtr-card"><div class="mtr-label">Aproveitamento</div><div class="mtr-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div></div>
