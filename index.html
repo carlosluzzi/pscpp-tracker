@@ -501,7 +501,11 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .periodo-row{flex-wrap:nowrap;gap:6px}
 .periodo-row .filter-btn{flex:1 1 auto;text-align:center;padding:8px 10px;white-space:nowrap}
-.timer-tipo-row .filter-btn{padding:6px 10px;font-size:var(--fs-e)}
+/* Sem font-size próprio aqui de propósito: usa o mesmo --fs-c de QUALQUER outro .filter-btn
+   do app (período, status...). Um tamanho especial só pra este grupo quebrava a consistência
+   com os selects de módulo/publicação logo abaixo, no mesmo cluster de filtro. O padding
+   maior (6px em vez de 4px) continua — isso não é tipografia, é alvo de toque. */
+.timer-tipo-row .filter-btn{padding:6px 10px}
 /* iPad na vertical (e telas médias) — sobra espaço, então os botões ficam com largura idêntica em vez de proporcional ao texto */
 @media(min-width:768px) and (max-width:1099px){
   .periodo-row .filter-btn{flex:1 1 0}
