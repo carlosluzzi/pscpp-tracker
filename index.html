@@ -4388,7 +4388,10 @@ function renderAnalise(parte){
       if(!jaFechou){
         primeiraLeitura.push(s);
         acumulado+=s.caracteresLidos;
-        if(tamanhoAtual&&acumulado>=tamanhoAtual) jaFechou=true;
+        // 99% do declarado já conta como concluído — exigir 100% cravado faz uma diferença de
+        // poucos caracteres (ruído normal de contagem, não "faltou ler") aparecer como "em
+        // andamento" pra sempre, projetando minutos residuais tipo "0min restantes".
+        if(tamanhoAtual&&acumulado>=tamanhoAtual*0.99) jaFechou=true;
       }else{
         releitura.push(s);
       }
