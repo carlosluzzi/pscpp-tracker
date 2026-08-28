@@ -4292,6 +4292,12 @@ function renderAnalise(parte){
       const minPub=somaMin(sessPub);
       const capsHtml=[...caps.entries()].sort((a,b)=>somaMin(b[1])-somaMin(a[1])).map(([cap,arr],ci)=>{
         const id=`an${mi}-${pi}-${ci}`;
+        // Rótulo do capítulo respeitando o idioma da publicação (Capítulo/Chapter/Seção/Section),
+        // igual ao resto do app — antes aqui usava "Capítulo "+cap hardcoded, o que fazia livros em
+        // inglês (rótulo "Section" na bibliografia) aparecerem como "Capítulo 5" aqui mas "Section 5"
+        // no modal de editar sessão, que usa formatarCapituloExibicao corretamente.
+        const pubInfoCap=bibliografia.find(b=>b.nome===pub&&b.modulo===mod);
+        const capLabel=cap==='–'?'Sem capítulo':(/^\d/.test(cap)?formatarCapituloExibicao(pubInfoCap,cap):cap);
         const minCap=somaMin(arr);
         const carCap=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
         const ritmoCap=carCap>0&&minCap>0?Math.round(carCap/minCap):null;
@@ -4313,7 +4319,7 @@ function renderAnalise(parte){
         }).join('');
         return `<div class="cap-group">
           <div class="cap-group-header" onclick="toggleCap('${id}')">
-            <span class="cap-loc">${cap==='–'?'Sem capítulo':(/^\d/.test(cap)?'Capítulo '+cap:cap)}</span>
+            <span class="cap-loc">${capLabel}</span>
             <div class="cap-group-right">
               <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
               <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
@@ -4678,7 +4684,10 @@ function renderAprovado(){
 
   const revisoesVencidas=[...revisoesAtrasadas,...revisoesHoje];   // o que fazer hoje
 
-  const nomeRevisao=r=>r.modulo+(r.publicacao?' – '+nomePub(r.publicacao):'')+(r.capitulo?' – Capítulo '+r.capitulo:'');
+  const nomeRevisao=r=>{
+    const pubInfoRev=bibliografia.find(b=>b.nome===r.publicacao&&b.modulo===r.modulo);
+    return r.modulo+(r.publicacao?' – '+nomePub(r.publicacao):'')+(r.capitulo?' – '+formatarCapituloExibicao(pubInfoRev,r.capitulo):'');
+  };
 
   const linhaRevisao=(r,situacao)=>{
     const nomeRev=nomeRevisao(r);
@@ -4702,8 +4711,9 @@ function renderAprovado(){
     const acao=situacao==='futura'?'':` onclick="abrirConfirmacao('${r.id}','','revisao','Marcar revisão de &quot;${nomeRev.replace(/'/g,"\\'")}&quot; como feita?')"`;
     // Sem o módulo no texto: ele vira cabeçalho do grupo, uma vez só. Capítulo colado no nome
     // do livro, que é como se fala — "Tug Use in Port, Capítulo 4".
+    const pubInfoLinhaRev=bibliografia.find(b=>b.nome===r.publicacao&&b.modulo===r.modulo);
     const semModulo=(r.publicacao?nomePub(r.publicacao):r.modulo)
-      +(r.capitulo?', Capítulo '+r.capitulo:'');
+      +(r.capitulo?', '+formatarCapituloExibicao(pubInfoLinhaRev,r.capitulo):'');
     return `<div class="rev-item${situacao==='futura'?'':' rev-item-clicavel'}"${acao}>
       <span class="rev-nome">${semModulo}</span>
       <span class="rev-quando" style="color:${cor}">${detalhe}</span>
@@ -7358,9 +7368,12 @@ function eventosDoDia(dia){
   const ev=[];
 
   (revisoesEspacadas||[]).forEach(r=>{
-    if(r.proximaData===dia) ev.push({fonte:'revisao', tipo:'Revisão',
-      texto:(r.publicacao?nomePub(r.publicacao):r.modulo)+(r.capitulo?', Capítulo '+r.capitulo:''),
-      modulo:r.modulo, id:r.id});
+    if(r.proximaData===dia){
+      const pubInfoEvRev=bibliografia.find(b=>b.nome===r.publicacao&&b.modulo===r.modulo);
+      ev.push({fonte:'revisao', tipo:'Revisão',
+        texto:(r.publicacao?nomePub(r.publicacao):r.modulo)+(r.capitulo?', '+formatarCapituloExibicao(pubInfoEvRev,r.capitulo):''),
+        modulo:r.modulo, id:r.id});
+    }
   });
 
   (calendarioEventos||[]).forEach(c=>{
@@ -7381,10 +7394,13 @@ function eventosDoDia(dia){
   (planoEstudo||[]).forEach(pl=>{
     // Evento pessoal ganha fonte própria: cor diferente no calendário, porque não é estudo e
     // misturá-lo com o que foi planejado estudar apagaria a distinção.
-    if(pl.data===dia) ev.push({fonte:pl.tipo==='Evento'?'evento':'plano', tipo:pl.tipo,
-      texto:pl.descricao||[pl.modulo,pl.publicacao?nomePub(pl.publicacao):'',pl.capitulo?'Capítulo '+pl.capitulo:'']
-        .filter(Boolean).join(' – '),
-      modulo:pl.modulo, id:pl.id, feito:pl.feito, minutos:pl.minutos});
+    if(pl.data===dia){
+      const pubInfoEvPlano=bibliografia.find(b=>b.nome===pl.publicacao&&b.modulo===pl.modulo);
+      ev.push({fonte:pl.tipo==='Evento'?'evento':'plano', tipo:pl.tipo,
+        texto:pl.descricao||[pl.modulo,pl.publicacao?nomePub(pl.publicacao):'',pl.capitulo?formatarCapituloExibicao(pubInfoEvPlano,pl.capitulo):'']
+          .filter(Boolean).join(' – '),
+        modulo:pl.modulo, id:pl.id, feito:pl.feito, minutos:pl.minutos});
+    }
   });
 
   return ev;
@@ -8541,7 +8557,8 @@ function renderPlanoAcao(){
   // o nome do módulo gastaria duas linhas dizendo a mesma coisa.
   const nomeRecorte=i=>{
     const pub=i.publicacao?nomePub(i.publicacao):'';
-    const cap=(i.capitulo&&i.capitulo!=='Único')?'Capítulo '+i.capitulo:'';
+    const pubInfoRecorte=bibliografia.find(b=>b.nome===i.publicacao&&b.modulo===i.modulo);
+    const cap=(i.capitulo&&i.capitulo!=='Único')?formatarCapituloExibicao(pubInfoRecorte,i.capitulo):'';
     if(pub&&cap) return pub+', '+cap;
     return pub||cap||i.modulo;
   };
@@ -8955,7 +8972,8 @@ function renderAnkiDesempenho(){
           if(!cont.size) return '';
           const [chave]=[...cont.entries()].sort((a,b)=>b[1]-a[1])[0];
           const [pub,cap]=chave.split('||');
-          return `${nomePub(pub)}${cap?', Capítulo '+cap:''}${cont.size>1?' e outros':''}`;
+          const pubInfoSessAnki=bibliografia.find(b=>b.nome===pub);
+          return `${nomePub(pub)}${cap?', '+formatarCapituloExibicao(pubInfoSessAnki,cap):''}${cont.size>1?' e outros':''}`;
         })();
         return `<div class="sess-item" onclick="abrirDetalheSessao('${d.dia}')">
           <div class="sess-topo">
@@ -9292,7 +9310,7 @@ function renderTiposCards(qs){
             <span class="tipo-errada-resp">${(q.suaResposta||'–').toUpperCase()} → ${(q.gabarito||'–').toUpperCase()}</span>
           </div>
           ${as?`<div class="tipo-errada-assunto">${as.charAt(0).toUpperCase()+as.slice(1)}</div>`:''}
-          <div class="tipo-errada-ref">${q.modulo||'sem módulo'}${q.publicacao?' – '+nomePub(q.publicacao):''}${q.capitulo?', Capítulo '+q.capitulo:''}</div>
+          <div class="tipo-errada-ref">${q.modulo||'sem módulo'}${q.publicacao?' – '+nomePub(q.publicacao):''}${q.capitulo?', '+formatarCapituloExibicao(bibliografia.find(b=>b.nome===q.publicacao&&b.modulo===q.modulo),q.capitulo):''}</div>
         </div>`;
         }).join('')
       : '<div class="empty" style="padding:12px 8px">Nenhum erro deste tipo no período.</div>';
@@ -9750,13 +9768,13 @@ function abrirIniciarEstudo(fonte,id){
     if(!r) return;
     modulo=r.modulo||''; publicacao=r.publicacao||''; capitulo=r.capitulo||'';
     // Mesmo formato da linha que foi tocada: publicação e capítulo, sem repetir o módulo
-    rotulo=(publicacao?nomePub(publicacao):modulo)+(capitulo?', Capítulo '+capitulo:'');
+    rotulo=(publicacao?nomePub(publicacao):modulo)+(capitulo?', '+formatarCapituloExibicao(bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo),capitulo):'');
   }else if(fonte==='plano'){
     const pl=(planoEstudo||[]).find(x=>x.id===id);
     if(!pl) return;
     modulo=pl.modulo||''; publicacao=pl.publicacao||''; capitulo=pl.capitulo||'';
     tipoSugerido=['Leitura','Exercício','Anki'].includes(pl.tipo)?pl.tipo:'Leitura';
-    rotulo=pl.descricao||((publicacao?nomePub(publicacao):modulo)+(capitulo?', Capítulo '+capitulo:''));
+    rotulo=pl.descricao||((publicacao?nomePub(publicacao):modulo)+(capitulo?', '+formatarCapituloExibicao(bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo),capitulo):''));
   }else return;
 
   iniciarCtx={modulo,publicacao,capitulo,tipo:tipoSugerido,fonte,id};
