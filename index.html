@@ -2512,11 +2512,16 @@ async function loadData(){
 
 async function sincronizarPilotquest(){
   if(!sbAuth) return;
-  // Múltipla escolha NÃO passa por aqui — o Carlos decidiu manter o fluxo antigo (botão manual
-  // "Enviar pro Tracker" no Pilotquest, e o aviso de exclusão que já existia). A leitura direta
-  // só vale pro Flash, que nunca teve confirmação manual pra preservar.
-  try{ await sincronizarFlashPilotquest(); }
-  catch(e){ console.error('Erro ao sincronizar Flash do Pilotquest:',e); }
+  // Múltipla escolha e Flash: os DOIS agora seguem o mesmo fluxo antigo — botão manual "Enviar
+  // pro Tracker" no Pilotquest, com confirmação sua, e o aviso de exclusão de sempre. O Flash
+  // ganhou sessão de verdade lá (iniciar/pausar/finalizar), o payload já diz "origem":"flash"
+  // pra não ambiguar com múltipla escolha, e o envio já marca sessoes_vf.enviado_tracker_em —
+  // o mesmo rastreamento que cadernos já tinha. Sem isso, a leitura automática (que existia só
+  // porque o Flash não tinha confirmação manual nenhuma) virou puro risco de duplicar sessão:
+  // uma vez pelo botão, outra pela leitura direta do log bruto. Ver sincronizarFlashPilotquest
+  // logo abaixo — a função continua inteira, só não é mais chamada.
+  // try{ await sincronizarFlashPilotquest(); }
+  // catch(e){ console.error('Erro ao sincronizar Flash do Pilotquest:',e); }
 }
 
 // Próximo nome curto de uma sequência tipo "PQF 012": acha o maior número já usado nas
@@ -5478,28 +5483,45 @@ function pararApitoPausa(){
 // alerta simplesmente para de tocar, sem nada no código desligá-lo. É o pior momento para
 // falhar: justamente quando o Carlos se distraiu e mais precisa do lembrete.
 // Ao voltar, se o cronômetro continua pausado, o ciclo é recriado.
+// Trava de 1 segundo antes de reagir a "ficou visível": no iOS, o gesto de FECHAR o app (segurar
+// pra abrir o seletor, ou o Centro de Controle) às vezes faz a página piscar como "visible" por
+// uma fração de segundo, sem o Carlos ter voltado de verdade. Sem essa espera, esse pisca-pisca
+// disparava o alerta sonoro na hora — parecendo, pra quem estava fechando o app, que o beep
+// veio "depois" de fechado (era só o atraso natural do som sintetizado chegando um instante
+// depois do flash). Um segundo é imperceptível pra quem reabre de propósito; ninguém precisa do
+// lembrete em menos de 1s.
+let timeoutVisivelDeVerdade=null;
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState!=='visible') return;
-  // Refeição é silenciosa e descanso em andamento também: a condição antiga ("parado e com
-  // tempo acumulado") é verdadeira nos dois casos, então voltar ao app no meio de um pomodoro
-  // fazia o alerta disparar bem no descanso, que deveria ser justamente o momento de silêncio.
-  if(refeicaoInicio||pausaPrazoFim) return;
-  if(descansoAcabou){
-    // Descanso vencido continua cobrando, mas no ritmo dele, não no da pausa comum.
-    pararApitoPausa();
-    prepararAudioApito();
-    apitoPausaId=setInterval(tocarApitoPausa,apitoDescansoSeg*1000);
-    tocarApitoPausa();
+  if(document.visibilityState!=='visible'){
+    if(timeoutVisivelDeVerdade){ clearTimeout(timeoutVisivelDeVerdade); timeoutVisivelDeVerdade=null; }
     return;
   }
-  if(!timerRodando&&timerAcumuladoSeg>0){
-    // Sem espera: voltar à tela já indica que o Carlos está de volta, e o alerta serve para
-    // lembrar de retomar agora.
-    pararApitoPausa();
-    prepararAudioApito();
-    apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
-    tocarApitoPausa();
-  }
+  timeoutVisivelDeVerdade=setTimeout(()=>{
+    timeoutVisivelDeVerdade=null;
+    // Confirma que ainda está visível ao fim da espera — evita agir sobre um flash que já
+    // reverteu para 'hidden' antes mesmo do segundo terminar.
+    if(document.visibilityState!=='visible') return;
+    // Refeição é silenciosa e descanso em andamento também: a condição antiga ("parado e com
+    // tempo acumulado") é verdadeira nos dois casos, então voltar ao app no meio de um pomodoro
+    // fazia o alerta disparar bem no descanso, que deveria ser justamente o momento de silêncio.
+    if(refeicaoInicio||pausaPrazoFim) return;
+    if(descansoAcabou){
+      // Descanso vencido continua cobrando, mas no ritmo dele, não no da pausa comum.
+      pararApitoPausa();
+      prepararAudioApito();
+      apitoPausaId=setInterval(tocarApitoPausa,apitoDescansoSeg*1000);
+      tocarApitoPausa();
+      return;
+    }
+    if(!timerRodando&&timerAcumuladoSeg>0){
+      // Sem espera adicional daqui em diante: já confirmamos que a volta é de verdade, e o
+      // alerta serve para lembrar de retomar agora.
+      pararApitoPausa();
+      prepararAudioApito();
+      apitoPausaId=setInterval(tocarApitoPausa,apitoIntervaloSeg*1000);
+      tocarApitoPausa();
+    }
+  },1000);
 });
 
 let wakeLockAtivo=null;
