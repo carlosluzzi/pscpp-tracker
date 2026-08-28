@@ -4398,10 +4398,13 @@ function renderAnalise(parte){
       if(!jaFechou||s.mesmaLeituraAnterior){
         primeiraLeitura.push(s);
         acumulado+=s.caracteresLidos;
-        // 99% do declarado já conta como concluído — exigir 100% cravado faz uma diferença de
-        // poucos caracteres (ruído normal de contagem, não "faltou ler") aparecer como "em
-        // andamento" pra sempre, projetando minutos residuais tipo "0min restantes".
-        if(tamanhoAtual&&acumulado>=tamanhoAtual*0.99) jaFechou=true;
+        // Concluído quando falta pouco — 300 caracteres ou 1% do total, o que for maior. Uma
+        // margem só em porcentagem não é robusta: 1% de um capítulo pequeno pode ser menos
+        // tolerante que o necessário (159 de 13.691 = 1,16%, já ficava de fora da margem de
+        // 99% cravada). Uma margem só em número fixo também falha no sentido contrário, em
+        // capítulos grandes. As duas juntas cobrem os dois lados.
+        const margemTolerancia=tamanhoAtual?Math.max(300,tamanhoAtual*0.01):0;
+        if(tamanhoAtual&&(tamanhoAtual-acumulado)<=margemTolerancia) jaFechou=true;
       }else{
         releitura.push(s);
       }
