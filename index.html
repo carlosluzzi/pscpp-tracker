@@ -1949,7 +1949,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <div class="config-title">Nova atividade complementar</div>
     <div class="config-item">
       <div class="config-label">Nome</div>
-      <input type="text" id="comp-nome" class="filter-select" style="margin-bottom:0" placeholder="Ex: Revisar Miguens Cap.13">
+      <input type="text" id="comp-nome" class="filter-select" style="margin-bottom:0" placeholder="Ex: Revisar Miguens Capítulo 13">
     </div>
     <div class="config-item">
       <div class="config-label">Prioridade</div>
@@ -4021,13 +4021,15 @@ function mostrarDiaAnalise(key){
     const total=doDia.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
     const itens=doDia.map(s=>{
       const r=(s.caracteresLidos>0&&s.duracaoMinutos>0)?Math.round(s.caracteresLidos/s.duracaoMinutos):null;
+      const pubInfoDia=bibliografia.find(b=>b.nome===s.publicacao&&b.modulo===s.modulo);
+      const rotuloCapDia=s.capitulo?` • ${formatarCapituloExibicao(pubInfoDia,s.capitulo)}`:'';
       // Também clicável aqui: a sessão errada pode ser encontrada por qualquer caminho, e ter
       // que voltar ao histórico para corrigir seria um passo a mais sem motivo.
       return `<div class="quad-item prox-item-clicavel" onclick="document.getElementById('ver-questao-modal').style.display='none';abrirEditarSessao('${s.id}')">
         <span class="quad-tag tag-tempo">${fmtDur(s.duracaoMinutos)}</span>
         <div class="quad-txt">
           <div class="quad-nome">${nomeModuloSessao(s)}${s.publicacao?' – '+nomePub(s.publicacao):''}${seloOrigem(s)}</div>
-          <div class="quad-det">${s.tipo}${s.capitulo?' • Cap. '+s.capitulo:''}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
+          <div class="quad-det">${s.tipo}${rotuloCapDia}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</div>
         </div>
       </div>`;
     }).join('');
@@ -4345,7 +4347,11 @@ function renderAnalise(parte){
   // caderno ("013", "218"), não uma publicação de verdade. Sem filtrar isso aqui, esses
   // números vazavam para o dropdown de "Todas as publicações" do Histórico, que é sobre
   // leitura por livro/capítulo — não sobre atividades.
-  const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s));
+  // eh_desvio também precisa ficar de fora: é uma consulta rápida a OUTRA obra, no meio da
+  // leitura de verdade de outra — nunca conta como ter estudado a publicação consultada, nem
+  // como leitura própria pra fins de cobertura por capítulo (mesmo raciocínio de por que o
+  // desvio não pede caracteres: aquele tempo é emprestado da sessão principal, não é dela).
+  const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s)&&!s.ehDesvio);
   const modsHist=[...new Set(sessComPub.map(s=>s.modulo).filter(Boolean))].sort();
   const pubsHist=[...new Set(sessComPub.filter(s=>!histFiltroModulo||s.modulo===histFiltroModulo).map(s=>s.publicacao))].sort();
 
@@ -4426,7 +4432,8 @@ function renderAnalise(parte){
 
   function linhaPlanilhaHtml(l,mostrarCabecalho){
     const chaveEsc=s=>String(s||'').replace(/'/g,"\\'");
-    const rotuloCap=l.capitulo?('Cap. '+l.capitulo):'Único';
+    const pubInfoLinha=bibliografia.find(b=>b.nome===l.publicacao&&b.modulo===l.modulo);
+    const rotuloCap=l.capitulo?formatarCapituloExibicao(pubInfoLinha,l.capitulo):'Único';
     const statusHtml = l.temDados
       ? (l.tamanhoAtual
           ? (l.concluida
@@ -4530,7 +4537,7 @@ function renderAnalise(parte){
     return `<div class="cob-item">
       <div class="cob-top">
         <span class="cob-nome">${mod}</span>
-        <span class="cob-num">${m.feitos}/${m.total} cap. • ${p}%</span>
+        <span class="cob-num">${m.feitos}/${m.total} capítulos • ${p}%</span>
       </div>
       <div class="cob-bar"><div class="cob-fill" style="width:${p}%;background:${cc.tx}"></div></div>
     </div>`;
