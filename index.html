@@ -506,6 +506,16 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
    com os selects de módulo/publicação logo abaixo, no mesmo cluster de filtro. O padding
    maior (6px em vez de 4px) continua — isso não é tipografia, é alvo de toque. */
 .timer-tipo-row .filter-btn{padding:6px 10px}
+/* Grupos de filter-btn que ficam colados a um filter-select (ex: Livro/Tudo empilhado acima dos
+   selects de módulo/publicação; tipo de estudo acima dos selects do timer) — o select é travado
+   em 16px em toda tela (abaixo disso o iOS Safari dá zoom automático ao focar), mas --fs-c cai
+   para 10-12px no mobile, abrindo uma diferença grande entre os dois no mesmo cluster de filtro.
+   Conferido contra o Pilotquest (mesma base de design, mesma classe .filter-btn): lá o select
+   também encolhe no mobile e a diferença para o botão fica sempre pequena, ~2px, em qualquer
+   tela. Como aqui o select não pode encolher, sobe-se o botão pra chegar nessa mesma proximidade
+   — --fs-d fica a 2px do select travado em 16px no mobile, e ligeiramente maior no tablet/desktop,
+   igual a como o Pilotquest deixa o select um pouco maior que o botão nos dois casos. */
+.filtro-com-select .filter-btn{font-size:var(--fs-d)}
 /* iPad na vertical (e telas médias) — sobra espaço, então os botões ficam com largura idêntica em vez de proporcional ao texto */
 @media(min-width:768px) and (max-width:1099px){
   .periodo-row .filter-btn{flex:1 1 0}
@@ -4512,7 +4522,7 @@ function renderAnalise(parte){
   }
 
   const filtroHistHtml=`
-    <div class="filter-row periodo-row" style="margin-bottom:8px">
+    <div class="filter-row periodo-row filtro-com-select" style="margin-bottom:8px">
       <button class="filter-btn${!histModoEmpilhado?' active':''}" onclick="toggleHistModoEmpilhado(false)">Livro</button>
       <button class="filter-btn${histModoEmpilhado?' active':''}" onclick="toggleHistModoEmpilhado(true)">Tudo empilhado</button>
     </div>
@@ -4866,7 +4876,7 @@ function renderAprovado(){
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45',{direita:timerModulo?`<span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span>`:''})}
       <div style="text-align:center;font-size:var(--fs-i);font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
-      <div class="filter-row periodo-row timer-tipo-row" style="margin-bottom:10px">
+      <div class="filter-row periodo-row timer-tipo-row filtro-com-select" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
       <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
