@@ -2972,6 +2972,7 @@ async function loadDataInterno(){
       finalizadoEm:p.finalizado_em||null,
       tempoExcluidoSeg:p.tempo_excluido_seg||0,
       ehDesvio:!!p.eh_desvio,
+      mesmaLeituraAnterior:!!p.mesma_leitura_anterior,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
@@ -4391,7 +4392,10 @@ function renderAnalise(parte){
 
     let acumulado=0,primeiraLeitura=[],releitura=[],jaFechou=false;
     comCaracteres.forEach(s=>{
-      if(!jaFechou){
+      // Marcada como "mesma leitura anterior": sempre entra no balde da primeira leitura,
+      // mesmo que ele já tivesse fechado numa sessão de antes — é o caso de reler um trecho
+      // pra fechar entendimento, que não deveria contar como uma releitura nova.
+      if(!jaFechou||s.mesmaLeituraAnterior){
         primeiraLeitura.push(s);
         acumulado+=s.caracteresLidos;
         // 99% do declarado já conta como concluído — exigir 100% cravado faz uma diferença de
@@ -4437,7 +4441,7 @@ function renderAnalise(parte){
     const statusHtml = l.temDados
       ? (l.tamanhoAtual
           ? (l.concluida
-              ? `<span style="color:var(--fs-c);color:#3B6D11">concluída${l.numReleituras?' · '+l.numReleituras+'ª+ releitura':''}</span>`
+              ? `<span style="color:var(--fs-c);color:#3B6D11">concluída${l.numReleituras?' · relida '+l.numReleituras+(l.numReleituras===1?' vez':' vezes'):''}</span>`
               : (l.falta!=null?`<span style="color:#0C447C">~${l.falta}min restantes</span>`:'<span style="color:#888">em andamento</span>'))
           : '<span style="color:#888">sem meta — ritmo geral</span>')
       : '<span style="color:#bbb">sem caracteres lançados</span>';
