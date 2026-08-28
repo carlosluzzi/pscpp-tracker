@@ -6264,6 +6264,15 @@ function atualizarTickTimer(){
   }else if(tabAtual==='aprovado'){
     // Mesma ideia pro card normal — só troca o número, não recalcula a aba Aprovado inteira
     // (Ciclo de Estudos, Metas, Horas por matéria, Histórico) a cada segundo.
+    //
+    // O "senão redesenha tudo" só faz sentido quando o número DEVERIA existir na tela e ainda
+    // não apareceu (ex: acabou de trocar de sub-aba, o render nem rodou ainda). Nunca quando o
+    // Carlos está deliberadamente em "Controle" ou "Histórico" — lá esse elemento nunca vai
+    // existir, porque não faz parte daquela tela. Sem essa distinção, o app reconstruía a aba
+    // inteira A CADA SEGUNDO enquanto o cronômetro rodava e o Carlos olhava o Histórico —
+    // derrubando qualquer <select> nativo bem no meio do toque, antes dele conseguir abrir de
+    // verdade (por isso "abria e fechava" o seletor de módulo).
+    if(abaAprovado!=='nova') return;
     const elTempo=document.getElementById('timer-card-tempo');
     if(elTempo) elTempo.textContent=tempoTexto;
     else renderTab(tabAtual,true);
