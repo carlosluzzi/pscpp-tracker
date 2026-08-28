@@ -1344,9 +1344,27 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
       <div class="config-label">Quantidade de caracteres lidos (opcional)</div>
       <input type="number" min="0" class="filter-select" id="timer-caracteres-input" placeholder="Ex: 8500" style="margin-bottom:14px">
     </div>
+    <div id="timer-tamanho-fim-wrap" class="hidden">
+      <div class="config-label">Tamanho total deste capítulo (caracteres)</div>
+      <input type="number" min="1" class="filter-select" id="timer-tamanho-fim-input" placeholder="Ex: 31000" style="margin-bottom:14px">
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" id="timer-confirmar-cancelar-btn" onclick="fecharConfirmarSalvarTimer(true)">Cancelar</button>
       <button class="modal-btn modal-btn-sim" id="timer-confirmar-salvar-btn" onclick="confirmarSalvarTimer()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="timer-tamanho-inicio-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
+  <div class="modal-box" style="max-width:380px">
+    <div class="config-title">Tamanho deste capítulo</div>
+    <p style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4">
+      Caracteres do resumo, pelo contador do Pages. Se não souber ainda, deixe em branco.
+    </p>
+    <input type="number" min="1" class="filter-select" id="timer-tamanho-inicio-input" placeholder="Ex: 31000" style="margin-bottom:16px">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharTamanhoInicioModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarTamanhoInicioEIniciar()">Confirmar e iniciar</button>
     </div>
   </div>
 </div>
@@ -2441,14 +2459,14 @@ function fmtPct(v){
 // O histórico abre em "Hoje": a pergunta mais frequente é "o que eu já fiz hoje", não o mês.
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='dia',analiseMesRef=null;
 let analiseDataInicio='',analiseDataFim='';
-let histFiltroModulo='',histFiltroPub='',histFiltroCap='';
+let histFiltroModulo='',histFiltroPub='',histFiltroCap='',histModoEmpilhado=false;
 let ankiCards=[],ankiSecoes=[],ankiRevisoes=[],classAlternativas=[],planoEstudo=[],ankiPrevisao=[];
 let notasAssunto={};   // assunto -> texto da nota
 let quadranteCalculado='';   // HTML do "Tempo investido × desempenho", usado na aba Nova atividade
 let questoesExcluidas=[];   // fora dos cálculos, mantidas para poder reverter
 let ankiMinutosDia=30;   // valor do simulador de ritmo, escolhido pelo usuário
 let ankiConfig={alvoRetencao:90,limiteNovos:0,limiteRevisoes:0,limiteLeech:8};
-let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tabAtual='inicio',atividadeAtual=null;
+let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares=[],bancoPratico=null,focoEstudado=[],apelidos={},filaBancoPratico=[],sessoesEstudo=[],cicloEstudosConfig=[],metasEstudo=[],bibliografia=[],revisoesEspacadas=[],atividadesPendentes=[],questoesPendentes=[],anotacoesAlternativas=[],tamanhoCapitulos={},tabAtual='inicio',atividadeAtual=null;
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
@@ -2761,6 +2779,7 @@ async function loadDataInterno(){
       {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
       {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
       {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
+      {data:tamanhoCapRes,error:eTamanhoCap},
       {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
       {data:anotacoesRes,error:eAnotacoes},
       {data:ankiRes,error:eAnki},
@@ -2784,6 +2803,7 @@ async function loadDataInterno(){
       sbDados.from('ciclo_estudos_config').select('*'),
       sbDados.from('metas_estudo').select('*'),
       sbDados.from('revisoes_espacadas').select('*'),
+      sbDados.from('tamanho_capitulos').select('*'),
       sbDados.from('atividades_pendentes').select('*'),
       buscarTudo('questoes_pendentes'),
       sbDados.from('app_config').select('*'),
@@ -2796,7 +2816,7 @@ async function loadDataInterno(){
       buscarTudo('anki_previsao_carga'),
       buscarTudo('notas_assunto'),
     ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
+    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eTamanhoCap,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
     if(primeiroErro) throw new Error(primeiroErro.message);
     saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
     // Configurações lidas do próprio Anki pelo sincronizador. O limite de cards novos é o mais
@@ -2956,6 +2976,12 @@ async function loadDataInterno(){
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
     revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',capitulo:p.capitulo||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
+    tamanhoCapitulos={};
+    (tamanhoCapRes||[]).forEach(p=>{
+      tamanhoCapitulos[chaveTamanhoCap(p.modulo,p.publicacao,p.capitulo)]={
+        caracteresTotais:p.caracteres_totais,atualizadoEm:p.atualizado_em,
+      };
+    });
     // Anki é opcional: se a sincronização nunca rodou, a lista fica vazia e a aba mostra o
     // aviso de "sem dados" — não é erro que deva derrubar o carregamento do resto.
     ankiCards=eAnki?[]:(ankiRes||[]).map(p=>({
@@ -3963,6 +3989,15 @@ function setHistModulo(v){ histFiltroModulo=v; histFiltroPub=''; histFiltroCap='
 function setHistPub(v){ histFiltroPub=v; histFiltroCap=''; renderTab(tabAtual,true); }
 function setHistCap(v){ histFiltroCap=v; renderTab(tabAtual,true); }
 function limparFiltroHist(){ histFiltroModulo=''; histFiltroPub=''; histFiltroCap=''; renderTab(tabAtual,true); }
+function toggleHistModoEmpilhado(v){ histModoEmpilhado=v; renderTab(tabAtual,true); }
+// Editar o tamanho direto na célula da planilha — mesmo destino que os campos de
+// iniciar/finalizar leitura, sem histórico de valores anteriores.
+async function editarTamanhoNaPlanilha(valor,modulo,publicacao,capitulo){
+  const v=parseInt(valor,10);
+  if(!(v>0)){ renderTab(tabAtual,true); return; }
+  await salvarTamanhoCapitulo(modulo,publicacao,capitulo,v);
+  renderTab(tabAtual,true);
+}
 function setAnalisePeriodo(p){ analisePeriodo=p; renderTab(tabAtual,true); }
 function setAnaliseDataInicio(v){ analiseDataInicio=v; renderTab(tabAtual,true); }
 function setAnaliseDataFim(v){ analiseDataFim=v; renderTab(tabAtual,true); }
@@ -4313,73 +4348,148 @@ function renderAnalise(parte){
   const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s));
   const modsHist=[...new Set(sessComPub.map(s=>s.modulo).filter(Boolean))].sort();
   const pubsHist=[...new Set(sessComPub.filter(s=>!histFiltroModulo||s.modulo===histFiltroModulo).map(s=>s.publicacao))].sort();
-  const capsHist=[...new Set(sessComPub
-    .filter(s=>(!histFiltroModulo||s.modulo===histFiltroModulo)&&(!histFiltroPub||s.publicacao===histFiltroPub))
-    .map(s=>s.capitulo||'').filter(Boolean))].sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
 
-  const temFiltro=histFiltroModulo||histFiltroPub||histFiltroCap;
-  const sessFiltradas=sessComPub.filter(s=>
-    (!histFiltroModulo||s.modulo===histFiltroModulo)&&
-    (!histFiltroPub||s.publicacao===histFiltroPub)&&
-    (!histFiltroCap||String(s.capitulo||'')===histFiltroCap));
+  // ---------- planilha de cobertura por capítulo ----------
+  // Cada LINHA é um capítulo — módulo/publicação viram cabeçalho de grupo, não filtro fino.
+  // "Empilhado" mostra tudo que já tem alguma sessão registrada, ignorando os selects acima.
+  const temFiltro=histFiltroModulo||histFiltroPub;
+  let sessBase;
+  if(histModoEmpilhado){
+    sessBase=sessComPub;
+  }else if(temFiltro){
+    sessBase=sessComPub.filter(s=>
+      (!histFiltroModulo||s.modulo===histFiltroModulo)&&
+      (!histFiltroPub||s.publicacao===histFiltroPub));
+  }else{
+    sessBase=[];
+  }
+
+  // Agrupa por módulo+publicação+capítulo. Chave igual à de tamanhoCapitulos, pra casar os dois.
+  const gruposPlanilha=new Map();
+  sessBase.forEach(s=>{
+    const chave=chaveTamanhoCap(s.modulo,s.publicacao,s.capitulo);
+    if(!gruposPlanilha.has(chave)) gruposPlanilha.set(chave,{modulo:s.modulo,publicacao:s.publicacao,capitulo:s.capitulo||'',sessoes:[]});
+    gruposPlanilha.get(chave).sessoes.push(s);
+  });
+
+  // Pra cada grupo, decide quais sessões são "primeira leitura" (soma acumulada de caracteres,
+  // em ordem cronológica, até cruzar o tamanho ATUAL do capítulo) e quais são releitura — sem
+  // guardar essa decisão em lugar nenhum: é recalculada toda vez, contra o valor mais recente
+  // que o Carlos declarou. Editar o tamanho depois pode mover essa linha sozinho, de propósito.
+  function calcularLinhaPlanilha(grupo){
+    const tamanhoAtual=tamanhoCapAtual(grupo.modulo,grupo.publicacao,grupo.capitulo);
+    const ordenadas=[...grupo.sessoes].sort((a,b)=>(a.criadoEm||'').localeCompare(b.criadoEm||''));
+    const comCaracteres=ordenadas.filter(s=>s.caracteresLidos>0&&s.duracaoMinutos>0);
+
+    const tempoTotalMin=ordenadas.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
+
+    let acumulado=0,primeiraLeitura=[],releitura=[],jaFechou=false;
+    comCaracteres.forEach(s=>{
+      if(!jaFechou){
+        primeiraLeitura.push(s);
+        acumulado+=s.caracteresLidos;
+        if(tamanhoAtual&&acumulado>=tamanhoAtual) jaFechou=true;
+      }else{
+        releitura.push(s);
+      }
+    });
+    // Sem tamanho declarado, não dá pra saber onde a primeira leitura termina — tudo fica
+    // pooled num "ritmo geral" só, sem separar 1ª de releitura.
+    if(!tamanhoAtual){ primeiraLeitura=comCaracteres; releitura=[]; }
+
+    const ritmoDe=arr=>{
+      const car=arr.reduce((a,s)=>a+s.caracteresLidos,0);
+      const min=arr.reduce((a,s)=>a+s.duracaoMinutos,0);
+      return min>0?Math.round(car/min):null;
+    };
+    const ritmo1=ritmoDe(primeiraLeitura);
+    const ritmoR=releitura.length?ritmoDe(releitura):null;
+
+    let falta=null,concluida=jaFechou;
+    if(tamanhoAtual&&!jaFechou&&ritmo1){
+      falta=Math.max(0,Math.round((tamanhoAtual-acumulado)/ritmo1));
+    }
+
+    return {
+      ...grupo,tamanhoAtual,tempoTotalMin,ritmo1,ritmoR,
+      numReleituras:releitura.length,concluida,falta,
+      temDados:comCaracteres.length>0,
+    };
+  }
+
+  const linhasPlanilha=[...gruposPlanilha.values()].map(calcularLinhaPlanilha)
+    .sort((a,b)=>a.modulo.localeCompare(b.modulo)||a.publicacao.localeCompare(b.publicacao)
+      ||(parseInt(a.capitulo)||0)-(parseInt(b.capitulo)||0));
+
+  function linhaPlanilhaHtml(l,mostrarCabecalho){
+    const chaveEsc=s=>String(s||'').replace(/'/g,"\\'");
+    const rotuloCap=l.capitulo?('Cap. '+l.capitulo):'Único';
+    const statusHtml = l.temDados
+      ? (l.tamanhoAtual
+          ? (l.concluida
+              ? `<span style="color:var(--fs-c);color:#3B6D11">concluída${l.numReleituras?' · '+l.numReleituras+'ª+ releitura':''}</span>`
+              : (l.falta!=null?`<span style="color:#0C447C">~${l.falta}min restantes</span>`:'<span style="color:#888">em andamento</span>'))
+          : '<span style="color:#888">sem meta — ritmo geral</span>')
+      : '<span style="color:#bbb">sem caracteres lançados</span>';
+    return `<tr style="border-bottom:0.5px solid #f0f0ee">
+      ${mostrarCabecalho?`<td style="padding:8px 6px;font-size:var(--fs-c);color:#111;white-space:nowrap">${rotuloCap}</td>`:`<td style="padding:8px 6px 8px 18px;font-size:var(--fs-c);color:#111;white-space:nowrap">${rotuloCap}</td>`}
+      <td style="padding:6px 4px;text-align:right">
+        <input type="number" min="1" value="${l.tamanhoAtual||''}" placeholder="—"
+          style="width:64px;height:28px;text-align:right;border-radius:6px;border:0.5px solid #ddd;font-size:var(--fs-b);padding:0 4px;font-family:inherit"
+          onchange="editarTamanhoNaPlanilha(this.value,'${chaveEsc(l.modulo)}','${chaveEsc(l.publicacao)}','${chaveEsc(l.capitulo)}')">
+      </td>
+      <td style="padding:8px 4px;text-align:right;font-size:var(--fs-c);font-variant-numeric:tabular-nums">${l.ritmo1||'–'}</td>
+      <td style="padding:8px 4px;text-align:right;font-size:var(--fs-c);color:#888;font-variant-numeric:tabular-nums">${l.ritmoR||'–'}</td>
+      <td style="padding:8px 4px;text-align:right;font-size:var(--fs-c);color:#888">${fmtDur(l.tempoTotalMin)}</td>
+      <td style="padding:8px 6px;text-align:right;font-size:var(--fs-a)">${statusHtml}</td>
+    </tr>`;
+  }
 
   let resultadoHist='';
-  if(!temFiltro){
-    resultadoHist='<div class="empty" style="padding:20px 8px">Escolha uma matéria para ver o histórico de leituras.</div>';
-  }else if(!sessFiltradas.length){
-    resultadoHist='<div class="empty" style="padding:20px 8px">Nenhuma leitura registrada com esses filtros.</div>';
+  if(!histModoEmpilhado&&!temFiltro){
+    resultadoHist='<div class="empty" style="padding:20px 8px">Escolha um módulo (e opcionalmente uma publicação), ou ative "Tudo empilhado".</div>';
+  }else if(!linhasPlanilha.length){
+    resultadoHist='<div class="empty" style="padding:20px 8px">Nenhuma leitura registrada ainda.</div>';
   }else{
-    const totMin=sessFiltradas.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
-    const totCar=sessFiltradas.reduce((a,s)=>a+(s.caracteresLidos||0),0);
-    const ritmoMedio=(totCar>0&&totMin>0)?Math.round(totCar/totMin):null;
-    // Agrupa por capítulo pra mostrar as passagens de cada um separadamente
-    const porCap=new Map();
-    sessFiltradas.forEach(s=>{
-      const c=s.capitulo||'–';
-      if(!porCap.has(c)) porCap.set(c,[]);
-      porCap.get(c).push(s);
+    // Agrupa visualmente por publicação — o cabeçalho da publicação aparece uma vez, as linhas
+    // de capítulo (mostrarCabecalho=false) vêm com indentação por baixo dele.
+    const porPub=new Map();
+    linhasPlanilha.forEach(l=>{
+      const k=l.modulo+'|||'+l.publicacao;
+      if(!porPub.has(k)) porPub.set(k,{modulo:l.modulo,publicacao:l.publicacao,linhas:[]});
+      porPub.get(k).linhas.push(l);
     });
-    const blocos=[...porCap.entries()].sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)).map(([cap,arr])=>{
-      const min=arr.reduce((a,s)=>a+(s.duracaoMinutos||0),0);
-      const car=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
-      const r=(car>0&&min>0)?Math.round(car/min):null;
-      const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
-        const rp=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
-        return `<div class="quad-item">
-          <span class="quad-tag tag-tempo">${fmtDur(x.duracaoMinutos)}</span>
-          <div class="quad-txt">
-            <div class="quad-nome">${arr.length-n}ª leitura – ${fmtData(x.data)}</div>
-            <div class="quad-det">${x.tipo}${rp?' • '+rp.toLocaleString('pt-BR')+' car/min':''}${x.caracteresLidos?' • '+x.caracteresLidos.toLocaleString('pt-BR')+' caracteres':''}</div>
-          </div>
-        </div>`;
-      }).join('');
-      return `<div class="hist-cap-bloco">
-        <div class="hist-cap-topo">
-          <span class="hist-cap-nome">${cap==='–'?'Sem capítulo':'Capítulo '+cap}</span>
-          ${arr.length>1?`<span class="hist-cap-resumo">${arr.length}× • ${fmtDur(min)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>`:''}
-        </div>
-        ${passagens}
-      </div>`;
-    }).join('');
+    const linhasHtml=[...porPub.values()].map(grupo=>`
+      <tr><td colspan="6" style="padding:12px 6px 4px;font-size:var(--fs-c);font-weight:600;color:#202A45">
+        ${histModoEmpilhado?grupo.modulo+' · ':''}${nomePub(grupo.publicacao)}
+      </td></tr>
+      ${grupo.linhas.map(l=>linhaPlanilhaHtml(l,false)).join('')}
+    `).join('');
     resultadoHist=`
-      <div class="hist-total">
-        <div class="hist-total-item">
-          <span class="hist-total-val">${sessFiltradas.length}</span>
-          <span class="hist-total-lbl">leitura${sessFiltradas.length===1?'':'s'}</span>
-        </div>
-        <div class="hist-total-item">
-          <span class="hist-total-val">${fmtDur(totMin)}</span>
-          <span class="hist-total-lbl">tempo total</span>
-        </div>
-        ${ritmoMedio?`<div class="hist-total-item">
-          <span class="hist-total-val">${ritmoMedio.toLocaleString('pt-BR')}</span>
-          <span class="hist-total-lbl">car/min médio</span>
-        </div>`:''}
+      <div style="overflow-x:auto;border:0.5px solid #eee;border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;min-width:400px">
+          <thead>
+            <tr style="background:#F7F7F5">
+              <th style="text-align:left;padding:8px 6px;font-size:var(--fs-a);color:#888;font-weight:600">Capítulo</th>
+              <th style="text-align:right;padding:8px 4px;font-size:var(--fs-a);color:#888;font-weight:600">Tamanho</th>
+              <th style="text-align:right;padding:8px 4px;font-size:var(--fs-a);color:#888;font-weight:600">1ª leit.</th>
+              <th style="text-align:right;padding:8px 4px;font-size:var(--fs-a);color:#888;font-weight:600">Releit.</th>
+              <th style="text-align:right;padding:8px 4px;font-size:var(--fs-a);color:#888;font-weight:600">Tempo</th>
+              <th style="text-align:right;padding:8px 6px;font-size:var(--fs-a);color:#888;font-weight:600">Status</th>
+            </tr>
+          </thead>
+          <tbody>${linhasHtml}</tbody>
+        </table>
       </div>
-      ${blocos}`;
+      <p style="font-size:var(--fs-a);color:#aaa;margin-top:8px">car/min · toque no tamanho para editar</p>`;
   }
 
   const filtroHistHtml=`
+    <div class="filter-row periodo-row" style="margin-bottom:8px">
+      <button class="filter-btn${!histModoEmpilhado?' active':''}" onclick="toggleHistModoEmpilhado(false)">Livro</button>
+      <button class="filter-btn${histModoEmpilhado?' active':''}" onclick="toggleHistModoEmpilhado(true)">Tudo empilhado</button>
+    </div>
+    ${!histModoEmpilhado?`
     <select class="filter-select" onchange="setHistModulo(this.value)">
       <option value="">Todas as matérias</option>
       ${modsHist.map(m=>`<option value="${m}" ${histFiltroModulo===m?'selected':''}>${m}</option>`).join('')}
@@ -4388,11 +4498,8 @@ function renderAnalise(parte){
       <option value="">Todas as publicações</option>
       ${pubsHist.map(p=>`<option value="${p.replace(/"/g,'&quot;')}" ${histFiltroPub===p?'selected':''}>${nomePub(p)}</option>`).join('')}
     </select>
-    <select class="filter-select" onchange="setHistCap(this.value)" ${capsHist.length?'':'disabled'}>
-      <option value="">Todos os capítulos</option>
-      ${capsHist.map(c=>`<option value="${c}" ${histFiltroCap===c?'selected':''}>Capítulo ${c}</option>`).join('')}
-    </select>
     ${temFiltro?`<div class="hist-limpar" onclick="limparFiltroHist()">limpar filtros</div>`:''}
+    `:''}
   `;
 
   // ---------- cobertura da bibliografia ----------
@@ -4764,7 +4871,7 @@ function renderAprovado(){
       </div>`:''}
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
-          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="abrirTimerFullscreen()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
+          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="cliqueIniciarTimer()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
           :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Finalizar</button>`}
       </div>
       ${!timerRodando&&timerAcumuladoSeg>0?`<button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px" onclick="zerarTimer()">Descartar e zerar</button>`:''}
@@ -5525,11 +5632,23 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 let wakeLockAtivo=null;
-// Distingue um release NOSSO (chamado de propósito, ex: fechando a tela cheia) de um release
-// que o PRÓPRIO SISTEMA decide sozinho — o iOS pode soltar a trava por conta própria em certas
-// condições, sem gerar nenhum evento que o app já escutasse. Sem essa distinção, a tela voltava
-// a apagar no meio de uma sessão longa e o app nunca percebia que a trava tinha ido embora.
-let wakeLockLiberadoDePropósito=false;
+// Cada pedido de trava carrega um número de geração próprio. É isso, não uma flag
+// compartilhada, que decide se um evento de liberação é "esperado" — porque uma flag
+// resetada por uma linha síncrona corre atrás de uma Promise que ainda não terminou: o
+// .release() da trava antiga é assíncrono, e a flag podia voltar a "false" antes do evento de
+// liberação dela sequer disparar, fazendo o código reagir como se o SISTEMA tivesse soltado a
+// trava sozinho — e sair pedindo uma trava nova por cima da que já estava sendo pedida. Isso
+// acontecia toda vez que o app trocava de trava, o que é rotina no iOS (Centro de Controle,
+// notificação, troca rápida de app) — e é a explicação mais provável de a tela ter voltado a
+// apagar mesmo com a correção anterior. Comparar um número capturado no fechamento (closure)
+// contra o contador atual não depende de timing nenhum: ou ainda é a geração vigente, ou não é.
+let wakeLockGeracao=0;
+// Rede de segurança, além do evento: rearma a trava periodicamente enquanto uma tela cheia
+// estiver aberta, sem depender só do evento 'release' disparar. Cobre qualquer cenário em que
+// o Safari solte a trava de um jeito que o evento não capture — o custo de pedir de novo uma
+// trava que já está ativa é essencially zero.
+let wakeLockIntervalId=null;
+
 async function solicitarWakeLock(){
   // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
   // apaga a tela sozinho no meio de uma sessão de estudo/prova. Suportado no Safari 16.4+
@@ -5537,35 +5656,46 @@ async function solicitarWakeLock(){
   // não é crítico o suficiente pra atrapalhar o resto do cronômetro.
   try{
     if('wakeLock' in navigator){
-      // Libera o lock anterior antes de pedir um novo — sem isso, cada vez que o iOS dispara
-      // visibilitychange (acontece bastante: Centro de Controle, notificações, trocar de app),
-      // um lock novo era pedido sem nunca soltar o de antes, acumulando handles pendurados ao
-      // longo de uma sessão longa (tipo um caderno de 4h) — isso pode ter sido a causa de lentidão.
+      const minhaGeracao=++wakeLockGeracao;
       if(wakeLockAtivo){
-        wakeLockLiberadoDePropósito=true;
         wakeLockAtivo.release().catch(()=>{});
         wakeLockAtivo=null;
       }
-      wakeLockLiberadoDePropósito=false;
-      wakeLockAtivo=await navigator.wakeLock.request('screen');
-      // O sentinel dispara 'release' tanto quando NÓS chamamos release() quanto quando o
-      // SISTEMA solta a trava sozinho. Só reage no segundo caso — e só tenta pedir de volta se
-      // ainda fizer sentido (algum cronômetro em tela cheia continua aberto e a aba está
-      // visível), senão ficaria pedindo trava pra uma tela que o Carlos já fechou.
+      const novoLock=await navigator.wakeLock.request('screen');
+      // Enquanto esperávamos a Promise acima, outra chamada mais nova pode ter assumido (ex:
+      // dois visibilitychange em sequência rápida). Se a geração já avançou, esta trava nasceu
+      // obsoleta — solta ela sem tocar em wakeLockAtivo, que já pertence à chamada mais nova.
+      if(minhaGeracao!==wakeLockGeracao){
+        novoLock.release().catch(()=>{});
+        return;
+      }
+      wakeLockAtivo=novoLock;
       wakeLockAtivo.addEventListener('release',()=>{
-        if(wakeLockLiberadoDePropósito) return;
+        // Só reage se ESTA trava ainda for a vigente. Se a geração já mudou, este release é
+        // esperado (foi substituída de propósito) e não deve disparar nada.
+        if(minhaGeracao!==wakeLockGeracao) return;
         wakeLockAtivo=null;
         const aindaPrecisa=(timerFullscreenAberto||
           !document.getElementById('caderno-timer-fullscreen').classList.contains('hidden'))
           && document.visibilityState==='visible';
         if(aindaPrecisa) solicitarWakeLock();
       });
+      if(!wakeLockIntervalId){
+        wakeLockIntervalId=setInterval(()=>{
+          const aindaPrecisa=(timerFullscreenAberto||
+            !document.getElementById('caderno-timer-fullscreen').classList.contains('hidden'))
+            && document.visibilityState==='visible';
+          if(!aindaPrecisa){ clearInterval(wakeLockIntervalId); wakeLockIntervalId=null; return; }
+          if(!wakeLockAtivo) solicitarWakeLock();
+        },20000);
+      }
     }
   }catch(e){}
 }
 function liberarWakeLock(){
+  wakeLockGeracao++;   // qualquer release ainda em voo passa a contar como esperado
+  if(wakeLockIntervalId){ clearInterval(wakeLockIntervalId); wakeLockIntervalId=null; }
   if(wakeLockAtivo){
-    wakeLockLiberadoDePropósito=true;
     wakeLockAtivo.release().catch(()=>{});
     wakeLockAtivo=null;
   }
@@ -5580,7 +5710,55 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 
+// Chave composta pra tamanhoCapitulos, mesmo padrão já usado em revisoesEspacadas —
+// módulo+publicação+capítulo, com capítulo vazio pra publicação de capítulo único.
+function chaveTamanhoCap(modulo,publicacao,capitulo){
+  return `${modulo}|||${publicacao}|||${capitulo||''}`;
+}
+function tamanhoCapAtual(modulo,publicacao,capitulo){
+  const t=tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,capitulo)];
+  return t?t.caracteresTotais:null;
+}
+async function salvarTamanhoCapitulo(modulo,publicacao,capitulo,caracteres){
+  if(!caracteres||caracteres<=0) return;
+  try{
+    const {error}=await sbDados.from('tamanho_capitulos').upsert({
+      modulo,publicacao,capitulo:capitulo||'',caracteres_totais:caracteres,
+      atualizado_em:new Date().toISOString(),
+    },{onConflict:'modulo,publicacao,capitulo'});
+    if(error) throw error;
+    tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,capitulo)]={caracteresTotais:caracteres};
+  }catch(e){
+    console.error('Não foi possível salvar o tamanho do capítulo:',e);
+  }
+}
+
+// Clique no botão Iniciar/Retomar do card de timer. Só pergunta o tamanho do capítulo quando
+// é de fato o COMEÇO de uma leitura nova (timerAcumuladoSeg===0) — retomar de uma pausa não
+// pergunta de novo, o Carlos já confirmou isso quando começou.
+function cliqueIniciarTimer(){
+  const ehComecoDeVerdade=timerAcumuladoSeg===0;
+  if(timerTipo==='Leitura'&&timerModulo&&timerPublicacao&&ehComecoDeVerdade){
+    const salvo=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
+    document.getElementById('timer-tamanho-inicio-input').value=salvo||'';
+    document.getElementById('timer-tamanho-inicio-modal').style.display='flex';
+    return;
+  }
+  abrirTimerFullscreen();
+}
+function fecharTamanhoInicioModal(){
+  document.getElementById('timer-tamanho-inicio-modal').style.display='none';
+}
+async function confirmarTamanhoInicioEIniciar(){
+  const v=parseInt(document.getElementById('timer-tamanho-inicio-input').value,10);
+  fecharTamanhoInicioModal();
+  if(v>0) await salvarTamanhoCapitulo(timerModulo,timerPublicacao,timerCapitulo,v);
+  abrirTimerFullscreen();
+}
+
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
+
+
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
   // uma sessão que já estava rodando antes (app fechou/recarregou), ela já era válida quando foi
   // salva, então não precisa (e não deve) ser barrada de novo aqui.
@@ -6497,6 +6675,15 @@ function pararESalvarTimer(){
   // contaminaria o car/min das duas publicações.
   document.getElementById('timer-caracteres-wrap').style.display=(timerTipo==='Leitura'&&!desvioPilha)?'':'none';
   document.getElementById('timer-caracteres-input').value='';
+  // Pergunta o tamanho do capítulo também ao finalizar, prefilled com o que já estava salvo
+  // (que pode ter sido confirmado agora há pouco, no início desta mesma sessão, ou de uma vez
+  // anterior) — o Carlos pode ter descoberto o número certo só terminando de ler.
+  const mostraTamanho=timerTipo==='Leitura'&&!desvioPilha&&timerModulo&&timerPublicacao;
+  document.getElementById('timer-tamanho-fim-wrap').classList.toggle('hidden',!mostraTamanho);
+  if(mostraTamanho){
+    const salvo=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
+    document.getElementById('timer-tamanho-fim-input').value=salvo||'';
+  }
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
 
@@ -6553,6 +6740,13 @@ async function confirmarSalvarTimer(){
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert(linhaSessao);
     if(error) throw error;
+    // Grava o tamanho do capítulo confirmado agora — mesmo destino de sempre, sem histórico
+    // de valores anteriores. Só roda se o campo estava visível (Leitura, sem desvio).
+    const tamanhoFimInput=document.getElementById('timer-tamanho-fim-input');
+    if(!document.getElementById('timer-tamanho-fim-wrap').classList.contains('hidden')&&tamanhoFimInput.value){
+      const v=parseInt(tamanhoFimInput.value,10);
+      if(v>0) await salvarTamanhoCapitulo(timerModulo,timerPublicacao,timerCapitulo,v);
+    }
     // Sessão nascida de uma revisão programada: conclui a revisão, que avança de nível e some
     // do dia de hoje. Sem isso ela continuaria aparecendo como pendente depois de feita.
     if(timerRevisaoId){
