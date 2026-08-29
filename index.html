@@ -322,7 +322,7 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
    valendo — só que nos dois casos agora vale 30, não 16. */
 .tf-desvio{position:absolute;right:30px;bottom:calc(env(safe-area-inset-bottom, 0px) + 30px);
   margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
-  font-size:var(--fs-e);letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
+  font-size:var(--fs-d);letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
   padding:7px 14px;z-index:2}
 @media(hover:hover){.tf-desvio:hover{border-color:#4A5468;color:#fff}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
@@ -1311,6 +1311,18 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
   style="position:fixed;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1"
   src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMXbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAkF0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAIAAAACAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAG5bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABZG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAASRzdGJsAAAAwHN0c2QAAAAAAAAAAQAAALBhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAgBIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANmF2Y0MBZAAK/+EAGWdkAAqs2V+IiMBEAAADAAQAAAMACDxIllgBAAZo6+PLIsD9+PgAAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAAFigAABYoAAAAGHN0dHMAAAAAAAAAAQAAAAEAAEAAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAAsUAAAABAAAAFHN0Y28AAAAAAAAAAQAAA0cAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYwLjE2LjEwMAAAAAhmcmVlAAACzW1kYXQAAAKtBgX//6ncRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MTEzIG1lPWhleCBzdWJtZT03IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4OGRjdD0xIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTMgYl9weXJhbWlkPTIgYl9hZGFwdD0xIGJfYmlhcz0wIGRpcmVjdD0xIHdlaWdodGI9MSBvcGVuX2dvcD0wIHdlaWdodHA9MiBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAABBliIQAFf/+98nvwKbr29+B"
 ></video>
+
+<!-- Áudio real (não gerado por osciladores), 150ms, bem baixo — "destrava" o resto do Web
+     Audio no iOS. A Apple categoriza som de AudioContext.createOscillator() como "efeito
+     sonoro" e SILENCIA esse tipo de som quando o aparelho está no modo silencioso, mesmo com
+     o app em primeiro plano e a tela ligada — só música/vídeo/podcast tocam nesse modo. Tocar
+     este áudio de verdade uma vez, dentro do mesmo gesto que pausa o cronômetro, costuma
+     destravar os osciladores do apito pelo resto da sessão (técnica documentada, usada por
+     libs como unmute-ios-audio). Conteúdo real, gerado com ffmpeg — nunca silenciado, por
+     content-type ser tratado como mídia, não efeito. -->
+<audio id="apito-kick" playsinline webkit-playsinline preload="auto" style="display:none"
+  src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAACAAAA/oAR0dHR0dHR0dHR0dHYmJiYmJiYmJiYmJifHx8fHx8fHx8fHx8fJaWlpaWlpaWlpaWlrGxsbGxsbGxsbGxsbHLy8vLy8vLy8vLy8vl5eXl5eXl5eXl5eXl////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQC1AAAAAAAAAP64yT+/gAAAAAAAAAAAAAAAAD/80DEABRIjoAXWDAAP9y4RuNxuNxuNxunp6SMRiGH8jFJSRhy4vACchZwwCMQC1i1A+A4DAYWTTBwEAQBB0uf5R05y79IY4DfpDHLv7un+oBn+7py4fBAENP+XB8PqoIIASxEBAGBAP/zQsQJFunSsb+NoAOgAAADiEa8J8J74T0ANPkcAwSCzIvQBJ4lMWcBlHgc4NmC0YMVe8mSKkVMv8UEIWIaOaMr/5kXi8iXS6l//l4vGJdLqReLyP//5dLpkXi8CkgqLa2wALqohO///v/zQMQJFJiGLjXeyAD5/8//9I4uMjkYBAAZgJAPmAGB0YL4ghkUmFGVD8EcPheZk8CgmBkAcYGIMh9KoSDfeAQTFrR5r97fdvR9i9X//fp///3xb//9aopo+6xyyLxVuKHgVAGTADgG//NCxBEVAqYUAA/EjKMCXg9DSHgQwwDEAzMAGACi2ag61GnigA8VgBP6fkaS305f69tf/m2pZ/91Xn/16Hf252t1/3/N1dLNXG6ElOnT6Yz/W3ZMnCJjtFpBAAAFOgZrwYGPI3GuKAlh//NAxBkXCe4QAKfExICKAdmAHACBgAIACkWpYy8UALisAN6n3vv5dPr29Wa31WY3/RvRGJq90vdeR9Ih6GjL+Yz7SV71TkV3Jx4rpsvtTVbVqwCqxCf+/7/P/n//plmAEgA5gA4AWCD/80LEFxbAhiV1X9AAA6MBjACzAPgGYwLQF6MIyB1jBGUQoy4AGnMBiBfDBUAMowHQAoMk8ORKFqAXELizfr912n/19np+1TMr/9X8ZQR//+j/lrD0MW0/4HTDLdSb/eeWA0SXYcqBp8T/80DEGBpxqoABmKgA4FjwDbMDOjjAxaCwMEjQDJ5SAx6JuR4oMrhZ0SwNu8WWbGh8Y4SkQ8Zb5cNC4aS2QFImT380W603TJkumRio2V/91MhsZJmTnQ03/TyohLFlLVMW4nR1M1mI5v/zQsQJE5EmKAHPeAA0lbIcxBh6jKbxuhqUKRJOS4qGAcwtwuTolQuRcnalQ1Qsu611/BTqGxoKtZa/1ruta19oT7WLb/xaNoRB34lDYldK/4iVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVQ=="
+></audio>
 
 <!-- Primeiro elemento do body de propósito: o navegador desenha na ordem em que lê, e o splash
      estava no FIM do HTML — depois de todo o conteúdo do app. Até chegar nele, o que aparecia
@@ -5167,6 +5179,16 @@ let apitoDescansoSeg=parseInt(localStorage.getItem('apitoDescanso')||'15',10);
 // sistema bloquearia em silêncio. Por isso o contexto nasce no clique em Pausar, com um som
 // mudo para destravá-lo, e fica pronto para tocar quando a hora chegar.
 function prepararAudioApito(){
+  // "Kick" com áudio de verdade primeiro, ainda dentro do gesto síncrono: no iOS, som gerado
+  // por AudioContext.createOscillator() é categorizado como "efeito sonoro" e fica mudo se o
+  // aparelho estiver no modo silencioso — mesmo com a tela ligada e o app em primeiro plano.
+  // Um <audio> de verdade tocando (mesmo bem baixo) não é afetado por essa categoria, e
+  // costuma destravar os osciladores pelo resto da sessão. Sem isso, o apito podia nunca soar
+  // e o Carlos só descobria o cronômetro parado muito depois.
+  try{
+    const kick=document.getElementById('apito-kick');
+    if(kick){ kick.volume=0.15; kick.currentTime=0; kick.play().catch(()=>{}); }
+  }catch(e){}
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC) return;
