@@ -1302,6 +1302,16 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
 </style>
 </head>
 <body>
+<!-- Vídeo mudo, de 1x1 pixel, em loop — técnica clássica pra manter a tela acesa quando a API
+     de Wake Lock falha ou não está disponível (comum em PWA instalado na tela inicial do iOS,
+     onde a API nativa tem histórico de bugs da própria Apple). Roda em paralelo à API nativa,
+     nunca no lugar dela — as duas juntas cobrem mais cenários que qualquer uma sozinha.
+     playsinline é obrigatório no iOS pra não abrir em tela cheia nativa ao dar play. -->
+<video id="wakelock-video" muted loop playsinline webkit-playsinline
+  style="position:fixed;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1"
+  src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMXbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAkF0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAIAAAACAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAG5bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABZG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAASRzdGJsAAAAwHN0c2QAAAAAAAAAAQAAALBhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAgBIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANmF2Y0MBZAAK/+EAGWdkAAqs2V+IiMBEAAADAAQAAAMACDxIllgBAAZo6+PLIsD9+PgAAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAAFigAABYoAAAAGHN0dHMAAAAAAAAAAQAAAAEAAEAAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAAsUAAAABAAAAFHN0Y28AAAAAAAAAAQAAA0cAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYwLjE2LjEwMAAAAAhmcmVlAAACzW1kYXQAAAKtBgX//6ncRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MTEzIG1lPWhleCBzdWJtZT03IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4OGRjdD0xIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTMgYl9weXJhbWlkPTIgYl9hZGFwdD0xIGJfYmlhcz0wIGRpcmVjdD0xIHdlaWdodGI9MSBvcGVuX2dvcD0wIHdlaWdodHA9MiBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAABBliIQAFf/+98nvwKbr29+B"
+></video>
+
 <!-- Primeiro elemento do body de propósito: o navegador desenha na ordem em que lê, e o splash
      estava no FIM do HTML — depois de todo o conteúdo do app. Até chegar nele, o que aparecia
      na tela era a interface por baixo, e o splash surgia por cima só depois. Aqui ele é a
@@ -1378,7 +1388,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <input type="number" min="1" class="filter-select" id="timer-tamanho-inicio-input" placeholder="Ex: 31000" style="margin-bottom:16px">
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharTamanhoInicioModal()">Cancelar</button>
-      <button class="modal-btn modal-btn-sim" onclick="confirmarTamanhoInicioEIniciar()">Confirmar e iniciar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarTamanhoInicioEIniciar()">Iniciar</button>
     </div>
   </div>
 </div>
@@ -5691,6 +5701,14 @@ let wakeLockGeracao=0;
 let wakeLockIntervalId=null;
 
 async function solicitarWakeLock(){
+  // Vídeo primeiro, sem nenhum "await" antes dele: no iOS, play() só é aceito sem bloqueio
+  // quando ainda está na mesma cadeia síncrona do toque que originou a chamada. Colocar essa
+  // linha depois de um "await" (como o da API de Wake Lock abaixo) quebra essa cadeia e o
+  // navegador recusa o play() por política de autoplay — foi testado nessa ordem de propósito.
+  try{
+    const v=document.getElementById('wakelock-video');
+    if(v&&v.paused) v.play().catch(()=>{});
+  }catch(e){}
   // Mantém a tela ligada enquanto o cronômetro está em fullscreen — sem isso, o iPad/iPhone
   // apaga a tela sozinho no meio de uma sessão de estudo/prova. Suportado no Safari 16.4+
   // (iOS/iPadOS). Se não for suportado ou for recusado (bateria baixa, etc.), falha em silêncio —
@@ -5728,6 +5746,12 @@ async function solicitarWakeLock(){
             && document.visibilityState==='visible';
           if(!aindaPrecisa){ clearInterval(wakeLockIntervalId); wakeLockIntervalId=null; return; }
           if(!wakeLockAtivo) solicitarWakeLock();
+          // O vídeo também é rearmado aqui: se o iOS pausou ele sozinho por algum motivo
+          // (troca de app, interrupção de áudio do sistema), volta a tocar sem precisar de
+          // um novo toque do usuário — nesse ponto já não estamos mais dentro de um gesto,
+          // mas reforça o mesmo raciocínio do release listener acima da API nativa.
+          const v2=document.getElementById('wakelock-video');
+          if(v2&&v2.paused) v2.play().catch(()=>{});
         },20000);
       }
     }
@@ -5740,6 +5764,8 @@ function liberarWakeLock(){
     wakeLockAtivo.release().catch(()=>{});
     wakeLockAtivo=null;
   }
+  const v=document.getElementById('wakelock-video');
+  if(v&&!v.paused) v.pause();
 }
 // O sistema libera o wake lock sozinho quando o app vai pro background (troca de app, tela
 // bloqueada manualmente) — ao voltar a ficar visível, se algum fullscreen com cronômetro ainda
