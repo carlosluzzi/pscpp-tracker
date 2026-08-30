@@ -322,7 +322,7 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
    valendo — só que nos dois casos agora vale 30, não 16. */
 .tf-desvio{position:absolute;right:30px;bottom:calc(env(safe-area-inset-bottom, 0px) + 30px);
   margin:0;background:none;border:1px solid #2A3141;border-radius:20px;color:#9BA3B7;
-  font-size:var(--fs-d);letter-spacing:.04em;font-weight:600;font-family:inherit;cursor:pointer;
+  font-size:var(--fs-d);letter-spacing:.04em;font-weight:400;font-family:inherit;cursor:pointer;
   padding:7px 14px;z-index:2}
 @media(hover:hover){.tf-desvio:hover{border-color:#4A5468;color:#fff}}
 .tf-tempo{font-size:min(88px, 21vw);font-weight:700;color:#fff;text-align:center;
@@ -5187,7 +5187,12 @@ function prepararAudioApito(){
   // e o Carlos só descobria o cronômetro parado muito depois.
   try{
     const kick=document.getElementById('apito-kick');
-    if(kick){ kick.volume=0.15; kick.currentTime=0; kick.play().catch(()=>{}); }
+    // Volume zero, não muted: o Carlos não quer ouvir NADA extra ao apertar botões (11 pontos
+    // diferentes do app chamam esta função, não só pausar) — só o apito de verdade, como já
+    // era antes. "muted" desligaria o áudio de vez, o que pode tirar o efeito de destravar os
+    // osciladores no iOS; volume 0 mantém o elemento "tocando" de verdade (silencioso) para
+    // continuar contando como mídia perante o sistema, sem nenhum som audível.
+    if(kick){ kick.volume=0; kick.currentTime=0; kick.play().catch(()=>{}); }
   }catch(e){}
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
