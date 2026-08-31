@@ -2287,7 +2287,7 @@ const EXPLICACOES={
     <p><strong>Cards vencidos há mais de dois dias</strong> são destacados separadamente: o intervalo do FSRS foi calculado para você revisar no dia certo, e cada dia a mais reduz a chance de acertar quando o card voltar.</p>
     <p><strong>O número final é o teto da fila</strong>, não uma projeção sem fim. Só os cards que você já viu entram na conta – os que nunca foram estudados não vencem. Conforme mais cards entrarem em circulação, esse teto sobe, porque cada um deles volta várias vezes.</p>`},
   planoAcao:{titulo:'Plano de ação',corpo:`
-    <p><strong>O que é:</strong> o cruzamento das três fontes que medem coisas diferentes – os simulados medem acerto sob pressão, o Pilotquest mede acerto sem pressão, e o Anki mede se o conteúdo fica na memória.</p>
+    <p><strong>O que é:</strong> o cruzamento das três fontes que medem coisas diferentes – os simulados medem acerto sob pressão, o Pilotquest mede acerto sem pressão, e o Anki (pausado) mede se o conteúdo fica na memória.</p>
     <p><strong>Por que cruzar:</strong> nenhuma fonte isolada distingue "não sei" de "sei mas erro na hora". E as ações para esses dois casos são opostas – uma pede mais estudo, a outra pede menos estudo e mais treino de prova.</p>
     <p><strong>Como a ordem é definida:</strong> não é só pelo pior percentual. Cada item recebe uma prioridade que combina quatro coisas –</p>
     <ul>
@@ -2298,7 +2298,7 @@ const EXPLICACOES={
     </ul>
     <p><strong>Atenção agora:</strong> onde você está abaixo do alvo, ordenado por urgência real.</p>
     <p><strong>Risco escondido:</strong> onde você acerta na prova mas o conteúdo não está fixado, ou não há cards. Tende a evaporar sem aviso.</p>
-    <p><strong>Limitação:</strong> enquanto o Anki não tiver cards maduros e o Pilotquest não tiver cadernos, o diagnóstico usa só os simulados – e não consegue separar os casos que dependem das outras fontes.</p>`},
+    <p><strong>Limitação:</strong> enquanto o Anki (pausado) não tiver cards maduros e o Pilotquest não tiver cadernos, o diagnóstico usa só os simulados – e não consegue separar os casos que dependem das outras fontes.</p>`},
   ankiDurabilidade:{titulo:'Durabilidade na memória',corpo:`
     <p><strong>O que é estabilidade:</strong> o número de dias até a chance de você lembrar daquele conteúdo cair para 90%. Se um card tem estabilidade 45, passarão 45 dias antes de a memória começar a ficar frágil.</p>
     <p><strong>Por que não usamos "intervalo":</strong> o intervalo é uma decisão de agendamento – pode estar curto porque você voltou de férias e os cards foram reagendados. A estabilidade é medida da sua memória, independente de quando o card aparece.</p>
@@ -3075,6 +3075,14 @@ async function loadDataInterno(){
     ankiPrevisao=ePrevisao?[]:(previsaoRes||[]).map(p=>({
       data:p.data, deck:p.deck||'', revisoes:p.revisoes||0,
     }));
+    // ANKI PAUSADO (pedido do Carlos, 31/08/2026) — ele não está usando o Anki por enquanto.
+    // Os dados continuam sendo buscados do banco acima (não vale a pena complicar o Promise.all
+    // pra isso), mas são zerados aqui, na saída — assim toda tela e todo cálculo que depende
+    // deles (Plano de Ação, Por tipo de conteúdo, Volume por matéria, etc.) naturalmente se
+    // comporta como se não houvesse Anki nenhum, sem precisar mexer em cada um individualmente.
+    // A aba Anki já foi tirada da navegação (ver "const abas" em renderSubAbas). Pra reativar:
+    // remove estas 4 linhas e descomenta o item 'anki' na lista de abas.
+    ankiCards=[]; ankiSecoes=[]; ankiRevisoes=[]; ankiPrevisao=[];
     classAlternativas=eClassAlt?[]:(classAltRes||[]).map(p=>({
       idAtividade:p.id_atividade, questao:p.numero_questao, alternativa:p.alternativa,
       tipoConteudo:p.tipo_conteudo||'', assunto:p.assunto||'',
@@ -3150,7 +3158,10 @@ function renderSubAbas(tab){
     // visual ajuda a distinguir de onde vem o dado.
     const ICONE_ANKI=`<svg class="sub-aba-icone" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M221.3 511.9q-5.25.3-10.8-.9c-32.3-7.7-38.6-52.7-45.2-100.4-2.6-19.2-7.1-51.2-12.5-57.7-5.6-6.3-36.6-15.6-55.2-21.1-46-13.8-89.5-26.8-92.2-60-2.7-33.1 38.2-53 81.5-74 17.4-8.4 46.5-22.6 51-29.7 4.3-7.3 3.5-39.6 3-59-1.1-48.1-2.2-93.6 28.5-106.3 30.6-12.7 62.2 20 95.6 54.7 13.4 13.9 35.8 37.2 44 39.4 8.3 1.8 38.8-8.9 57-15.3 45.4-16 88.3-31 109.9-5.8s.2 65.3-22.5 107.8c-9.1 17-24.4 45.6-23.8 54 .8 8.4 20.5 34.1 32.2 49.5 29.2 38.3 56.8 74.4 39.5 102.8s-62.1 20.4-109.4 11.9c-19-3.4-50.9-9-58.8-6-7.7 3.4-26.1 30-37.1 45.9-24.2 35.1-47.2 68.4-74.7 70.2M48.8 268.3c9.9 7.9 42.6 17.7 61 23.2 33.1 9.9 61.6 18.4 75 34s17.5 45.1 22.2 79.3c2.6 19 7.3 52.8 13.6 63.8 10.6-7 30-35.1 40.9-50.8 19.6-28.4 36.6-52.9 55.5-60.8 19-7.9 48.3-2.7 82.3 3.4 18.8 3.4 52.5 9.3 64.9 6.8-3.4-12.3-24.1-39.4-35.7-54.6-20.9-27.4-39-51.1-40.7-71.6s12.4-46.8 28.7-77.2c9-16.9 25.1-47 26.5-59.6-12.7-.5-44.9 10.7-63 17.1-32.6 11.4-60.7 21.3-80.7 16.6s-40.7-26.2-64.6-51.1c-13.3-13.8-36.9-38.4-48.5-43.6-4.5 11.9-3.7 46-3.2 65.2.8 34.5 1.5 64.3-9.2 81.9-10.7 17.5-37.5 30.5-68.6 45.6-17.2 8.1-47.9 23-56.4 32.4"/></svg>`;
     const ICONE_PQ=`<svg class="sub-aba-icone" viewBox="89 57 916 921" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" d="M543.72 59.44C564.75 57.73 584 74.46 585.27 95.5C586.44 115 585.19 134.96 585.14 154.5C585.04 195.83 584.79 237.17 584.86 278.5C584.9 296.83 584.82 315.17 584.98 333.5C585.03 339.34 586.68 349.29 578.5 350.25C571.79 351.03 564.28 349.46 557.5 349.24C547.45 348.91 537.53 349.63 527.5 349.89C522.47 350.02 514.17 352.39 510.19 348.31C506.85 344.91 508.13 338.83 508.13 334.5C508.14 322.83 508.09 311.17 508.11 299.5C508.21 252.5 508.12 205.5 508.14 158.5C508.15 151.5 508.18 144.5 508.17 137.5C508.16 128.83 508.13 120.17 508.15 111.5C508.21 90.88 509.44 71.02 531.72 62.27C535.5 60.78 539.66 59.77 543.72 59.44ZM766.69 148.36C797.77 142.84 819.35 172.74 809.8 201.34C807.72 207.56 803.9 212.39 800.25 217.73C793.89 227.04 787.56 236.38 781.24 245.72C759.41 277.94 738.05 310.5 716.13 342.66C707.32 355.57 699.2 368.94 690.34 381.82C687.02 386.65 683.81 394.05 676.51 391.07C671.77 389.13 667.49 385.11 663.1 382.43C654.04 376.91 644.9 371.77 635.32 367.2C630.09 364.71 622.66 363.71 621.54 356.93C620.79 352.35 626.88 346.35 629.14 342.66C636.73 330.3 644.53 318.06 652.38 305.86C663.63 288.39 674.37 270.6 685.6 253.12C698.9 232.42 712.54 211.92 725.48 191C735.62 174.59 745.82 152.07 766.69 148.36ZM314.57 149.29C318.5 148.59 322.52 148.34 326.5 148.8C347.31 151.17 355.91 168.63 366.25 184.27C392.69 224.31 418.13 265.05 444.16 305.35C452.93 318.91 461.5 332.62 470.43 346.09C473.58 350.85 479.31 357.61 473.12 362.6C469.27 365.71 463.36 367.35 458.89 369.44C449.2 374 439.69 379.4 430.69 385.17C426.37 387.94 420.52 393.81 415.05 392.47C409.82 391.18 407.13 384.36 404.29 380.23C396.4 368.75 388.69 357.03 381.3 345.23C373.14 332.21 364.11 319.68 355.62 306.87C342.62 287.27 329.72 267.54 316.24 248.26C309.78 239.02 303.6 229.57 297.32 220.21C292.54 213.07 287.39 206.9 284.87 198.54C278.26 176.67 291.87 153.34 314.57 149.29ZM925.79 336.49C945.52 335.84 961.87 353.41 962.88 372.5C963.43 382.86 959.09 393.17 952.44 400.93C947.59 406.6 941.27 409.06 934.8 412.35C925.28 417.19 915.61 421.75 906.07 426.57C871.53 444.01 837.15 462.04 802.27 478.75C791.09 484.11 780 489.8 768.99 495.5C764.32 497.91 758.74 501.16 754.32 496.2C751.06 492.54 748.57 483.62 746.55 478.9C742.59 469.63 737.41 460.81 732.41 452.08C729.88 447.64 724.63 442.95 726.83 437.41C728.78 432.51 734.23 431.27 738.44 428.96C749.72 422.78 761.33 417.15 772.8 411.33C807.23 393.84 841.62 376.22 875.86 358.37C882.89 354.7 889.94 351.07 897.02 347.49C906.59 342.66 914.63 336.86 925.79 336.49ZM160.7 337.33C179.57 333.48 195.91 346.8 212 354.48C229.92 363.02 247.29 372.71 265.17 381.34C285.95 391.37 306.65 401.77 327.16 412.35C338.43 418.17 350 423.38 361.23 429.29C365.5 431.54 371.66 432.95 373.45 438.05C375.31 443.36 370.18 448.81 367.57 453.08C361.93 462.31 356.75 472.02 352.48 481.96C350.64 486.25 348.68 493.94 345.76 497.26C341.55 502.05 335.91 499.72 331.17 497.36C319.59 491.59 308.06 485.75 296.43 480.06C260.65 462.59 224.94 444.95 189.25 427.28C179.89 422.64 170.46 418.11 161.13 413.41C154.69 410.16 148.18 407.69 142.84 402.63C121.31 382.24 131.25 343.36 160.7 337.33ZM543.71 397.46C557.22 396.71 571.29 398.13 584.51 400.89C665.2 417.7 719.82 490.05 720.46 571.5C720.63 592.85 716.24 614.3 708.64 634.2C706.31 640.28 697.23 654.99 699.73 660.72C701.58 664.95 707.3 668.74 710.55 671.96C718.93 680.24 727.27 688.57 735.58 696.92C764.01 725.47 792.68 753.87 821.67 781.85C840.35 799.89 836.39 831.48 814.39 844.92C800.69 853.3 782.89 851.67 770.13 842.39C763.27 837.41 757.65 829.85 751.58 823.92C738.1 810.76 725.04 797.1 711.92 783.57C701.09 772.41 689.71 761.78 678.93 750.57C672.23 743.6 665.27 736.9 658.52 729.98C655.46 726.84 650.6 720.56 646.91 718.59C641.09 715.47 633.78 721.6 628.81 724.36C616.24 731.34 601.6 737.09 587.48 739.92C544.14 748.61 496.02 743.18 458.72 717.77C436.31 702.51 417.39 683.33 403.73 659.75C393.61 642.28 385.48 622.45 382.24 602.44C369.38 523.18 408.48 447.89 480.38 412.85C500.02 403.28 522 398.66 543.71 397.46ZM536.72 472.41C486.67 479.25 450.05 526.73 451.9 576.5C452.99 605.81 467.61 633.9 490.68 651.87C500.04 659.17 511.09 664.7 522.5 667.97C536.31 671.94 551.17 672.7 565.39 670.64C576.83 668.99 588.07 664.27 598.01 658.52C659.83 622.73 664.12 533.66 607.49 491.01C598.4 484.16 587.92 478.71 576.97 475.51C563.95 471.71 550.19 470.57 536.72 472.41ZM324.7 542.45C329.27 542.31 333.92 544.74 334.65 549.71C335.37 554.66 334.21 560.47 334.15 565.5C334.01 575.94 334.39 586.25 335.64 596.62C336.36 602.57 338.93 611.24 332.93 615.44C328.5 618.54 320.7 617.7 315.5 618.06C302.83 618.95 290.16 620.15 277.5 621.2C233.51 624.83 189.55 629.34 145.5 632.18C138.27 632.65 130.74 634.04 123.5 633.05C109.76 631.18 97.25 620.66 93.08 607.45C86.07 585.26 99.55 561.54 122.5 556.91C131.76 555.04 142.05 555.4 151.5 554.86C166.17 554.02 180.85 552.96 195.5 551.8C219.16 549.93 242.84 548.43 266.5 546.69C285.86 545.27 305.29 543.05 324.7 542.45ZM773.74 542.49C778.8 541.94 784.64 543.15 789.71 543.55C799.3 544.32 808.91 544.99 818.5 545.71C846.49 547.8 874.5 549.66 902.5 551.7C918.49 552.86 934.5 553.78 950.5 554.84C958.55 555.37 967.53 554.97 975.28 557.3C995.89 563.51 1006.99 584.72 1001.73 605.36C998.14 619.43 984.71 630.88 970.49 632.84C964.47 633.67 958.5 632.63 952.5 632.2C909.12 629.1 865.88 624.14 822.5 621.05C808.71 620.06 794.85 618.95 781.1 617.48C776.5 616.99 770.22 617.99 766.25 615.27C760.67 611.46 763.45 603.99 763.98 598.5C765.37 584.1 766.01 569.98 766.01 555.5C766.01 549.6 766.47 543.29 773.74 542.49ZM345.65 664.18C352.9 661.86 355.63 667.71 358.59 672.9C365.77 685.48 373.7 697.58 382.22 709.29C385.66 714.02 391.89 718.65 388.73 725.26C387.09 728.67 379.37 733.2 376.21 735.68C366.87 743.01 357.44 750.25 348.15 757.63C323.27 777.42 298.3 797.17 273.22 816.7C264.8 823.26 256.63 830.17 248.13 836.62C244.17 839.64 240.69 843.33 236.39 845.91C221.75 854.7 203.13 853.43 190.14 842.36C174.53 829.06 174.23 804.53 186.45 788.94C189.33 785.25 192.69 782.71 196.34 779.88C205.35 772.89 214.26 765.74 223.21 758.66C248.9 738.32 274.86 718.32 300.88 698.4C311.26 690.46 321.6 682.47 331.89 674.42C335.39 671.68 341.65 665.46 345.65 664.18ZM453.8 771.45C458.69 770.59 466 775.1 470.52 776.94C481.75 781.53 493.64 785.43 505.47 788.14C510.55 789.31 517.27 789.76 518.48 796C519.28 800.11 516.39 805.7 515.22 809.62C512.2 819.69 509.2 829.86 506.52 840.02C500.27 863.74 492.89 887.16 486.43 910.83C484.16 919.14 481.49 927.36 479.32 935.69C477.9 941.13 476.78 947 474.65 952.2C468.3 967.79 452.13 977.11 435.54 975.68C416.12 974 401.47 956.91 402.35 937.51C402.89 925.86 410.21 906.17 413.75 894.36C420.8 870.84 427.14 847.1 434.03 823.52C437.81 810.56 441.25 797.49 445.03 784.52C446.53 779.35 447.33 772.58 453.8 771.45ZM634.77 775.5C641.29 774.93 642.96 781.64 644.07 786.49C647 799.23 650.53 811.91 653.99 824.52C660.91 849.77 667.45 875.14 674.18 900.44C676.94 910.8 683.25 928.46 683.28 938.5C683.35 957.97 667.45 973.41 648.5 974.82C634.71 975.84 619.92 968.48 613.57 955.93C610.88 950.62 609.91 944.68 608.51 938.96C606.62 931.25 604.4 923.62 602.54 915.9C596.73 891.8 589.97 867.86 583.54 843.92C580.48 832.53 577.45 821.11 574.73 809.64C573.65 805.1 570.47 799.65 572.56 795.05C575.1 789.5 583.32 789.78 588.43 788.74C598.89 786.61 609.03 783.58 619.29 780.69C624.32 779.26 629.54 775.96 634.77 775.5Z"/></svg>`;
-    const abas=[['inicio','Início',''],['simulados','Simulados',''],['pilotquest','Pilotquest',ICONE_PQ],['anki','Anki',ICONE_ANKI]];
+    // Anki fora da navegação por enquanto (pedido do Carlos, 31/08/2026) — ele não está usando
+    // agora. Não apagado: só comentado. Pra reativar, descomenta o item 'anki' abaixo e reverte
+    // o zeramento de ankiCards/ankiSecoes/ankiRevisoes/ankiPrevisao em loadDataInterno.
+    const abas=[['inicio','Início',''],['simulados','Simulados',''],['pilotquest','Pilotquest',ICONE_PQ]/*,['anki','Anki',ICONE_ANKI]*/];
     slot.innerHTML=`<div class="sub-abas">${abas.map(([k,l,ic])=>
       `<div class="sub-aba${abaDesempenho===k?' ativa':''}" onclick="setAbaDesempenho('${k}')"><span>${ic}${l}</span></div>`
     ).join('')}</div>`;
@@ -4291,9 +4302,19 @@ function renderAnalise(parte){
   sessPeriodo.forEach(s=>{
     let mod,pub,cap;
     if(ehSessaoCaderno(s)){
-      mod = s.origem ? `${s.origem} ${s.publicacao}` : s.publicacao;
-      pub = s.modulo || 'Caderno de questões';
-      cap = s.tipo;                      // "Exercício", "Simulado" ou "Revisão"
+      if(s.origem===CURSO_PILOTQUEST){
+        // Pilotquest agrupado num card só, em vez de um card por caderno (que era "Pilotquest
+        // PQ 001", "Pilotquest PQ 002"... cada um solto). Aqui o caderno (PQ 001, PQF 003...)
+        // vira o "capítulo" dentro do card único "Pilotquest" — mesma lógica visual de
+        // "livro > capítulo", só que capítulo = caderno.
+        mod = CURSO_PILOTQUEST;
+        pub = s.modulo || 'Caderno de questões';
+        cap = s.publicacao;
+      } else {
+        mod = s.origem ? `${s.origem} ${s.publicacao}` : s.publicacao;
+        pub = s.modulo || 'Caderno de questões';
+        cap = s.tipo;                      // "Exercício", "Simulado" ou "Revisão"
+      }
     } else if(s.tipo==='Anki'){
       const ctx=contextoAnki(s);
       mod = nomeModuloSessao(s);
@@ -4371,7 +4392,7 @@ function renderAnalise(parte){
     return `<div class="mod-linha">
       <div class="mod-header" onclick="toggleMod('an${mi}')">
         <div class="mod-top">
-          <span class="mod-nm mod-nm-tempo">${mod}</span>
+          <span class="mod-nm mod-nm-tempo">${mod===CURSO_PILOTQUEST&&logosCursos[mod]?`<img src="${logosCursos[mod]}" alt="Pilotquest" style="height:18px;width:auto;aspect-ratio:${proporcaoLogosCursos[mod]};vertical-align:middle;display:inline-block">`:mod}</span>
           <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
@@ -7914,12 +7935,13 @@ const logosCursos={
   'Curso Prático':'assets/logo-curso-pratico.png',
   'MPX':'assets/logo-mpx.png',
   'Catavento':'assets/logo-catavento.png',
+  'Pilotquest':'assets/pilotquest-logo.png',
 };
 // Proporção real (largura/altura) de cada logo — usada com aspect-ratio no CSS pra reservar o
 // espaço exato ANTES da imagem carregar. Sem isso, o navegador só sabe a largura real depois de
 // baixar a imagem, causando um salto de layout bem na hora que ela chega — se isso coincidir com
 // o momento em que a pessoa começa a rolar a tela, trava o primeiro gesto de scroll.
-const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025};
+const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025,'Pilotquest':4.903};
 // Meta diária do Banco Prático. Estava junto do card de calendário que foi removido — só a
 // posição no arquivo era acidental, a função não tinha relação com aquele card.
 function editarMetaDiaria(){
@@ -8649,9 +8671,10 @@ function renderPlanoAcao(){
     </div>`;
   }).join('');
 
-  // Aviso honesto sobre o que ainda não entra no diagnóstico
+  // Aviso honesto sobre o que ainda não entra no diagnóstico. Anki fica fora desse aviso de
+  // propósito enquanto estiver pausado (pedido do Carlos) — "falta retenção do Anki" soaria
+  // como pendência a resolver, quando na verdade é uma pausa intencional, não um gap.
   const faltando=[];
-  if(!p.temAnki)       faltando.push('retenção do Anki (nenhum card maduro ainda)');
   if(!p.temPilotquest) faltando.push('desempenho do Pilotquest (nenhum caderno enviado)');
 
   return `
