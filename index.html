@@ -4392,7 +4392,7 @@ function renderAnalise(parte){
     return `<div class="mod-linha">
       <div class="mod-header" onclick="toggleMod('an${mi}')">
         <div class="mod-top">
-          <span class="mod-nm mod-nm-tempo">${mod===CURSO_PILOTQUEST&&logosCursos[mod]?`<img src="${logosCursos[mod]}" alt="Pilotquest" style="height:18px;width:auto;aspect-ratio:${proporcaoLogosCursos[mod]};vertical-align:middle;display:inline-block">`:mod}</span>
+          <span class="mod-nm mod-nm-tempo">${mod===CURSO_PILOTQUEST&&logosCursos[mod]?`<img src="${logosCursos[mod]}" alt="Pilotquest" style="height:26px;width:auto;aspect-ratio:${proporcaoLogosCursos[mod]};vertical-align:middle;display:inline-block;margin:-4px 0">`:mod}</span>
           <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
