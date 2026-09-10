@@ -1395,7 +1395,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
   <div class="modal-box" style="max-width:380px">
     <div class="config-title">Tamanho deste capítulo</div>
     <p style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4">
-      Caracteres do resumo, pelo contador do Pages. Se não souber ainda, deixe em branco.
+      Quantidade de caracteres do resumo.
     </p>
     <input type="number" min="1" class="filter-select" id="timer-tamanho-inicio-input" placeholder="Ex: 31000" style="margin-bottom:16px">
     <div class="modal-actions">
@@ -1928,7 +1928,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
 </div>
 
 
-<div class="modal-overlay" id="confirm-modal" style="display:none">
+<div class="modal-overlay" id="confirm-modal" style="display:none;z-index:1000006">
   <div class="modal-box">
     <div class="modal-text" id="confirm-modal-text"></div>
     <div class="modal-actions">
@@ -4128,6 +4128,17 @@ async function buscarTudo(tabela,colunas='*'){
   return {data:todos,error:null};
 }
 
+// Rótulo entre parênteses no aviso de "sessão recuperável". Sem módulo NÃO significa Anki —
+// revisão de caderno (revisarCaderno) também zera o módulo de propósito, porque um caderno
+// cobre vários módulos ao mesmo tempo. Assumir "sem módulo = Anki" rotulava toda revisão de
+// caderno recuperada como "(Anki)", errado. Usa publicação+origem (caderno + curso) quando é
+// esse o caso; só cai em "Anki" quando o tipo realmente é Anki.
+function rotuloContextoSessao(tipo,modulo,publicacao,origem){
+  if(modulo) return modulo;
+  if(tipo==='Anki') return 'Anki';
+  if(publicacao) return (origem?origem+' ':'')+publicacao;
+  return 'sem matéria definida';
+}
 function fmtDur(min){
   if(!min) return '0min';
   const h=Math.floor(min/60), m=Math.round(min%60);
@@ -6471,7 +6482,7 @@ async function verificarSessaoNoServidor(){
       timerInicio:null, timerAcumuladoSeg:data.segundos, timerAnkiAlvoSeg:null,
     };
     document.getElementById('sessao-recuperavel-texto').textContent=
-      `Existe uma sessão de ${data.tipo_estudo||'estudo'} em andamento (${data.modulo||'Anki'}), com ${Math.round(data.segundos/60)} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+      `Existe uma sessão de ${data.tipo_estudo||'estudo'} em andamento (${rotuloContextoSessao(data.tipo_estudo,data.modulo,data.publicacao,null)}), com ${Math.round(data.segundos/60)} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
     document.getElementById('sessao-recuperavel-modal').style.display='flex';
   }catch(e){}
 }
@@ -6597,7 +6608,7 @@ function salvarSnapshotSessao(){
         ? timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000)
         : timerAcumuladoSeg;
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
-        tipo:'timer',timerModulo,timerPublicacao,timerCapitulo,timerTipo,
+        tipo:'timer',timerModulo,timerPublicacao,timerCapitulo,timerTipo,timerOrigem,
         timerInicio:null,
         timerAcumuladoSeg:segAgora,timerAnkiAlvoSeg,
       }));
@@ -6644,7 +6655,7 @@ function verificarSessaoRecuperavel(){
     // O snapshot já traz o tempo consolidado do momento em que o app fechou.
     const minutosDecorridos=Math.round(snap.timerAcumuladoSeg/60);
     document.getElementById('sessao-recuperavel-texto').textContent=
-      `Existe uma sessão de ${snap.timerTipo} em andamento (${snap.timerModulo||'Anki'}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+      `Existe uma sessão de ${snap.timerTipo} em andamento (${rotuloContextoSessao(snap.timerTipo,snap.timerModulo,snap.timerPublicacao,snap.timerOrigem)}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else if(snap.tipo==='caderno'){
     const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
     const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
@@ -6662,7 +6673,7 @@ function restaurarSessaoRecuperavel(){
   timerFlutuanteFechadoManualmente=false;
   if(snap.tipo==='timer'){
     timerModulo=snap.timerModulo||'';timerPublicacao=snap.timerPublicacao||'';timerCapitulo=snap.timerCapitulo||'';
-    timerTipo=snap.timerTipo||'Leitura';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
+    timerTipo=snap.timerTipo||'Leitura';timerOrigem=snap.timerOrigem||'';timerAnkiAlvoSeg=snap.timerAnkiAlvoSeg||null;timerAnkiAlarmeDisparado=false;
     timerAcumuladoSeg=snap.timerAcumuladoSeg;
     // Volta rodando nos dois casos: quem confirma "continuar" quer estudar agora, não retomar
     // pausado e ter que tocar de novo. Se estava pausado, o tempo com o app fechado não entra
@@ -6798,7 +6809,14 @@ function pararESalvarTimer(){
   // Desvio não lança caracteres: é consulta para entender a obra principal, e o número
   // contaminaria o car/min das duas publicações.
   document.getElementById('timer-caracteres-wrap').style.display=(timerTipo==='Leitura'&&!desvioPilha)?'':'none';
-  document.getElementById('timer-caracteres-input').value='';
+  // Pré-preenche com o tamanho já salvo do capítulo — na leitura comum, quem lê o capítulo
+  // inteiro numa sentada leu exatamente esse tanto, e digitar de novo o mesmo número que já
+  // tinha declarado no início da sessão é onde o erro de digitação acontece (foi o que
+  // aconteceu com o Carlos: relia de cabeça um número de 5 dígitos e errou a conta). Continua
+  // editável pra quem leu só parte, ou mais do que o tamanho declarado.
+  const tamanhoSalvoParaCaracteres=(timerTipo==='Leitura'&&!desvioPilha&&timerModulo&&timerPublicacao)
+    ?tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo):null;
+  document.getElementById('timer-caracteres-input').value=tamanhoSalvoParaCaracteres||'';
   // Pergunta o tamanho do capítulo também ao finalizar, prefilled com o que já estava salvo
   // (que pode ter sido confirmado agora há pouco, no início desta mesma sessão, ou de uma vez
   // anterior) — o Carlos pode ter descoberto o número certo só terminando de ler.
@@ -10150,8 +10168,13 @@ function quebrarEnunciado(zonaEnunciado,temRomanos){
     // ponto nunca quebravam linha.
     // O ponto só vale logo após quebra de linha — no meio da frase, "A. P." de nome de autor
     // ou "Volume I, 2023" bateriam no mesmo padrão e cortariam o texto em lugar errado.
+    // Terceiro ponto de quebra: a frase de comando que introduz as alternativas ("Assinale a
+    // alternativa correta:", "Marque a opção correta:", "Julgue as assertivas:"...) costuma vir
+    // colada no fim da última assertiva no texto de origem, sem quebra de linha nenhuma — sem
+    // este padrão, ela ficava grudada no item V (ou o último da lista) em vez de aparecer como
+    // uma linha própria antes das alternativas.
     return zonaEnunciado
-      .split(/\n(?=\s*(?:\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s)|(?=\s\(?[IVXLCDM]{1,6}\)\s)|(?=\s\(\s*\))/)
+      .split(/\n(?=\s*(?:\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s)|(?=\s\(?[IVXLCDM]{1,6}\)\s)|(?=\s\(\s*\))|(?=\s(?:Assinale|Marque|Julgue)\s+a[s]?\s+(?:alternativa|op[çc][ãa]o|assertiva)[s]?)/i)
       .map(p=>p.trim()).filter(Boolean);
   }
   // "A. " sozinho não basta pra confirmar uma lista de assertivas alfabéticas — nomes de autor
