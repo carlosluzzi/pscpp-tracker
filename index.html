@@ -3004,6 +3004,10 @@ async function loadDataInterno(){
       data:p.data,
       caracteresLidos:p.caracteres_lidos||0,
       origem:p.origem||'',
+      // Liga a sessão à atividade que guarda o RESULTADO dela (quantas questões/flashes e
+      // quantas certas). Sem isso "Onde investi o tempo" só sabe falar de tempo: 3h de flashes
+      // com 60% de acerto e 3h com 90% ficavam visualmente idênticas.
+      idAtividade:p.id_atividade||'',
       criadoEm:p.criado_em,
       iniciadoEm:p.iniciado_em||null,
       finalizadoEm:p.finalizado_em||null,
@@ -4168,6 +4172,34 @@ function aproveitamentoSessao(s){
     texto:`${fmtDur(s.duracaoMinutos)} de ${fmtDur(Math.round(paredeSeg/60))} • ${pct}% de aproveitamento`};
 }
 
+// Resultado (acerto) de uma sessão que nasceu de um caderno/Flash do Pilotquest. Não confundir
+// com `aproveitamentoSessao` acima, que mede aproveitamento de TEMPO (cronômetro x relógio de
+// parede) — são duas coisas diferentes que dividem a palavra "aproveitamento".
+function resultadoDaSessao(s){
+  if(!s.idAtividade) return null;
+  const a=atividades.find(x=>x.nome===s.idAtividade);
+  if(!a||!a.total) return null;
+  // Anulada conta como acerto, mesma regra do resto do app.
+  const certas=(a.acertos||0)+(a.anuladas||0);
+  return {total:a.total,certas,pct:Math.round(certas/a.total*100),
+          termo:a.tipo==='Flash'?'flash':'questão'};
+}
+function somarResultados(sessoes){
+  const itens=sessoes.map(resultadoDaSessao).filter(Boolean);
+  if(!itens.length) return null;
+  const total=itens.reduce((x,i)=>x+i.total,0);
+  const certas=itens.reduce((x,i)=>x+i.certas,0);
+  // Só chama de "flash" quando TUDO ali é flash — um grupo misto vira "questões", que é o termo
+  // genérico, em vez de rotular errado metade do conteúdo.
+  const termo=itens.every(i=>i.termo==='flash')?'flash':'questão';
+  return {total,certas,pct:total?Math.round(certas/total*100):0,termo};
+}
+function textoResultado(r){
+  if(!r) return '';
+  const plural=r.termo==='flash'?'flashes':'questões';
+  return `${r.total.toLocaleString('pt-BR')} ${r.total===1?r.termo:plural} • ${r.pct}% de acerto`;
+}
+
 // Chave YYYY-MM-DD local (sem passar por UTC, que desloca o dia no nosso fuso)
 function chaveDia(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -4286,6 +4318,18 @@ function renderAnalise(parte){
   // produzia "PSCPP > 013 > Sem capítulo", que não diz nada. Aqui elas usam o próprio recorte:
   // "Catavento 001" no topo e o tipo da sessão no lugar do capítulo.
   const ehSessaoCaderno=s=>['Exercício','Simulado','Revisão'].includes(s.tipo)&&s.publicacao&&!s.capitulo&&s.origem;
+  // O Pilotquest é reconhecido pela origem, SEM depender de não ter capítulo. Antes ele entrava
+  // só por `ehSessaoCaderno`, que exige capítulo vazio — no dia em que o Pilotquest passar a
+  // mandar o capítulo do caderno, a sessão sairia do card "Pilotquest" e apareceria solta em
+  // Manobrabilidade, sem ninguém entender por quê.
+  const ehSessaoPilotquest=s=>s.origem===CURSO_PILOTQUEST&&s.publicacao;
+  const ehSessaoDeCaderno=s=>ehSessaoPilotquest(s)||ehSessaoCaderno(s);
+  // Rótulo de capítulo de uma sessão, respeitando o idioma da publicação (Capítulo/Chapter/Seção).
+  const capituloDaSessao=s=>{
+    if(!s.capitulo) return '';
+    if(!/^\d/.test(s.capitulo)) return s.capitulo;
+    return formatarCapituloExibicao(bibliografia.find(b=>b.nome===s.publicacao&&b.modulo===s.modulo),s.capitulo);
+  };
 
   // Sessões do Anki não trazem publicação nem capítulo — mas os cards revisados naquele dia
   // trazem, via tag Livro::. Aqui essa informação é recuperada das revisões, para a sessão
@@ -4315,8 +4359,8 @@ function renderAnalise(parte){
   const porModulo=new Map();
   sessPeriodo.forEach(s=>{
     let mod,pub,cap;
-    if(ehSessaoCaderno(s)){
-      if(s.origem===CURSO_PILOTQUEST){
+    if(ehSessaoDeCaderno(s)){
+      if(ehSessaoPilotquest(s)){
         // Pilotquest agrupado num card só, em vez de um card por caderno (que era "Pilotquest
         // PQ 001", "Pilotquest PQ 002"... cada um solto). Aqui o caderno (PQ 001, PQF 003...)
         // vira o "capítulo" dentro do card único "Pilotquest" — mesma lógica visual de
@@ -4350,6 +4394,7 @@ function renderAnalise(parte){
   const detalheHtml=[...porModulo.entries()].map(([mod,pubs],mi)=>{
     const todasSess=[...pubs.values()].flatMap(caps=>[...caps.values()].flat());
     const minMod=somaMin(todasSess);
+    const resMod=somarResultados(todasSess);
     const cc=modCores[mod]||{bg:'#F1EFE8',tx:'#444441'};
     const pubsHtml=[...pubs.entries()].sort((a,b)=>{
       const ma=somaMin([...a[1].values()].flat()), mb=somaMin([...b[1].values()].flat());
@@ -4357,6 +4402,7 @@ function renderAnalise(parte){
     }).map(([pub,caps],pi)=>{
       const sessPub=[...caps.values()].flat();
       const minPub=somaMin(sessPub);
+      const resPub=somarResultados(sessPub);
       const capsHtml=[...caps.entries()].sort((a,b)=>somaMin(b[1])-somaMin(a[1])).map(([cap,arr],ci)=>{
         const id=`an${mi}-${pi}-${ci}`;
         // Rótulo do capítulo respeitando o idioma da publicação (Capítulo/Chapter/Seção/Section),
@@ -4368,18 +4414,25 @@ function renderAnalise(parte){
         const minCap=somaMin(arr);
         const carCap=arr.reduce((a,s)=>a+(s.caracteresLidos||0),0);
         const ritmoCap=carCap>0&&minCap>0?Math.round(carCap/minCap):null;
+        const resCap=somarResultados(arr);
         const passagens=[...arr].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).map((x,n)=>{
           const r=(x.caracteresLidos>0&&x.duracaoMinutos>0)?Math.round(x.caracteresLidos/x.duracaoMinutos):null;
           const ap=aproveitamentoSessao(x);
           // Mostra o tipo quando não for Leitura: dentro de um mesmo capítulo pode haver
           // leitura, revisão e Anki, e sem isso as três linhas ficariam indistinguíveis.
-          const rotuloTipo = x.tipo && x.tipo!=='Leitura' ? x.tipo+' • ' : '';
+          // Num caderno, o capítulo (quando existe) diz muito mais que a palavra "Exercício" —
+          // o tipo já está implícito no card. Em leitura o capítulo já é o cabeçalho do grupo,
+          // então repetir aqui seria ruído.
+          const ehCaderno=ehSessaoDeCaderno(x);
+          const capSess=ehCaderno?capituloDaSessao(x):'';
+          const rotuloTipo = capSess ? capSess+' • ' : (x.tipo && x.tipo!=='Leitura' ? x.tipo+' • ' : '');
+          const resSess=resultadoDaSessao(x);
           // Cada passagem é uma sessão: tocar corrige, o X exclui. Antes isso só existia no
           // Histórico corrido, que saiu — e este é o lugar natural, porque é aqui que a sessão
           // errada é encontrada.
           return `<div class="cap-row cap-row-sessao" onclick="abrirEditarSessao('${x.id}')">
-            <span class="cap-loc" style="flex-shrink:0">${arr.length-n}ª</span>
-            <span class="cap-tit">${rotuloTipo}${fmtData(x.data)}${janelaSessao(x)?' • '+janelaSessao(x):''} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}</span>
+            <span class="cap-loc" style="flex-shrink:0">${arr.length-n}${ehCaderno?'º':'ª'}</span>
+            <span class="cap-tit">${rotuloTipo}${fmtData(x.data)}${janelaSessao(x)?' • '+janelaSessao(x):''} • ${fmtDur(x.duracaoMinutos)}${r?' • '+r.toLocaleString('pt-BR')+' car/min':''}${resSess?' • '+textoResultado(resSess):''}</span>
             ${ap?`<span class="cap-tit sessao-aprov">${ap.texto}</span>`:''}
             <span class="sessao-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${x.id}','${x.tipo}','${(x.modulo||'').replace(/'/g,"\\'")}','${fmtData(x.data)}')">✕</span>
           </div>`;
@@ -4388,7 +4441,7 @@ function renderAnalise(parte){
           <div class="cap-group-header" onclick="toggleCap('${id}')">
             <span class="cap-loc">${capLabel}</span>
             <div class="cap-group-right">
-              <span class="cap-group-resumo">${arr.length}x • ${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}</span>
+              <span class="cap-group-resumo">${fmtDur(minCap)}${ritmoCap?' • '+ritmoCap.toLocaleString('pt-BR')+' car/min':''}${resCap?' • '+textoResultado(resCap):''}</span>
               <span class="chev" id="cchev-${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
             </div>
           </div>
@@ -4398,7 +4451,7 @@ function renderAnalise(parte){
       return `<div class="pub-block">
         <div class="pub-top">
           <span class="pub-nm">${pub==='Sem publicação'?pub:nomePub(pub)}</span>
-          <div class="pub-stats"><span class="pub-ac">${fmtDur(minPub)}</span></div>
+          <div class="pub-stats"><span class="pub-ac">${fmtDur(minPub)}${resPub?' • '+textoResultado(resPub):''}</span></div>
         </div>
         <div class="caps">${capsHtml}</div>
       </div>`;
@@ -4410,7 +4463,7 @@ function renderAnalise(parte){
           <div class="mod-right"><span class="mod-p" style="color:${cc.tx};background:${cc.bg}">${fmtDur(minMod)}</span><span class="chev" id="mchevan${mi}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
         </div>
         <div class="bbg"><div class="bf" style="width:${totalMinP?Math.round(minMod/totalMinP*100):0}%;background:${cc.tx}"></div></div>
-        <span class="mac">${todasSess.length} ${todasSess.length===1?'sessão':'sessões'}</span>
+        <span class="mac">${todasSess.length} ${todasSess.length===1?'sessão':'sessões'}${resMod?' • '+textoResultado(resMod):''}</span>
       </div>
       <div class="mod-detail" id="mdetan${mi}">${pubsHtml}</div>
     </div>`;
@@ -10188,9 +10241,35 @@ function quebrarEnunciado(zonaEnunciado,temRomanos){
     // colada no fim da última assertiva no texto de origem, sem quebra de linha nenhuma — sem
     // este padrão, ela ficava grudada no item V (ou o último da lista) em vez de aparecer como
     // uma linha própria antes das alternativas.
-    return zonaEnunciado
-      .split(/\n(?=\s*(?:\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s)|(?=\s\(?[IVXLCDM]{1,6}\)\s)|(?=\s\(\s*\))|(?=\s(?:Assinale|Marque|Julgue)\s+a[s]?\s+(?:alternativa|op[çc][ãa]o|assertiva)[s]?)/i)
+    let texto=zonaEnunciado;
+    // A PRIMEIRA assertiva costuma vir inline, colada no fim da frase de abertura
+    // ("...assinale a alternativa correta: I. Derivadas positivas..."), enquanto II, III e IV
+    // já vêm cada uma em sua linha. Sem tratar, a I ficava grudada no enunciado e as outras
+    // três apareciam soltas — desalinhadas entre si (caso real: 02 SET 26, questão 29).
+    // Só mexe quando existe "\nII." confirmando que é mesmo uma sequência, e quando a I ainda
+    // não está em linha própria — mesma cautela que a lista alfabética já usa com "A."/"B.".
+    if(/\n\s*II[).]\s/.test(texto) && !/\n\s*I[).]\s/.test(texto)){
+      texto=texto.replace(/([:.])\s+(I[).]\s)/, '$1\n$2');
+    }
+    const partes=texto
+      .split(/\n(?=\s*(?:\(?[IVXLCDM]{1,6}[).]|\(\s*\))\s)|(?=\s\(?[IVXLCDM]{1,6}\)\s)|(?=\s\(\s*\))/i)
       .map(p=>p.trim()).filter(Boolean);
+    // A frase de comando ("Assinale a alternativa correta:") só ganha linha própria quando
+    // FECHA uma frase antes. Ela costuma vir colada no fim da última assertiva
+    // ("...a espessura aumenta. Assinale a alternativa correta:") e ali a quebra é certa — mas
+    // quando aparece no meio da frase de abertura ("analise as assertivas abaixo e assinale a
+    // alternativa correta:"), quebrar cortava o enunciado no meio de uma oração.
+    const saida=[];
+    for(const parte of partes){
+      const m=parte.match(/[.;]\s+(?=(?:Assinale|Marque|Julgue)\s+a[s]?\s+(?:alternativa|op[çc][ãa]o|assertiva)[s]?)/i);
+      if(m){
+        saida.push(parte.slice(0,m.index+1).trim());
+        saida.push(parte.slice(m.index+m[0].length).trim());
+      } else {
+        saida.push(parte);
+      }
+    }
+    return saida.filter(Boolean);
   }
   // "A. " sozinho não basta pra confirmar uma lista de assertivas alfabéticas — nomes de autor
   // com iniciais (ex: "SILVA, G. A. M, 2017") batem nesse mesmo padrão por coincidência e
@@ -10271,9 +10350,35 @@ async function salvarAnotacaoAlternativa(){
     }
   }
 }
+// Subscrito e sobrescrito. O PDF das provas usa notação técnica de manobrabilidade
+// ("X" com "P" pequeno embaixo, o ponto de aplicação da força lateral), e a extração achata
+// isso em texto puro — o PyMuPDF perde o tamanho da fonte e ainda insere um espaço, então
+// "X_P" chegava como "X P", lido como se fossem duas coisas soltas.
+//
+// O importer passa a gravar a marcação em texto: "X_P" (um caractere) ou "X_{abc}" (mais de
+// um), e "^" no mesmo padrão pro sobrescrito. Aqui ela vira <sub>/<sup> de verdade.
+//
+// Ordem importa, mesma regra do `formatCorrecaoVF`: escapa primeiro, converte depois. Assim um
+// "_" que venha no texto por acaso já é texto inerte quando esta função roda, e nunca há como
+// o conteúdo de uma questão injetar HTML.
+// A base é "qualquer coisa que não seja espaço" de propósito, não uma lista de letras: depois
+// do escape, um apóstrofo já virou "&#39;" e o caractere colado no "_" é ";" (caso real:
+// N'_{1} e N'_{2}). Exigir letra ali fazia a conversão falhar justamente na notação com linha.
+//
+// No formato de um caractere só, o subscrito precisa terminar em borda de palavra — sem isso,
+// "arquivo_teste" virava "arquivo" com um "t" pequenininho no meio (pego em teste). Com chaves
+// não precisa dessa guarda, porque as chaves já delimitam sozinhas.
+const _SUB_SOBRE_REGEX=/([^\s])([_^])(?:\{([^{}]{1,20})\}|([A-Za-z0-9+\-])(?![A-Za-zÀ-ÿ0-9]))/g;
+function formatarSubSobrescrito(escapado){
+  return escapado.replace(_SUB_SOBRE_REGEX,(_todo,base,marca,entreChaves,solto)=>{
+    const tag=marca==='_'?'sub':'sup';
+    return `${base}<${tag}>${entreChaves!==undefined?entreChaves:solto}</${tag}>`;
+  });
+}
+
 function formatQuestaoCompleta(texto,q){
   if(!texto) return '';
-  const escaped=escapeHtml(texto);
+  const escaped=formatarSubSobrescrito(escapeHtml(texto));
   // acha onde começam as alternativas de resposta (a)-(e) — tudo antes é enunciado/assertivas, tudo depois são as alternativas
   const altMatch=escaped.match(/\s\([a-e]\)/);
   const idxAlt=altMatch?altMatch.index:-1;
