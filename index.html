@@ -2541,16 +2541,29 @@ function setSyncStatus(state){
   });
 }
 
-let loadDataEmAndamento=null;
-async function loadData(){
-  // Se já tem uma chamada em andamento, não dispara outra leva de ~15 queries em paralelo —
-  // só espera a que já está rodando terminar (evita flicker e resultado fora de ordem).
-  if(loadDataEmAndamento) return loadDataEmAndamento;
-  loadDataEmAndamento=loadDataInterno();
+// loadData() sem argumento = carga COMPLETA (abrir o app, puxar pra atualizar, finalizar
+// caderno). loadData(['notas_estudo']) = recarrega SÓ essas tabelas e redesenha a tela.
+//
+// Por que existe a versão parcial (12/09/2026): cada carga completa baixava ~26 tabelas
+// (≈15 MB de JSON, com banco_questoes em 5 páginas) e rodava depois de QUALQUER ação — marcar
+// uma nota, salvar meta, editar sessão. Os logs do Supabase mostraram ~110 cargas completas
+// numa tarde. No iPad isso vira memória inflando a cada toque, e o Safari responde pintando
+// ladrilhos cinza até matar a página. Agora uma ação recarrega só a tabela que ela mexeu.
+let loadDataEmAndamento=null,loadDataEmAndamentoCompleto=false;
+async function loadData(tabelas){
+  const completo=!Array.isArray(tabelas);
+  // Carga completa já rodando: qualquer pedido (completo ou parcial) só espera ela — ela vai
+  // trazer tudo de qualquer jeito. Evita flicker e duas levas em paralelo no pull-to-refresh.
+  if(loadDataEmAndamento&&loadDataEmAndamentoCompleto) return loadDataEmAndamento;
+  // Parcial rodando: encadeia depois dela, pra garantir que a leitura veja a gravação recente.
+  const anterior=loadDataEmAndamento||Promise.resolve();
+  const minha=anterior.catch(()=>{}).then(()=>loadDataInterno(completo?null:tabelas));
+  loadDataEmAndamento=minha;
+  loadDataEmAndamentoCompleto=completo;
   try{
-    await loadDataEmAndamento;
+    await minha;
   }finally{
-    loadDataEmAndamento=null;
+    if(loadDataEmAndamento===minha){ loadDataEmAndamento=null; loadDataEmAndamentoCompleto=false; }
   }
 }
 // ============================================================================
@@ -2801,95 +2814,25 @@ async function sincronizarFlashPilotquest(){
   await sbDados.from('app_config').upsert({chave:'flash_ultima_sincronizacao',valor:novoCursor});
 }
 
-async function loadDataInterno(){
-  setSyncStatus('loading');
-  try{
-    // Traz do Pilotquest o que tiver sido concluído desde a última vez — cadernos de múltipla
-    // escolha e sessões do Flash. Roda ANTES da leitura principal de propósito: qualquer coisa
-    // gravada aqui já aparece na mesma leva de dados que vem a seguir, sem precisar de um
-    // segundo recarregamento. Envolvida em try/catch própria — se o Pilotquest estiver fora do
-    // ar, isso nunca deve impedir o resto do app de carregar.
-    try{ await sincronizarPilotquest(); }catch(e){ console.error('Erro ao sincronizar Pilotquest:',e); }
+// ANKI PAUSADO (pedido do Carlos, 31/08/2026) — ele não está usando o Anki por enquanto. Com a
+// flag em false as 4 tabelas do Anki nem são baixadas (anki_cards sozinha tem ~8 MB — era a
+// maior tabela de toda a carga, baixada e jogada fora a cada recarregamento). Toda tela e todo
+// cálculo que depende delas se comporta como se não houvesse Anki nenhum. A aba Anki já foi
+// tirada da navegação (ver "const abas" em renderSubAbas). Pra reativar: ANKI_ATIVO=true e
+// descomenta o item 'anki' na lista de abas.
+const ANKI_ATIVO=false;
 
-    const [
-      {data:a,error:eA},{data:qRaw,error:eQ},{data:calEventos,error:eCal},{data:notas,error:eNotas},
-      {data:comp,error:eComp},{data:banco,error:eBanco},{data:foco,error:eFoco},
-      {data:apelidosRes,error:eApelidos},{data:filaRes,error:eFila},{data:sessoesRes,error:eSessoes},
-      {data:cicloRes,error:eCiclo},{data:metasRes,error:eMetas},{data:revisoesRes,error:eRevisoes},
-      {data:tamanhoCapRes,error:eTamanhoCap},
-      {data:ativPendRes,error:eAtivPend},{data:questPendRes,error:eQuestPend},{data:appConfigRes,error:eAppConfig},
-      {data:anotacoesRes,error:eAnotacoes},
-      {data:ankiRes,error:eAnki},
-      {data:ankiSecRes,error:eAnkiSec},
-      {data:ankiRevRes,error:eAnkiRev},
-      {data:classAltRes,error:eClassAlt},
-      {data:planoRes,error:ePlano},
-      {data:previsaoRes,error:ePrevisao},
-      {data:notasAssuntoRes,error:eNotasAssunto}
-    ]=await Promise.all([
-      sbDados.from('atividades').select('*'),
-      buscarTudo('banco_questoes'),
-      buscarTudo('calendario_eventos','*'),
-      sbDados.from('notas_estudo').select('*'),
-      sbDados.from('atividades_complementares').select('*'),
-      sbDados.from('banco_pratico_config').select('*'),
-      sbDados.from('foco_estudado').select('*'),
-      sbDados.from('apelidos_publicacao').select('*'),
-      sbDados.from('fila_banco_pratico').select('*'),
-      buscarTudo('sessoes_estudo','*'),
-      sbDados.from('ciclo_estudos_config').select('*'),
-      sbDados.from('metas_estudo').select('*'),
-      sbDados.from('revisoes_espacadas').select('*'),
-      sbDados.from('tamanho_capitulos').select('*'),
-      sbDados.from('atividades_pendentes').select('*'),
-      buscarTudo('questoes_pendentes'),
-      sbDados.from('app_config').select('*'),
-      buscarTudo('anotacoes_alternativas','*'),
-      buscarTudo('anki_cards'),
-      buscarTudo('anki_secoes'),
-      buscarTudo('anki_revisoes'),
-      buscarTudo('classificacao_alternativas'),
-      buscarTudo('plano_estudo'),
-      buscarTudo('anki_previsao_carga'),
-      buscarTudo('notas_assunto'),
-    ]);
-    const primeiroErro=[eA,eQ,eCal,eNotas,eComp,eBanco,eFoco,eApelidos,eFila,eSessoes,eCiclo,eMetas,eRevisoes,eTamanhoCap,eAtivPend,eQuestPend,eAppConfig,eAnotacoes].find(Boolean);
-    if(primeiroErro) throw new Error(primeiroErro.message);
-    saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
-    // Configurações lidas do próprio Anki pelo sincronizador. O limite de cards novos é o mais
-    // importante: ele é um teto real, e sem considerá-lo o simulador prometeria um ritmo que o
-    // Anki não deixa acontecer.
-    const cfgNum=(chave,padrao)=>{
-      const v=(appConfigRes.find(c=>c.chave===chave)||{}).valor;
-      const n=parseFloat(v);
-      return Number.isFinite(n)?n:padrao;
-    };
-    // Piso de 15 minutos: abaixo disso a fila de revisão consome todo o tempo e a projeção
-    // devolve zero cards novos, o que não ajuda em nada.
-    ankiMinutosDia=Math.max(15,cfgNum('anki_minutos_dia',30));
-    ankiConfig={
-      alvoRetencao:   cfgNum('anki_alvo_retencao',0.9)*100,
-      limiteNovos:    cfgNum('anki_limite_novos',0),
-      limiteRevisoes: cfgNum('anki_limite_revisoes',0),
-      limiteLeech:    cfgNum('anki_limite_leech',8),
-    };
-
-    // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
-    // pra não travar o resto do app se o PilotQuest estiver fora do ar.
-    try{
-      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
-      if(eBib) throw eBib;
-      bibliografia=bibRes.map(p=>({
-        modulo:p.modulo_pscpp,
-        nome:p.nome_exibicao||p.titulo,
-        capituloUnico:p.capitulo_unico||false,
-        capitulosValidos:p.capitulos_validos||[],
-        rotuloCapitulo:p.rotulo_capitulo||'Capítulo',
-      })).filter(b=>b.modulo&&b.nome);
-    }catch(e){
-      bibliografia=[];
-    }
-
+// Um carregador por tabela: busca no Supabase e atualiza SÓ a variável global correspondente.
+// loadDataInterno(null) roda todos; loadDataInterno(['x','y']) roda só esses. As conversões de
+// linha→objeto são exatamente as de antes, só separadas por tabela.
+//
+// Convenção de erro: as tabelas essenciais lançam (o app mostra a tela de erro); as opcionais
+// (anki_*, classificacao_alternativas, plano_estudo, anki_previsao_carga, notas_assunto,
+// bibliografia) engolem o erro e ficam vazias — mesmo comportamento do carregamento antigo.
+function lancarSe(error){ if(error) throw new Error(error.message); }
+const CARREGADORES={
+  atividades: async()=>{
+    const {data:a,error}=await sbDados.from('atividades').select('*'); lancarSe(error);
     atividades=a.map(p=>({
       id:p.id,
       nome:p.id_atividade||'Sem título',
@@ -2907,6 +2850,9 @@ async function loadDataInterno(){
       iniciadoEm:p.iniciado_em||null,
       finalizadoEm:p.finalizado_em||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  },
+  banco_questoes: async()=>{
+    const {data:qRaw,error}=await buscarTudo('banco_questoes'); lancarSe(error);
     // Questões excluídas somem de todos os cálculos e telas. Filtrar aqui, na origem, em vez de
     // em cada lugar que usa "questoes" — assim nenhum cálculo futuro esquece de considerar.
     // A linha continua no banco, então dá para reverter.
@@ -2946,6 +2892,9 @@ async function loadDataInterno(){
       totalErros:p.total_de_erros||0,
       totalAcertos:p.total_de_acertos||0,
     }));
+  },
+  calendario_eventos: async()=>{
+    const {data:calEventos,error}=await buscarTudo('calendario_eventos','*'); lancarSe(error);
     calendarioEventos=calEventos.map(p=>({
       id:p.id,
       curso:p.curso,
@@ -2955,11 +2904,17 @@ async function loadDataInterno(){
       modalidade:p.modalidade||null,
       feito:p.feito||false,
     }));
+  },
+  notas_estudo: async()=>{
+    const {data:notas,error}=await sbDados.from('notas_estudo').select('*'); lancarSe(error);
     notasEstudo=notas.map(p=>({
       id:p.id,
       texto:p.texto||'',
       criadoEm:p.criado_em||null,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  },
+  atividades_complementares: async()=>{
+    const {data:comp,error}=await sbDados.from('atividades_complementares').select('*'); lancarSe(error);
     complementares=comp.map(p=>({
       id:p.id,
       nome:p.nome||'Sem título',
@@ -2968,6 +2923,9 @@ async function loadDataInterno(){
       recorrenciaDias:p.recorrencia_dias||null,
       status:p.status||'Pendente',
     }));
+  },
+  banco_pratico_config: async()=>{
+    const {data:banco,error}=await sbDados.from('banco_pratico_config').select('*'); lancarSe(error);
     bancoPratico=banco.map(p=>({
       id:p.id,
       nome:p.nome||'Banco Prático',
@@ -2977,13 +2935,22 @@ async function loadDataInterno(){
       metaDiaria:p.meta_diaria||10,
       dataProva:p.data_prova||null,
     }))[0]||null;
+  },
+  foco_estudado: async()=>{
+    const {data:foco,error}=await sbDados.from('foco_estudado').select('*'); lancarSe(error);
     focoEstudado=foco.map(p=>({chave:p.modulo||'',data:p.data_confirmada||null})).filter(f=>f.chave);
+  },
+  apelidos_publicacao: async()=>{
+    const {data:apelidosRes,error}=await sbDados.from('apelidos_publicacao').select('*'); lancarSe(error);
     apelidos={};
     apelidosRes.forEach(p=>{
       const orig=p.nome_original;
       const custom=p.nome_personalizado;
       if(orig&&custom) apelidos[orig]=custom;
     });
+  },
+  fila_banco_pratico: async()=>{
+    const {data:filaRes,error}=await sbDados.from('fila_banco_pratico').select('*'); lancarSe(error);
     filaBancoPratico=filaRes.map(p=>({
       id:p.id,
       materia:p.materia||'',
@@ -2994,6 +2961,9 @@ async function loadDataInterno(){
       status:p.status||'Pendente',
       quantidade:p.quantidade||1,
     }));
+  },
+  sessoes_estudo: async()=>{
+    const {data:sessoesRes,error}=await buscarTudo('sessoes_estudo','*'); lancarSe(error);
     sessoesEstudo=sessoesRes.map(p=>({
       id:p.id,
       modulo:p.modulo,
@@ -3015,17 +2985,85 @@ async function loadDataInterno(){
       ehDesvio:!!p.eh_desvio,
       mesmaLeituraAnterior:!!p.mesma_leitura_anterior,
     })).sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  },
+  ciclo_estudos_config: async()=>{
+    const {data:cicloRes,error}=await sbDados.from('ciclo_estudos_config').select('*'); lancarSe(error);
     cicloEstudosConfig=cicloRes.map(p=>({id:p.id,modulo:p.modulo,peso:p.peso||1}));
+  },
+  metas_estudo: async()=>{
+    const {data:metasRes,error}=await sbDados.from('metas_estudo').select('*'); lancarSe(error);
     metasEstudo=metasRes.map(p=>({id:p.id,modulo:p.modulo,periodo:p.periodo,metaMinutos:p.meta_minutos||0}));
+  },
+  revisoes_espacadas: async()=>{
+    const {data:revisoesRes,error}=await sbDados.from('revisoes_espacadas').select('*'); lancarSe(error);
     revisoesEspacadas=revisoesRes.map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao||'',capitulo:p.capitulo||'',nivel:p.nivel||0,proximaData:p.proxima_data}));
+  },
+  tamanho_capitulos: async()=>{
+    const {data:tamanhoCapRes,error}=await sbDados.from('tamanho_capitulos').select('*'); lancarSe(error);
     tamanhoCapitulos={};
     (tamanhoCapRes||[]).forEach(p=>{
       tamanhoCapitulos[chaveTamanhoCap(p.modulo,p.publicacao,p.capitulo)]={
         caracteresTotais:p.caracteres_totais,atualizadoEm:p.atualizado_em,
       };
     });
-    // Anki é opcional: se a sincronização nunca rodou, a lista fica vazia e a aba mostra o
-    // aviso de "sem dados" — não é erro que deva derrubar o carregamento do resto.
+  },
+  atividades_pendentes: async()=>{
+    const {data:ativPendRes,error}=await sbDados.from('atividades_pendentes').select('*'); lancarSe(error);
+    atividadesPendentes=ativPendRes.map(p=>({
+      id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
+      dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
+      reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
+      arquivoComFalha:p.arquivo_com_falha||'',motivoFalha:p.motivo_falha||'',
+      excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,tempoGastoSegundos:p.tempo_gasto_segundos,
+      iniciadoEm:p.iniciado_em||null,finalizadoEm:p.finalizado_em||null,
+    }));
+  },
+  questoes_pendentes: async()=>{
+    const {data:questPendRes,error}=await buscarTudo('questoes_pendentes'); lancarSe(error);
+    questoesPendentes=questPendRes.map(p=>({
+      id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
+      peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,pagina:p.pagina,
+      questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
+      respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
+      respostaManual:!!p.resposta_manual,
+      zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
+      acertouSimplificado:p.acertou_simplificado,
+    })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
+  },
+  app_config: async()=>{
+    const {data:appConfigRes,error}=await sbDados.from('app_config').select('*'); lancarSe(error);
+    saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
+    // Configurações lidas do próprio Anki pelo sincronizador. O limite de cards novos é o mais
+    // importante: ele é um teto real, e sem considerá-lo o simulador prometeria um ritmo que o
+    // Anki não deixa acontecer.
+    const cfgNum=(chave,padrao)=>{
+      const v=(appConfigRes.find(c=>c.chave===chave)||{}).valor;
+      const n=parseFloat(v);
+      return Number.isFinite(n)?n:padrao;
+    };
+    // Piso de 15 minutos: abaixo disso a fila de revisão consome todo o tempo e a projeção
+    // devolve zero cards novos, o que não ajuda em nada.
+    ankiMinutosDia=Math.max(15,cfgNum('anki_minutos_dia',30));
+    ankiConfig={
+      alvoRetencao:   cfgNum('anki_alvo_retencao',0.9)*100,
+      limiteNovos:    cfgNum('anki_limite_novos',0),
+      limiteRevisoes: cfgNum('anki_limite_revisoes',0),
+      limiteLeech:    cfgNum('anki_limite_leech',8),
+    };
+  },
+  anotacoes_alternativas: async()=>{
+    const {data:anotacoesRes,error}=await buscarTudo('anotacoes_alternativas','*'); lancarSe(error);
+    anotacoesAlternativas=anotacoesRes.map(p=>({
+      id:p.id,bancoQuestaoId:p.banco_questao_id,numeroQuestao:p.numero_questao,idAtividade:p.id_atividade,
+      alternativa:p.alternativa,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
+      texto:p.texto,criadoEm:p.criado_em,
+    }));
+  },
+  // Anki é opcional: se a sincronização nunca rodou, a lista fica vazia e a aba mostra o
+  // aviso de "sem dados" — não é erro que deva derrubar o carregamento do resto.
+  anki_cards: async()=>{
+    if(!ANKI_ATIVO){ ankiCards=[]; return; }
+    const {data:ankiRes,error:eAnki}=await buscarTudo('anki_cards');
     ankiCards=eAnki?[]:(ankiRes||[]).map(p=>({
       cardId:p.card_id, modulo:p.modulo||'', assunto:p.assunto||'',
       categoria:p.categoria||'', tipoQuestao:p.tipo_questao||'',
@@ -3040,82 +3078,119 @@ async function loadDataInterno(){
       leech:!!p.leech, maduro:!!p.maduro, suspenso:!!p.suspenso,
       tipoCard:p.tipo_card, venceEm:p.vence_em||null,
     }));
+  },
+  anki_secoes: async()=>{
+    if(!ANKI_ATIVO){ ankiSecoes=[]; return; }
+    const {data:ankiSecRes,error:eAnkiSec}=await buscarTudo('anki_secoes');
     ankiSecoes=eAnkiSec?[]:(ankiSecRes||[]).map(p=>({
       cardId:p.card_id, obraTag:p.obra_tag, divisaoTag:p.divisao_tag||'',
       subdivisaoTag:p.subdivisao_tag||'', publicacao:p.publicacao||'',
       capitulo:p.capitulo||'', casou:!!p.casou,
     }));
+  },
+  anki_revisoes: async()=>{
+    if(!ANKI_ATIVO){ ankiRevisoes=[]; return; }
+    const {data:ankiRevRes,error:eAnkiRev}=await buscarTudo('anki_revisoes');
     ankiRevisoes=eAnkiRev?[]:(ankiRevRes||[]).map(p=>({
       cardId:p.card_id, revisadoEm:p.revisado_em, resposta:p.resposta,
       tempoMs:p.tempo_ms||0, intervaloAnt:p.intervalo_ant, tipo:p.tipo,
     }));
-    // Classificação no nível da alternativa: diz o que a alternativa marcada errado estava
-    // cobrando. É o que transforma "erra números" em "erra a largura de canal do CONAPRA".
-    // O que o Carlos planejou estudar em cada dia. Diferente das sessões: sessão é o que
-    // aconteceu, plano é o que ele pretende fazer.
-    planoEstudo=ePlano?[]:(planoRes||[]).map(p=>({
-      id:p.id, data:p.data, tipo:p.tipo||'Leitura', modulo:p.modulo||'',
-      publicacao:p.publicacao||'', capitulo:p.capitulo||'',
-      descricao:p.descricao||'', minutos:p.minutos||null, feito:!!p.feito,
-    }));
-    // Recalcula os totais de cada atividade a partir das questões que sobraram. O registro em
-    // "atividades" foi gravado no processamento e não sabe de exclusões feitas depois — sem
-    // isso, o aproveitamento continuaria contando questões que não valem mais.
-    atividades.forEach(a=>{
-      const qs=questoes.filter(q=>q.idAtividade===a.nome);
-      if(!qs.length) return;
-      const acertos=qs.filter(isAcerto).length;
-      a.acertos=acertos;
-      a.erros=qs.length-acertos;
-      a.total=qs.length;
-      a.aproveitamento=qs.length?(acertos/qs.length*100):0;
-    });
-
-    registrarGrupoPilotTransfer();
-
-    // Notas ligadas ao assunto em si, não a uma questão: o que vale saber sobre o tema, lido
-    // antes de estudar qualquer questão dele.
-    notasAssunto={};
-    if(!eNotasAssunto) (notasAssuntoRes||[]).forEach(p=>{ if(p.texto) notasAssunto[p.assunto]=p.texto; });
+  },
+  anki_previsao_carga: async()=>{
+    if(!ANKI_ATIVO){ ankiPrevisao=[]; return; }
+    const {data:previsaoRes,error:ePrevisao}=await buscarTudo('anki_previsao_carga');
     ankiPrevisao=ePrevisao?[]:(previsaoRes||[]).map(p=>({
       data:p.data, deck:p.deck||'', revisoes:p.revisoes||0,
     }));
-    // ANKI PAUSADO (pedido do Carlos, 31/08/2026) — ele não está usando o Anki por enquanto.
-    // Os dados continuam sendo buscados do banco acima (não vale a pena complicar o Promise.all
-    // pra isso), mas são zerados aqui, na saída — assim toda tela e todo cálculo que depende
-    // deles (Plano de Ação, Por tipo de conteúdo, Volume por matéria, etc.) naturalmente se
-    // comporta como se não houvesse Anki nenhum, sem precisar mexer em cada um individualmente.
-    // A aba Anki já foi tirada da navegação (ver "const abas" em renderSubAbas). Pra reativar:
-    // remove estas 4 linhas e descomenta o item 'anki' na lista de abas.
-    ankiCards=[]; ankiSecoes=[]; ankiRevisoes=[]; ankiPrevisao=[];
+  },
+  // Classificação no nível da alternativa: diz o que a alternativa marcada errado estava
+  // cobrando. É o que transforma "erra números" em "erra a largura de canal do CONAPRA".
+  classificacao_alternativas: async()=>{
+    const {data:classAltRes,error:eClassAlt}=await buscarTudo('classificacao_alternativas');
     classAlternativas=eClassAlt?[]:(classAltRes||[]).map(p=>({
       idAtividade:p.id_atividade, questao:p.numero_questao, alternativa:p.alternativa,
       tipoConteudo:p.tipo_conteudo||'', assunto:p.assunto||'',
       foiMarcada:!!p.foi_marcada, ehGabarito:!!p.eh_gabarito,
       direcaoErro:p.direcao_erro||null,
     }));
-    atividadesPendentes=ativPendRes.map(p=>({
-      id:p.id,nome:p.nome,tipo:p.tipo,curso:p.curso,
-      dataAtividade:p.data_atividade,status:p.status,modoResposta:p.modo_resposta||'simplificado',
-      reextracaoSolicitada:p.reextracao_solicitada||false,nomeArquivoOriginal:p.nome_arquivo_original,
-      arquivoComFalha:p.arquivo_com_falha||'',motivoFalha:p.motivo_falha||'',
-      excelCorrelacaoEncontrado:p.excel_correlacao_encontrado,tempoGastoSegundos:p.tempo_gasto_segundos,
-      iniciadoEm:p.iniciado_em||null,finalizadoEm:p.finalizado_em||null,
+  },
+  // O que o Carlos planejou estudar em cada dia. Diferente das sessões: sessão é o que
+  // aconteceu, plano é o que ele pretende fazer.
+  plano_estudo: async()=>{
+    const {data:planoRes,error:ePlano}=await buscarTudo('plano_estudo');
+    planoEstudo=ePlano?[]:(planoRes||[]).map(p=>({
+      id:p.id, data:p.data, tipo:p.tipo||'Leitura', modulo:p.modulo||'',
+      publicacao:p.publicacao||'', capitulo:p.capitulo||'',
+      descricao:p.descricao||'', minutos:p.minutos||null, feito:!!p.feito,
     }));
-    questoesPendentes=questPendRes.map(p=>({
-      id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
-      peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,pagina:p.pagina,
-      questaoCompleta:p.questao_completa,gabarito:p.gabarito,statusExtracao:p.status_extracao,
-      respondida:p.respondida,suaResposta:p.sua_resposta,pdfPagina:p.pdf_pagina,
-      respostaManual:!!p.resposta_manual,
-      zonasAlternativas:p.zonas_alternativas||{},reextracaoSolicitada:p.reextracao_solicitada||false,
-      acertouSimplificado:p.acertou_simplificado,
-    })).sort((a,b)=>(parseInt(a.numeroQuestao,10)||0)-(parseInt(b.numeroQuestao,10)||0));
-    anotacoesAlternativas=anotacoesRes.map(p=>({
-      id:p.id,bancoQuestaoId:p.banco_questao_id,numeroQuestao:p.numero_questao,idAtividade:p.id_atividade,
-      alternativa:p.alternativa,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,
-      texto:p.texto,criadoEm:p.criado_em,
-    }));
+  },
+  // Notas ligadas ao assunto em si, não a uma questão: o que vale saber sobre o tema, lido
+  // antes de estudar qualquer questão dele.
+  notas_assunto: async()=>{
+    const {data:notasAssuntoRes,error:eNotasAssunto}=await buscarTudo('notas_assunto');
+    notasAssunto={};
+    if(!eNotasAssunto) (notasAssuntoRes||[]).forEach(p=>{ if(p.texto) notasAssunto[p.assunto]=p.texto; });
+  },
+  // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
+  // pra não travar o resto do app se o PilotQuest estiver fora do ar.
+  bibliografia: async()=>{
+    try{
+      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
+      if(eBib) throw eBib;
+      bibliografia=bibRes.map(p=>({
+        modulo:p.modulo_pscpp,
+        nome:p.nome_exibicao||p.titulo,
+        capituloUnico:p.capitulo_unico||false,
+        capitulosValidos:p.capitulos_validos||[],
+        rotuloCapitulo:p.rotulo_capitulo||'Capítulo',
+      })).filter(b=>b.modulo&&b.nome);
+    }catch(e){
+      bibliografia=[];
+    }
+  },
+};
+
+// Derivações que dependem de mais de uma tabela — rodam depois de qualquer carga, completa ou
+// parcial (são baratas: só percorrem o que já está em memória).
+function posProcessarDados(){
+  // Recalcula os totais de cada atividade a partir das questões que sobraram. O registro em
+  // "atividades" foi gravado no processamento e não sabe de exclusões feitas depois — sem
+  // isso, o aproveitamento continuaria contando questões que não valem mais.
+  atividades.forEach(a=>{
+    const qs=questoes.filter(q=>q.idAtividade===a.nome);
+    if(!qs.length) return;
+    const acertos=qs.filter(isAcerto).length;
+    a.acertos=acertos;
+    a.erros=qs.length-acertos;
+    a.total=qs.length;
+    a.aproveitamento=qs.length?(acertos/qs.length*100):0;
+  });
+  registrarGrupoPilotTransfer();
+}
+
+// Puxar pra atualizar duas vezes em poucos segundos não baixa tudo de novo: a segunda só faz
+// a animação. Evita a sequência "tela travou → puxo de novo → mais 15 MB → trava mais".
+let ultimaCargaCompletaEm=0;
+const INTERVALO_MIN_GESTO_MS=5000;
+function podeRecarregarPorGesto(){ return Date.now()-ultimaCargaCompletaEm>INTERVALO_MIN_GESTO_MS; }
+
+async function loadDataInterno(tabelas){
+  const completo=!tabelas;
+  setSyncStatus('loading');
+  try{
+    if(completo){
+      // Traz do Pilotquest o que tiver sido concluído desde a última vez — cadernos de múltipla
+      // escolha e sessões do Flash. Roda ANTES da leitura principal de propósito: qualquer coisa
+      // gravada aqui já aparece na mesma leva de dados que vem a seguir, sem precisar de um
+      // segundo recarregamento. Envolvida em try/catch própria — se o Pilotquest estiver fora do
+      // ar, isso nunca deve impedir o resto do app de carregar.
+      try{ await sincronizarPilotquest(); }catch(e){ console.error('Erro ao sincronizar Pilotquest:',e); }
+    }
+    const nomes=completo?Object.keys(CARREGADORES):tabelas.filter(t=>CARREGADORES[t]);
+    const desconhecidas=completo?[]:tabelas.filter(t=>!CARREGADORES[t]);
+    if(desconhecidas.length) console.warn('loadData: tabela sem carregador, ignorada:',desconhecidas);
+    await Promise.all(nomes.map(n=>CARREGADORES[n]()));
+    posProcessarDados();
     // Banco Prático PAUSADO (não removido) — o Carlos não usa mais o site externo, e as
     // questões geradas por IA de lá estão com qualidade ruim segundo ele mesmo. O card já saiu
     // da Início; sem parar esta chamada também, o app continuaria inserindo sugestões novas em
@@ -3124,6 +3199,7 @@ async function loadDataInterno(){
     // de renderCardBancoPratico() dentro de renderInicio() — o resto (tabela, config, funções
     // de marcar feito, meta diária) continua todo intacto, só dormente.
     // await verificarFilaBancoPratico();
+    if(completo) ultimaCargaCompletaEm=Date.now();
     setSyncStatus('ok');
     renderTab(tabAtual,true);
     finalizarSplash();
@@ -3349,7 +3425,7 @@ async function concluirRevisao(id){
   try{
     const {error}=await sbDados.from('revisoes_espacadas').update({nivel:novoNivel,proxima_data:proximaData,atualizado_em:new Date().toISOString()}).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['revisoes_espacadas']);
   }catch(e){
     mostrarAviso('Não deu para concluir revisão','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -3684,7 +3760,7 @@ async function salvarResolverTipoCurso(){
     const {error}=await sbDados.from('atividades_pendentes').update({curso,tipo,nome,status:'Pendente'}).eq('id',resolverTipoCursoAtividadeId);
     if(error) throw error;
     fecharResolverTipoCurso();
-    await loadData();
+    await loadData(['atividades_pendentes']);
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -6130,7 +6206,7 @@ async function confirmarApagarTempoGasto(){
   try{
     const {error}=await sbDados.from('atividades_pendentes').update({tempo_gasto_segundos:null}).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['atividades_pendentes']);
   }catch(e){
     mostrarAviso('Não deu para apagar','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -6170,7 +6246,7 @@ async function finalizarCadernoTimer(){
     document.getElementById('caderno-timer-fullscreen').classList.add('hidden');
     document.body.classList.remove('timer-fullscreen-ativo');
     liberarWakeLock();
-    await loadData();
+    await loadData(['atividades_pendentes']);
   }catch(e){
     // Tempo cronometrado é insubstituível: entra na fila e é reenviado sozinho, em vez de
     // só avisar e sumir se o app fechar.
@@ -6955,7 +7031,7 @@ async function confirmarSalvarTimer(){
     }
     fecharConfirmarSalvarTimer();
     if(ehDesvio) restaurarDoDesvio(); else zerarTimer();
-    await loadData();
+    await loadData(['sessoes_estudo','tamanho_capitulos','revisoes_espacadas']);
   }catch(e){
     // Em vez de só avisar e deixar o Carlos tentar de novo (e perder tudo se fechar o app), a
     // sessão entra na fila e é enviada sozinha quando a conexão voltar. O cronômetro é zerado
@@ -7051,7 +7127,7 @@ async function salvarRegistroManual(){
     if(error) throw error;
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo,numCapitulo);
     fecharRegistroManual();
-    await loadData();
+    await loadData(['sessoes_estudo','revisoes_espacadas']);
   }catch(e){
     // Guarda e reenvia sozinho, em vez de só avisar e perder o registro se o app fechar.
     enfileirar('sessoes_estudo','insert',dadosSessao,`sessão de ${tipo} de ${duracao} min`);
@@ -7086,7 +7162,7 @@ async function salvarConfigCiclo(){
     const {error}=await sbDados.from('ciclo_estudos_config').upsert(linhas,{onConflict:'modulo'});
     if(error) throw error;
     fecharConfigCiclo();
-    await loadData();
+    await loadData(['ciclo_estudos_config']);
   }catch(e){
     mostrarAviso('Não deu para salvar configuração','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -7122,7 +7198,7 @@ async function salvarConfigMetas(){
       if(error) throw error;
     }
     fecharConfigMetas();
-    await loadData();
+    await loadData(['metas_estudo']);
   }catch(e){
     mostrarAviso('Não deu para salvar metas','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -7227,7 +7303,7 @@ async function salvarEditarSessao(){
   try{
     const {error}=await sbDados.from('sessoes_estudo').update(valores).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['sessoes_estudo']);
   }catch(e){
     enfileirar('sessoes_estudo','update',{id,valores},`correção da sessão de ${tipo}`);
     mostrarAviso('Guardado','A correção será enviada sozinha quando a conexão voltar.');
@@ -7340,7 +7416,7 @@ async function salvarDataProva(texto){
   try{
     const {error}=await sbDados.from('banco_pratico_config').update({data_prova:texto||null}).eq('id',bancoPratico.id);
     if(error) throw error;
-    await loadData();
+    await loadData(['banco_pratico_config']);
   }catch(e){
     mostrarAviso('Não deu para salvar data da prova','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8043,7 +8119,7 @@ async function salvarMetaDiaria(novaMeta){
   try{
     const {error}=await sbDados.from('banco_pratico_config').update({meta_diaria:novaMeta}).eq('id',bancoPratico.id);
     if(error) throw error;
-    await loadData();
+    await loadData(['banco_pratico_config']);
   }catch(e){
     mostrarAviso('Não deu para salvar a meta','Tente de novo em instantes.');
   }
@@ -8170,7 +8246,7 @@ async function marcarBancoPraticoFeito(id){
   try{
     const {error}=await sbDados.from('banco_pratico_config').update({ultima_confirmada:chaveDia(new Date())}).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['banco_pratico_config']);
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8251,7 +8327,7 @@ async function salvarComplementar(){
     const {error}=await sbDados.from('atividades_complementares').insert(props);
     if(error) throw error;
     fecharComplementarModal();
-    await loadData();
+    await loadData(['atividades_complementares']);
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8269,7 +8345,7 @@ async function marcarComplementarFeito(id){
       ({error}=await sbDados.from('atividades_complementares').update({status:'Feito'}).eq('id',id));
     }
     if(error) throw error;
-    await loadData();
+    await loadData(['atividades_complementares']);
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8278,7 +8354,7 @@ async function pararRecorrencia(id){
   try{
     const {error}=await sbDados.from('atividades_complementares').update({recorrencia_dias:null}).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['atividades_complementares']);
   }catch(e){
     mostrarAviso('Não deu para parar recorrência','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8314,7 +8390,7 @@ async function marcarEventoFeito(eventoId){
   try{
     const {error}=await sbDados.from('calendario_eventos').update({feito:true}).eq('id',eventoId);
     if(error) throw error;
-    await loadData();
+    await loadData(['calendario_eventos']);
   }catch(e){
     mostrarAviso('Não deu para confirmar evento','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -8394,7 +8470,7 @@ async function salvarNotaNova(){
   try{
     const {error}=await sbDados.from('notas_estudo').insert({texto});
     if(error) throw error;
-    await loadData();
+    await loadData(['notas_estudo']);
   }catch(e){
     mostrarAviso('Não deu para salvar','Tente de novo em instantes.');
   }
@@ -9810,7 +9886,7 @@ async function excluirQuestaoDoBanco(id){
   try{
     const {error}=await sbDados.from('banco_questoes').update({excluida:true}).eq('id',id);
     if(error) throw error;
-    await loadData();
+    await loadData(['banco_questoes']);
     if(q) mostrarAviso('Questão excluída',
       `A questão ${q.questao} saiu das estatísticas. O aproveitamento foi recalculado.`);
   }catch(e){
@@ -10212,7 +10288,7 @@ async function salvarApelidoPublicacao(original,texto){
       nome_personalizado:texto.trim(),
     },{onConflict:'nome_original'});
     if(error) throw error;
-    await loadData();
+    await loadData(['apelidos_publicacao']);
   }catch(e){
     mostrarAviso('Não deu para salvar o apelido','Tente de novo em instantes.');
   }
@@ -10335,7 +10411,7 @@ async function salvarAnotacaoAlternativa(){
     }
     document.getElementById('anotar-alternativa-modal').style.display='none';
     anotarAltContexto=null;
-    await loadData();
+    await loadData(['anotacoes_alternativas']);
   }catch(e){
     // Texto digitado é trabalho: guarda e reenvia sozinho, em vez de perder se o app fechar.
     if(texto){
@@ -10940,7 +11016,7 @@ function finalizarSplash(){
       indicador.style.height='44px';
       seta.classList.add('escondida');
       spinner.classList.add('girando');
-      try{ await loadData(); }catch(e){}
+      try{ if(podeRecarregarPorGesto()) await loadData(); }catch(e){}
       finalizarCarregamento();
       atualizando=false;
     }else{
@@ -10986,7 +11062,7 @@ function finalizarSplash(){
       indicador.style.height='44px';
       seta.classList.add('escondida');
       spinner.classList.add('girando');
-      try{ await loadData(); }catch(e){}
+      try{ if(podeRecarregarPorGesto()) await loadData(); }catch(e){}
       finalizarCarregamento();
       atualizando=false;
     }else{
@@ -11017,7 +11093,7 @@ function finalizarSplash(){
       indicador.style.height='44px';
       seta.classList.add('escondida');
       spinner.classList.add('girando');
-      loadData().catch(()=>{}).then(()=>{
+      (podeRecarregarPorGesto()?loadData():Promise.resolve()).catch(()=>{}).then(()=>{
         finalizarCarregamento();
         atualizando=false;
       });
