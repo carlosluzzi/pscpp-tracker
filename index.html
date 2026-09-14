@@ -991,6 +991,16 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
   color:#888;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
   flex-shrink:0;padding:0;vertical-align:middle}
 .info-btn svg{width:14px;height:14px}
+/* Busca dentro de "Todas as questões" (detalhe de uma atividade). Aparece só ao tocar na lupa. */
+.busca-q-wrap{display:flex;align-items:center;gap:8px;margin:-4px 0 12px}
+.busca-q-wrap.hidden{display:none}
+#lista-todas-questoes .ec[hidden]{display:none}
+.busca-q-wrap .filter-select{flex:1;margin-bottom:0;cursor:text}
+.busca-q-cont{font-size:var(--fs-b);color:#888;white-space:nowrap;flex-shrink:0}
+.busca-q-limpar{width:32px;height:32px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#555;
+  font-size:var(--fs-f);line-height:1;cursor:pointer;flex-shrink:0;font-family:inherit}
+.info-btn.ativo{background:#202A45;color:#fff;border-color:#202A45}
+.busca-q-vazio{font-size:var(--fs-c);color:#888;padding:14px 4px;text-align:center}
 @media(hover:hover){.info-btn:hover{color:#555;border-color:#ccc}}
 /* Texto das explicacoes dentro do modal */
 .explicacao{font-size:var(--fs-c);color:#444;line-height:1.55}
@@ -8300,8 +8310,66 @@ let origemDetalhe=null;
 function abrirDetalhe(id,origem){
   atividadeAtual=atividades.find(a=>a.id===id);
   origemDetalhe=origem||rotuloAbaAtual();
+  buscaDetalheAberta=false; buscaDetalheTermo='';
   renderTab(tabAtual);
   document.getElementById('content').scrollTop=0;
+}
+
+// ---------- busca em "Todas as questões" (detalhe da atividade) ----------
+// Filtra os cards na hora, sem consultar o banco: cada card leva em data-busca o texto inteiro
+// da questão (número, publicação, capítulo, tags, enunciado com alternativas, resposta,
+// gabarito), já sem acento e em minúsculas. O termo digitado passa pela mesma normalização,
+// então "navegacao" acha "Navegação" e "racon" acha "RACON".
+let buscaDetalheAberta=false, buscaDetalheTermo='';
+function normalizarBusca(t){
+  return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function textoBuscaQuestao(e){
+  const partes=[
+    e.questao, e.publicacao, e.publicacao?nomePub(e.publicacao):'', e.capitulo, e.modulo,
+    (e.tags||[]).join(' '), e.assuntoPrincipal, e.motivo, e.afirmacao, e.correcao,
+    e.suaResposta, e.gabarito, e.respostaEsperada, e.status, e.notasPessoais,
+  ];
+  return normalizarBusca(partes.filter(Boolean).join(' '));
+}
+function botaoBuscaQuestoes(){
+  return `<span class="info-btn${buscaDetalheAberta?' ativo':''}" onclick="event.stopPropagation();alternarBuscaQuestoes()" title="Buscar nas questões">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+  </span>`;
+}
+function alternarBuscaQuestoes(){
+  buscaDetalheAberta=!buscaDetalheAberta;
+  if(!buscaDetalheAberta) buscaDetalheTermo='';
+  const wrap=document.getElementById('busca-questoes-wrap');
+  const btn=document.querySelector('#titulo-todas-questoes .info-btn');
+  if(wrap) wrap.classList.toggle('hidden',!buscaDetalheAberta);
+  if(btn) btn.classList.toggle('ativo',buscaDetalheAberta);
+  const inp=document.getElementById('busca-questoes');
+  if(inp){ inp.value=buscaDetalheTermo; }
+  filtrarQuestoesDetalhe(buscaDetalheTermo);
+  // focus dentro do mesmo toque que abriu: é o que faz o teclado do iPad subir sozinho
+  if(buscaDetalheAberta&&inp) inp.focus();
+}
+function limparBuscaQuestoes(){
+  buscaDetalheTermo='';
+  const inp=document.getElementById('busca-questoes');
+  if(inp){ inp.value=''; inp.focus(); }
+  filtrarQuestoesDetalhe('');
+}
+function filtrarQuestoesDetalhe(termo){
+  buscaDetalheTermo=termo||'';
+  const t=normalizarBusca(buscaDetalheTermo).trim();
+  const cards=[...document.querySelectorAll('#lista-todas-questoes .ec[data-busca]')];
+  let visiveis=0;
+  cards.forEach(c=>{
+    const bate=!t||c.dataset.busca.includes(t);
+    c.hidden=!bate;
+    if(bate) visiveis++;
+  });
+  const cont=document.getElementById('busca-questoes-cont');
+  if(cont) cont.textContent=t?`${visiveis} de ${cards.length}`:'';
+  const vazio=document.getElementById('busca-questoes-vazio');
+  if(vazio) vazio.hidden=!(t&&visiveis===0);
 }
 
 function rotuloAbaAtual(){
@@ -8314,6 +8382,7 @@ function rotuloAbaAtual(){
 function voltarLista(){
   atividadeAtual=null;
   origemDetalhe=null;
+  buscaDetalheAberta=false; buscaDetalheTermo='';
   renderTab(tabAtual);
 }
 
@@ -8321,6 +8390,10 @@ function renderDetalhe(a){
   const qs=questoes.filter(q=>q.idAtividade===a.nome).sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
   const modsHtml=renderModsCards(qs);
+  // Re-render (ex.: depois de salvar uma tag) mantém a busca ativa: o filtro já sai aplicado
+  // do HTML, sem depender de uma segunda passada.
+  const termoBusca=normalizarBusca(buscaDetalheTermo).trim();
+  let visiveisBusca=0;
   const todasHtml=qs.map((e,i)=>{
     // Mesma paleta de cor por status já usada em outros lugares do app (Questões etc): erro=vermelho,
     // dúvida/anulada=âmbar, acerto limpo=verde. Aplicada só no badge do número (preenchido, cantos
@@ -8330,7 +8403,10 @@ function renderDetalhe(a){
       :e.status==='Anulada'?{borda:'#F5D98A',bg:'#FAEEDA',tx:'#854F0B'}
       :{borda:'#C0DD97',bg:'#EAF3DE',tx:'#3B6D11'};
     const tags=(e.tags||[]).map(t=>`<span class="tg">${t}</span>`).join('');
-    return `<div class="ec">
+    const textoBusca=textoBuscaQuestao(e);
+    const escondida=!!termoBusca&&!textoBusca.includes(termoBusca);
+    if(!escondida) visiveisBusca++;
+    return `<div class="ec" data-busca="${escapeHtml(textoBusca)}"${escondida?' hidden':''}>
       <div class="er" onclick="toggleErrada(${i})">
         <span class="eq" style="background:${corStatus.bg};color:${corStatus.tx}">${e.questao||'–'}</span>
         <div class="er-conteudo">
@@ -8373,7 +8449,14 @@ function renderDetalhe(a){
       <div class="mtr-card"><div class="mtr-label">Erros</div><div class="mtr-val" style="color:#A32D2D">${a.erros??'–'}</div></div>
     </div>
     ${modsHtml?`${sectionTitle('Desempenho por módulo','pormodulo','#E6F1FB','#202A45')}${modsHtml}`:''}
-    ${todasHtml?`${sectionTitle('Todas as questões','lista','#E6F1FB','#202A45')}${todasHtml}`:''}
+    ${todasHtml?`<div id="titulo-todas-questoes">${sectionTitle('Todas as questões','lista','#E6F1FB','#202A45',{direita:botaoBuscaQuestoes()})}</div>
+      <div id="busca-questoes-wrap" class="busca-q-wrap${buscaDetalheAberta?'':' hidden'}">
+        <input id="busca-questoes" class="filter-select" type="search" placeholder="Buscar nas questões…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(buscaDetalheTermo)}" oninput="filtrarQuestoesDetalhe(this.value)">
+        <span id="busca-questoes-cont" class="busca-q-cont">${termoBusca?`${visiveisBusca} de ${qs.length}`:''}</span>
+        <button class="busca-q-limpar" onclick="limparBuscaQuestoes()" title="Limpar">×</button>
+      </div>
+      <div id="busca-questoes-vazio" class="busca-q-vazio"${(termoBusca&&!visiveisBusca)?'':' hidden'}>Nenhuma questão com esse termo.</div>
+      <div id="lista-todas-questoes">${todasHtml}</div>`:''}
   `;
 }
 
