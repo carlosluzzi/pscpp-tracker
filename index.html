@@ -505,6 +505,11 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
    do app (período, status...). Um tamanho especial só pra este grupo quebrava a consistência
    com os selects de módulo/publicação logo abaixo, no mesmo cluster de filtro. O padding
    maior (6px em vez de 4px) continua — isso não é tipografia, é alvo de toque. */
+/* Com a entrada do Simulado esse grupo passou de 3 para 4 botões e não cabe mais numa linha só
+   em tela de celular. Em vez de encolher a fonte — que tem de continuar igual à dos outros
+   filtros do app —, o grupo ganha permissão para quebrar linha: fica numa linha onde couber e
+   se dobra onde não couber. .periodo-row trava nowrap; este nowrap é desfeito aqui de propósito. */
+.timer-tipo-row{flex-wrap:wrap}
 .timer-tipo-row .filter-btn{padding:6px 10px}
 /* Grupos de filter-btn que ficam colados a um filter-select (ex: Livro/Tudo empilhado acima dos
    selects de módulo/publicação; tipo de estudo acima dos selects do timer) — o select é travado
@@ -1183,6 +1188,11 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
 .nota-texto{font-size:var(--fs-d);font-weight:600;color:#1C3A5E;flex:1;line-height:1.5}
 .nota-close{position:absolute;top:8px;right:10px;font-size:var(--fs-c);color:#4A6B8A;cursor:pointer;opacity:0.45;flex-shrink:0;padding:2px}
 .historico-excluir{font-size:var(--fs-c);color:#999;cursor:pointer;opacity:0.5;flex-shrink:0;padding:6px}
+/* Chip "+ correção" no histórico: só aparece em simulado marcado como "corrijo depois" que
+   ainda não teve a correção cronometrada. Discreto de propósito — é uma oferta, não uma
+   pendência cobrando atenção. */
+.historico-correcao{font-size:var(--fs-a);color:#633806;background:#FAEEDA;border:0.5px solid #FAC775;
+  border-radius:6px;padding:3px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap;align-self:center}
 .nota-close:hover{opacity:1}
 .nota-add{font-size:var(--fs-d);color:#888;text-align:center;padding:10px;border:1px dashed #ddd;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .nota-add:hover{color:#111;border-color:#bbb}
@@ -1333,6 +1343,16 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <div id="timer-tamanho-fim-wrap" class="hidden">
       <div class="config-label">Tamanho total deste capítulo (caracteres)</div>
       <input type="number" min="1" class="filter-select" id="timer-tamanho-fim-input" placeholder="Ex: 31000" style="margin-bottom:14px">
+    </div>
+    <!-- Nota do simulado: opcional e só aparece no simulado. Serve para o caso de fazer e
+         corrigir na hora e querer deixar registrado quantas acertou, sem lançar prova nenhuma
+         no Banco de Questões. Em branco, o registro fica só com o tempo. -->
+    <div id="timer-simulado-nota-wrap" class="hidden">
+      <div class="config-label">Acertos e erros (opcional)</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="number" min="0" class="filter-select" id="timer-simulado-acertos" placeholder="Acertos" style="margin-bottom:0">
+        <input type="number" min="0" class="filter-select" id="timer-simulado-erros" placeholder="Erros" style="margin-bottom:0">
+      </div>
     </div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" id="timer-confirmar-cancelar-btn" onclick="fecharConfirmarSalvarTimer(true)">Cancelar</button>
@@ -1672,13 +1692,22 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
       <option value="Leitura">Leitura</option>
       <option value="Exercício">Exercício</option>
       <option value="Revisão">Revisão</option>
+      <option value="Simulado">Simulado</option>
     </select>
+    <input type="text" class="filter-select" id="editar-sessao-nome-simulado" placeholder="Nome do simulado" style="display:none">
     <div id="editar-sessao-materia">
       <select class="filter-select" id="editar-sessao-modulo" onchange="atualizarPublicacoesEditarSessao()"></select>
       <select class="filter-select" id="editar-sessao-publicacao" onchange="atualizarCapitulosEditarSessao()"></select>
       <select class="filter-select" id="editar-sessao-capitulo"></select>
     </div>
     <input type="number" class="filter-select" id="editar-sessao-duracao" placeholder="Duração em minutos" min="1">
+    <!-- Os três campos abaixo só aparecem no simulado: é onde se acerta o tempo de correção e a
+         nota, inclusive para lançar à mão um simulado que já foi corrigido fora do cronômetro. -->
+    <input type="number" class="filter-select" id="editar-sessao-correcao" placeholder="Minutos corrigindo (opcional)" min="0" style="display:none">
+    <div id="editar-sessao-nota" style="display:none;gap:8px">
+      <input type="number" class="filter-select" id="editar-sessao-acertos" placeholder="Acertos" min="0">
+      <input type="number" class="filter-select" id="editar-sessao-erros" placeholder="Erros" min="0">
+    </div>
     <input type="number" class="filter-select" id="editar-sessao-caracteres" placeholder="Caracteres lidos (opcional)" min="0">
     <input type="date" class="filter-select" id="editar-sessao-data">
     <div class="modal-actions" style="margin-top:12px">
@@ -2346,6 +2375,11 @@ let atividades=[],questoes=[],calendarioEventos=[],notasEstudo=[],complementares
 // Estado da tela de resolução (PDF + caneta)
 let resolucaoAtividadeId=null;
 let timerRodando=false,timerInicio=null,timerAcumuladoSeg=0,timerModulo='',timerPublicacao='',timerCapitulo='',timerTipo='Leitura',timerIntervalId=null,timerFullscreenAberto=false;
+// Estado do Simulado. Nome é o que identifica (o geral não tem módulo nenhum); Geral x matéria
+// específica; e se a correção vai ser cronometrada em outro momento ou não. timerCorrecaoSessaoId
+// só é preenchido quando o cronômetro está medindo a CORREÇÃO de um simulado já salvo — nesse
+// caso o fim do cronômetro atualiza aquele registro em vez de criar um novo.
+let timerSimuladoNome='',timerSimuladoGeral=false,timerSimuladoCorrigeDepois=false,timerCorrecaoSessaoId=null;
 // Guarda o curso quando a sessão nasce de um caderno (botão Revisar). É o que faz a sessão
 // aparecer como "Catavento 013" em vez de "PSCPP", e o que distingue revisar um caderno de
 // revisar uma matéria solta.
@@ -2800,7 +2834,18 @@ const CARREGADORES={
       publicacao:p.publicacao||'',
       capitulo:p.capitulo||'',
       tipo:p.tipo,
-      duracaoMinutos:p.duracao_minutos||0,
+      // Simulado é "um registro, dois tempos": duracaoMinutos é o TOTAL (execução + correção),
+      // porque é esse o número que todas as contas agregadas já usam — metas da semana, ciclo de
+      // estudos, tempo investido. As duas parcelas ficam em campos próprios, para a tela poder
+      // mostrar cada uma e para a edição manual não enfiar a correção dentro da execução.
+      duracaoExecucaoMinutos:p.duracao_minutos||0,
+      duracaoCorrecaoMinutos:p.duracao_correcao_minutos||0,
+      duracaoMinutos:(p.duracao_minutos||0)+(p.duracao_correcao_minutos||0),
+      dataCorrecao:p.data_correcao||null,
+      nomeSimulado:p.nome_simulado||'',
+      corrigeDepois:!!p.com_correcao_separada,
+      simuladoAcertos:p.simulado_acertos??null,
+      simuladoErros:p.simulado_erros??null,
       data:p.data,
       caracteresLidos:p.caracteres_lidos||0,
       origem:p.origem||'',
@@ -3839,7 +3884,10 @@ async function buscarTudo(tabela,colunas='*'){
 // Rótulo entre parênteses no aviso de "sessão recuperável". Sem módulo não significa erro —
 // revisão de caderno (revisarCaderno) zera o módulo de propósito, porque um caderno cobre
 // vários módulos ao mesmo tempo. Usa publicação+origem (caderno + curso) nesse caso.
-function rotuloContextoSessao(tipo,modulo,publicacao,origem){
+function rotuloContextoSessao(tipo,modulo,publicacao,origem,nomeSimulado){
+  // Simulado não tem publicação nem (no geral) módulo — sem isso a recuperação dizia
+  // "sem matéria definida" para uma sessão que tem nome próprio.
+  if(tipo==='Simulado') return nomeSimulado?`simulado "${nomeSimulado}"`:'simulado';
   if(modulo) return modulo;
   if(publicacao) return (origem?origem+' ':'')+publicacao;
   return 'sem matéria definida';
@@ -4450,7 +4498,7 @@ function renderAprovado(){
   const ss=segAtual%60;
   const tempoFormatado=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
 
-  const tiposEstudo=['Leitura','Exercício','Revisão'];
+  const tiposEstudo=['Leitura','Exercício','Revisão','Simulado'];
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const hojeStr=chaveDia(hoje);
@@ -4562,11 +4610,29 @@ function renderAprovado(){
     // vem do PRIMEIRO bloco e finalizadoEm não é atualizado pelos blocos seguintes — mostrar
     // isso daria uma janela de horário enganosa, parecendo mais curta do que realmente foi.
     const horarioTexto=(podeEditar&&janelaSessao(s))?` • ${janelaSessao(s)}`:'';
+    // Simulado tem identificação própria: o nome que o Carlos deu, não o módulo — que no
+    // simulado geral não existe. Quando a correção foi cronometrada à parte, as duas parcelas
+    // aparecem separadas em vez do total mudo; e a nota, quando ele quis lançar.
+    const ehSimuladoItem=s.tipo==='Simulado';
+    const nomeLinha=ehSimuladoItem
+      ? (s.nomeSimulado||'Simulado')+(s.modulo?'':' · geral')
+      : nomeModuloSessao(s)+(refCompleta?' – '+refCompleta:'');
+    const tempoTexto=(ehSimuladoItem&&s.duracaoCorrecaoMinutos>0)
+      ? `${s.duracaoExecucaoMinutos}min + ${s.duracaoCorrecaoMinutos}min corrigindo`
+      : `${s.duracaoMinutos}min`;
+    const notaTexto=(ehSimuladoItem&&(s.simuladoAcertos!==null||s.simuladoErros!==null))
+      ? ` • ${s.simuladoAcertos||0} acertos / ${s.simuladoErros||0} erros`
+      : '';
+    const moduloTexto=(ehSimuladoItem&&s.modulo)?` • ${s.modulo}`:'';
+    // O chip de correção só existe no simulado marcado como "corrijo depois" que ainda não teve
+    // a correção medida. Num simulado corrigido na hora não há segundo momento para cronometrar.
+    const faltaCorrecao=ehSimuladoItem&&s.corrigeDepois&&!(s.duracaoCorrecaoMinutos>0);
     return `<div class="prox-item${podeEditar?' prox-item-clicavel':''}"${podeEditar?` onclick="abrirEditarSessao('${s.id}')"`:' style="cursor:default"'}>
       <div class="prox-left">
-        <span class="prox-nome">${nomeModuloSessao(s)}${refCompleta?' – '+refCompleta:''}${seloOrigem(s)}</span>
-        <span class="prox-modalidade">${s.tipo} • ${s.duracaoMinutos}min${horarioTexto}${capTexto}${ritmoTexto}${blocosTexto} • ${fmtData(s.data)}</span>
+        <span class="prox-nome">${nomeLinha}${seloOrigem(s)}</span>
+        <span class="prox-modalidade">${s.tipo} • ${tempoTexto}${moduloTexto}${horarioTexto}${capTexto}${ritmoTexto}${blocosTexto}${notaTexto} • ${fmtData(s.data)}</span>
       </div>
+      ${faltaCorrecao?`<span class="historico-correcao" onclick="event.stopPropagation();iniciarCorrecaoSimulado('${s.id}')">+ correção</span>`:''}
       ${s.blocos===1?`<span class="historico-excluir" onclick="event.stopPropagation();abrirExcluirSessaoModal('${s.id}','${s.tipo}','${(s.modulo||'').replace(/'/g,"\\'")}','${fmtData(s.data)}')">✕</span>`:''}
     </div>`;
   });
@@ -4609,6 +4675,31 @@ function renderAprovado(){
   if(abaAprovado==='controle') return renderAnalise('controle');
   // Histórico: preparação acumulada, não depende de filtro.
   if(abaAprovado==='historico') return renderAnalise('historico');
+
+  // ----- campos do Simulado -----
+  // Leitura/Exercício/Revisão se identificam por módulo → publicação → capítulo. O simulado não:
+  // quem identifica é o NOME que o Carlos dá. E ele tem dois eixos que os outros tipos não têm —
+  // pode ser geral (não cabe em matéria nenhuma) ou de uma matéria só; e pode ser corrigido na
+  // mesma sentada (um tempo só) ou em outro momento, cronometrado à parte.
+  const nomeSimuladoEscapado=(timerSimuladoNome||'').replace(/"/g,'&quot;');
+  const moduloSelectSimulado=`<select class="filter-select" onchange="timerModulo=this.value;renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
+        <option value="">Selecione a matéria</option>
+        ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
+      </select>`;
+  const camposSimuladoHtml = timerCorrecaoSessaoId
+    ? `<div style="background:#FAEEDA;border:0.5px solid #FAC775;border-radius:8px;padding:10px 12px;font-size:var(--fs-c);color:#633806;line-height:1.45">
+         Cronometrando a <strong>correção</strong> de "${nomeSimuladoEscapado}". O tempo entra nesse mesmo registro, somado à execução.
+       </div>`
+    : `<input type="text" class="filter-select" id="timer-simulado-nome" placeholder="Nome do simulado" value="${nomeSimuladoEscapado}" oninput="timerSimuladoNome=this.value;atualizarBotaoIniciarTimer()" ${timerRodando?'disabled':''}>
+      <div class="filter-row periodo-row" style="margin-bottom:10px">
+        <div class="filter-btn${timerSimuladoGeral?' active':''}" onclick="${timerRodando?'':'setSimuladoGeral(true)'}">Geral</div>
+        <div class="filter-btn${timerSimuladoGeral?'':' active'}" onclick="${timerRodando?'':'setSimuladoGeral(false)'}">Matéria específica</div>
+      </div>
+      ${timerSimuladoGeral?'':moduloSelectSimulado}
+      <div class="filter-row periodo-row" style="margin-bottom:0">
+        <div class="filter-btn${timerSimuladoCorrigeDepois?'':' active'}" onclick="${timerRodando?'':'setSimuladoCorrigeDepois(false)'}">Corrijo junto</div>
+        <div class="filter-btn${timerSimuladoCorrigeDepois?' active':''}" onclick="${timerRodando?'':'setSimuladoCorrigeDepois(true)'}">Corrijo depois</div>
+      </div>`;
 
   return `
     <div class="card-inicio">
@@ -4654,6 +4745,7 @@ function renderAprovado(){
       <div class="filter-row periodo-row timer-tipo-row filtro-com-select" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
+      ${timerTipo==='Simulado'?camposSimuladoHtml:`
       <select class="filter-select" onchange="timerModulo=this.value;timerPublicacao='';timerCapitulo='';renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
         <option value="">Selecione o módulo</option>
         ${[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}" ${timerModulo===m?'selected':''}>${m}</option>`).join('')}
@@ -4681,9 +4773,10 @@ function renderAprovado(){
           ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
         </select>`;
       })()}
+      `}
       <div style="display:flex;gap:8px;margin-top:12px">
         ${!timerRodando?
-          `<button class="modal-btn modal-btn-sim" style="width:100%" onclick="cliqueIniciarTimer()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
+          `<button class="modal-btn modal-btn-sim" id="btn-timer-iniciar" style="width:100%" onclick="cliqueIniciarTimer()" ${!timerCamposObrigatoriosCompletos()?'disabled':''}>${timerAcumuladoSeg>0?'Retomar':'Iniciar'}</button>`
           :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Finalizar</button>`}
       </div>
       ${!timerRodando&&timerAcumuladoSeg>0?`<button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px" onclick="zerarTimer()">Descartar e zerar</button>`:''}
@@ -4718,8 +4811,60 @@ function usarModuloNoTimer(modulo){
 }
 
 function setTimerTipo(t){
+  // Trocar PARA simulado limpa publicação/capítulo (ele não usa nenhum dos dois). Sair do
+  // simulado limpa nome e escopo, para não sobrar um nome pendurado numa sessão de Leitura.
+  if(t==='Simulado'){ timerPublicacao=''; timerCapitulo=''; }
+  else { timerSimuladoNome=''; timerSimuladoGeral=false; timerSimuladoCorrigeDepois=false; }
   timerTipo=t;
   renderTab(tabAtual,true);
+}
+
+function setSimuladoGeral(v){
+  timerSimuladoGeral=v;
+  if(v) timerModulo='';   // geral é justamente o que não tem matéria
+  renderTab(tabAtual,true);
+}
+
+function setSimuladoCorrigeDepois(v){
+  timerSimuladoCorrigeDepois=v;
+  renderTab(tabAtual,true);
+}
+
+// O nome do simulado é digitado, não escolhido — redesenhar a aba a cada tecla tiraria o foco do
+// campo. Então o texto não dispara render: só este ajuste no botão, que é a única coisa na tela
+// que depende dele.
+function atualizarBotaoIniciarTimer(){
+  const b=document.getElementById('btn-timer-iniciar');
+  if(b) b.disabled=!timerCamposObrigatoriosCompletos();
+}
+
+// Prepara o cronômetro para medir a CORREÇÃO de um simulado já registrado, possivelmente dias
+// depois da execução. Não cria sessão nova: ao finalizar, o tempo é somado naquele registro.
+function iniciarCorrecaoSimulado(id){
+  const s=(sessoesEstudo||[]).find(x=>x.id===id);
+  if(!s) return;
+  if(timerRodando){
+    mostrarAviso('Timer em andamento','Já existe um estudo sendo cronometrado. Pause ou salve antes de começar a correção deste simulado.');
+    return;
+  }
+  if(timerAcumuladoSeg>0){
+    mostrarAviso('Tem tempo guardado','O cronômetro tem tempo acumulado de outra sessão. Finalize ou descarte antes de cronometrar a correção.');
+    return;
+  }
+  timerTipo='Simulado';
+  timerCorrecaoSessaoId=id;
+  timerSimuladoNome=s.nomeSimulado||'';
+  timerSimuladoGeral=!s.modulo;
+  timerSimuladoCorrigeDepois=true;
+  timerModulo=s.modulo||'';
+  timerPublicacao='';
+  timerCapitulo='';
+  timerOrigem='';
+  timerAcumuladoSeg=0;
+  timerIniciadoEm=null;
+  timerExcluidoSeg=0;
+  abrirTimerFullscreen(true);
+  iniciarTimer();
 }
 
 function formatarTempoTimer(seg){
@@ -4749,6 +4894,16 @@ function renderTimerFullscreenConteudo(){
       <div class="tf-ref-wrap">
         <div class="tf-ref">${rotuloTipoAtiv(cadernoTimer)} ${cadernoTimer.nome}</div>
         ${cadernoTimer.data?`<div class="tf-ref">${fmtData(cadernoTimer.data)}</div>`:''}
+      </div>` : '';
+
+  // Simulado na tela cheia: mostra o nome que o Carlos deu e se é geral ou de uma matéria. Sem
+  // isso a tela cheia de um simulado geral ficaria sem cabeçalho nenhum, já que ele não tem
+  // módulo, publicação nem capítulo para exibir.
+  const cabecalhoSimulado = timerTipo==='Simulado' ? `
+      <div class="tf-modulo">${timerCorrecaoSessaoId?'Corrigindo':'Simulado'}</div>
+      <div class="tf-ref-wrap">
+        <div class="tf-ref">${timerSimuladoNome||'sem nome'}</div>
+        <div class="tf-ref">${timerSimuladoGeral?'Geral':(timerModulo||'')}</div>
       </div>` : '';
 
   return `
@@ -4790,7 +4945,7 @@ function renderTimerFullscreenConteudo(){
         oninput="setApitoVolume(this.value)">
     </div>
     <div>
-      ${cadernoTimer?cabecalhoCaderno:`
+      ${cabecalhoSimulado?cabecalhoSimulado:cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
       ${(()=>{
         // Publicação de capítulo único com descrição própria (o grupo Pilot Transfer, por
@@ -4888,6 +5043,11 @@ function formatarCapituloExibicao(pubInfo,identificador){
 }
 
 function timerCamposObrigatoriosCompletos(){
+  // Correção de simulado já salvo: o que está sendo medido vem do registro, não da tela.
+  if(timerCorrecaoSessaoId) return true;
+  // Simulado: basta o nome e, quando não é geral, a matéria. Publicação e capítulo não existem
+  // aqui — exigir a bibliografia completa impediria justamente o caso de uso.
+  if(timerTipo==='Simulado') return !!(timerSimuladoNome||'').trim()&&(timerSimuladoGeral||!!timerModulo);
   // No desvio basta saber o que se está consultando: pode ser algo fora do edital, sem módulo
   // nem capítulo. Exigir a bibliografia completa aqui impediria justamente o caso de uso.
   if(desvioPilha&&timerPublicacao) return true;
@@ -6304,6 +6464,7 @@ function salvarSnapshotSessao(){
         : timerAcumuladoSeg;
       localStorage.setItem(SNAPSHOT_SESSAO_KEY,JSON.stringify({
         tipo:'timer',timerModulo,timerPublicacao,timerCapitulo,timerTipo,timerOrigem,
+        timerSimuladoNome,timerSimuladoGeral,timerSimuladoCorrigeDepois,timerCorrecaoSessaoId,
         timerInicio:null,
         timerAcumuladoSeg:segAgora,
       }));
@@ -6350,7 +6511,7 @@ function verificarSessaoRecuperavel(){
     // O snapshot já traz o tempo consolidado do momento em que o app fechou.
     const minutosDecorridos=Math.round(snap.timerAcumuladoSeg/60);
     document.getElementById('sessao-recuperavel-texto').textContent=
-      `Existe uma sessão de ${snap.timerTipo} em andamento (${rotuloContextoSessao(snap.timerTipo,snap.timerModulo,snap.timerPublicacao,snap.timerOrigem)}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+      `Existe uma sessão de ${snap.timerTipo} em andamento (${rotuloContextoSessao(snap.timerTipo,snap.timerModulo,snap.timerPublicacao,snap.timerOrigem,snap.timerSimuladoNome)}), com ${minutosDecorridos} min acumulados – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else if(snap.tipo==='caderno'){
     const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
     const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
@@ -6369,6 +6530,8 @@ function restaurarSessaoRecuperavel(){
   if(snap.tipo==='timer'){
     timerModulo=snap.timerModulo||'';timerPublicacao=snap.timerPublicacao||'';timerCapitulo=snap.timerCapitulo||'';
     timerTipo=snap.timerTipo||'Leitura';timerOrigem=snap.timerOrigem||'';
+    timerSimuladoNome=snap.timerSimuladoNome||'';timerSimuladoGeral=!!snap.timerSimuladoGeral;
+    timerSimuladoCorrigeDepois=!!snap.timerSimuladoCorrigeDepois;timerCorrecaoSessaoId=snap.timerCorrecaoSessaoId||null;
     timerAcumuladoSeg=snap.timerAcumuladoSeg;
     // Volta rodando nos dois casos: quem confirma "continuar" quer estudar agora, não retomar
     // pausado e ter que tocar de novo. Se estava pausado, o tempo com o app fechado não entra
@@ -6455,6 +6618,10 @@ function zerarTimer(){
   timerOrigem='';
   timerCapitulo='';
   timerTipo='Leitura';
+  timerSimuladoNome='';
+  timerSimuladoGeral=false;
+  timerSimuladoCorrigeDepois=false;
+  timerCorrecaoSessaoId=null;
   timerFullscreenAberto=false;
   limparSnapshotSessao();
   esconderTimerFlutuante();
@@ -6493,11 +6660,17 @@ function pararESalvarTimer(){
   }
   const pubInfoSalvar=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
   const capituloFormatado=formatarCapituloExibicao(pubInfoSalvar,timerCapitulo);
-  const partesResumo=[timerModulo,timerPublicacao?nomePub(timerPublicacao):'',capituloFormatado].filter(Boolean);
+  // Simulado se apresenta pelo nome que o Carlos deu; a correção, por "Correção de ...". Os
+  // outros tipos seguem mostrando módulo · publicação · capítulo.
+  const partesResumo=timerTipo==='Simulado'
+    ? (timerCorrecaoSessaoId
+        ? ['Correção de "'+timerSimuladoNome+'"']
+        : ['Simulado "'+timerSimuladoNome+'"',timerSimuladoGeral?'geral':timerModulo].filter(Boolean))
+    : [timerModulo,timerPublicacao?nomePub(timerPublicacao):'',capituloFormatado].filter(Boolean);
   // Só quebra a linha se houver algo antes — sem isso, uma sessão sem matéria
   // abria uma linha em branco empurrando o tempo pra baixo.
   const linhaRef=partesResumo.length?partesResumo.join(' · ')+'<br>':'';
-  document.getElementById('timer-confirmar-resumo').innerHTML=`${linhaRef}${formatarTempoTimer(segFinal)} de ${timerTipo.toLowerCase()}`;
+  document.getElementById('timer-confirmar-resumo').innerHTML=`${linhaRef}${formatarTempoTimer(segFinal)} ${timerCorrecaoSessaoId?'de correção':'de '+timerTipo.toLowerCase()}`;
   // Caracteres lidos só fazem sentido em leitura — em Exercício/Revisão o campo some.
   // Desvio não lança caracteres: é consulta para entender a obra principal, e o número
   // contaminaria o car/min das duas publicações.
@@ -6518,6 +6691,14 @@ function pararESalvarTimer(){
   if(mostraTamanho){
     const salvo=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
     document.getElementById('timer-tamanho-fim-input').value=salvo||'';
+  }
+  // Acertos/erros só na execução do simulado: na correção o registro já existe e a nota, se
+  // houver, já foi lançada (ou pode ser lançada depois, corrigindo a sessão).
+  const ehSimuladoNovo=timerTipo==='Simulado'&&!timerCorrecaoSessaoId;
+  document.getElementById('timer-simulado-nota-wrap').classList.toggle('hidden',!ehSimuladoNovo);
+  if(ehSimuladoNovo){
+    document.getElementById('timer-simulado-acertos').value='';
+    document.getElementById('timer-simulado-erros').value='';
   }
   document.getElementById('timer-confirmar-salvar-btn').disabled=false;
   document.getElementById('timer-confirmar-salvar-btn').textContent='Salvar';
@@ -6551,6 +6732,35 @@ async function confirmarSalvarTimer(){
   btn.textContent='Salvando...';
   const segFinal=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
   const minutos=Math.round(segFinal/60);
+
+  // Correção cronometrada de um simulado já salvo: ATUALIZA aquele registro em vez de criar um
+  // novo. É isso que mantém "um registro, dois tempos" — no histórico continua existindo um
+  // simulado só, com as duas parcelas por dentro e o total somado nas contas agregadas.
+  if(timerCorrecaoSessaoId){
+    const idSessao=timerCorrecaoSessaoId;
+    const valoresCorrecao={duracao_correcao_minutos:minutos,data_correcao:chaveDia(new Date())};
+    const sLocal=(sessoesEstudo||[]).find(x=>x.id===idSessao);
+    if(sLocal){
+      sLocal.duracaoCorrecaoMinutos=minutos;
+      sLocal.duracaoMinutos=(sLocal.duracaoExecucaoMinutos||0)+minutos;
+      sLocal.dataCorrecao=valoresCorrecao.data_correcao;
+    }
+    try{
+      const {error}=await sbDados.from('sessoes_estudo').update(valoresCorrecao).eq('id',idSessao);
+      if(error) throw error;
+      fecharConfirmarSalvarTimer();
+      zerarTimer();
+      await loadData(['sessoes_estudo']);
+    }catch(e){
+      enfileirar('sessoes_estudo','update',{id:idSessao,valores:valoresCorrecao},`correção de simulado de ${minutos} min`);
+      fecharConfirmarSalvarTimer();
+      zerarTimer();
+      mostrarAviso('Correção guardada',
+        `Não deu para enviar agora, mas os ${minutos} min de correção estão guardados no aparelho e serão enviados sozinhos quando a conexão voltar.`);
+    }
+    return;
+  }
+
   const caracteresInput=document.getElementById('timer-caracteres-input').value;
   // No desvio não se lançam caracteres: aquele tempo é consulta para entender a obra principal,
   // não leitura da outra — contá-lo sujaria o car/min das duas.
@@ -6558,10 +6768,19 @@ async function confirmarSalvarTimer(){
   // Uma refeição ainda aberta na hora de finalizar precisa ser creditada antes da conta.
   encerrarRefeicao();
   const ehDesvio=!!desvioPilha;
+  // No simulado, módulo só existe quando é de matéria específica (o geral é justamente o que não
+  // tem nenhuma), e publicação/capítulo nunca existem. A nota é opcional: em branco vira null.
+  const ehSimulado=timerTipo==='Simulado';
+  const notaAcertos=ehSimulado?document.getElementById('timer-simulado-acertos').value:'';
+  const notaErros=ehSimulado?document.getElementById('timer-simulado-erros').value:'';
   const linhaSessao={
-    modulo:timerModulo||null,
-    publicacao:timerPublicacao||null,
-    capitulo:timerCapitulo||null,
+    modulo:(ehSimulado&&timerSimuladoGeral)?null:(timerModulo||null),
+    publicacao:ehSimulado?null:(timerPublicacao||null),
+    capitulo:ehSimulado?null:(timerCapitulo||null),
+    nome_simulado:ehSimulado?((timerSimuladoNome||'').trim()||null):null,
+    com_correcao_separada:ehSimulado?!!timerSimuladoCorrigeDepois:false,
+    simulado_acertos:(ehSimulado&&notaAcertos!=='')?parseInt(notaAcertos,10):null,
+    simulado_erros:(ehSimulado&&notaErros!=='')?parseInt(notaErros,10):null,
     tipo:timerTipo,
     duracao_minutos:minutos,
     data:chaveDia(new Date()),
@@ -6780,7 +6999,13 @@ function abrirEditarSessao(id){
   atualizarPublicacoesEditarSessao(s.publicacao,s.capitulo);
 
   document.getElementById('editar-sessao-tipo').value=s.tipo||'Leitura';
-  document.getElementById('editar-sessao-duracao').value=s.duracaoMinutos||'';
+  // Duração aqui é só a EXECUÇÃO: duracaoMinutos é o total (execução + correção) e preencher o
+  // campo com ele faria a correção ser somada duas vezes ao salvar.
+  document.getElementById('editar-sessao-duracao').value=s.duracaoExecucaoMinutos||'';
+  document.getElementById('editar-sessao-nome-simulado').value=s.nomeSimulado||'';
+  document.getElementById('editar-sessao-correcao').value=s.duracaoCorrecaoMinutos||'';
+  document.getElementById('editar-sessao-acertos').value=(s.simuladoAcertos===null||s.simuladoAcertos===undefined)?'':s.simuladoAcertos;
+  document.getElementById('editar-sessao-erros').value=(s.simuladoErros===null||s.simuladoErros===undefined)?'':s.simuladoErros;
   document.getElementById('editar-sessao-caracteres').value=s.caracteresLidos||'';
   document.getElementById('editar-sessao-data').value=s.data||'';
   atualizarCamposEditarSessao();
@@ -6822,7 +7047,15 @@ function atualizarCapitulosEditarSessao(capAtual){
 // Caracteres lidos só fazem sentido em leitura.
 function atualizarCamposEditarSessao(){
   const tipo=document.getElementById('editar-sessao-tipo').value;
+  const ehSimulado=tipo==='Simulado';
   document.getElementById('editar-sessao-materia').style.display='';
+  // No simulado a matéria é opcional (em branco = geral) e publicação/capítulo não existem.
+  document.getElementById('editar-sessao-publicacao').style.display=ehSimulado?'none':'';
+  document.getElementById('editar-sessao-capitulo').style.display=ehSimulado?'none':'';
+  document.getElementById('editar-sessao-nome-simulado').style.display=ehSimulado?'':'none';
+  document.getElementById('editar-sessao-correcao').style.display=ehSimulado?'':'none';
+  document.getElementById('editar-sessao-nota').style.display=ehSimulado?'flex':'none';
+  document.getElementById('editar-sessao-duracao').placeholder=ehSimulado?'Minutos fazendo o simulado':'Duração em minutos';
   document.getElementById('editar-sessao-caracteres').style.display=tipo==='Leitura'?'':'none';
 }
 
@@ -6843,18 +7076,37 @@ async function salvarEditarSessao(){
   const caracteres=(tipo==='Leitura'&&carInput)?parseInt(carInput,10):null;
   const data=document.getElementById('editar-sessao-data').value;
 
+  const ehSimulado=tipo==='Simulado';
+  const nomeSimulado=document.getElementById('editar-sessao-nome-simulado').value.trim();
+  const correcaoInput=document.getElementById('editar-sessao-correcao').value;
+  const acertosInput=document.getElementById('editar-sessao-acertos').value;
+  const errosInput=document.getElementById('editar-sessao-erros').value;
+
   if(!duracao||duracao<1){ mostrarAviso('Duração inválida','Informe quantos minutos, a partir de 1.'); return; }
   if(!data){ mostrarAviso('Falta a data','Escolha a data da sessão.'); return; }
-  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+  // Simulado geral não tem módulo nenhum — exigir aqui travaria justamente o caso de uso. O que
+  // ele não pode ficar sem é o nome, que é como o registro é reconhecido.
+  if(!modulo&&!ehSimulado){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+  if(ehSimulado&&!nomeSimulado){ mostrarAviso('Falta o nome','Dê um nome ao simulado — é por ele que esse registro é reconhecido.'); return; }
 
-  const valores={modulo:modulo||null,publicacao:publicacao||null,capitulo:capitulo||null,
-    tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteres};
+  const correcaoMin=(ehSimulado&&correcaoInput!=='')?parseInt(correcaoInput,10):null;
+  const valores={modulo:modulo||null,publicacao:ehSimulado?null:(publicacao||null),capitulo:ehSimulado?null:(capitulo||null),
+    tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteres,
+    nome_simulado:ehSimulado?nomeSimulado:null,
+    duracao_correcao_minutos:correcaoMin,
+    simulado_acertos:(ehSimulado&&acertosInput!=='')?parseInt(acertosInput,10):null,
+    simulado_erros:(ehSimulado&&errosInput!=='')?parseInt(errosInput,10):null};
   fecharEditarSessao();
 
   // Atualiza na tela antes de confirmar com o servidor: a correção aparece na hora.
   const s=(sessoesEstudo||[]).find(x=>x.id===id);
-  if(s){ s.modulo=modulo; s.publicacao=publicacao; s.capitulo=capitulo;
-         s.tipo=tipo; s.duracaoMinutos=duracao; s.data=data; s.caracteresLidos=caracteres; }
+  if(s){ s.modulo=modulo; s.publicacao=valores.publicacao||''; s.capitulo=valores.capitulo||'';
+         s.tipo=tipo; s.data=data; s.caracteresLidos=caracteres;
+         s.duracaoExecucaoMinutos=duracao;
+         s.duracaoCorrecaoMinutos=correcaoMin||0;
+         s.duracaoMinutos=duracao+(correcaoMin||0);
+         s.nomeSimulado=valores.nome_simulado||'';
+         s.simuladoAcertos=valores.simulado_acertos; s.simuladoErros=valores.simulado_erros; }
   renderTab(tabAtual,true);
 
   try{
