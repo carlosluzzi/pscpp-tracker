@@ -3838,6 +3838,17 @@ function mostrarDiaAnalise(key){
 }
 
 const ROTULO_SEM_MODULO='PSCPP';
+
+// Revisão espaçada DESLIGADA DA TELA (6 Out 2026, pedido do Carlos): com o volume de matéria do
+// momento, a fila de revisões era grande demais para ser feita e o que sobrava era um número de
+// atrasadas cobrando algo impossível. Ligar de novo é trocar este false por true — nada foi
+// apagado: a tabela revisoes_espacadas continua existindo e continua sendo ALIMENTADA a cada
+// sessão de leitura salva, então o histórico não tem buraco. O que este interruptor esconde é só
+// a exibição: o card "Revisões programadas" na aba Aprovado e as revisões no calendário.
+// Consequência honesta de manter o agendamento rodando: ao religar, a fila atrasada vai estar
+// toda lá, e maior. Se na hora de religar ele preferir começar do zero, é outra mudança (zerar
+// ou reagendar a fila), não esta.
+const REVISOES_PROGRAMADAS_VISIVEIS=false;
 // Mesmo desenho usado na sub-aba, reaproveitado no título da seção.
 // Barras de equalizador, para a seção que divide o tempo entre as matérias.
 const ICONE_EQUALIZADOR=`<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="192" x="16" y="160" fill="currentColor"/><rect width="32" height="192" x="376" y="160" fill="currentColor"/><rect width="32" height="328" x="104" y="88" fill="currentColor"/><rect width="32" height="320" x="288" y="96" fill="currentColor"/><rect width="32" height="320" x="464" y="96" fill="currentColor"/><rect width="32" height="480" x="192" y="16" fill="currentColor"/></svg>`;
@@ -4721,7 +4732,7 @@ function renderAprovado(){
       `}
     </div>
 
-    ${(revisoesVencidas.length||revisoesProximas.length)?`<div class="card-inicio">
+    ${(REVISOES_PROGRAMADAS_VISIVEIS&&(revisoesVencidas.length||revisoesProximas.length))?`<div class="card-inicio">
       <div class="card-header-row">
         <div class="card-header-left"><span class="card-icone-mini" style="background:transparent;color:#202A45">${iconeSecao('alerta')}</span><span style="color:#202A45">Revisões programadas</span>${botaoInfo('revisoes')}</div>
         ${revisoesAtrasadas.length?`<span style="font-size:var(--fs-a);color:${revisoesAtrasadas.some(r=>diasEntre(r.proximaData,hojeStr)>=7)?'#A32D2D':'#854F0B'};font-weight:600">${revisoesAtrasadas.length} atrasada${revisoesAtrasadas.length===1?'':'s'}</span>`:''}
@@ -7410,14 +7421,18 @@ function navegarMesCalendario(delta){
 function eventosDoDia(dia){
   const ev=[];
 
-  (revisoesEspacadas||[]).forEach(r=>{
-    if(r.proximaData===dia){
-      const pubInfoEvRev=bibliografia.find(b=>b.nome===r.publicacao&&b.modulo===r.modulo);
-      ev.push({fonte:'revisao', tipo:'Revisão',
-        texto:(r.publicacao?nomePub(r.publicacao):r.modulo)+(r.capitulo?', '+formatarCapituloExibicao(pubInfoEvRev,r.capitulo):''),
-        modulo:r.modulo, id:r.id});
-    }
-  });
+  // Mesmo interruptor do card: com a revisão espaçada desligada da tela, ela também não aparece
+  // no calendário — senão a fila voltaria pela porta de trás, espalhada pelos dias.
+  if(REVISOES_PROGRAMADAS_VISIVEIS){
+    (revisoesEspacadas||[]).forEach(r=>{
+      if(r.proximaData===dia){
+        const pubInfoEvRev=bibliografia.find(b=>b.nome===r.publicacao&&b.modulo===r.modulo);
+        ev.push({fonte:'revisao', tipo:'Revisão',
+          texto:(r.publicacao?nomePub(r.publicacao):r.modulo)+(r.capitulo?', '+formatarCapituloExibicao(pubInfoEvRev,r.capitulo):''),
+          modulo:r.modulo, id:r.id});
+      }
+    });
+  }
 
   (calendarioEventos||[]).forEach(c=>{
     if(c.data===dia&&!c.feito) ev.push({fonte:'curso', tipo:c.curso||'Simulado',
