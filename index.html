@@ -7243,7 +7243,12 @@ async function salvarDataProva(texto){
 }
 
 function renderResumoTopo(){
-  const totalQuestoes=questoes.length;
+  // Questões e flashes contados em separado. Juntos num número só eles diziam pouco: o volume de
+  // flash (V/F, vindo do Pilotquest) é uma ordem de grandeza maior que o de múltipla escolha, e
+  // engolia o número das questões de prova. "formato" é o campo que distingue os dois no Banco
+  // de Questões — múltipla escolha é o valor padrão quando nada foi gravado ali.
+  const totalFlashes=questoes.filter(q=>q.formato==='verdadeiro_falso').length;
+  const totalQuestoes=questoes.length-totalFlashes;
   const comAproveitamento=atividades.filter(a=>a.aproveitamento);
   const aproveitamentoMedio=comAproveitamento.length?Math.round(comAproveitamento.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/comAproveitamento.length):0;
   const DATA_PROVA_PADRAO='2027-11-27';
@@ -7285,6 +7290,11 @@ function renderResumoTopo(){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></svg>
         <span class="resumo-stat-num">${totalQuestoes}</span>
         <span class="resumo-stat-label">Questões respondidas</span>
+      </div>
+      <div class="resumo-stat" style="color:#202A45">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11l-1 8.5L19 10h-6.5z"/></svg>
+        <span class="resumo-stat-num">${totalFlashes}</span>
+        <span class="resumo-stat-label">Flashes respondidos</span>
       </div>
       <div class="resumo-stat" style="color:#202A45">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
