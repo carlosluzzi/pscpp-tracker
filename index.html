@@ -526,6 +526,29 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
   .periodo-row .filter-btn{flex:1 1 0}
 }
 .filter-btn{font-size:var(--fs-c);padding:4px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer}
+/* ----- controles do timer: uma altura só -----
+   O bloco empilha input de texto, selects e três grupos de botões. Cada um desses tem padding e
+   fonte próprios, e empilhados davam quatro alturas diferentes (32, 33, 34, 35px no desktop) —
+   visível como degrau de um para o outro. A altura adotada NÃO é inventada: é a do controle
+   padrão mais ALTO que o app já usa (o .filter-btn de .periodo-row — 35px no desktop, 33px no
+   mobile), de modo que tudo no bloco fica igual sem que nada encolha em relação ao que havia.
+   O botão Iniciar fica de fora de propósito: é a ação, e pode ser maior.
+   A largura também é travada a partir do tablet: num monitor grande o card chega a ~1170px, e um
+   campo de texto esticado nessa largura inteira não é legível nem bonito. 520px é largura de
+   formulário; centralizado, acompanha o relógio que já é centralizado acima. */
+.timer-campos{--alt-controle:33px}
+.timer-campos .filter-select,
+.timer-campos .filter-btn{height:var(--alt-controle);box-sizing:border-box;padding-top:0;padding-bottom:0}
+.timer-campos .filter-btn{display:flex;align-items:center;justify-content:center}
+.timer-campos .filter-row{margin-bottom:10px}
+/* Botões lado a lado com a MESMA largura, em qualquer tela. Por padrão .periodo-row usa
+   flex:1 1 auto, que dimensiona cada botão pelo tamanho do texto — e aí "Corrijo junto" nascia
+   maior que "Corrijo depois", e "Matéria específica" o dobro de "Geral", o que faz o par parecer
+   desalinhado. O app já faz exatamente esta correção no tablet; aqui ela vale sempre. */
+.timer-campos .periodo-row .filter-btn{flex:1 1 0}
+@media(min-width:768px){
+  .timer-campos{--alt-controle:35px;max-width:520px;margin-left:auto;margin-right:auto}
+}
 .filter-btn.active{background:#202A45;color:#fff;border-color:#202A45}
 .filter-select{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
 /* Campo de data: o Safari dá a ele um estilo nativo próprio, com largura mínima e preenchimento
@@ -2365,6 +2388,10 @@ function fmtPct(v){
 
 // O histórico abre em "Hoje": a pergunta mais frequente é "o que eu já fiz hoje", não o mês.
 let abaAprovado='nova',abaDesempenho='inicio',analisePeriodo='dia',analiseMesRef=null;
+// Qual das duas performances o card da inicial está mostrando. Caderno é o padrão porque é o que
+// se parece com a prova; o flash fica a um toque. Guardado no aparelho para a escolha não voltar
+// ao padrão a cada abertura do app.
+let perfResumoFlash=(()=>{ try{ return localStorage.getItem('pscpp_perf_flash')==='1'; }catch(e){ return false; } })();
 let analiseDataInicio='',analiseDataFim='';
 let histFiltroModulo='',histFiltroPub='',histFiltroCap='',histModoEmpilhado=false;
 let classAlternativas=[],planoEstudo=[];
@@ -4753,6 +4780,7 @@ function renderAprovado(){
       ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45',{direita:timerModulo?`<span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span>`:''})}
       <div style="text-align:center;font-size:var(--fs-i);font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
+      <div class="timer-campos">
       <div class="filter-row periodo-row timer-tipo-row filtro-com-select" style="margin-bottom:10px">
         ${tiposEstudo.map(t=>`<div class="filter-btn${timerTipo===t?' active':''}" onclick="${timerRodando?'':`setTimerTipo('${t}')`}">${t}</div>`).join('')}
       </div>
@@ -4791,6 +4819,7 @@ function renderAprovado(){
           :`<button class="modal-btn modal-btn-nao" style="flex:1" onclick="pausarTimer()">Pausar</button><button class="modal-btn modal-btn-sim" style="flex:1" onclick="pararESalvarTimer()">Finalizar</button>`}
       </div>
       ${!timerRodando&&timerAcumuladoSeg>0?`<button class="modal-btn modal-btn-nao" style="width:100%;margin-top:8px" onclick="zerarTimer()">Descartar e zerar</button>`:''}
+      </div>
     </div>
 
     <div class="card-inicio">
@@ -7242,6 +7271,14 @@ async function salvarDataProva(texto){
   }
 }
 
+// Toque no card de performance: troca de régua e guarda a escolha. Só isso — o número das duas
+// já foi calculado no mesmo render, então alternar não refaz conta nenhuma nem busca nada.
+function alternarPerfResumo(){
+  perfResumoFlash=!perfResumoFlash;
+  try{ localStorage.setItem('pscpp_perf_flash',perfResumoFlash?'1':'0'); }catch(e){}
+  renderTab(tabAtual,true);
+}
+
 function renderResumoTopo(){
   // Questões e flashes contados em separado. Juntos num número só eles diziam pouco: o volume de
   // flash (V/F, vindo do Pilotquest) é uma ordem de grandeza maior que o de múltipla escolha, e
@@ -7266,10 +7303,24 @@ function renderResumoTopo(){
     if(!diasComAtividade.has(chaveDia(cursor))) cursor.setDate(cursor.getDate()-1);
     while(diasComAtividade.has(chaveDia(cursor))){ sequencia++; cursor.setDate(cursor.getDate()-1); }
   }
-  // performance média dos últimos 30 dias (distinta do aproveitamento geral do anel)
+  // Performance dos últimos 30 dias (distinta do aproveitamento geral do anel), agora em DUAS
+  // réguas separadas. Juntas elas enganavam: o volume de sessões de Flash é tão maior que o de
+  // atividades de curso que a média virava, na prática, "como vou no Flash" — com o nome de uma
+  // coisa que se lê como "como vou na prova". Flash de um lado, todo o resto (simulado, caderno
+  // de exercícios, turma especial) do outro, que é o que o Carlos chama de caderno.
   const trintaDiasAtras=new Date(); trintaDiasAtras.setDate(trintaDiasAtras.getDate()-30);
   const recentes=comAproveitamento.filter(a=>a.data&&new Date(a.data)>=trintaDiasAtras);
-  const performanceMedia=recentes.length?Math.round(recentes.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/recentes.length):aproveitamentoMedio;
+  const mediaDe=lista=>lista.length?Math.round(lista.reduce((s,a)=>s+(parseFloat(a.aproveitamento)||0),0)/lista.length):null;
+  // Mesmo degrau de sempre: sem nada nos últimos 30 dias, cai para o histórico INTEIRO daquela
+  // régua. Sem nada nem no histórico, mostra travessão em vez de 0% — zero ali seria lido como
+  // "fui mal", quando o que houve foi "não teve".
+  const perfDe=tipoFlash=>{
+    const filtro=a=>tipoFlash?(a.tipo==='Flash'):(a.tipo!=='Flash');
+    return mediaDe(recentes.filter(filtro)) ?? mediaDe(comAproveitamento.filter(filtro));
+  };
+  const performanceCaderno=perfDe(false);
+  const performanceFlash=perfDe(true);
+  const performanceMedia=perfResumoFlash?performanceFlash:performanceCaderno;
   const cor=fc(aproveitamentoMedio);
   return `
   <div class="resumo-topo-card">
@@ -7296,10 +7347,10 @@ function renderResumoTopo(){
         <span class="resumo-stat-num">${totalFlashes}</span>
         <span class="resumo-stat-label">Flashes respondidos</span>
       </div>
-      <div class="resumo-stat" style="color:#202A45">
+      <div class="resumo-stat" style="color:#202A45;cursor:pointer" onclick="alternarPerfResumo()" title="Tocar para alternar entre caderno e flash">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
-        <span class="resumo-stat-num">${performanceMedia}%</span>
-        <span class="resumo-stat-label">Performance média</span>
+        <span class="resumo-stat-num">${performanceMedia===null?'–':performanceMedia+'%'}</span>
+        <span class="resumo-stat-label">Performance ${perfResumoFlash?'flash':'caderno'}</span>
       </div>
     </div>
   </div>`;
