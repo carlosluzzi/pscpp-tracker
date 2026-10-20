@@ -5706,15 +5706,32 @@ let wakeLockIntervalId=null;
 // tela neste aparelho. 'api' = Wake Lock nativo ativo; 'video' = só o vídeo de reserva tocando;
 // 'nenhuma' = as duas falharam (aí a tela VAI apagar — e o Carlos sabe que o problema é o iPad).
 let wakeLockEstado='nenhuma';
+// VERSÃO DE DIAGNÓSTICO (20/10/2026): mostra as duas camadas separadas, com prova de vida do
+// vídeo (o tempo dele andando) e o nome do último erro de cada uma. Serve pra descobrir, no
+// iPad real, qual camada falha — o indicador anterior só dizia "travada" quando a API aceitava,
+// e a API aceita mas não segura a tela em app instalado (bug da Apple).
+let wakeLockErroApi='', wakeLockErroVideo='', wakeLockIndicadorId=null;
 function atualizarIndicadorWakeLock(){
   const v=document.getElementById('wakelock-video');
   const videoTocando=!!(v&&!v.paused&&!v.ended&&v.readyState>=2);
   wakeLockEstado=wakeLockAtivo?'api':(videoTocando?'video':'nenhuma');
-  const rotulo={api:'tela: travada',video:'tela: vídeo',nenhuma:'tela: sem trava'}[wakeLockEstado];
+  const api=wakeLockAtivo?'api ✓':('wakeLock' in navigator?`api ✗${wakeLockErroApi?' '+wakeLockErroApi:''}`:'api indisponível');
+  let video;
+  if(!v) video='vídeo ausente';
+  else if(videoTocando) video=`vídeo ${v.currentTime.toFixed(1).replace('.',',')}s`;
+  else video=`vídeo parado${wakeLockErroVideo?' '+wakeLockErroVideo:''} rs${v.readyState}`;
+  const rotulo=`${api} · ${video}`;
   document.querySelectorAll('.tf-wake').forEach(el=>{
     el.textContent=rotulo;
     el.classList.toggle('tf-wake-falha',wakeLockEstado==='nenhuma');
   });
+  if(!wakeLockIndicadorId){
+    wakeLockIndicadorId=setInterval(()=>{
+      const aberta=timerFullscreenAberto||!document.getElementById('caderno-timer-fullscreen').classList.contains('hidden');
+      if(!aberta){ clearInterval(wakeLockIndicadorId); wakeLockIndicadorId=null; return; }
+      atualizarIndicadorWakeLock();
+    },1000);
+  }
 }
 // Sem loop no elemento (o iOS ignora vídeo em loop pra manter a tela): volta pro início à mão
 // pouco antes do fim. Rebobinar pra um ponto não-zero, como a NoSleep faz, evita o WebKit
@@ -5728,7 +5745,8 @@ function tocarVideoWakeLock(){
     if(!v) return;
     if(v.paused||v.ended){
       const p=v.play();
-      if(p&&p.then) p.then(()=>atualizarIndicadorWakeLock()).catch(()=>atualizarIndicadorWakeLock());
+      if(p&&p.then) p.then(()=>{ wakeLockErroVideo=''; atualizarIndicadorWakeLock(); })
+                     .catch(e=>{ wakeLockErroVideo=(e&&e.name)||'erro'; atualizarIndicadorWakeLock(); });
     }
   }catch(e){}
 }
@@ -5758,7 +5776,9 @@ async function solicitarWakeLock(){
         wakeLockAtivo.release().catch(()=>{});
         wakeLockAtivo=null;
       }
-      const novoLock=await navigator.wakeLock.request('screen');
+      let novoLock;
+      try{ novoLock=await navigator.wakeLock.request('screen'); wakeLockErroApi=''; }
+      catch(e){ wakeLockErroApi=(e&&e.name)||'erro'; throw e; }
       // Enquanto esperávamos a Promise acima, outra chamada mais nova pode ter assumido (ex:
       // dois visibilitychange em sequência rápida). Se a geração já avançou, esta trava nasceu
       // obsoleta — solta ela sem tocar em wakeLockAtivo, que já pertence à chamada mais nova.
@@ -5801,6 +5821,7 @@ async function solicitarWakeLock(){
 function liberarWakeLock(){
   wakeLockGeracao++;   // qualquer release ainda em voo passa a contar como esperado
   if(wakeLockIntervalId){ clearInterval(wakeLockIntervalId); wakeLockIntervalId=null; }
+  if(wakeLockIndicadorId){ clearInterval(wakeLockIndicadorId); wakeLockIndicadorId=null; }
   if(wakeLockAtivo){
     wakeLockAtivo.release().catch(()=>{});
     wakeLockAtivo=null;
