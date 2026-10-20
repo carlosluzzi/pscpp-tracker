@@ -1301,7 +1301,14 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      - 2x2 e opacidade 0.02 em vez de 1x1/0.01: baixo o suficiente pra ser invisível, alto o
        suficiente pra não cair na otimização de "vídeo fora da tela/invisível" do WebKit.
      playsinline é obrigatório no iOS pra não abrir em tela cheia nativa ao dar play. -->
-<video id="wakelock-video" muted playsinline webkit-playsinline preload="auto" title="tela acesa"
+<!-- SEM "muted" (20/10/2026, testado no iPadOS 26.6.2): com o elemento mudo, o WebKit trata o
+     vídeo como "sem áudio" e NÃO impede a tela de apagar — foi exatamente o que aconteceu: API
+     concedida + vídeo tocando, e a tela apagou em 2 min. A trilha é silêncio absoluto (anullsrc),
+     então desmutar não produz som nenhum; só muda a classificação interna do WebKit para
+     "vídeo + áudio tocando", a única que segura a tela. Efeito colateral conhecido: enquanto a
+     tela cheia estiver aberta, o app conta como "tocando áudio" pro iPadOS — música de outro app
+     pausa. Decisão consciente do Carlos. -->
+<video id="wakelock-video" playsinline webkit-playsinline preload="auto" title="tela acesa"
   style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.02;pointer-events:none;z-index:-1"
   ontimeupdate="rebobinarVideoWakeLock(this)"
   src="data:video/mp4;base64,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"
@@ -5718,7 +5725,7 @@ function atualizarIndicadorWakeLock(){
   const api=wakeLockAtivo?'api ✓':('wakeLock' in navigator?`api ✗${wakeLockErroApi?' '+wakeLockErroApi:''}`:'api indisponível');
   let video;
   if(!v) video='vídeo ausente';
-  else if(videoTocando) video=`vídeo ${v.currentTime.toFixed(1).replace('.',',')}s`;
+  else if(videoTocando) video=`vídeo ${v.currentTime.toFixed(1).replace('.',',')}s ${v.muted?'mudo':'som'}`;
   else video=`vídeo parado${wakeLockErroVideo?' '+wakeLockErroVideo:''} rs${v.readyState}`;
   const rotulo=`${api} · ${video}`;
   document.querySelectorAll('.tf-wake').forEach(el=>{
@@ -5743,6 +5750,10 @@ function tocarVideoWakeLock(){
   try{
     const v=document.getElementById('wakelock-video');
     if(!v) return;
+    // Garante desmutado em runtime também (ver comentário no <video>): algum caminho antigo ou o
+    // próprio navegador pode ter ligado muted. volume é só-leitura no iOS, mas não faz mal.
+    if(v.muted) v.muted=false;
+    try{ v.volume=1; }catch(e){}
     if(v.paused||v.ended){
       const p=v.play();
       if(p&&p.then) p.then(()=>{ wakeLockErroVideo=''; atualizarIndicadorWakeLock(); })
@@ -5753,11 +5764,14 @@ function tocarVideoWakeLock(){
 // O iOS só aceita play() dentro de um gesto do usuário. O play do gesto que ABRE a tela cheia
 // pode ser perdido depois (troca de app, Centro de Controle, notificação). Cada toque dentro da
 // tela cheia é uma nova chance de rearmar o vídeo e a API — custo zero quando já estão ativos.
-document.addEventListener('touchstart',(e)=>{
+// touchend e click (não touchstart): são os eventos que o WebKit conta como "ativação do usuário",
+// e play() com áudio só é aceito dentro de um deles. Os dois juntos cobrem toque e Apple Pencil/
+// mouse; chamar duas vezes é inofensivo (play() em vídeo já tocando não faz nada).
+['touchend','click'].forEach(tipo=>document.addEventListener(tipo,(e)=>{
   if(!e.target.closest||!e.target.closest('#timer-fullscreen,#caderno-timer-fullscreen')) return;
   tocarVideoWakeLock();
   if(!wakeLockAtivo) solicitarWakeLock();
-},{passive:true});
+},{passive:true}));
 
 async function solicitarWakeLock(){
   // Vídeo primeiro, sem nenhum "await" antes dele: no iOS, play() só é aceito sem bloqueio
