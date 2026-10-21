@@ -1387,13 +1387,23 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
   <div class="modal-box" style="max-width:380px">
     <div class="config-title">Confirmar sessão de estudo</div>
     <div id="timer-confirmar-resumo" style="font-size:var(--fs-c);color:#5F5E5A;margin-bottom:14px"></div>
+    <!-- Ritmo de leitura só de capítulo lido INTEIRO nesta sessão (regra do Carlos, 21 Out 2026).
+         Marcado: a sessão grava o tamanho do capítulo — o informado no começo da leitura — como
+         caracteres lidos, e entra no histórico por capítulo. Desmarcado: fica só o tempo, sem
+         ritmo, e não aparece nesse histórico. Nunca se pergunta "quantos caracteres você leu":
+         leitura parcial não gera ritmo. -->
     <div id="timer-caracteres-wrap">
-      <div class="config-label">Quantidade de caracteres lidos (opcional)</div>
-      <input type="number" min="0" class="filter-select" id="timer-caracteres-input" placeholder="Ex: 8500" style="margin-bottom:14px">
-    </div>
-    <div id="timer-tamanho-fim-wrap" class="hidden">
-      <div class="config-label">Tamanho total deste capítulo (caracteres)</div>
-      <input type="number" min="1" class="filter-select" id="timer-tamanho-fim-input" placeholder="Ex: 31000" style="margin-bottom:14px">
+      <label class="assunto-todas" style="margin:0 0 4px 0">
+        <input type="checkbox" id="timer-capitulo-inteiro" onchange="atualizarCapituloInteiroTimer()">
+        <span>Capítulo inteiro</span>
+      </label>
+      <div id="timer-capitulo-inteiro-info" style="font-size:var(--fs-b);color:#888;margin:0 0 14px 26px"></div>
+      <!-- Só aparece quando a caixa é marcada E o capítulo não tem tamanho cadastrado (o começo
+           da leitura foi pulado) — é a única situação em que o número precisa ser digitado aqui. -->
+      <div id="timer-tamanho-fim-wrap" class="hidden">
+        <div class="config-label">Tamanho do capítulo (caracteres)</div>
+        <input type="number" min="1" class="filter-select" id="timer-tamanho-fim-input" placeholder="Ex: 31000" style="margin-bottom:14px">
+      </div>
     </div>
     <!-- Nota do simulado: opcional e só aparece no simulado. Serve para o caso de fazer e
          corrigir na hora e querer deixar registrado quantas acertou, sem lançar prova nenhuma
@@ -3013,6 +3023,14 @@ const CARREGADORES={
         capitulosValidos:p.capitulos_validos||[],
         rotuloCapitulo:p.rotulo_capitulo||'Capítulo',
       })).filter(b=>b.modulo&&b.nome);
+      // Nomes curtos escolhidos pelo Carlos só no Tracker (no Pilotquest continuam os longos).
+      // O gatilho agrupar_publicacoes_marinha do banco do Tracker faz a mesma troca em toda
+      // gravação nova — se mudar aqui, mudar lá também.
+      const NOMES_PUBLICACAO_TRACKER={
+        'MSC.192(79) – Performance Standards for Radar Equipment':'MSC.192(79) – RADAR',   // 21 Out 2026
+        'Circ.1580 – Vessels with DP Systems':'Circ.1580 – DP SYSTEM',                     // 21 Out 2026
+      };
+      bibliografia.forEach(b=>{ if(NOMES_PUBLICACAO_TRACKER[b.nome]) b.nome=NOMES_PUBLICACAO_TRACKER[b.nome]; });
       // Mesma obra cadastrada em mais de uma entrada (uma por faixa de capítulos) e no MESMO
       // módulo vira uma entrada só, com os capítulos de todas. O app procura a publicação com
       // bibliografia.find(nome + módulo), que devolve só a PRIMEIRA — sem juntar aqui, metade
@@ -3031,6 +3049,40 @@ const CARREGADORES={
         existente.capituloUnico=existente.capituloUnico&&b.capituloUnico;
       });
       bibliografia=[...porObra.values()];
+      // Capítulos que o Carlos tirou das listas do Tracker porque não caem na prova. A
+      // bibliografia vem do banco do Pilotquest e NÃO é editada daqui (é compartilhada com o
+      // Pilotquest) — por isso a exclusão vive no próprio Tracker, aplicada nesta carga, e vale
+      // pra todas as listas de capítulo do app (timer, registro manual, correção de sessão).
+      // Chave = nome da publicação como aparece no app. Sessões já gravadas nesses capítulos não
+      // são apagadas — só deixam de ser oferecidos como opção.
+      const CAPITULOS_OCULTOS_TRACKER={
+        'Bridge Procedures Guide':['1','4'],   // 21 Out 2026
+      };
+      bibliografia.forEach(b=>{
+        const ocultos=CAPITULOS_OCULTOS_TRACKER[b.nome];
+        if(ocultos) b.capitulosValidos=b.capitulosValidos.filter(c=>!ocultos.includes(String(c)));
+      });
+      // 21 Out 2026: as publicações avulsas da DHN (Roteiro, Lista de Faróis...) viram CAPÍTULOS
+      // de uma publicação só, "Publicações da Marinha", em Navegação em Águas Restritas. No banco
+      // do Pilotquest elas continuam separadas — o agrupamento é só do Tracker. O banco do
+      // Tracker tem um gatilho (agrupar_publicacoes_marinha) que converte na entrada qualquer
+      // gravação que chegue com o nome antigo. Cartas Náuticas fica fora da lista (não cai).
+      const idxMarinha=bibliografia.findIndex(b=>b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome));
+      if(idxMarinha>=0){
+        const entradaMarinha={modulo:'Navegação em Águas Restritas',nome:'Publicações da Marinha',capituloUnico:false,
+          capitulosValidos:PUBLICACOES_MARINHA_CAPITULOS.filter(c=>!PUBLICACOES_MARINHA_OCULTAS.includes(c)),rotuloCapitulo:'Capítulo'};
+        bibliografia=bibliografia.filter(b=>!(b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome)));
+        bibliografia.splice(idxMarinha,0,entradaMarinha);
+      }
+      // Capítulos trocados no Tracker: a lista do Pilotquest diz uma coisa, mas o Carlos estuda
+      // por outra divisão. 21 Out 2026: do SOLAS só caem as Regulations V/19 e V/22.
+      const CAPITULOS_SUBSTITUIDOS_TRACKER={
+        'SOLAS':['Regulation V/19','Regulation V/22'],
+      };
+      bibliografia.forEach(b=>{
+        const novos=CAPITULOS_SUBSTITUIDOS_TRACKER[b.nome];
+        if(novos){ b.capitulosValidos=[...novos]; b.capituloUnico=false; }
+      });
     }catch(e){
       bibliografia=[];
     }
@@ -4282,7 +4334,11 @@ function renderAnalise(parte){
   // leitura de verdade de outra — nunca conta como ter estudado a publicação consultada, nem
   // como leitura própria pra fins de cobertura por capítulo (mesmo raciocínio de por que o
   // desvio não pede caracteres: aquele tempo é emprestado da sessão principal, não é dela).
-  const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s)&&!s.ehDesvio);
+  // A partir de 21 Out 2026 este histórico mostra SÓ leituras de capítulo inteiro — as que têm
+  // caracteres lidos (= tamanho do capítulo, marcado na caixa ao finalizar). Leitura parcial,
+  // exercício e revisão continuam contando no tempo por matéria, mas não aparecem aqui:
+  // o histórico por capítulo é sobre ritmo de leitura, e sem capítulo inteiro não há ritmo.
+  const sessComPub=sessoes.filter(s=>s.publicacao&&!ehSessaoCaderno(s)&&!s.ehDesvio&&s.caracteresLidos>0);
   const modsHist=[...new Set(sessComPub.map(s=>s.modulo).filter(Boolean))].sort();
   const pubsHist=[...new Set(sessComPub.filter(s=>!histFiltroModulo||s.modulo===histFiltroModulo).map(s=>s.publicacao))].sort();
 
@@ -4681,7 +4737,7 @@ function renderAprovado(){
     const refCompleta=s.publicacao||'';
     // Capítulo e ritmo de leitura entram na 2a linha quando existem — o dado já era salvo no
     // banco desde sempre, só não estava sendo exibido.
-    const capTexto=s.capitulo?` • Capítulo ${s.capitulo}`:'';
+    const capTexto=s.capitulo?` • ${formatarCapituloExibicao(null,s.capitulo)}`:'';
     const ritmoTexto=(s.caracteresLidos>0&&s.duracaoMinutos>0)
       ? ` • ${Math.round(s.caracteresLidos/s.duracaoMinutos).toLocaleString('pt-BR')} car/min`
       : '';
@@ -4851,11 +4907,11 @@ function renderAprovado(){
           return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo}/Seção (ainda não cadastrado)</option></select>`;
         }
         if(pubInfo.capitulosValidos.length===1){
-          return `<select class="filter-select" disabled><option value="">${pubInfo.rotuloCapitulo} ${pubInfo.capitulosValidos[0]}</option></select>`;
+          return `<select class="filter-select" disabled><option value="">${textoOpcaoCapitulo(pubInfo.rotuloCapitulo,pubInfo.capitulosValidos[0])}</option></select>`;
         }
         return `<select class="filter-select" onchange="timerCapitulo=this.value;renderTab(tabAtual,true)" ${timerRodando?'disabled':''}>
           <option value="">${pubInfo.rotuloCapitulo}</option>
-          ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${pubInfo.rotuloCapitulo} ${c}</option>`).join('')}
+          ${pubInfo.capitulosValidos.map(c=>`<option value="${c}" ${timerCapitulo===c?'selected':''}>${textoOpcaoCapitulo(pubInfo.rotuloCapitulo,c)}</option>`).join('')}
         </select>`;
       })()}
       `}
@@ -5112,7 +5168,16 @@ function aoTrocarPublicacaoTimer(novaPublicacao){
 // V") em vez de puro ("3"/"V") — nesse caso, usa como está, sem concatenar de novo (senão vira
 // "Capítulo Capítulo 3", duplicado). Depois do backfill, esse caminho nunca mais é usado, mas fica
 // como rede de segurança permanente — não faz mal manter.
-const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section'];
+const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section','Regulation'];
+// Capítulos que têm NOME próprio em vez de número — aparecem sozinhos, sem "Capítulo" na frente.
+const PUBLICACOES_MARINHA_CAPITULOS=['Avisos aos Navegantes','Carta 12.000','Cartas de Correntes de Maré','Cartas Náuticas',
+  'Cartas Piloto','Lista de Auxílios-rádio','Lista de Faróis','Roteiro','Tábuas das Marés'];
+const PUBLICACOES_MARINHA_OCULTAS=['Cartas Náuticas'];
+function capituloTemNomeProprio(c){
+  c=String(c||'');
+  return PUBLICACOES_MARINHA_CAPITULOS.includes(c)||ROTULOS_CAPITULO_CONHECIDOS.some(r=>c.startsWith(r+' '));
+}
+function textoOpcaoCapitulo(rot,c){ return capituloTemNomeProprio(c)?String(c):`${rot} ${c}`; }
 // Publicação de capítulo único pode ter uma descrição no lugar do rótulo genérico — é o caso
 // do grupo Pilot Transfer Arrangement, onde "Capítulo Único" não diz nada e a lista das cinco
 // fontes diz tudo.
@@ -5123,6 +5188,7 @@ function rotuloCapituloUnico(pubInfo){
 function formatarCapituloExibicao(pubInfo,identificador){
   if(!identificador) return '';
   if(identificador==='Único') return 'Capítulo Único';
+  if(PUBLICACOES_MARINHA_CAPITULOS.includes(identificador)) return identificador;
   if(ROTULOS_CAPITULO_CONHECIDOS.some(r=>identificador.startsWith(r+' '))) return identificador;
   const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
   return `${rotulo} ${identificador}`;
@@ -5564,7 +5630,7 @@ function atualizarCapitulosDesvio(){
   if(pubInfo.capituloUnico){ sel.innerHTML=`<option value="">${rotuloCapituloUnico(pubInfo)}</option>`; sel.disabled=true; return; }
   const caps=pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length?pubInfo.capitulosValidos:[];
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
-  sel.innerHTML='<option value="">'+rot+'</option>'+caps.map(c=>`<option value="${c}">${rot} ${c}</option>`).join('');
+  sel.innerHTML='<option value="">'+rot+'</option>'+caps.map(c=>`<option value="${c}">${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
 // Guarda o principal e zera o motor para o desvio. Como é o MESMO motor, pausar, descansar e
@@ -6824,27 +6890,14 @@ function pararESalvarTimer(){
   // abria uma linha em branco empurrando o tempo pra baixo.
   const linhaRef=partesResumo.length?partesResumo.join(' · ')+'<br>':'';
   document.getElementById('timer-confirmar-resumo').innerHTML=`${linhaRef}${formatarTempoTimer(segFinal)} ${timerCorrecaoSessaoId?'de correção':'de '+timerTipo.toLowerCase()}`;
-  // Caracteres lidos só fazem sentido em leitura — em Exercício/Revisão o campo some.
-  // Desvio não lança caracteres: é consulta para entender a obra principal, e o número
-  // contaminaria o car/min das duas publicações.
-  document.getElementById('timer-caracteres-wrap').style.display=(timerTipo==='Leitura'&&!desvioPilha)?'':'none';
-  // Pré-preenche com o tamanho já salvo do capítulo — na leitura comum, quem lê o capítulo
-  // inteiro numa sentada leu exatamente esse tanto, e digitar de novo o mesmo número que já
-  // tinha declarado no início da sessão é onde o erro de digitação acontece (foi o que
-  // aconteceu com o Carlos: relia de cabeça um número de 5 dígitos e errou a conta). Continua
-  // editável pra quem leu só parte, ou mais do que o tamanho declarado.
-  const tamanhoSalvoParaCaracteres=(timerTipo==='Leitura'&&!desvioPilha&&timerModulo&&timerPublicacao)
-    ?tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo):null;
-  document.getElementById('timer-caracteres-input').value=tamanhoSalvoParaCaracteres||'';
-  // Pergunta o tamanho do capítulo também ao finalizar, prefilled com o que já estava salvo
-  // (que pode ter sido confirmado agora há pouco, no início desta mesma sessão, ou de uma vez
-  // anterior) — o Carlos pode ter descoberto o número certo só terminando de ler.
-  const mostraTamanho=timerTipo==='Leitura'&&!desvioPilha&&timerModulo&&timerPublicacao;
-  document.getElementById('timer-tamanho-fim-wrap').classList.toggle('hidden',!mostraTamanho);
-  if(mostraTamanho){
-    const salvo=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
-    document.getElementById('timer-tamanho-fim-input').value=salvo||'';
-  }
+  // Ritmo só de capítulo inteiro: no fim, uma pergunta só — "li o capítulo inteiro?". O tamanho
+  // vem do que o Carlos informou no começo da leitura. Só em Leitura; desvio fica de fora porque
+  // é consulta a outra obra, e o número contaminaria o car/min das duas publicações.
+  const mostraCapInteiro=timerTipo==='Leitura'&&!desvioPilha&&!!timerModulo&&!!timerPublicacao;
+  document.getElementById('timer-caracteres-wrap').style.display=mostraCapInteiro?'':'none';
+  document.getElementById('timer-capitulo-inteiro').checked=false;   // sempre começa desmarcada
+  document.getElementById('timer-tamanho-fim-input').value='';
+  atualizarCapituloInteiroTimer();
   // Acertos/erros só na execução do simulado: na correção o registro já existe e a nota, se
   // houver, já foi lançada (ou pode ser lançada depois, corrigindo a sessão).
   const ehSimuladoNovo=timerTipo==='Simulado'&&!timerCorrecaoSessaoId;
@@ -6869,6 +6922,16 @@ function pararESalvarTimer(){
   }
 
   document.getElementById('timer-confirmar-salvar-modal').style.display='flex';
+}
+
+// Mostra embaixo da caixa o tamanho que será usado (o informado no começo). Só pede o número
+// quando o capítulo não tem tamanho cadastrado e a caixa foi marcada.
+function atualizarCapituloInteiroTimer(){
+  const marcado=document.getElementById('timer-capitulo-inteiro').checked;
+  const tamanho=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
+  document.getElementById('timer-capitulo-inteiro-info').textContent=
+    tamanho?`${tamanho.toLocaleString('pt-BR')} caracteres`:'';
+  document.getElementById('timer-tamanho-fim-wrap').classList.toggle('hidden',!(marcado&&!tamanho));
 }
 
 function fecharConfirmarSalvarTimer(retomar){
@@ -6914,10 +6977,14 @@ async function confirmarSalvarTimer(){
     return;
   }
 
-  const caracteresInput=document.getElementById('timer-caracteres-input').value;
-  // No desvio não se lançam caracteres: aquele tempo é consulta para entender a obra principal,
-  // não leitura da outra — contá-lo sujaria o car/min das duas.
-  const caracteresLidos=(!desvioPilha&&caracteresInput)?parseInt(caracteresInput,10):null;
+  // Capítulo inteiro marcado: caracteres lidos = tamanho do capítulo (o informado no começo ou,
+  // se não havia nenhum cadastrado, o digitado agora). Desmarcado: null — a sessão fica só com o
+  // tempo, sem ritmo, e não entra no histórico por capítulo. No desvio a caixa nem aparece.
+  const capInteiro=!desvioPilha&&timerTipo==='Leitura'&&document.getElementById('timer-capitulo-inteiro').checked;
+  const tamanhoDigitado=parseInt(document.getElementById('timer-tamanho-fim-input').value,10);
+  const tamanhoJaCadastrado=tamanhoCapAtual(timerModulo,timerPublicacao,timerCapitulo);
+  const tamanhoCapitulo=tamanhoJaCadastrado||(tamanhoDigitado>0?tamanhoDigitado:null);
+  const caracteresLidos=(capInteiro&&tamanhoCapitulo)?tamanhoCapitulo:null;
   // Uma refeição ainda aberta na hora de finalizar precisa ser creditada antes da conta.
   encerrarRefeicao();
   const ehDesvio=!!desvioPilha;
@@ -6947,12 +7014,10 @@ async function confirmarSalvarTimer(){
   try{
     const {error}=await sbDados.from('sessoes_estudo').insert(linhaSessao);
     if(error) throw error;
-    // Grava o tamanho do capítulo confirmado agora — mesmo destino de sempre, sem histórico
-    // de valores anteriores. Só roda se o campo estava visível (Leitura, sem desvio).
-    const tamanhoFimInput=document.getElementById('timer-tamanho-fim-input');
-    if(!document.getElementById('timer-tamanho-fim-wrap').classList.contains('hidden')&&tamanhoFimInput.value){
-      const v=parseInt(tamanhoFimInput.value,10);
-      if(v>0) await salvarTamanhoCapitulo(timerModulo,timerPublicacao,timerCapitulo,v);
+    // Tamanho digitado agora só existe quando o capítulo não tinha tamanho cadastrado e a caixa
+    // de capítulo inteiro foi marcada — vira o tamanho do capítulo dali em diante.
+    if(capInteiro&&!tamanhoJaCadastrado&&tamanhoDigitado>0){
+      await salvarTamanhoCapitulo(timerModulo,timerPublicacao,timerCapitulo,tamanhoDigitado);
     }
     // Sessão nascida de uma revisão programada: conclui a revisão, que avança de nível e some
     // do dia de hoje. Sem isso ela continuaria aparecendo como pendente depois de feita.
@@ -7015,13 +7080,13 @@ function atualizarCapitulosRegistroManual(){
     return;
   }
   if(pubInfo.capitulosValidos.length===1){
-    capSelect.innerHTML=`<option value="${pubInfo.capitulosValidos[0]}">${pubInfo.rotuloCapitulo} ${pubInfo.capitulosValidos[0]}</option>`;
+    capSelect.innerHTML=`<option value="${pubInfo.capitulosValidos[0]}">${textoOpcaoCapitulo(pubInfo.rotuloCapitulo,pubInfo.capitulosValidos[0])}</option>`;
     capSelect.disabled=true;
     return;
   }
   capSelect.disabled=false;
   capSelect.classList.remove('select-como-texto');
-  capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${pubInfo.rotuloCapitulo} ${c}</option>`).join('');
+  capSelect.innerHTML=`<option value="">${pubInfo.rotuloCapitulo}</option>`+pubInfo.capitulosValidos.map(c=>`<option value="${c}">${textoOpcaoCapitulo(pubInfo.rotuloCapitulo,c)}</option>`).join('');
 }
 // Caracteres lidos só existem em Leitura — nos outros tipos o campo some do formulário.
 function atualizarCamposRegistroManual(){
@@ -7194,7 +7259,7 @@ function atualizarCapitulosEditarSessao(capAtual){
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
   sel.innerHTML='<option value="">Capítulo</option>'
-    +caps.map(c=>`<option value="${c}"${String(c)===String(capAtual)?' selected':''}>${rot} ${c}</option>`).join('');
+    +caps.map(c=>`<option value="${c}"${String(c)===String(capAtual)?' selected':''}>${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
 // Caracteres lidos só fazem sentido em leitura.
@@ -7798,7 +7863,7 @@ function atualizarCapitulosPlano(){
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
   sel.innerHTML='<option value="">Capítulo/Seção</option>'
-    +caps.map(c=>`<option value="${c}">${rot} ${c}</option>`).join('');
+    +caps.map(c=>`<option value="${c}">${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
 async function salvarNovoPlano(){
