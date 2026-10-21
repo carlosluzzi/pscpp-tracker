@@ -545,9 +545,8 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
    padrão mais ALTO que o app já usa (o .filter-btn de .periodo-row — 35px no desktop, 33px no
    mobile), de modo que tudo no bloco fica igual sem que nada encolha em relação ao que havia.
    O botão Iniciar fica de fora de propósito: é a ação, e pode ser maior.
-   A largura também é travada a partir do tablet: num monitor grande o card chega a ~1170px, e um
-   campo de texto esticado nessa largura inteira não é legível nem bonito. 520px é largura de
-   formulário; centralizado, acompanha o relógio que já é centralizado acima. */
+   Largura: ocupa o card inteiro, de ponta a ponta. Já foi travada em 520px centralizada
+   (9 Out 2026) e o Carlos preferiu de volta a largura total (21 Out 2026). */
 .timer-campos{--alt-controle:33px}
 .timer-campos .filter-select,
 .timer-campos .filter-btn{height:var(--alt-controle);box-sizing:border-box;padding-top:0;padding-bottom:0}
@@ -559,7 +558,7 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
    desalinhado. O app já faz exatamente esta correção no tablet; aqui ela vale sempre. */
 .timer-campos .periodo-row .filter-btn{flex:1 1 0}
 @media(min-width:768px){
-  .timer-campos{--alt-controle:35px;max-width:520px;margin-left:auto;margin-right:auto}
+  .timer-campos{--alt-controle:35px}   /* largura total do card, de ponta a ponta (pedido do Carlos, 21 Out 2026) — antes era travado em 520px centralizado */
 }
 .filter-btn.active{background:#202A45;color:#fff;border-color:#202A45}
 .filter-select{font-size:16px;padding:6px 10px;border-radius:6px;border:0.5px solid #ddd;background:#fff;color:#111;cursor:pointer;margin-bottom:10px;width:100%}
