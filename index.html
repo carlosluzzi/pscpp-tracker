@@ -2124,16 +2124,26 @@ function registrarGrupoPilotTransfer(){
 }
 
 // Publicações de um módulo, com o grupo no lugar dos membros
+// Ordem alfabética, mas com as publicações de PUBLICACOES_POR_ULTIMO sempre no fim da lista
+// (21 Out 2026: Publicações da Marinha por último, a pedido do Carlos).
+const PUBLICACOES_POR_ULTIMO=['Publicações da Marinha'];
+function ordenarPublicacoes(lista){
+  return lista.sort((a,b)=>{
+    const ua=PUBLICACOES_POR_ULTIMO.includes(a), ub=PUBLICACOES_POR_ULTIMO.includes(b);
+    if(ua!==ub) return ua?1:-1;
+    return a.localeCompare(b,'pt');
+  });
+}
 function publicacoesParaEstudo(modulo){
   const todas=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
-  if(modulo!=='Arte Naval') return todas.sort((a,b)=>a.localeCompare(b,'pt'));
+  if(modulo!=='Arte Naval') return ordenarPublicacoes(todas);
   // O grupo já foi acrescentado à bibliografia por registrarGrupoPilotTransfer, então ele vem
   // dentro de "todas" — usar um Set evita que apareça duas vezes quando o código abaixo
   // garante a presença dele.
   const fora=todas.filter(n=>!PILOT_TRANSFER_MEMBROS.includes(n));
   const temMembros=todas.some(n=>PILOT_TRANSFER_MEMBROS.includes(n));
   const lista=temMembros?[...fora,GRUPO_PILOT_TRANSFER]:fora;
-  return [...new Set(lista)].sort((a,b)=>a.localeCompare(b,'pt'));
+  return ordenarPublicacoes([...new Set(lista)]);
 }
 
 // Cor única do app para todos os módulos. Antes cada matéria tinha sua própria paleta; a
@@ -3031,6 +3041,10 @@ const CARREGADORES={
         'Circ.1580 – Vessels with DP Systems':'Circ.1580 – DP SYSTEM',                     // 21 Out 2026
       };
       bibliografia.forEach(b=>{ if(NOMES_PUBLICACAO_TRACKER[b.nome]) b.nome=NOMES_PUBLICACAO_TRACKER[b.nome]; });
+      // Publicações que o Carlos tirou das listas do Tracker (não caem). Registros antigos delas
+      // não são apagados — só deixam de ser oferecidas como opção.
+      const PUBLICACOES_OCULTAS_TRACKER=['Circ.738 – DP Operator Training'];   // 21 Out 2026
+      bibliografia=bibliografia.filter(b=>!PUBLICACOES_OCULTAS_TRACKER.includes(b.nome));
       // Mesma obra cadastrada em mais de uma entrada (uma por faixa de capítulos) e no MESMO
       // módulo vira uma entrada só, com os capítulos de todas. O app procura a publicação com
       // bibliografia.find(nome + módulo), que devolve só a PRIMEIRA — sem juntar aqui, metade
@@ -3070,7 +3084,7 @@ const CARREGADORES={
       const idxMarinha=bibliografia.findIndex(b=>b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome));
       if(idxMarinha>=0){
         const entradaMarinha={modulo:'Navegação em Águas Restritas',nome:'Publicações da Marinha',capituloUnico:false,
-          capitulosValidos:PUBLICACOES_MARINHA_CAPITULOS.filter(c=>!PUBLICACOES_MARINHA_OCULTAS.includes(c)),rotuloCapitulo:'Capítulo'};
+          capitulosValidos:PUBLICACOES_MARINHA_CAPITULOS.filter(c=>!PUBLICACOES_MARINHA_OCULTAS.includes(c)),rotuloCapitulo:'Publicação'};
         bibliografia=bibliografia.filter(b=>!(b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome)));
         bibliografia.splice(idxMarinha,0,entradaMarinha);
       }
@@ -3078,6 +3092,8 @@ const CARREGADORES={
       // por outra divisão. 21 Out 2026: do SOLAS só caem as Regulations V/19 e V/22.
       const CAPITULOS_SUBSTITUIDOS_TRACKER={
         'SOLAS':['Regulation V/19','Regulation V/22'],
+        // 22 Out 2026: do Mooring só cai o Chapter 6, que o Carlos estuda em 8 partes (esquema dele).
+        'Mooring and Anchoring Ships':Array.from({length:8},(_,i)=>`Chapter 6 – Part ${i+1}`),
       };
       bibliografia.forEach(b=>{
         const novos=CAPITULOS_SUBSTITUIDOS_TRACKER[b.nome];
@@ -3496,7 +3512,7 @@ function aoTrocarPublicacaoEdicao(){
 }
 function popularPublicacoesEdicao(modulo, publicacaoAtual){
   const sel=document.getElementById('edicao-publicacao-select');
-  const opcoes=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
+  const opcoes=ordenarPublicacoes(bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome));
   sel.innerHTML='<option value="">Selecionar</option>'+opcoes.map(p=>`<option value="${p}" ${publicacaoAtual===p?'selected':''}>${p}</option>`).join('');
   // se a publicação atual da questão não está na lista da bibliografia (nome antigo/livre), adiciona mesmo assim
   if(publicacaoAtual&&!opcoes.includes(publicacaoAtual)){
@@ -7111,7 +7127,7 @@ async function salvarRegistroManual(){
   if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
   if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
   const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
-  if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe o ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
+  if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe ${pubInfo.rotuloCapitulo==='Publicação'?'a':'o'} ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   const dadosSessao={
@@ -7258,7 +7274,7 @@ function atualizarCapitulosEditarSessao(capAtual){
     ? pubInfo.capitulosValidos
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
-  sel.innerHTML='<option value="">Capítulo</option>'
+  sel.innerHTML='<option value="">'+(rot==='Publicação'?rot:'Capítulo')+'</option>'
     +caps.map(c=>`<option value="${c}"${String(c)===String(capAtual)?' selected':''}>${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
@@ -7862,7 +7878,7 @@ function atualizarCapitulosPlano(){
     ? pubInfo.capitulosValidos
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
-  sel.innerHTML='<option value="">Capítulo/Seção</option>'
+  sel.innerHTML='<option value="">'+(rot==='Publicação'?rot:'Capítulo/Seção')+'</option>'
     +caps.map(c=>`<option value="${c}">${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
