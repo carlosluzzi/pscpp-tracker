@@ -336,10 +336,11 @@ body.em-intervalo .tf-pausa-btn,body.descanso-acabou .tf-pausa-btn{
    (z-index) pra ser considerado visível; pointer-events:none pra não roubar toque. */
 #wakelock-video{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.02;pointer-events:none;z-index:-1;background:#0B0F19}
 body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(safe-area-inset-bottom, 0px) + 70px);
-  transform:translateX(-50%);width:64px;height:64px;opacity:1;z-index:1000000;object-fit:cover}
-/* Indicador de qual camada está segurando a tela — texto pequeno, canto inferior esquerdo */
-.tf-wake{position:absolute;left:30px;bottom:calc(env(safe-area-inset-bottom, 0px) + 30px);font-size:var(--fs-a);color:#4B5563;letter-spacing:.02em}
-.tf-wake.tf-wake-falha{color:#C24436}
+  transform:translateX(-50%);width:64px;height:64px;opacity:1;z-index:1000000;object-fit:cover;
+  /* O vídeo é um tom MAIS ESCURO que o fundo (#070A12). Com "lighten", cada pixel vira o máximo
+     entre vídeo e fundo — ou seja, sempre o fundo. Fica invisível tanto no #0B0F19 normal quanto
+     durante o pulso vermelho de "descanso acabou", sem precisar esconder (esconder soltaria a trava). */
+  mix-blend-mode:lighten}
 .tf-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .tf-btn{padding:12px 28px;border-radius:10px;border:none;font-size:var(--fs-e);font-weight:600;cursor:pointer;font-family:inherit;position:relative}
 /* Pausar e Continuar com a mesma largura: sem isso o botão muda de tamanho ao alternar, e o
@@ -1306,8 +1307,10 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
        reprodução de verdade — é o mesmo formato que a NoSleep.js adotou pelo mesmo motivo.
      - SEM atributo loop: o iOS não considera vídeo em loop pra fins de "tela ocupada". O
        rebobinar é feito à mão no evento timeupdate (ver rebobinarVideoWakeLock).
-     - 2x2 e opacidade 0.02 em vez de 1x1/0.01: baixo o suficiente pra ser invisível, alto o
-       suficiente pra não cair na otimização de "vídeo fora da tela/invisível" do WebKit.
+     - TAMANHO E ÁUDIO são o que decide (confirmado no iPadOS 26.6.2, 22/10/2026): 2x2 px mudo
+       → tela apaga; 2x2 px com áudio → tela apaga; 64x64 px com áudio, visível na tela cheia
+       → tela fica acesa. Ver #wakelock-video no CSS: 2x2 fora da tela cheia, 64x64 dentro,
+       na cor do fundo com mix-blend-mode:lighten pra ficar invisível.
      playsinline é obrigatório no iOS pra não abrir em tela cheia nativa ao dar play. -->
 <!-- SEM "muted" (20/10/2026, testado no iPadOS 26.6.2): com o elemento mudo, o WebKit trata o
      vídeo como "sem áudio" e NÃO impede a tela de apagar — foi exatamente o que aconteceu: API
@@ -1318,7 +1321,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      pausa. Decisão consciente do Carlos. -->
 <video id="wakelock-video" playsinline webkit-playsinline preload="auto" title="tela acesa"
   ontimeupdate="rebobinarVideoWakeLock(this)"
-  src="data:video/mp4;base64,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"
+  src="data:video/mp4;base64,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"
 ></video>
 
 <!-- Áudio real (não gerado por osciladores), 150ms, bem baixo — "destrava" o resto do Web
@@ -1367,12 +1370,10 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
 
 <div id="timer-fullscreen" class="hidden" onclick="fecharAjusteApitoSeFora(event)">
   <div id="timer-fullscreen-conteudo" style="width:100%;max-width:520px"></div>
-  <span class="tf-wake">tela: sem trava</span>
 </div>
 
 <div id="caderno-timer-fullscreen" class="hidden">
   <div id="caderno-timer-fullscreen-conteudo"></div>
-  <span class="tf-wake">tela: sem trava</span>
 </div>
 
 <div id="timer-aviso-curto-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
@@ -5798,36 +5799,14 @@ let wakeLockGeracao=0;
 // o Safari solte a trava de um jeito que o evento não capture — o custo de pedir de novo uma
 // trava que já está ativa é essencially zero.
 let wakeLockIntervalId=null;
-// Diagnóstico mostrado em texto pequeno no rodapé da tela cheia: qual camada está segurando a
-// tela neste aparelho. 'api' = Wake Lock nativo ativo; 'video' = só o vídeo de reserva tocando;
-// 'nenhuma' = as duas falharam (aí a tela VAI apagar — e o Carlos sabe que o problema é o iPad).
 let wakeLockEstado='nenhuma';
-// VERSÃO DE DIAGNÓSTICO (20/10/2026): mostra as duas camadas separadas, com prova de vida do
-// vídeo (o tempo dele andando) e o nome do último erro de cada uma. Serve pra descobrir, no
-// iPad real, qual camada falha — o indicador anterior só dizia "travada" quando a API aceitava,
-// e a API aceita mas não segura a tela em app instalado (bug da Apple).
-let wakeLockErroApi='', wakeLockErroVideo='', wakeLockIndicadorId=null;
+// Estado interno de qual camada está segurando a tela ('api' | 'video' | 'nenhuma'). O texto de
+// diagnóstico que existiu no rodapé da tela cheia (20–22/10/2026) foi removido depois de a solução
+// ser confirmada no iPad; a função fica porque é o que atualiza wakeLockEstado.
 function atualizarIndicadorWakeLock(){
   const v=document.getElementById('wakelock-video');
   const videoTocando=!!(v&&!v.paused&&!v.ended&&v.readyState>=2);
   wakeLockEstado=wakeLockAtivo?'api':(videoTocando?'video':'nenhuma');
-  const api=wakeLockAtivo?'api ✓':('wakeLock' in navigator?`api ✗${wakeLockErroApi?' '+wakeLockErroApi:''}`:'api indisponível');
-  let video;
-  if(!v) video='vídeo ausente';
-  else if(videoTocando){ const r=v.getBoundingClientRect(); video=`vídeo ${v.currentTime.toFixed(1).replace('.',',')}s ${v.muted?'mudo':'som'} ${Math.round(r.width)}px`; }
-  else video=`vídeo parado${wakeLockErroVideo?' '+wakeLockErroVideo:''} rs${v.readyState}`;
-  const rotulo=`${api} · ${video}`;
-  document.querySelectorAll('.tf-wake').forEach(el=>{
-    el.textContent=rotulo;
-    el.classList.toggle('tf-wake-falha',wakeLockEstado==='nenhuma');
-  });
-  if(!wakeLockIndicadorId){
-    wakeLockIndicadorId=setInterval(()=>{
-      const aberta=timerFullscreenAberto||!document.getElementById('caderno-timer-fullscreen').classList.contains('hidden');
-      if(!aberta){ clearInterval(wakeLockIndicadorId); wakeLockIndicadorId=null; return; }
-      atualizarIndicadorWakeLock();
-    },1000);
-  }
 }
 // Sem loop no elemento (o iOS ignora vídeo em loop pra manter a tela): volta pro início à mão
 // pouco antes do fim. Rebobinar pra um ponto não-zero, como a NoSleep faz, evita o WebKit
@@ -5845,8 +5824,7 @@ function tocarVideoWakeLock(){
     try{ v.volume=1; }catch(e){}
     if(v.paused||v.ended){
       const p=v.play();
-      if(p&&p.then) p.then(()=>{ wakeLockErroVideo=''; atualizarIndicadorWakeLock(); })
-                     .catch(e=>{ wakeLockErroVideo=(e&&e.name)||'erro'; atualizarIndicadorWakeLock(); });
+      if(p&&p.then) p.then(()=>atualizarIndicadorWakeLock()).catch(()=>atualizarIndicadorWakeLock());
     }
   }catch(e){}
 }
@@ -5879,9 +5857,7 @@ async function solicitarWakeLock(){
         wakeLockAtivo.release().catch(()=>{});
         wakeLockAtivo=null;
       }
-      let novoLock;
-      try{ novoLock=await navigator.wakeLock.request('screen'); wakeLockErroApi=''; }
-      catch(e){ wakeLockErroApi=(e&&e.name)||'erro'; throw e; }
+      const novoLock=await navigator.wakeLock.request('screen');
       // Enquanto esperávamos a Promise acima, outra chamada mais nova pode ter assumido (ex:
       // dois visibilitychange em sequência rápida). Se a geração já avançou, esta trava nasceu
       // obsoleta — solta ela sem tocar em wakeLockAtivo, que já pertence à chamada mais nova.
@@ -5924,7 +5900,6 @@ async function solicitarWakeLock(){
 function liberarWakeLock(){
   wakeLockGeracao++;   // qualquer release ainda em voo passa a contar como esperado
   if(wakeLockIntervalId){ clearInterval(wakeLockIntervalId); wakeLockIntervalId=null; }
-  if(wakeLockIndicadorId){ clearInterval(wakeLockIndicadorId); wakeLockIndicadorId=null; }
   if(wakeLockAtivo){
     wakeLockAtivo.release().catch(()=>{});
     wakeLockAtivo=null;
