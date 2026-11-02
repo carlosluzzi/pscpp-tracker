@@ -3100,6 +3100,15 @@ const CARREGADORES={
         const novos=CAPITULOS_SUBSTITUIDOS_TRACKER[b.nome];
         if(novos){ b.capitulosValidos=[...novos]; b.capituloUnico=false; }
       });
+      // Capítulos que o Carlos estuda em pedaços: o capítulo some da lista e os pedaços entram no
+      // lugar dele, na mesma posição. Registros antigos do capítulo inteiro continuam como estão.
+      const CAPITULOS_DIVIDIDOS_TRACKER={
+        'Ship Resistance and Flow':{'5':['Section 5.1 to 5.6','Section 5.7 to 5.12']},   // 2 Nov 2026
+      };
+      bibliografia.forEach(b=>{
+        const divisoes=CAPITULOS_DIVIDIDOS_TRACKER[b.nome];
+        if(divisoes) b.capitulosValidos=b.capitulosValidos.flatMap(c=>divisoes[String(c)]||[c]);
+      });
     }catch(e){
       bibliografia=[];
     }
