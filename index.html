@@ -2125,25 +2125,42 @@ function registrarGrupoPilotTransfer(){
 }
 
 // Publicações de um módulo, com o grupo no lugar dos membros
-// Ordem alfabética, mas com as publicações de PUBLICACOES_POR_ULTIMO sempre no fim da lista
-// (21 Out 2026: Publicações da Marinha por último, a pedido do Carlos).
-const PUBLICACOES_POR_ULTIMO=['Publicações da Marinha'];
-// Publicações que vêm PRIMEIRO, nesta ordem exata, antes das demais em ordem alfabética
-// (3 Nov 2026: ordem de Navegação em Águas Restritas escolhida pelo Carlos).
-const PUBLICACOES_PRIMEIRO=['A.1106(29) – AIS','MSC.530(106) – ECDIS','MSC.192(79) – RADAR','Circ.1580 – DP SYSTEM',
-  'SOLAS','NORMAM-202','NORMAM-501','NORMAM-511'];
+// Ajustes da lista de publicações SÓ do Tracker (nome curto, ordem, publicações e capítulos
+// escondidos, capítulos trocados/divididos, grupos como Publicações da Marinha). Desde 3 Nov 2026
+// vivem na tabela ajustes_bibliografia do banco do Tracker — antes ficavam escritos aqui no
+// código e cada mudança exigia trocar o HTML. Preenchido por carregarAjustesBibliografia().
+let ajustesBib={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set()};
+// ordem na tabela: positivo = no topo, nessa ordem; vazio = alfabético no meio; negativo = no
+// fim (-1 é o último).
 function ordenarPublicacoes(lista){
+  const faixa=n=>{ const o=ajustesBib.ordem.get(n); return o==null?1:(o>0?0:2); };
   return lista.sort((a,b)=>{
-    const ua=PUBLICACOES_POR_ULTIMO.includes(a), ub=PUBLICACOES_POR_ULTIMO.includes(b);
-    if(ua!==ub) return ua?1:-1;
-    const pa=PUBLICACOES_PRIMEIRO.indexOf(a), pb=PUBLICACOES_PRIMEIRO.indexOf(b);
-    if(pa>=0||pb>=0){
-      if(pa<0) return 1;
-      if(pb<0) return -1;
-      return pa-pb;
-    }
+    const fa=faixa(a), fb=faixa(b);
+    if(fa!==fb) return fa-fb;
+    if(fa!==1) return ajustesBib.ordem.get(a)-ajustesBib.ordem.get(b);
     return a.localeCompare(b,'pt');
   });
+}
+async function carregarAjustesBibliografia(){
+  let linhas;
+  try{
+    const {data,error}=await sbDados.from('ajustes_bibliografia').select('*');
+    if(error) throw error;
+    linhas=data||[];
+    try{ localStorage.setItem('pscpp_ajustes_bib',JSON.stringify(linhas)); }catch(e){}
+  }catch(e){
+    // Sem conexão: usa a última versão que deu certo, pra lista não voltar a ser a do Pilotquest.
+    try{ linhas=JSON.parse(localStorage.getItem('pscpp_ajustes_bib')||'[]'); }catch(e2){ linhas=[]; }
+  }
+  const aj={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set()};
+  linhas.forEach(r=>{
+    aj.porOriginal.set(r.publicacao_original,r);
+    const nomeFinal=r.nome_tracker||r.publicacao_original;
+    if(r.agrupar_em){ aj.capitulosNomeados.add(nomeFinal); return; }
+    aj.porNome.set(nomeFinal,r);
+    if(r.ordem!=null) aj.ordem.set(nomeFinal,r.ordem);
+  });
+  ajustesBib=aj;
 }
 function publicacoesParaEstudo(modulo){
   const todas=bibliografia.filter(b=>b.modulo===modulo).map(b=>b.nome);
@@ -3034,6 +3051,7 @@ const CARREGADORES={
   // Bibliografia vem de outro projeto (PilotQuest) — busca separada e tolerante a falha,
   // pra não travar o resto do app se o PilotQuest estiver fora do ar.
   bibliografia: async()=>{
+    await carregarAjustesBibliografia();
     try{
       const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
       if(eBib) throw eBib;
@@ -3044,18 +3062,25 @@ const CARREGADORES={
         capitulosValidos:p.capitulos_validos||[],
         rotuloCapitulo:p.rotulo_capitulo||'Capítulo',
       })).filter(b=>b.modulo&&b.nome);
-      // Nomes curtos escolhidos pelo Carlos só no Tracker (no Pilotquest continuam os longos).
-      // O gatilho agrupar_publicacoes_marinha do banco do Tracker faz a mesma troca em toda
-      // gravação nova — se mudar aqui, mudar lá também.
-      const NOMES_PUBLICACAO_TRACKER={
-        'MSC.192(79) – Performance Standards for Radar Equipment':'MSC.192(79) – RADAR',   // 21 Out 2026
-        'Circ.1580 – Vessels with DP Systems':'Circ.1580 – DP SYSTEM',                     // 21 Out 2026
-      };
-      bibliografia.forEach(b=>{ if(NOMES_PUBLICACAO_TRACKER[b.nome]) b.nome=NOMES_PUBLICACAO_TRACKER[b.nome]; });
-      // Publicações que o Carlos tirou das listas do Tracker (não caem). Registros antigos delas
-      // não são apagados — só deixam de ser oferecidas como opção.
-      const PUBLICACOES_OCULTAS_TRACKER=['Circ.738 – DP Operator Training'];   // 21 Out 2026
-      bibliografia=bibliografia.filter(b=>!PUBLICACOES_OCULTAS_TRACKER.includes(b.nome));
+      // Ajustes pelo nome que vem do Pilotquest (tabela ajustes_bibliografia): esconder, renomear
+      // ou virar capítulo de um grupo. O gatilho agrupar_publicacoes_marinha do banco lê a mesma
+      // tabela e faz a mesma troca em toda gravação nova.
+      const grupos=new Map();
+      const restantes=[];
+      bibliografia.forEach(b=>{
+        const aj=ajustesBib.porOriginal.get(b.nome);
+        if(!aj){ restantes.push(b); return; }
+        if(aj.oculta) return;
+        if(aj.agrupar_em){
+          const g=grupos.get(aj.agrupar_em)||{modulo:b.modulo,capitulos:[]};
+          g.capitulos.push(aj.nome_tracker||b.nome);
+          grupos.set(aj.agrupar_em,g);
+          return;
+        }
+        if(aj.nome_tracker) b.nome=aj.nome_tracker;
+        restantes.push(b);
+      });
+      bibliografia=restantes;
       // Mesma obra cadastrada em mais de uma entrada (uma por faixa de capítulos) e no MESMO
       // módulo vira uma entrada só, com os capítulos de todas. O app procura a publicação com
       // bibliografia.find(nome + módulo), que devolve só a PRIMEIRA — sem juntar aqui, metade
@@ -3074,54 +3099,25 @@ const CARREGADORES={
         existente.capituloUnico=existente.capituloUnico&&b.capituloUnico;
       });
       bibliografia=[...porObra.values()];
-      // Capítulos que o Carlos tirou das listas do Tracker porque não caem na prova. A
-      // bibliografia vem do banco do Pilotquest e NÃO é editada daqui (é compartilhada com o
-      // Pilotquest) — por isso a exclusão vive no próprio Tracker, aplicada nesta carga, e vale
-      // pra todas as listas de capítulo do app (timer, registro manual, correção de sessão).
-      // Chave = nome da publicação como aparece no app. Sessões já gravadas nesses capítulos não
-      // são apagadas — só deixam de ser oferecidos como opção.
-      const CAPITULOS_OCULTOS_TRACKER={
-        'Bridge Procedures Guide':['1','4'],   // 21 Out 2026
-      };
-      bibliografia.forEach(b=>{
-        const ocultos=CAPITULOS_OCULTOS_TRACKER[b.nome];
-        if(ocultos) b.capitulosValidos=b.capitulosValidos.filter(c=>!ocultos.includes(String(c)));
+      // Grupo criado só no Tracker: cada membro vira um capítulo com o próprio nome.
+      grupos.forEach((g,nomeGrupo)=>{
+        bibliografia.push({modulo:g.modulo,nome:nomeGrupo,capituloUnico:false,rotuloCapitulo:'Capítulo',
+          capitulosValidos:[...new Set(g.capitulos)].sort((x,y)=>x.localeCompare(y,'pt',{numeric:true}))});
       });
-      // 21 Out 2026: as publicações avulsas da DHN (Roteiro, Lista de Faróis...) viram CAPÍTULOS
-      // de uma publicação só, "Publicações da Marinha", em Navegação em Águas Restritas. No banco
-      // do Pilotquest elas continuam separadas — o agrupamento é só do Tracker. O banco do
-      // Tracker tem um gatilho (agrupar_publicacoes_marinha) que converte na entrada qualquer
-      // gravação que chegue com o nome antigo. Cartas Náuticas fica fora da lista (não cai).
-      const idxMarinha=bibliografia.findIndex(b=>b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome));
-      if(idxMarinha>=0){
-        const entradaMarinha={modulo:'Navegação em Águas Restritas',nome:'Publicações da Marinha',capituloUnico:false,
-          capitulosValidos:PUBLICACOES_MARINHA_CAPITULOS.filter(c=>!PUBLICACOES_MARINHA_OCULTAS.includes(c)),rotuloCapitulo:'Publicação'};
-        bibliografia=bibliografia.filter(b=>!(b.modulo==='Navegação em Águas Restritas'&&PUBLICACOES_MARINHA_CAPITULOS.includes(b.nome)));
-        bibliografia.splice(idxMarinha,0,entradaMarinha);
-      }
-      // Capítulos trocados no Tracker: a lista do Pilotquest diz uma coisa, mas o Carlos estuda
-      // por outra divisão. 21 Out 2026: do SOLAS só caem as Regulations V/19 e V/22.
-      const CAPITULOS_SUBSTITUIDOS_TRACKER={
-        'SOLAS':['Regulation V/19','Regulation V/22'],
-        // 22 Out 2026: do Mooring só cai o Chapter 6, que o Carlos estuda em 8 partes (esquema dele).
-        'Mooring and Anchoring Ships':Array.from({length:8},(_,i)=>`Chapter 6 – Part ${i+1}`),
-      };
+      // Ajustes pelo nome que aparece no app: trocar, dividir ou esconder capítulos e o nome do
+      // seletor. Registros antigos de capítulos que saíram da lista não são apagados.
       bibliografia.forEach(b=>{
-        const novos=CAPITULOS_SUBSTITUIDOS_TRACKER[b.nome];
-        if(novos){ b.capitulosValidos=[...novos]; b.capituloUnico=false; }
+        const aj=ajustesBib.porNome.get(b.nome);
+        if(!aj) return;
+        if(aj.oculta){ b._ocultaTracker=true; return; }
+        if(Array.isArray(aj.capitulos)&&aj.capitulos.length){ b.capitulosValidos=[...aj.capitulos]; b.capituloUnico=false; }
+        const div=aj.capitulos_divididos;
+        if(div&&typeof div==='object') b.capitulosValidos=b.capitulosValidos.flatMap(c=>div[String(c)]||[c]);
+        if(Array.isArray(aj.capitulos_ocultos)&&aj.capitulos_ocultos.length)
+          b.capitulosValidos=b.capitulosValidos.filter(c=>!aj.capitulos_ocultos.includes(String(c)));
+        if(aj.rotulo_capitulo) b.rotuloCapitulo=aj.rotulo_capitulo;
       });
-      // Nome do seletor de capítulo trocado no Tracker (3 Nov 2026: SOLAS é por Regulation).
-      const ROTULO_CAPITULO_TRACKER={'SOLAS':'Regulation'};
-      bibliografia.forEach(b=>{ if(ROTULO_CAPITULO_TRACKER[b.nome]) b.rotuloCapitulo=ROTULO_CAPITULO_TRACKER[b.nome]; });
-      // Capítulos que o Carlos estuda em pedaços: o capítulo some da lista e os pedaços entram no
-      // lugar dele, na mesma posição. Registros antigos do capítulo inteiro continuam como estão.
-      const CAPITULOS_DIVIDIDOS_TRACKER={
-        'Ship Resistance and Flow':{'5':['Section 5.1 to 5.6','Section 5.7 to 5.12']},   // 2 Nov 2026
-      };
-      bibliografia.forEach(b=>{
-        const divisoes=CAPITULOS_DIVIDIDOS_TRACKER[b.nome];
-        if(divisoes) b.capitulosValidos=b.capitulosValidos.flatMap(c=>divisoes[String(c)]||[c]);
-      });
+      bibliografia=bibliografia.filter(b=>!b._ocultaTracker);
     }catch(e){
       bibliografia=[];
     }
@@ -5208,13 +5204,11 @@ function aoTrocarPublicacaoTimer(novaPublicacao){
 // "Capítulo Capítulo 3", duplicado). Depois do backfill, esse caminho nunca mais é usado, mas fica
 // como rede de segurança permanente — não faz mal manter.
 const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section','Regulation'];
-// Capítulos que têm NOME próprio em vez de número — aparecem sozinhos, sem "Capítulo" na frente.
-const PUBLICACOES_MARINHA_CAPITULOS=['Avisos aos Navegantes','Carta 12.000','Cartas de Correntes de Maré','Cartas Náuticas',
-  'Cartas Piloto','Lista de Auxílios-rádio','Lista de Faróis','Roteiro','Tábuas das Marés'];
-const PUBLICACOES_MARINHA_OCULTAS=['Cartas Náuticas'];
+// Capítulos que têm NOME próprio em vez de número (os membros de um grupo, como Roteiro em
+// Publicações da Marinha) aparecem sozinhos, sem "Capítulo" na frente.
 function capituloTemNomeProprio(c){
   c=String(c||'');
-  return PUBLICACOES_MARINHA_CAPITULOS.includes(c)||ROTULOS_CAPITULO_CONHECIDOS.some(r=>c.startsWith(r+' '));
+  return ajustesBib.capitulosNomeados.has(c)||ROTULOS_CAPITULO_CONHECIDOS.some(r=>c.startsWith(r+' '));
 }
 function textoOpcaoCapitulo(rot,c){ return capituloTemNomeProprio(c)?String(c):`${rot} ${c}`; }
 // Publicação de capítulo único pode ter uma descrição no lugar do rótulo genérico — é o caso
@@ -5227,7 +5221,7 @@ function rotuloCapituloUnico(pubInfo){
 function formatarCapituloExibicao(pubInfo,identificador){
   if(!identificador) return '';
   if(identificador==='Único') return 'Capítulo Único';
-  if(PUBLICACOES_MARINHA_CAPITULOS.includes(identificador)) return identificador;
+  if(ajustesBib.capitulosNomeados.has(String(identificador))) return identificador;
   if(ROTULOS_CAPITULO_CONHECIDOS.some(r=>identificador.startsWith(r+' '))) return identificador;
   const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
   return `${rotulo} ${identificador}`;
