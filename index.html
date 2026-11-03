@@ -2128,10 +2128,20 @@ function registrarGrupoPilotTransfer(){
 // Ordem alfabética, mas com as publicações de PUBLICACOES_POR_ULTIMO sempre no fim da lista
 // (21 Out 2026: Publicações da Marinha por último, a pedido do Carlos).
 const PUBLICACOES_POR_ULTIMO=['Publicações da Marinha'];
+// Publicações que vêm PRIMEIRO, nesta ordem exata, antes das demais em ordem alfabética
+// (3 Nov 2026: ordem de Navegação em Águas Restritas escolhida pelo Carlos).
+const PUBLICACOES_PRIMEIRO=['A.1106(29) – AIS','MSC.530(106) – ECDIS','MSC.192(79) – RADAR','Circ.1580 – DP SYSTEM',
+  'SOLAS','NORMAM-202','NORMAM-501','NORMAM-511'];
 function ordenarPublicacoes(lista){
   return lista.sort((a,b)=>{
     const ua=PUBLICACOES_POR_ULTIMO.includes(a), ub=PUBLICACOES_POR_ULTIMO.includes(b);
     if(ua!==ub) return ua?1:-1;
+    const pa=PUBLICACOES_PRIMEIRO.indexOf(a), pb=PUBLICACOES_PRIMEIRO.indexOf(b);
+    if(pa>=0||pb>=0){
+      if(pa<0) return 1;
+      if(pb<0) return -1;
+      return pa-pb;
+    }
     return a.localeCompare(b,'pt');
   });
 }
@@ -3100,6 +3110,9 @@ const CARREGADORES={
         const novos=CAPITULOS_SUBSTITUIDOS_TRACKER[b.nome];
         if(novos){ b.capitulosValidos=[...novos]; b.capituloUnico=false; }
       });
+      // Nome do seletor de capítulo trocado no Tracker (3 Nov 2026: SOLAS é por Regulation).
+      const ROTULO_CAPITULO_TRACKER={'SOLAS':'Regulation'};
+      bibliografia.forEach(b=>{ if(ROTULO_CAPITULO_TRACKER[b.nome]) b.rotuloCapitulo=ROTULO_CAPITULO_TRACKER[b.nome]; });
       // Capítulos que o Carlos estuda em pedaços: o capítulo some da lista e os pedaços entram no
       // lugar dele, na mesma posição. Registros antigos do capítulo inteiro continuam como estão.
       const CAPITULOS_DIVIDIDOS_TRACKER={
@@ -7258,7 +7271,7 @@ function atualizarCapitulosEditarSessao(capAtual){
     ? pubInfo.capitulosValidos
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
-  sel.innerHTML='<option value="">'+(rot==='Publicação'?rot:'Capítulo')+'</option>'
+  sel.innerHTML='<option value="">'+(['Publicação','Regulation'].includes(rot)?rot:'Capítulo')+'</option>'
     +caps.map(c=>`<option value="${c}"${String(c)===String(capAtual)?' selected':''}>${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
@@ -7862,7 +7875,7 @@ function atualizarCapitulosPlano(){
     ? pubInfo.capitulosValidos
     : Array.from({length:pubInfo.faixaCapitulos||30},(_,i)=>String(i+1));
   const rot=pubInfo.rotuloCapitulo||'Capítulo';
-  sel.innerHTML='<option value="">'+(rot==='Publicação'?rot:'Capítulo/Seção')+'</option>'
+  sel.innerHTML='<option value="">'+(['Publicação','Regulation'].includes(rot)?rot:'Capítulo/Seção')+'</option>'
     +caps.map(c=>`<option value="${c}">${textoOpcaoCapitulo(rot,c)}</option>`).join('');
 }
 
