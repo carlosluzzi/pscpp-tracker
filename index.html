@@ -5273,8 +5273,12 @@ function aoTrocarPublicacaoTimer(novaPublicacao){
 const ROTULOS_CAPITULO_CONHECIDOS=['Capítulo','Chapter','Seção','Section','Regulation'];
 // Capítulos que têm NOME próprio em vez de número (os membros de um grupo, como Roteiro em
 // Publicações da Marinha) aparecem sozinhos, sem "Capítulo" na frente.
+// Capítulo "Todos": estudar a publicação inteira de uma vez (ex.: Pilot Transfer Arrangement, 4 Nov
+// 2026). O tamanho dele é a soma dos outros capítulos, calculada na hora em tamanhoCapAtual.
+const CAPITULO_TODOS='Todos';
 function capituloTemNomeProprio(c){
   c=String(c||'');
+  if(c===CAPITULO_TODOS) return true;
   return ajustesBib.capitulosNomeados.has(c)||ROTULOS_CAPITULO_CONHECIDOS.some(r=>c.startsWith(r+' '));
 }
 function textoOpcaoCapitulo(rot,c){ return capituloTemNomeProprio(c)?String(c):`${rot} ${c}`; }
@@ -5288,7 +5292,7 @@ function rotuloCapituloUnico(pubInfo){
 function formatarCapituloExibicao(pubInfo,identificador){
   if(!identificador) return '';
   if(identificador==='Único') return 'Capítulo Único';
-  if(ajustesBib.capitulosNomeados.has(String(identificador))) return identificador;
+  if(identificador===CAPITULO_TODOS||ajustesBib.capitulosNomeados.has(String(identificador))) return identificador;
   if(ROTULOS_CAPITULO_CONHECIDOS.some(r=>identificador.startsWith(r+' '))) return identificador;
   const rotulo=pubInfo?pubInfo.rotuloCapitulo:'Capítulo';
   return `${rotulo} ${identificador}`;
@@ -6009,6 +6013,12 @@ function chaveTamanhoCap(modulo,publicacao,capitulo){
 function tamanhoCapAtual(modulo,publicacao,capitulo){
   // Pasta inteira: soma, na hora, dos tamanhos de todas as publicações de dentro — mudou o tamanho
   // de uma delas, a pasta acompanha.
+  if(capitulo===CAPITULO_TODOS){
+    const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+    const soma=((info&&info.capitulosValidos)||[]).filter(c=>c!==CAPITULO_TODOS)
+      .reduce((t,c)=>{ const x=tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,c)]; return t+(x?x.caracteresTotais:0); },0);
+    return soma||null;
+  }
   const pasta=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo&&b.pastaInteiraId!=null);
   if(pasta){
     const soma=bibliografia.filter(b=>b.modulo===modulo&&b.pastaInteiraId==null&&ajustesBib.pastaDe.get(b.nome)===pasta.pastaInteiraId)
@@ -8087,7 +8097,8 @@ function montarMapaEstudo(){
       const info=bibliografia.find(b=>b.nome===nome&&b.modulo===mod)||{};
       if(info.pastaInteiraId!=null) return;   // a pasta inteira já é a linha da pasta
       const unico=!!info.capituloUnico||!(info.capitulosValidos&&info.capitulosValidos.length);
-      const capsIds=unico?['']:info.capitulosValidos.map(String);
+      // "Todos" não vira linha no Mapa: o tempo dele já entra no total da publicação
+      const capsIds=unico?['']:info.capitulosValidos.map(String).filter(c=>c!==CAPITULO_TODOS);
       const sessPub=sessMod.filter(s=>s.publicacao===nome);
       const qsPub=qs.filter(q=>q.publicacao===nome);
       const caps=capsIds.map(cap=>{
@@ -8102,13 +8113,11 @@ function montarMapaEstudo(){
           ac:qCap.filter(isAcerto).length,tot:qCap.length};
       });
       const pub={tipo:'pub',id:nome,nome:nomePub(nome),filhos:caps,
-        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),grupoFixo:nome===GRUPO_PILOT_TRANSFER};
+        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),grupoFixo:PILOT_TRANSFER_MEMBROS.length>0&&nome===GRUPO_PILOT_TRANSFER};
       juntar(pub,caps);
       // números da publicação contam também o que não caiu em nenhum capítulo da lista
       pub.ac=qsPub.filter(isAcerto).length; pub.tot=qsPub.length;
       pub.lidoTxt=caps.length===1?caps[0].lidoTxt:`${pub.lidos} de ${caps.length}`;
-      // Publicação de um capítulo só aparece direto como arquivo, sem subpasta (pedido do Carlos, 4 Nov 2026)
-      pub.folha=caps.length===1;
       const pasta=pastaDaPublicacao(nome);
       if(pasta&&pasta.modulo===mod){
         let no=pastaNo.get(pasta.id);
@@ -8131,7 +8140,7 @@ function montarMapaEstudo(){
 }
 let mapaContVisiveis=0;
 function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
-  const temFilhos=no.tipo!=='cap'&&!no.folha;
+  const temFilhos=no.tipo!=='cap';
   const aberta=temFilhos&&mapaAbertos.has(k);
   const par=visivel&&(mapaContVisiveis++%2===1);
   const pct=mapaPct(no.ac,no.tot);
@@ -8160,7 +8169,7 @@ function renderCardMapa(){
       const m=no.tipo==='modulo'?no.id:mod;
       const p=no.tipo==='pub'?no.id:pub;
       html+=mapaLinha(no,{k,pai,nivel,visivel,mod:m,pub:p,irmaos:nos.length});
-      if(no.filhos&&!no.folha) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
+      if(no.filhos) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
     });
   };
   desenhar(mapa,'',1,true,'','');
