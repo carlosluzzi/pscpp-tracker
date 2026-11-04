@@ -2227,7 +2227,7 @@ async function carregarAjustesBibliografia(){
     }catch(e2){ linhas=[]; pastas=[]; }
   }
   const aj={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set(),pastas:new Map(),pastaDe:new Map()};
-  pastas.forEach(p=>aj.pastas.set(p.id,{id:p.id,modulo:p.modulo,nome:p.nome,ordem:p.ordem,estudoConjunto:!!p.estudo_conjunto}));
+  pastas.forEach(p=>aj.pastas.set(p.id,{id:p.id,modulo:p.modulo,nome:p.nome,ordem:p.ordem,estudoConjunto:!!p.estudo_conjunto,comoArquivo:!!p.como_arquivo}));
   linhas.forEach(r=>{
     aj.porOriginal.set(r.publicacao_original,r);
     const nomeFinal=r.nome_tracker||r.publicacao_original;
@@ -8157,6 +8157,8 @@ function mapaUltimaLeitura(sess){
   const u=s[s.length-1];
   return u?{lc:u.caracteresLidos,lm:u.duracaoMinutos}:{lc:0,lm:0};
 }
+// Tempo da última leitura no formato h:mm (ex.: 95 min → 1:35)
+function mapaHoraMinuto(min){ const m=Math.round(min); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`; }
 const mapaSomaRitmo=filhos=>({lc:filhos.reduce((t,c)=>t+(c.lc||0),0),lm:filhos.reduce((t,c)=>t+(c.lm||0),0)});
 function mapaCpm(no){ return no.lm>0?Math.round(no.lc/no.lm).toLocaleString('pt-BR'):'—'; }
 function mapaPct(ac,tot){ return tot?Math.round(ac/tot*100):null; }
@@ -8207,6 +8209,9 @@ function montarMapaEstudo(){
       pub.ac=qsPub.filter(isAcerto).length; pub.tot=qsPub.length;
       pub.lidoTxt=caps.length===1?caps[0].lidoTxt:`${pub.lidos} de ${caps.length}`;
       const pasta=pastaDaPublicacao(nome);
+      // Pasta marcada "como arquivo" (pastas_mapa.como_arquivo): publicação de um capítulo só aparece
+      // direto como arquivo, sem a subpasta com "Capítulo Único". Hoje: Manobrabilidade › IMO.
+      if(pasta&&pasta.modulo===mod&&pasta.comoArquivo&&caps.length===1) pub.folha=true;
       if(pasta&&pasta.modulo===mod){
         let no=pastaNo.get(pasta.id);
         if(!no){ no={tipo:'pasta',id:pasta.nome,nome:pasta.nome,filhos:[]}; pastaNo.set(pasta.id,no); filhosMod.push(no); }
@@ -8230,19 +8235,21 @@ function montarMapaEstudo(){
 }
 let mapaContVisiveis=0;
 function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
-  const temFilhos=no.tipo!=='cap';
+  const temFilhos=no.tipo!=='cap'&&!no.folha;
   const aberta=temFilhos&&mapaAbertos.has(k);
   const par=visivel&&(mapaContVisiveis++%2===1);
   const pct=mapaPct(no.ac,no.tot);
   const podeRenomear=(no.tipo==='pasta'||no.tipo==='pub'||no.tipo==='cap')&&!no.unico&&!no.grupoFixo;
   const podeMover=irmaos>1&&!no.unico;
-  const attrs=`data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai)}" data-tipo="${no.tipo}" data-nome="${escapeHtml(no.id)}" data-mod="${escapeHtml(mod||'')}" data-pub="${escapeHtml(pub||'')}"`;
-  const toqueLongo=no.tipo==='cap'?' onpointerdown="pressionarMapa(event,this)" oncontextmenu="return false"':'';
+  const attrs=`data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai)}" data-tipo="${no.tipo}" data-nome="${escapeHtml(no.id)}" data-mod="${escapeHtml(mod||'')}" data-pub="${escapeHtml(pub||'')}" data-cap="${escapeHtml(no.tipo==='cap'?no.id:(no.folha?no.filhos[0].id:''))}"`;
+  // Linha que representa um capítulo: o próprio capítulo, ou a publicação mostrada como arquivo
+  const ehCapitulo=no.tipo==='cap'||!!no.folha;
+  const toqueLongo=ehCapitulo?' onpointerdown="pressionarMapa(event,this)" oncontextmenu="return false"':'';
   return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" ${attrs}${temFilhos?' onclick="alternarMapa(this)"':''}${toqueLongo}>
     <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(no.nome)}</span></div>
-    <div class="mapa-num${no.tipo==='cap'?' mapa-chars-editavel':''}"${no.tipo==='cap'?' onclick="event.stopPropagation();editarTamanhoMapa(this)"':''}>${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
+    <div class="mapa-num${ehCapitulo?' mapa-chars-editavel':''}"${ehCapitulo?' onclick="event.stopPropagation();editarTamanhoMapa(this)"':''}>${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
     <div class="mapa-num mapa-col-extra">${mapaCpm(no)}</div>
-    <div class="mapa-num mapa-col-extra">${no.lm>0?mapaHoras(no.lm):'—'}</div>
+    <div class="mapa-num mapa-col-extra">${no.lm>0?mapaHoraMinuto(no.lm):'—'}</div>
     <div class="mapa-num">${no.lidoTxt}</div>
     <div class="mapa-num mapa-col-extra">${mapaHoras(no.minutos)}</div>
     <div class="mapa-num mapa-col-extra${pct!=null&&pct<65?' mapa-baixo':''}">${pct==null?'—':pct+'%'}</div>
@@ -8262,7 +8269,7 @@ function renderCardMapa(){
       const m=no.tipo==='modulo'?no.id:mod;
       const p=no.tipo==='pub'?no.id:pub;
       html+=mapaLinha(no,{k,pai,nivel,visivel,mod:m,pub:p,irmaos:nos.length});
-      if(no.filhos) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
+      if(no.filhos&&!no.folha) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
     });
   };
   desenhar(mapa,'',1,true,'','');
@@ -8391,14 +8398,14 @@ function pressionarMapa(ev,linha){
   window.addEventListener('pointermove',mexeu);
 }
 function abrirEstudarMapa(linha){
-  const {mod,pub,nome}=linha.dataset;
+  const {mod,pub,tipo}=linha.dataset, nome=linha.dataset.cap||'';
   if(timerRodando||timerAcumuladoSeg>0||desvioPilha){
     mostrarAviso('Já tem um estudo em andamento','Termine ou cancele o estudo atual no timer antes de começar outro.');
     return;
   }
   mapaEstudarAlvo={mod,pub,cap:nome};
   mapaEstudarTipo='Leitura';
-  document.getElementById('mapa-estudar-ref').textContent=`${mod} › ${nomePub(pub)} › ${linha.querySelector('.mapa-t').textContent}`;
+  document.getElementById('mapa-estudar-ref').textContent=`${mod} › ${nomePub(pub)}${tipo==='cap'?' › '+linha.querySelector('.mapa-t').textContent:''}`;
   desenharTiposEstudarMapa();
   document.getElementById('mapa-estudar-modal').style.display='flex';
 }
@@ -8424,10 +8431,10 @@ function confirmarEstudarMapa(){
 function editarTamanhoMapa(celula){
   if(Date.now()-mapaUltimoToqueLongo<800) return;   // o toque longo acabou de abrir o "Estudar isso?"
   const linha=celula.closest('.mapa-linha');
-  const {mod,pub,nome}=linha.dataset;
+  const {mod,pub,tipo}=linha.dataset, nome=linha.dataset.cap||'';
   const atual=tamanhoCapAtual(mod,pub,nome);
-  const nomeCap=linha.querySelector('.mapa-t').textContent;
-  abrirTextoModal({titulo:'Tamanho do capítulo',sub:`${nomePub(pub)} – ${nomeCap}`,valor:atual?String(atual):'',
+  const nomeCap=tipo==='cap'?linha.querySelector('.mapa-t').textContent:'';
+  abrirTextoModal({titulo:'Tamanho do capítulo',sub:nomeCap?`${nomePub(pub)} – ${nomeCap}`:nomePub(pub),valor:atual?String(atual):'',
     placeholder:'Caracteres do resumo',tipo:'number'},async texto=>{
     const n=parseInt(texto,10);
     if(!n||n<1){ mostrarAviso('Número inválido','Informe a quantidade de caracteres do resumo.'); return; }
