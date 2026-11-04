@@ -2142,9 +2142,11 @@ const modulosPscpp=['Manobrabilidade','Arte Naval','Navegação em Águas Restri
 // porque ali ela é a referência da fonte da questão.
 // A SOLAS de Navegação em Águas Restritas fica de fora: é o Capítulo V inteiro, outro assunto.
 const GRUPO_PILOT_TRANSFER='Pilot Transfer Arrangement';
-const PILOT_TRANSFER_MEMBROS=['SOLAS','A.1045(27) – Pilot Transfer Arrangements',
-  'A.1108(29) – Pilot Transfer Arrangements','Circ.1428 – Pilot Transfer Arrangements',
-  'Circ.1495 – Pilot Transfer Arrangements'];
+// 4 Nov 2026: o grupo Pilot Transfer Arrangement (5 publicações juntas, como capítulo único) foi
+// desfeito a pedido do Carlos. Agora "Pilot Transfer Arrangement" é uma PASTA do Mapa de estudo
+// (tabela pastas_mapa) com cada publicação separada dentro, e as questões do Pilotquest batem com
+// a publicação certa. Lista vazia = grupo desligado; o código do grupo fica para não quebrar nada.
+const PILOT_TRANSFER_MEMBROS=[];
 
 // Entrada virtual do grupo, acrescentada à bibliografia depois do carregamento. Assim todo
 // código que faz bibliografia.find(...) para descobrir capítulos encontra o grupo como se fosse
@@ -2159,7 +2161,7 @@ function registrarGrupoPilotTransfer(){
     capitulosValidos:null,
     // No lugar de "Capítulo Único", lista o que o grupo contém — assim fica claro o que se está
     // registrando, sem precisar abrir outra tela para lembrar.
-    faixaCapitulos:'SOLAS · A.1045(27) · A.1108(29) · Circ.1428 · Circ.1495',   // cabe em uma linha a 11px
+    faixaCapitulos:'A.1045(27) · Circ.1428 · Circ.1495 · Solas V/23',   // cabe em uma linha a 11px
     rotuloCapitulo:'Capítulo',
   });
 }
@@ -2198,7 +2200,7 @@ async function carregarAjustesBibliografia(){
     }catch(e2){ linhas=[]; pastas=[]; }
   }
   const aj={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set(),pastas:new Map(),pastaDe:new Map()};
-  pastas.forEach(p=>aj.pastas.set(p.id,{id:p.id,modulo:p.modulo,nome:p.nome,ordem:p.ordem}));
+  pastas.forEach(p=>aj.pastas.set(p.id,{id:p.id,modulo:p.modulo,nome:p.nome,ordem:p.ordem,estudoConjunto:!!p.estudo_conjunto}));
   linhas.forEach(r=>{
     aj.porOriginal.set(r.publicacao_original,r);
     const nomeFinal=r.nome_tracker||r.publicacao_original;
@@ -3171,6 +3173,18 @@ const CARREGADORES={
         if(aj.rotulo_capitulo) b.rotuloCapitulo=aj.rotulo_capitulo;
       });
       bibliografia=bibliografia.filter(b=>!b._ocultaTracker);
+      // PASTA INTEIRA (pastas_mapa.estudo_conjunto): a pasta vira mais uma opção de publicação no
+      // timer e no registro, logo antes das publicações dela, para estudar tudo junto. A sessão é
+      // gravada no nome da pasta; o tamanho é a soma das publicações de dentro (tamanhoCapAtual).
+      ajustesBib.pastas.forEach(p=>{
+        if(!p.estudoConjunto) return;
+        if(!bibliografia.some(b=>b.modulo===p.modulo&&ajustesBib.pastaDe.get(b.nome)===p.id)) return;
+        if(bibliografia.some(b=>b.modulo===p.modulo&&b.nome===p.nome)) return;   // nome já é de uma publicação
+        bibliografia.push({modulo:p.modulo,nome:p.nome,capituloUnico:true,capitulosValidos:[],rotuloCapitulo:'Capítulo',
+          faixaCapitulos:'Pasta inteira',pastaInteiraId:p.id});
+        ajustesBib.pastaDe.set(p.nome,p.id);
+        ajustesBib.ordem.set(p.nome,0.0001);   // primeira da pasta
+      });
     }catch(e){
       bibliografia=[];
     }
@@ -5993,6 +6007,17 @@ function chaveTamanhoCap(modulo,publicacao,capitulo){
   return `${modulo}|||${publicacao}|||${capitulo||''}`;
 }
 function tamanhoCapAtual(modulo,publicacao,capitulo){
+  // Pasta inteira: soma, na hora, dos tamanhos de todas as publicações de dentro — mudou o tamanho
+  // de uma delas, a pasta acompanha.
+  const pasta=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo&&b.pastaInteiraId!=null);
+  if(pasta){
+    const soma=bibliografia.filter(b=>b.modulo===modulo&&b.pastaInteiraId==null&&ajustesBib.pastaDe.get(b.nome)===pasta.pastaInteiraId)
+      .reduce((t,b)=>{
+        const caps=(b.capituloUnico||!(b.capitulosValidos&&b.capitulosValidos.length))?['']:b.capitulosValidos;
+        return t+caps.reduce((u,c)=>{ const x=tamanhoCapitulos[chaveTamanhoCap(modulo,b.nome,c)]; return u+(x?x.caracteresTotais:0); },0);
+      },0);
+    return soma||null;
+  }
   const t=tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,capitulo)];
   return t?t.caracteresTotais:null;
 }
@@ -8060,6 +8085,7 @@ function montarMapaEstudo(){
     const pastaNo=new Map();
     publicacoesParaEstudo(mod).forEach(nome=>{
       const info=bibliografia.find(b=>b.nome===nome&&b.modulo===mod)||{};
+      if(info.pastaInteiraId!=null) return;   // a pasta inteira já é a linha da pasta
       const unico=!!info.capituloUnico||!(info.capitulosValidos&&info.capitulosValidos.length);
       const capsIds=unico?['']:info.capitulosValidos.map(String);
       const sessPub=sessMod.filter(s=>s.publicacao===nome);
@@ -8090,7 +8116,8 @@ function montarMapaEstudo(){
     });
     pastaNo.forEach(no=>{
       juntar(no,no.filhos);
-      no.minutos=no.filhos.reduce((t,c)=>t+c.minutos,0);
+      // + o tempo das sessões da pasta inteira (gravadas no nome da pasta)
+      no.minutos=no.filhos.reduce((t,c)=>t+c.minutos,0)+sessMod.filter(s=>s.publicacao===no.id).reduce((t,s)=>t+(s.duracaoMinutos||0),0);
       no.lidoTxt=no.caps?mapaPct(no.lidos,no.caps)+'%':'—';
     });
     const no={tipo:'modulo',id:mod,nome:mod,filhos:filhosMod,minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0)};
