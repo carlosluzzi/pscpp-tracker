@@ -8107,6 +8107,8 @@ function montarMapaEstudo(){
       // números da publicação contam também o que não caiu em nenhum capítulo da lista
       pub.ac=qsPub.filter(isAcerto).length; pub.tot=qsPub.length;
       pub.lidoTxt=caps.length===1?caps[0].lidoTxt:`${pub.lidos} de ${caps.length}`;
+      // Publicação de um capítulo só aparece direto como arquivo, sem subpasta (pedido do Carlos, 4 Nov 2026)
+      pub.folha=caps.length===1;
       const pasta=pastaDaPublicacao(nome);
       if(pasta&&pasta.modulo===mod){
         let no=pastaNo.get(pasta.id);
@@ -8129,7 +8131,7 @@ function montarMapaEstudo(){
 }
 let mapaContVisiveis=0;
 function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
-  const temFilhos=no.tipo!=='cap';
+  const temFilhos=no.tipo!=='cap'&&!no.folha;
   const aberta=temFilhos&&mapaAbertos.has(k);
   const par=visivel&&(mapaContVisiveis++%2===1);
   const pct=mapaPct(no.ac,no.tot);
@@ -8158,7 +8160,7 @@ function renderCardMapa(){
       const m=no.tipo==='modulo'?no.id:mod;
       const p=no.tipo==='pub'?no.id:pub;
       html+=mapaLinha(no,{k,pai,nivel,visivel,mod:m,pub:p,irmaos:nos.length});
-      if(no.filhos) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
+      if(no.filhos&&!no.folha) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
     });
   };
   desenhar(mapa,'',1,true,'','');
