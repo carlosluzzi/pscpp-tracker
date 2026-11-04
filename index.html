@@ -1149,8 +1149,8 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 /* MAPA DE ESTUDO (Início) — lista no estilo da visualização em lista do Finder: setinha, pasta,
    linhas alternadas e números em cinza. Módulo > matéria > capítulo. */
 .mapa-lista{margin:0 -13px -13px;border-top:0.5px solid #eee}
-/* Colunas de números todas com a mesma largura (pedido do Carlos, 5 Nov 2026) */
-.mapa-cab,.mapa-linha{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,96px);align-items:center}
+/* Caracteres mais larga (números grandes); CPM, Tempo, Lido, Horas e Acertos iguais e mais estreitas (5 Nov 2026) */
+.mapa-cab,.mapa-linha{display:grid;grid-template-columns:minmax(0,1fr) 96px repeat(5,72px);align-items:center}
 .mapa-cab{font-size:var(--fs-b);color:#888;font-weight:500;border-bottom:0.5px solid #eee;height:30px}
 .mapa-cab>div{padding:0 10px;height:100%;display:flex;align-items:center;justify-content:flex-end;border-left:0.5px solid #eee}
 .mapa-cab>div:first-child{justify-content:flex-start;border-left:none;padding-left:43px}
@@ -1185,7 +1185,7 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .mapa-sem-acao{visibility:hidden}
 .mapa-linha.mapa-arrastando{background:#E6F1FB!important;box-shadow:0 2px 10px rgba(0,0,0,.12);position:relative;z-index:2}
 @media(max-width:767px){
-  .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) repeat(2,84px)}
+  .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) 84px 72px}
   .mapa-linha>div,.mapa-cab>div{padding:0 6px}
   .mapa-cab>div:first-child{padding-left:35px}
   .mapa-linha>.mapa-n1{padding-left:6px}.mapa-linha>.mapa-n2{padding-left:18px}.mapa-linha>.mapa-n3{padding-left:30px}.mapa-linha>.mapa-n4{padding-left:42px}
@@ -8148,10 +8148,16 @@ function mapaHoras(min){
 }
 // CPM (caracteres por minuto): só das sessões marcadas como capítulo inteiro (caracteresLidos>0),
 // somando caracteres e minutos dessas sessões — a mesma régua do ritmo de leitura do timer.
-function mapaRitmo(sess){
-  const s=sess.filter(x=>x.caracteresLidos>0&&x.duracaoMinutos>0);
-  return {lc:s.reduce((t,x)=>t+x.caracteresLidos,0),lm:s.reduce((t,x)=>t+x.duracaoMinutos,0)};
+// CPM e TEMPO são da ÚLTIMA leitura completa de cada capítulo (sessão marcada como capítulo inteiro).
+// Na publicação, pasta e módulo: soma dos tempos dessas últimas leituras e o CPM que sai dessa soma —
+// quando todos os capítulos tiverem uma leitura completa, o Tempo da publicação = quanto demora o livro.
+function mapaUltimaLeitura(sess){
+  const s=sess.filter(x=>x.caracteresLidos>0&&x.duracaoMinutos>0)
+    .sort((a,b)=>String(a.data||'').localeCompare(String(b.data||''))||String(a.finalizadoEm||a.criadoEm||'').localeCompare(String(b.finalizadoEm||b.criadoEm||'')));
+  const u=s[s.length-1];
+  return u?{lc:u.caracteresLidos,lm:u.duracaoMinutos}:{lc:0,lm:0};
 }
+const mapaSomaRitmo=filhos=>({lc:filhos.reduce((t,c)=>t+(c.lc||0),0),lm:filhos.reduce((t,c)=>t+(c.lm||0),0)});
 function mapaCpm(no){ return no.lm>0?Math.round(no.lc/no.lm).toLocaleString('pt-BR'):'—'; }
 function mapaPct(ac,tot){ return tot?Math.round(ac/tot*100):null; }
 function mapaCapituloBate(capRegistro,cap,unico){
@@ -8191,11 +8197,11 @@ function montarMapaEstudo(){
         return {tipo:'cap',id:cap,unico,nome:unico?rotuloCapituloUnico(info):formatarCapituloExibicao(info,cap),
           chars:tamanhoCapAtual(mod,nome,cap)||0,caps:1,lidos:lido?1:0,
           lidoTxt:lido?'Lido':'—',   // só é lido quando foi lido inteiro; não existe meio-termo (5 Nov 2026)
-          minutos:sCap.reduce((t,s)=>t+(s.duracaoMinutos||0),0),...mapaRitmo(sCap),
+          minutos:sCap.reduce((t,s)=>t+(s.duracaoMinutos||0),0),...mapaUltimaLeitura(sCap),
           ac:qCap.filter(isAcerto).length,tot:qCap.length};
       });
       const pub={tipo:'pub',id:nome,nome:nomePub(nome),filhos:caps,
-        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),...mapaRitmo(sessPub),grupoFixo:PILOT_TRANSFER_MEMBROS.length>0&&nome===GRUPO_PILOT_TRANSFER};
+        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),...mapaSomaRitmo(caps),grupoFixo:PILOT_TRANSFER_MEMBROS.length>0&&nome===GRUPO_PILOT_TRANSFER};
       juntar(pub,caps);
       // números da publicação contam também o que não caiu em nenhum capítulo da lista
       pub.ac=qsPub.filter(isAcerto).length; pub.tot=qsPub.length;
@@ -8211,11 +8217,11 @@ function montarMapaEstudo(){
       juntar(no,no.filhos);
       // + o tempo das sessões da pasta inteira (gravadas no nome da pasta)
       no.minutos=no.filhos.reduce((t,c)=>t+c.minutos,0)+sessMod.filter(s=>s.publicacao===no.id).reduce((t,s)=>t+(s.duracaoMinutos||0),0);
-      const rPasta=mapaRitmo(sessMod.filter(s=>s.publicacao===no.id));
-      no.lc=no.filhos.reduce((t,c)=>t+c.lc,0)+rPasta.lc; no.lm=no.filhos.reduce((t,c)=>t+c.lm,0)+rPasta.lm;
+      Object.assign(no,mapaSomaRitmo(no.filhos));
       no.lidoTxt=no.caps?mapaPct(no.lidos,no.caps)+'%':'—';
     });
-    const no={tipo:'modulo',id:mod,nome:mod,filhos:filhosMod,minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0),...mapaRitmo(sessMod)};
+    const no={tipo:'modulo',id:mod,nome:mod,filhos:filhosMod,minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0)};
+    Object.assign(no,mapaSomaRitmo(filhosMod));
     juntar(no,filhosMod);
     no.ac=qsMod.filter(isAcerto).length; no.tot=qsMod.length;
     no.lidoTxt=no.caps?mapaPct(no.lidos,no.caps)+'%':'—';
@@ -8236,6 +8242,7 @@ function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
     <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(no.nome)}</span></div>
     <div class="mapa-num${no.tipo==='cap'?' mapa-chars-editavel':''}"${no.tipo==='cap'?' onclick="event.stopPropagation();editarTamanhoMapa(this)"':''}>${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
     <div class="mapa-num mapa-col-extra">${mapaCpm(no)}</div>
+    <div class="mapa-num mapa-col-extra">${no.lm>0?mapaHoras(no.lm):'—'}</div>
     <div class="mapa-num">${no.lidoTxt}</div>
     <div class="mapa-num mapa-col-extra">${mapaHoras(no.minutos)}</div>
     <div class="mapa-num mapa-col-extra${pct!=null&&pct<65?' mapa-baixo':''}">${pct==null?'—':pct+'%'}</div>
@@ -8263,7 +8270,7 @@ function renderCardMapa(){
   return `<div class="card-inicio" id="mapa-card">
     ${sectionTitle('Mapa de estudo','livro','#E6F1FB','#202A45',{direita:botao})}
     <div class="mapa-lista${mapaEditando?' mapa-editando':''}" id="mapa-lista">
-      <div class="mapa-cab"><div>Nome</div><div>Caracteres</div><div class="mapa-col-extra">CPM</div><div>Lido</div><div class="mapa-col-extra">Horas</div><div class="mapa-col-extra">Acertos</div></div>
+      <div class="mapa-cab"><div>Nome</div><div>Caracteres</div><div class="mapa-col-extra">CPM</div><div class="mapa-col-extra">Tempo</div><div>Lido</div><div class="mapa-col-extra">Horas</div><div class="mapa-col-extra">Acertos</div></div>
       ${html}
     </div>
   </div>`;
