@@ -1158,16 +1158,28 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .mapa-num.mapa-baixo{color:#A32D2D}
 .mapa-nome{display:flex;align-items:center;gap:7px;min-width:0;font-size:var(--fs-d);color:#111}
 .mapa-nome .mapa-t{overflow:hidden;text-overflow:ellipsis}
-.mapa-linha>.mapa-n1{padding-left:10px}.mapa-linha>.mapa-n2{padding-left:32px}.mapa-linha>.mapa-n3{padding-left:54px}
+.mapa-linha>.mapa-n1{padding-left:10px}.mapa-linha>.mapa-n2{padding-left:32px}.mapa-linha>.mapa-n3{padding-left:54px}.mapa-linha>.mapa-n4{padding-left:76px}
 .mapa-seta{width:16px;flex-shrink:0;color:#aaa;font-size:11px;text-align:center;transition:transform .15s}
 .mapa-linha.mapa-aberta .mapa-seta{transform:rotate(90deg)}
 .mapa-clicavel{cursor:pointer}
 .mapa-ico{width:20px;height:16px;flex-shrink:0}
+/* Modo Editar: some os números, aparecem o lápis (renomear) e o pegador (arrastar). */
+.mapa-btn-editar{background:#E6F1FB;color:#202A45;border:none;border-radius:8px;padding:5px 14px;font-size:var(--fs-c);
+  font-weight:600;font-family:inherit;cursor:pointer}
+.mapa-editando .mapa-cab,.mapa-editando .mapa-linha{grid-template-columns:minmax(0,1fr) 44px 48px}
+.mapa-editando .mapa-cab>div:not(:first-child){display:none}
+.mapa-editando .mapa-linha>.mapa-num{display:none}
+.mapa-acao{display:none;align-items:center;justify-content:center;height:40px;color:#999;cursor:pointer;padding:0!important}
+.mapa-editando .mapa-acao{display:flex}
+.mapa-acao svg{width:18px;height:18px}
+.mapa-pegador{touch-action:none;cursor:grab}
+.mapa-sem-acao{visibility:hidden}
+.mapa-linha.mapa-arrastando{background:#E6F1FB!important;box-shadow:0 2px 10px rgba(0,0,0,.12);position:relative;z-index:2}
 @media(max-width:767px){
   .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) 84px 82px}
   .mapa-linha>div,.mapa-cab>div{padding:0 6px}
   .mapa-cab>div:first-child{padding-left:35px}
-  .mapa-linha>.mapa-n1{padding-left:6px}.mapa-linha>.mapa-n2{padding-left:18px}.mapa-linha>.mapa-n3{padding-left:30px}
+  .mapa-linha>.mapa-n1{padding-left:6px}.mapa-linha>.mapa-n2{padding-left:18px}.mapa-linha>.mapa-n3{padding-left:30px}.mapa-linha>.mapa-n4{padding-left:42px}
   .mapa-nome{gap:5px}
   .mapa-cab>.mapa-col-extra,.mapa-linha>.mapa-col-extra{display:none}
 }
@@ -2157,36 +2169,45 @@ function registrarGrupoPilotTransfer(){
 // escondidos, capítulos trocados/divididos, grupos como Publicações da Marinha). Desde 3 Nov 2026
 // vivem na tabela ajustes_bibliografia do banco do Tracker — antes ficavam escritos aqui no
 // código e cada mudança exigia trocar o HTML. Preenchido por carregarAjustesBibliografia().
-let ajustesBib={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set()};
+let ajustesBib={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set(),pastas:new Map(),pastaDe:new Map()};
 // ordem na tabela: positivo = no topo, nessa ordem; vazio = alfabético no meio; negativo = no
-// fim (-1 é o último).
+// fim (-1 é o último). Pastas (tabela pastas_mapa) dividem a mesma régua com as publicações
+// soltas do módulo; dentro da pasta, as publicações seguem a ordem delas. As listas do timer
+// saem nessa mesma sequência do Mapa de estudo (pasta por pasta).
+function chaveOrdemMapa(ordem,nome){ const f=ordem==null?1:(ordem>0?0:2); return [f,f===1?0:ordem,nome]; }
+function compararChaveMapa(a,b){ return (a[0]-b[0])||(a[1]-b[1])||a[2].localeCompare(b[2],'pt'); }
+function pastaDaPublicacao(nome){ const id=ajustesBib.pastaDe.get(nome); return id!=null?ajustesBib.pastas.get(id)||null:null; }
 function ordenarPublicacoes(lista){
-  const faixa=n=>{ const o=ajustesBib.ordem.get(n); return o==null?1:(o>0?0:2); };
-  return lista.sort((a,b)=>{
-    const fa=faixa(a), fb=faixa(b);
-    if(fa!==fb) return fa-fb;
-    if(fa!==1) return ajustesBib.ordem.get(a)-ajustesBib.ordem.get(b);
-    return a.localeCompare(b,'pt');
-  });
+  const topo=n=>{ const p=pastaDaPublicacao(n); return p?chaveOrdemMapa(p.ordem,p.nome):chaveOrdemMapa(ajustesBib.ordem.get(n),n); };
+  return lista.sort((a,b)=>compararChaveMapa(topo(a),topo(b))
+    ||compararChaveMapa(chaveOrdemMapa(ajustesBib.ordem.get(a),a),chaveOrdemMapa(ajustesBib.ordem.get(b),b)));
 }
 async function carregarAjustesBibliografia(){
-  let linhas;
+  let linhas, pastas;
   try{
-    const {data,error}=await sbDados.from('ajustes_bibliografia').select('*');
-    if(error) throw error;
-    linhas=data||[];
-    try{ localStorage.setItem('pscpp_ajustes_bib',JSON.stringify(linhas)); }catch(e){}
+    const [r1,r2]=await Promise.all([sbDados.from('ajustes_bibliografia').select('*'),sbDados.from('pastas_mapa').select('*')]);
+    if(r1.error) throw r1.error;
+    if(r2.error) throw r2.error;
+    linhas=r1.data||[]; pastas=r2.data||[];
+    try{ localStorage.setItem('pscpp_ajustes_bib',JSON.stringify({linhas,pastas})); }catch(e){}
   }catch(e){
     // Sem conexão: usa a última versão que deu certo, pra lista não voltar a ser a do Pilotquest.
-    try{ linhas=JSON.parse(localStorage.getItem('pscpp_ajustes_bib')||'[]'); }catch(e2){ linhas=[]; }
+    try{
+      const salvo=JSON.parse(localStorage.getItem('pscpp_ajustes_bib')||'{}');
+      linhas=Array.isArray(salvo)?salvo:(salvo.linhas||[]); pastas=Array.isArray(salvo)?[]:(salvo.pastas||[]);
+    }catch(e2){ linhas=[]; pastas=[]; }
   }
-  const aj={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set()};
+  const aj={porOriginal:new Map(),porNome:new Map(),ordem:new Map(),capitulosNomeados:new Set(),pastas:new Map(),pastaDe:new Map()};
+  pastas.forEach(p=>aj.pastas.set(p.id,{id:p.id,modulo:p.modulo,nome:p.nome,ordem:p.ordem}));
   linhas.forEach(r=>{
     aj.porOriginal.set(r.publicacao_original,r);
     const nomeFinal=r.nome_tracker||r.publicacao_original;
     if(r.agrupar_em){ aj.capitulosNomeados.add(nomeFinal); return; }
     aj.porNome.set(nomeFinal,r);
     if(r.ordem!=null) aj.ordem.set(nomeFinal,r.ordem);
+    if(r.pasta_id!=null) aj.pastaDe.set(nomeFinal,r.pasta_id);
+    // capítulo renomeado no Mapa aparece exatamente como foi escrito, sem "Capítulo" na frente
+    if(r.capitulos_renomeados) Object.values(r.capitulos_renomeados).forEach(v=>aj.capitulosNomeados.add(v));
   });
   ajustesBib=aj;
 }
@@ -3039,6 +3060,10 @@ const CARREGADORES={
   app_config: async()=>{
     const {data:appConfigRes,error}=await sbDados.from('app_config').select('*'); lancarSe(error);
     saudacaoSubtexto=(appConfigRes.find(c=>c.chave==='saudacao_subtexto')||{}).valor||'Bora estudar';
+    try{
+      const om=JSON.parse((appConfigRes.find(c=>c.chave==='mapa_ordem_modulos')||{}).valor||'null');
+      if(Array.isArray(om)) ordemModulosMapa=om;
+    }catch(e){}
   },
   anotacoes_alternativas: async()=>{
     const {data:anotacoesRes,error}=await buscarTudo('anotacoes_alternativas','*'); lancarSe(error);
@@ -8000,27 +8025,40 @@ function renderInicio(){
 let mapaAbertos=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem('pscpp_mapa_abertos')||'[]')); }catch(e){ return new Set(); } })();
 const MAPA_PASTA='<svg class="mapa-ico" viewBox="0 0 20 16"><path d="M1.5 3.2c0-.9.7-1.7 1.7-1.7h4.2c.5 0 .9.2 1.2.5l1.1 1.2h7.1c.9 0 1.7.7 1.7 1.7v8.4c0 .9-.7 1.7-1.7 1.7H3.2c-.9 0-1.7-.7-1.7-1.7z" fill="#6CB4EE"/><path d="M1.5 5.6h17v7.9c0 .9-.7 1.7-1.7 1.7H3.2c-.9 0-1.7-.7-1.7-1.7z" fill="#8CCBF6"/></svg>';
 const MAPA_DOC='<svg class="mapa-ico" viewBox="0 0 20 16"><path d="M5.5 1h6.2L15 4.3v9.9c0 .5-.4.8-.8.8H5.5c-.5 0-.8-.4-.8-.8V1.8c0-.5.4-.8.8-.8z" fill="#fff" stroke="#c7c7cc" stroke-width=".8"/><path d="M11.7 1v3.3H15" fill="none" stroke="#c7c7cc" stroke-width=".8"/></svg>';
+const MAPA_LAPIS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const MAPA_PEGADOR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>';
+// Ordem dos módulos no Mapa (app_config "mapa_ordem_modulos"); começa em ordem alfabética.
+let ordemModulosMapa=[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt'));
+let mapaEditando=false;
 
 function mapaHoras(min){
   if(!min) return '—';
   const h=min/60;
   return (h<10?h.toFixed(1).replace('.',','):Math.round(h).toLocaleString('pt-BR'))+' h';
 }
-function mapaAcertos(qs){
-  if(!qs.length) return {txt:'—',baixo:false};
-  const pct=Math.round(qs.filter(isAcerto).length/qs.length*100);
-  return {txt:pct+'%',baixo:pct<65};
-}
+function mapaPct(ac,tot){ return tot?Math.round(ac/tot*100):null; }
 function mapaCapituloBate(capRegistro,cap,unico){
   const c=String(capRegistro||'');
   return unico?(c===''||c==='Único'):c===String(cap);
 }
+// Árvore: módulo > (pasta >) publicação > capítulo. Cada nó guarda os números somados.
 function montarMapaEstudo(){
   const sess=(sessoesEstudo||[]).filter(s=>!s.ehDesvio&&s.modulo);
   const qs=questoes||[];
-  return modulosPscpp.map(mod=>{
+  const modulos=[...ordemModulosMapa.filter(m=>modulosPscpp.includes(m)),...modulosPscpp.filter(m=>!ordemModulosMapa.includes(m))];
+  const juntar=(no,filhos)=>{
+    no.chars=filhos.reduce((t,c)=>t+c.chars,0);
+    no.caps=filhos.reduce((t,c)=>t+c.caps,0);
+    no.lidos=filhos.reduce((t,c)=>t+c.lidos,0);
+    no.ac=filhos.reduce((t,c)=>t+c.ac,0);
+    no.tot=filhos.reduce((t,c)=>t+c.tot,0);
+  };
+  return modulos.map(mod=>{
     const sessMod=sess.filter(s=>s.modulo===mod);
-    const pubs=publicacoesParaEstudo(mod).map(nome=>{
+    const qsMod=qs.filter(q=>q.modulo===mod);
+    const filhosMod=[];
+    const pastaNo=new Map();
+    publicacoesParaEstudo(mod).forEach(nome=>{
       const info=bibliografia.find(b=>b.nome===nome&&b.modulo===mod)||{};
       const unico=!!info.capituloUnico||!(info.capitulosValidos&&info.capitulosValidos.length);
       const capsIds=unico?['']:info.capitulosValidos.map(String);
@@ -8029,74 +8067,88 @@ function montarMapaEstudo(){
       const caps=capsIds.map(cap=>{
         const sCap=sessPub.filter(s=>mapaCapituloBate(s.capitulo,cap,unico));
         const leituras=sCap.filter(s=>s.tipo==='Leitura');
-        const lido=leituras.some(s=>s.caracteresLidos>0)?'Lido':(leituras.length?'Começado':'—');
-        const chars=tamanhoCapAtual(mod,nome,cap)||0;
-        return {
-          nome:unico?rotuloCapituloUnico(info):formatarCapituloExibicao(info,cap),
-          paginas:chars, lido,
+        const lido=leituras.some(s=>s.caracteresLidos>0);
+        const qCap=qsPub.filter(q=>mapaCapituloBate(q.capitulo,cap,unico));
+        return {tipo:'cap',id:cap,unico,nome:unico?rotuloCapituloUnico(info):formatarCapituloExibicao(info,cap),
+          chars:tamanhoCapAtual(mod,nome,cap)||0,caps:1,lidos:lido?1:0,
+          lidoTxt:lido?'Lido':(leituras.length?'Começado':'—'),
           minutos:sCap.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
-          acertos:mapaAcertos(qsPub.filter(q=>mapaCapituloBate(q.capitulo,cap,unico))),
-        };
+          ac:qCap.filter(isAcerto).length,tot:qCap.length};
       });
-      const lidos=caps.filter(c=>c.lido==='Lido').length;
-      return {
-        nome, caps, lidos,
-        paginas:caps.reduce((t,c)=>t+c.paginas,0),
-        lidoTxt:caps.length===1?caps[0].lido:`${lidos} de ${caps.length}`,
-        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
-        acertos:mapaAcertos(qsPub),
-      };
+      const pub={tipo:'pub',id:nome,nome:nomePub(nome),filhos:caps,
+        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),grupoFixo:nome===GRUPO_PILOT_TRANSFER};
+      juntar(pub,caps);
+      // números da publicação contam também o que não caiu em nenhum capítulo da lista
+      pub.ac=qsPub.filter(isAcerto).length; pub.tot=qsPub.length;
+      pub.lidoTxt=caps.length===1?caps[0].lidoTxt:`${pub.lidos} de ${caps.length}`;
+      const pasta=pastaDaPublicacao(nome);
+      if(pasta&&pasta.modulo===mod){
+        let no=pastaNo.get(pasta.id);
+        if(!no){ no={tipo:'pasta',id:pasta.nome,nome:pasta.nome,filhos:[]}; pastaNo.set(pasta.id,no); filhosMod.push(no); }
+        no.filhos.push(pub);
+      }else filhosMod.push(pub);
     });
-    const totalCaps=pubs.reduce((t,p)=>t+p.caps.length,0);
-    const lidosCaps=pubs.reduce((t,p)=>t+p.lidos,0);
-    return {
-      nome:mod, pubs,
-      paginas:pubs.reduce((t,p)=>t+p.paginas,0),
-      lidoTxt:totalCaps?Math.round(lidosCaps/totalCaps*100)+'%':'—',
-      minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
-      acertos:mapaAcertos(qs.filter(q=>q.modulo===mod)),
-    };
+    pastaNo.forEach(no=>{
+      juntar(no,no.filhos);
+      no.minutos=no.filhos.reduce((t,c)=>t+c.minutos,0);
+      no.lidoTxt=no.caps?mapaPct(no.lidos,no.caps)+'%':'—';
+    });
+    const no={tipo:'modulo',id:mod,nome:mod,filhos:filhosMod,minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0)};
+    juntar(no,filhosMod);
+    no.ac=qsMod.filter(isAcerto).length; no.tot=qsMod.length;
+    no.lidoTxt=no.caps?mapaPct(no.lidos,no.caps)+'%':'—';
+    return no;
   });
 }
 let mapaContVisiveis=0;
-function mapaLinha({k,pai,nivel,nome,temFilhos,paginas,lido,minutos,acertos,visivel}){
-  const par=visivel&&(mapaContVisiveis++%2===1);
+function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
+  const temFilhos=no.tipo!=='cap';
   const aberta=temFilhos&&mapaAbertos.has(k);
-  return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai||'')}"${temFilhos?' onclick="alternarMapa(this)"':''}>
-    <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(nome)}</span></div>
-    <div class="mapa-num">${paginas?paginas.toLocaleString('pt-BR'):'—'}</div>
-    <div class="mapa-num">${lido}</div>
-    <div class="mapa-num mapa-col-extra">${mapaHoras(minutos)}</div>
-    <div class="mapa-num mapa-col-extra${acertos.baixo?' mapa-baixo':''}">${acertos.txt}</div>
+  const par=visivel&&(mapaContVisiveis++%2===1);
+  const pct=mapaPct(no.ac,no.tot);
+  const podeRenomear=(no.tipo==='pasta'||no.tipo==='pub'||no.tipo==='cap')&&!no.unico&&!no.grupoFixo;
+  const podeMover=irmaos>1&&!no.unico;
+  const attrs=`data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai)}" data-tipo="${no.tipo}" data-nome="${escapeHtml(no.id)}" data-mod="${escapeHtml(mod||'')}" data-pub="${escapeHtml(pub||'')}"`;
+  return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" ${attrs}${temFilhos?' onclick="alternarMapa(this)"':''}>
+    <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(no.nome)}</span></div>
+    <div class="mapa-num">${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
+    <div class="mapa-num">${no.lidoTxt}</div>
+    <div class="mapa-num mapa-col-extra">${mapaHoras(no.minutos)}</div>
+    <div class="mapa-num mapa-col-extra${pct!=null&&pct<65?' mapa-baixo':''}">${pct==null?'—':pct+'%'}</div>
+    <div class="mapa-acao${podeRenomear?'':' mapa-sem-acao'}" onclick="event.stopPropagation();renomearNoMapa(this)">${MAPA_LAPIS}</div>
+    <div class="mapa-acao mapa-pegador${podeMover?'':' mapa-sem-acao'}" onclick="event.stopPropagation()" onpointerdown="iniciarArrastoMapa(event,this)">${MAPA_PEGADOR}</div>
   </div>`;
 }
 function renderCardMapa(){
+  if(!bibliografia.length) return '';
   let mapa;
   try{ mapa=montarMapaEstudo(); }catch(e){ console.error('Mapa de estudo:',e); return ''; }
-  if(!bibliografia.length) return '';
   mapaContVisiveis=0;
   let html='';
-  mapa.forEach(m=>{
-    const km=m.nome;
-    html+=mapaLinha({k:km,pai:'',nivel:1,nome:m.nome,temFilhos:true,paginas:m.paginas,lido:m.lidoTxt,minutos:m.minutos,acertos:m.acertos,visivel:true});
-    m.pubs.forEach(p=>{
-      const kp=km+'|'+p.nome;
-      html+=mapaLinha({k:kp,pai:km,nivel:2,nome:nomePub(p.nome),temFilhos:true,paginas:p.paginas,lido:p.lidoTxt,minutos:p.minutos,acertos:p.acertos,
-        visivel:mapaAbertos.has(km)});
-      p.caps.forEach((c,i)=>{
-        html+=mapaLinha({k:kp+'|'+i,pai:kp,nivel:3,nome:c.nome,temFilhos:false,paginas:c.paginas,lido:c.lido,minutos:c.minutos,acertos:c.acertos,
-          visivel:mapaAbertos.has(km)&&mapaAbertos.has(kp)});
-      });
+  const desenhar=(nos,pai,nivel,visivel,mod,pub)=>{
+    nos.forEach(no=>{
+      const k=pai?pai+'|'+no.id:no.id;
+      const m=no.tipo==='modulo'?no.id:mod;
+      const p=no.tipo==='pub'?no.id:pub;
+      html+=mapaLinha(no,{k,pai,nivel,visivel,mod:m,pub:p,irmaos:nos.length});
+      if(no.filhos) desenhar(no.filhos,k,nivel+1,visivel&&mapaAbertos.has(k),m,p);
     });
-  });
-  return `<div class="card-inicio">
-    ${sectionTitle('Mapa de estudo','livro','#E6F1FB','#202A45')}
-    <div class="mapa-lista" id="mapa-lista">
+  };
+  desenhar(mapa,'',1,true,'','');
+  const botao=`<button class="mapa-btn-editar" onclick="alternarEdicaoMapa()">${mapaEditando?'OK':'Editar'}</button>`;
+  return `<div class="card-inicio" id="mapa-card">
+    ${sectionTitle('Mapa de estudo','livro','#E6F1FB','#202A45',{direita:botao})}
+    <div class="mapa-lista${mapaEditando?' mapa-editando':''}" id="mapa-lista">
       <div class="mapa-cab"><div>Nome</div><div>Caracteres</div><div>Lido</div><div class="mapa-col-extra">Horas</div><div class="mapa-col-extra">Acertos</div></div>
       ${html}
     </div>
   </div>`;
 }
+function redesenharMapa(){
+  const el=document.getElementById('mapa-card');
+  if(el) el.outerHTML=renderCardMapa();
+}
+function alternarEdicaoMapa(){ mapaEditando=!mapaEditando; redesenharMapa(); }
 // Abre/fecha sem redesenhar a tela (rápido no iPad) e lembra o que estava aberto.
 function alternarMapa(linha){
   const k=linha.dataset.k;
@@ -8121,6 +8173,116 @@ function listrarMapa(lista){
     if(l.classList.contains('mapa-oculta')) return;
     l.classList.toggle('mapa-par',i++%2===1);
   });
+}
+
+// ARRASTAR: segura o pegador e arrasta entre os irmãos (mesmo nível, mesmo pai). Durante o
+// arrasto, o que estiver aberto dentro dos irmãos fica escondido para a lista ficar contínua; ao
+// soltar, a nova ordem vai para o banco e o mapa é redesenhado com tudo aberto como estava.
+function iniciarArrastoMapa(ev,pegador){
+  if(pegador.classList.contains('mapa-sem-acao')) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const linha=pegador.closest('.mapa-linha'), lista=linha.closest('.mapa-lista'), pai=linha.dataset.pai;
+  const todas=[...lista.querySelectorAll('.mapa-linha')];
+  const irmaos=todas.filter(l=>l.dataset.pai===pai);
+  const prefixos=irmaos.map(l=>l.dataset.k+'|');
+  todas.filter(l=>prefixos.some(p=>l.dataset.k.startsWith(p))).forEach(l=>l.classList.add('mapa-oculta'));
+  listrarMapa(lista);
+  linha.classList.add('mapa-arrastando');
+  // Os eventos ficam na janela, não no pegador: a linha muda de lugar na página durante o arrasto,
+  // e o navegador perde a "captura" de um elemento que sai e volta do lugar.
+  const mover=e=>{
+    const y=e.clientY;
+    const outros=irmaos.filter(l=>l!==linha).sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top);
+    const antes=outros.find(l=>{ const r=l.getBoundingClientRect(); return y<r.top+r.height/2; });
+    if(antes){ if(linha.nextElementSibling!==antes) antes.before(linha); }
+    else{ const ult=outros[outros.length-1]; if(ult&&ult.nextElementSibling!==linha) ult.after(linha); }
+  };
+  const soltar=()=>{
+    window.removeEventListener('pointermove',mover);
+    window.removeEventListener('pointerup',soltar);
+    window.removeEventListener('pointercancel',soltar);
+    linha.classList.remove('mapa-arrastando');
+    const nova=[...lista.querySelectorAll('.mapa-linha')].filter(l=>l.dataset.pai===pai);
+    salvarOrdemMapa(nova);
+  };
+  window.addEventListener('pointermove',mover);
+  window.addEventListener('pointerup',soltar);
+  window.addEventListener('pointercancel',soltar);
+}
+async function salvarOrdemMapa(linhas){
+  const tipo=linhas[0].dataset.tipo, mod=linhas[0].dataset.mod;
+  let chamada;
+  if(tipo==='modulo'){
+    ordemModulosMapa=linhas.map(l=>l.dataset.nome);
+    chamada=sbDados.rpc('tracker_ordenar_modulos',{p_modulos:ordemModulosMapa});
+  }else if(tipo==='cap'){
+    const pub=linhas[0].dataset.pub;
+    const caps=linhas.map(l=>l.dataset.nome);
+    const info=bibliografia.find(b=>b.nome===pub&&b.modulo===mod);
+    if(info) info.capitulosValidos=[...caps];
+    chamada=sbDados.rpc('tracker_salvar_capitulos',{p_publicacao:pub,p_capitulos:caps});
+  }else{
+    const itens=linhas.map(l=>({tipo:l.dataset.tipo==='pasta'?'pasta':'pub',nome:l.dataset.nome}));
+    itens.forEach((it,i)=>{
+      if(it.tipo==='pasta'){ ajustesBib.pastas.forEach(p=>{ if(p.modulo===mod&&p.nome===it.nome) p.ordem=i+1; }); }
+      else ajustesBib.ordem.set(it.nome,i+1);
+    });
+    chamada=sbDados.rpc('tracker_ordenar_itens',{p_modulo:mod,p_itens:itens});
+  }
+  redesenharMapa();
+  try{
+    const {error}=await chamada;
+    if(error) throw error;
+  }catch(e){
+    console.error('Mapa: ordem não salva',e);
+    mostrarAviso('Ordem não salva','Não deu para gravar a nova ordem agora. Tente de novo com conexão.');
+    await loadData(['app_config','bibliografia']);
+  }
+}
+
+// RENOMEAR: pasta, publicação ou capítulo. Publicação e capítulo levam junto todos os registros
+// antigos (sessões, tamanhos, questões...) — quem faz isso é a função do banco.
+function renomearNoMapa(botao){
+  if(botao.classList.contains('mapa-sem-acao')) return;
+  const linha=botao.closest('.mapa-linha');
+  const {tipo,nome,mod,pub}=linha.dataset;
+  const titulos={pasta:'Renomear pasta',pub:'Renomear publicação',cap:'Renomear capítulo'};
+  const atualTela=tipo==='cap'?linha.querySelector('.mapa-t').textContent:nome;
+  abrirTextoModal({titulo:titulos[tipo],sub:atualTela,valor:atualTela,placeholder:'Nome novo'},texto=>{
+    const novo=(texto||'').trim();
+    if(!novo||novo===atualTela) return;
+    salvarNomeMapa(tipo,{nome,mod,pub,novo});
+  });
+}
+async function salvarNomeMapa(tipo,{nome,mod,pub,novo}){
+  try{
+    if(tipo==='pasta'){
+      if([...ajustesBib.pastas.values()].some(p=>p.modulo===mod&&p.nome===novo)){ mostrarAviso('Nome repetido','Já existe uma pasta com esse nome neste módulo.'); return; }
+      const {error}=await sbDados.rpc('tracker_renomear_pasta',{p_modulo:mod,p_atual:nome,p_novo:novo});
+      if(error) throw error;
+      ajustesBib.pastas.forEach(p=>{ if(p.modulo===mod&&p.nome===nome) p.nome=novo; });
+      redesenharMapa();
+      return;
+    }
+    if(tipo==='pub'){
+      if(bibliografia.some(b=>b.nome===novo)){ mostrarAviso('Nome repetido','Já existe uma publicação com esse nome.'); return; }
+      const {error}=await sbDados.rpc('tracker_renomear_publicacao',{p_atual:nome,p_novo:novo});
+      if(error) throw error;
+      [...mapaAbertos].forEach(k=>{ const partes=k.split('|'); const i=partes.indexOf(nome); if(i>0){ partes[i]=novo; mapaAbertos.add(partes.join('|')); } });
+    }else{
+      const info=bibliografia.find(b=>b.nome===pub&&b.modulo===mod);
+      if(!info) return;
+      const caps=info.capitulosValidos.map(String);
+      if(caps.includes(novo)){ mostrarAviso('Nome repetido','Já existe um capítulo com esse nome nesta publicação.'); return; }
+      const novaLista=caps.map(c=>c===nome?novo:c);
+      const {error}=await sbDados.rpc('tracker_salvar_capitulos',{p_publicacao:pub,p_capitulos:novaLista,p_cap_atual:nome,p_cap_novo:novo});
+      if(error) throw error;
+    }
+    await loadData(['bibliografia','sessoes_estudo','banco_questoes','tamanho_capitulos']);
+  }catch(e){
+    console.error('Mapa: nome não salvo',e);
+    mostrarAviso('Nome não salvo','Não deu para gravar o nome novo agora. Tente de novo com conexão.');
+  }
 }
 
 // CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
