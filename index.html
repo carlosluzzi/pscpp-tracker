@@ -1143,6 +1143,30 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .header-zone{position:relative;background:transparent;border-radius:0;width:100%;padding:calc(env(safe-area-inset-top, 0px) + 22px) 16px 14px;border-bottom:0.5px solid rgba(224,224,224,0.6);position:relative;overflow:hidden;box-sizing:border-box;box-shadow:0 8px 10px -8px rgba(0,0,0,0);transition:box-shadow .25s ease}
 .header-carta-deco{position:absolute;inset:0;width:100%;height:100%}
 .card-inicio{background:#fff;border-radius:18px;padding:13px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:14px;position:relative;overflow:hidden}
+/* MAPA DE ESTUDO (Início) — lista no estilo da visualização em lista do Finder: setinha, pasta,
+   linhas alternadas e números em cinza. Módulo > matéria > capítulo. */
+.mapa-lista{margin:0 -13px -13px;border-top:0.5px solid #eee}
+.mapa-cab,.mapa-linha{display:grid;grid-template-columns:minmax(0,1fr) 78px 104px 64px 76px;align-items:center}
+.mapa-cab{font-size:var(--fs-b);color:#888;font-weight:500;border-bottom:0.5px solid #eee;height:30px}
+.mapa-cab>div{padding:0 10px;height:100%;display:flex;align-items:center;justify-content:flex-end;border-left:0.5px solid #eee}
+.mapa-cab>div:first-child{justify-content:flex-start;border-left:none;padding-left:43px}
+.mapa-linha{min-height:40px}
+.mapa-linha.mapa-par{background:#F7F7F5}
+.mapa-linha.mapa-oculta{display:none}
+.mapa-linha>div{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapa-num{font-size:var(--fs-c);color:#888;text-align:right}
+.mapa-num.mapa-baixo{color:#A32D2D}
+.mapa-nome{display:flex;align-items:center;gap:7px;min-width:0;font-size:var(--fs-d);color:#111}
+.mapa-nome .mapa-t{overflow:hidden;text-overflow:ellipsis}
+.mapa-linha>.mapa-n1{padding-left:10px}.mapa-linha>.mapa-n2{padding-left:32px}.mapa-linha>.mapa-n3{padding-left:54px}
+.mapa-seta{width:16px;flex-shrink:0;color:#aaa;font-size:11px;text-align:center;transition:transform .15s}
+.mapa-linha.mapa-aberta .mapa-seta{transform:rotate(90deg)}
+.mapa-clicavel{cursor:pointer}
+.mapa-ico{width:20px;height:16px;flex-shrink:0}
+@media(max-width:767px){
+  .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) 58px 96px}
+  .mapa-cab>.mapa-col-extra,.mapa-linha>.mapa-col-extra{display:none}
+}
 .cards-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .cards-2col .card-inicio{margin-bottom:0}
 .card-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;padding-bottom:10px;border-bottom:1px solid #cfcfcb}
@@ -7957,10 +7981,144 @@ function renderInicio(){
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
     ${renderCardPlanejamento()}
-    ${renderCardFoco()}
+    ${renderCardMapa()}
     ${renderCardComplementares()}
     ${renderCardNotas()}
   `;
+}
+
+// MAPA DE ESTUDO — no lugar do "Foco recomendado" (removido da tela a pedido do Carlos em
+// 4 Nov 2026; a função renderCardFoco continua no código, só não é mais chamada). A árvore sai
+// da bibliografia já com os ajustes do Tracker (mesmos nomes, ordem e capítulos das listas do
+// timer). Páginas são ESTIMADAS pelos caracteres informados no começo da leitura (~3.000 por
+// página); capítulo sem tamanho informado fica "—". "Lido" = teve uma sessão marcada como
+// capítulo inteiro (só existe desde 21 Out 2026); "Começado" = teve leitura sem essa marca.
+const CARACTERES_POR_PAGINA=3000;
+let mapaAbertos=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem('pscpp_mapa_abertos')||'[]')); }catch(e){ return new Set(); } })();
+const MAPA_PASTA='<svg class="mapa-ico" viewBox="0 0 20 16"><path d="M1.5 3.2c0-.9.7-1.7 1.7-1.7h4.2c.5 0 .9.2 1.2.5l1.1 1.2h7.1c.9 0 1.7.7 1.7 1.7v8.4c0 .9-.7 1.7-1.7 1.7H3.2c-.9 0-1.7-.7-1.7-1.7z" fill="#6CB4EE"/><path d="M1.5 5.6h17v7.9c0 .9-.7 1.7-1.7 1.7H3.2c-.9 0-1.7-.7-1.7-1.7z" fill="#8CCBF6"/></svg>';
+const MAPA_DOC='<svg class="mapa-ico" viewBox="0 0 20 16"><path d="M5.5 1h6.2L15 4.3v9.9c0 .5-.4.8-.8.8H5.5c-.5 0-.8-.4-.8-.8V1.8c0-.5.4-.8.8-.8z" fill="#fff" stroke="#c7c7cc" stroke-width=".8"/><path d="M11.7 1v3.3H15" fill="none" stroke="#c7c7cc" stroke-width=".8"/></svg>';
+
+function mapaHoras(min){
+  if(!min) return '—';
+  const h=min/60;
+  return (h<10?h.toFixed(1).replace('.',','):Math.round(h).toLocaleString('pt-BR'))+' h';
+}
+function mapaPaginas(chars){ return chars>0?Math.max(1,Math.round(chars/CARACTERES_POR_PAGINA)):0; }
+function mapaAcertos(qs){
+  if(!qs.length) return {txt:'—',baixo:false};
+  const pct=Math.round(qs.filter(isAcerto).length/qs.length*100);
+  return {txt:pct+'%',baixo:pct<65};
+}
+function mapaCapituloBate(capRegistro,cap,unico){
+  const c=String(capRegistro||'');
+  return unico?(c===''||c==='Único'):c===String(cap);
+}
+function montarMapaEstudo(){
+  const sess=(sessoesEstudo||[]).filter(s=>!s.ehDesvio&&s.modulo);
+  const qs=questoes||[];
+  return modulosPscpp.map(mod=>{
+    const sessMod=sess.filter(s=>s.modulo===mod);
+    const pubs=publicacoesParaEstudo(mod).map(nome=>{
+      const info=bibliografia.find(b=>b.nome===nome&&b.modulo===mod)||{};
+      const unico=!!info.capituloUnico||!(info.capitulosValidos&&info.capitulosValidos.length);
+      const capsIds=unico?['']:info.capitulosValidos.map(String);
+      const sessPub=sessMod.filter(s=>s.publicacao===nome);
+      const qsPub=qs.filter(q=>q.publicacao===nome);
+      const caps=capsIds.map(cap=>{
+        const sCap=sessPub.filter(s=>mapaCapituloBate(s.capitulo,cap,unico));
+        const leituras=sCap.filter(s=>s.tipo==='Leitura');
+        const lido=leituras.some(s=>s.caracteresLidos>0)?'Lido':(leituras.length?'Começado':'—');
+        const chars=tamanhoCapAtual(mod,nome,cap)||0;
+        return {
+          nome:unico?rotuloCapituloUnico(info):formatarCapituloExibicao(info,cap),
+          paginas:mapaPaginas(chars), lido,
+          minutos:sCap.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
+          acertos:mapaAcertos(qsPub.filter(q=>mapaCapituloBate(q.capitulo,cap,unico))),
+        };
+      });
+      const lidos=caps.filter(c=>c.lido==='Lido').length;
+      return {
+        nome, caps, lidos,
+        paginas:caps.reduce((t,c)=>t+c.paginas,0),
+        lidoTxt:caps.length===1?caps[0].lido:`${lidos} de ${caps.length}`,
+        minutos:sessPub.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
+        acertos:mapaAcertos(qsPub),
+      };
+    });
+    const totalCaps=pubs.reduce((t,p)=>t+p.caps.length,0);
+    const lidosCaps=pubs.reduce((t,p)=>t+p.lidos,0);
+    return {
+      nome:mod, pubs,
+      paginas:pubs.reduce((t,p)=>t+p.paginas,0),
+      lidoTxt:totalCaps?Math.round(lidosCaps/totalCaps*100)+'%':'—',
+      minutos:sessMod.reduce((t,s)=>t+(s.duracaoMinutos||0),0),
+      acertos:mapaAcertos(qs.filter(q=>q.modulo===mod)),
+    };
+  });
+}
+let mapaContVisiveis=0;
+function mapaLinha({k,pai,nivel,nome,temFilhos,paginas,lido,minutos,acertos,visivel}){
+  const par=visivel&&(mapaContVisiveis++%2===1);
+  const aberta=temFilhos&&mapaAbertos.has(k);
+  return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai||'')}"${temFilhos?' onclick="alternarMapa(this)"':''}>
+    <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(nome)}</span></div>
+    <div class="mapa-num">${paginas?(nivel<3?'≈ ':'')+paginas.toLocaleString('pt-BR'):'—'}</div>
+    <div class="mapa-num">${lido}</div>
+    <div class="mapa-num mapa-col-extra">${mapaHoras(minutos)}</div>
+    <div class="mapa-num mapa-col-extra${acertos.baixo?' mapa-baixo':''}">${acertos.txt}</div>
+  </div>`;
+}
+function renderCardMapa(){
+  let mapa;
+  try{ mapa=montarMapaEstudo(); }catch(e){ console.error('Mapa de estudo:',e); return ''; }
+  if(!bibliografia.length) return '';
+  mapaContVisiveis=0;
+  let html='';
+  mapa.forEach(m=>{
+    const km=m.nome;
+    html+=mapaLinha({k:km,pai:'',nivel:1,nome:m.nome,temFilhos:true,paginas:m.paginas,lido:m.lidoTxt,minutos:m.minutos,acertos:m.acertos,visivel:true});
+    m.pubs.forEach(p=>{
+      const kp=km+'|'+p.nome;
+      html+=mapaLinha({k:kp,pai:km,nivel:2,nome:nomePub(p.nome),temFilhos:true,paginas:p.paginas,lido:p.lidoTxt,minutos:p.minutos,acertos:p.acertos,
+        visivel:mapaAbertos.has(km)});
+      p.caps.forEach((c,i)=>{
+        html+=mapaLinha({k:kp+'|'+i,pai:kp,nivel:3,nome:c.nome,temFilhos:false,paginas:c.paginas,lido:c.lido,minutos:c.minutos,acertos:c.acertos,
+          visivel:mapaAbertos.has(km)&&mapaAbertos.has(kp)});
+      });
+    });
+  });
+  return `<div class="card-inicio">
+    ${sectionTitle('Mapa de estudo','livro','#E6F1FB','#202A45')}
+    <div class="mapa-lista" id="mapa-lista">
+      <div class="mapa-cab"><div>Nome</div><div>Páginas</div><div>Lido</div><div class="mapa-col-extra">Horas</div><div class="mapa-col-extra">Acertos</div></div>
+      ${html}
+    </div>
+  </div>`;
+}
+// Abre/fecha sem redesenhar a tela (rápido no iPad) e lembra o que estava aberto.
+function alternarMapa(linha){
+  const k=linha.dataset.k;
+  const abrir=!mapaAbertos.has(k);
+  if(abrir) mapaAbertos.add(k); else mapaAbertos.delete(k);
+  linha.classList.toggle('mapa-aberta',abrir);
+  const lista=linha.closest('.mapa-lista');
+  const mostrarFilhos=(pai,mostrar)=>{
+    lista.querySelectorAll('.mapa-linha').forEach(l=>{
+      if(l.dataset.pai!==pai) return;
+      l.classList.toggle('mapa-oculta',!mostrar);
+      if(l.classList.contains('mapa-clicavel')) mostrarFilhos(l.dataset.k,mostrar&&mapaAbertos.has(l.dataset.k));
+    });
+  };
+  mostrarFilhos(k,abrir);
+  listrarMapa(lista);
+  try{ localStorage.setItem('pscpp_mapa_abertos',JSON.stringify([...mapaAbertos])); }catch(e){}
+}
+function listrarMapa(lista){
+  let i=0;
+  (lista||document.getElementById('mapa-lista'))?.querySelectorAll('.mapa-linha').forEach(l=>{
+    if(l.classList.contains('mapa-oculta')) return;
+    l.classList.toggle('mapa-par',i++%2===1);
+  });
 }
 
 // CÁLCULO DE PRÓXIMA OCORRÊNCIA — a partir da regra de recorrência do curso
