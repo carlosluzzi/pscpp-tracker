@@ -1050,6 +1050,9 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .explicacao li{margin-bottom:5px}
 .explicacao strong{color:#222;font-weight:600}
 .explicacao em{color:#666}
+.chuva-btn.ligada{color:#2F6FB3!important}
+.tf-chuva-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);left:60px;color:#6B7280;background:none;border:none;cursor:pointer;padding:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+.tf-chuva-btn.ligada{color:#8CCBF6!important}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
 
 .banco-combine-toggle:hover{color:#111;border-color:#999}
@@ -1163,6 +1166,11 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .mapa-linha.mapa-aberta .mapa-seta{transform:rotate(90deg)}
 .mapa-clicavel{cursor:pointer}
 .mapa-ico{width:20px;height:16px;flex-shrink:0}
+/* Caracteres do capítulo: toque para corrigir o tamanho. */
+.mapa-chars-editavel{cursor:pointer}
+.mapa-linha[data-tipo="cap"]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#mapa-estudar-tipos .filter-btn{flex:1 1 0}
+@media(hover:hover){.mapa-chars-editavel:hover{color:#202A45;text-decoration:underline}}
 /* Modo Editar: some os números, aparecem o lápis (renomear) e o pegador (arrastar). */
 .mapa-btn-editar{background:#E6F1FB;color:#202A45;border:none;border-radius:8px;padding:5px 14px;font-size:var(--fs-c);
   font-weight:600;font-family:inherit;cursor:pointer}
@@ -1372,6 +1380,11 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      destravar os osciladores do apito pelo resto da sessão (técnica documentada, usada por
      libs como unmute-ios-audio). Conteúdo real, gerado com ffmpeg — nunca silenciado, por
      content-type ser tratado como mídia, não efeito. -->
+<!-- Som de chuva (4 Nov 2026): 12 min gerados sob medida, com o fim emendado no começo, então em
+     loop soa contínuo. Arquivo separado (chuva.m4a, ao lado do index.html) para o app continuar leve;
+     só baixa quando o Carlos liga a chuva. É áudio de verdade: enquanto toca, ocupa o lugar do
+     Spotify/música de outro app no iPad (o iOS não mistura áudio de site com outro app). -->
+<audio id="chuva-audio" src="chuva.m4a" loop preload="none" playsinline webkit-playsinline style="display:none"></audio>
 <audio id="apito-kick" playsinline webkit-playsinline preload="auto" style="display:none"
   src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAACAAAA/oAR0dHR0dHR0dHR0dHYmJiYmJiYmJiYmJifHx8fHx8fHx8fHx8fJaWlpaWlpaWlpaWlrGxsbGxsbGxsbGxsbHLy8vLy8vLy8vLy8vl5eXl5eXl5eXl5eXl////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQC1AAAAAAAAAP64yT+/gAAAAAAAAAAAAAAAAD/80DEABRIjoAXWDAAP9y4RuNxuNxuNxunp6SMRiGH8jFJSRhy4vACchZwwCMQC1i1A+A4DAYWTTBwEAQBB0uf5R05y79IY4DfpDHLv7un+oBn+7py4fBAENP+XB8PqoIIASxEBAGBAP/zQsQJFunSsb+NoAOgAAADiEa8J8J74T0ANPkcAwSCzIvQBJ4lMWcBlHgc4NmC0YMVe8mSKkVMv8UEIWIaOaMr/5kXi8iXS6l//l4vGJdLqReLyP//5dLpkXi8CkgqLa2wALqohO///v/zQMQJFJiGLjXeyAD5/8//9I4uMjkYBAAZgJAPmAGB0YL4ghkUmFGVD8EcPheZk8CgmBkAcYGIMh9KoSDfeAQTFrR5r97fdvR9i9X//fp///3xb//9aopo+6xyyLxVuKHgVAGTADgG//NCxBEVAqYUAA/EjKMCXg9DSHgQwwDEAzMAGACi2ag61GnigA8VgBP6fkaS305f69tf/m2pZ/91Xn/16Hf252t1/3/N1dLNXG6ElOnT6Yz/W3ZMnCJjtFpBAAAFOgZrwYGPI3GuKAlh//NAxBkXCe4QAKfExICKAdmAHACBgAIACkWpYy8UALisAN6n3vv5dPr29Wa31WY3/RvRGJq90vdeR9Ih6GjL+Yz7SV71TkV3Jx4rpsvtTVbVqwCqxCf+/7/P/n//plmAEgA5gA4AWCD/80LEFxbAhiV1X9AAA6MBjACzAPgGYwLQF6MIyB1jBGUQoy4AGnMBiBfDBUAMowHQAoMk8ORKFqAXELizfr912n/19np+1TMr/9X8ZQR//+j/lrD0MW0/4HTDLdSb/eeWA0SXYcqBp8T/80DEGBpxqoABmKgA4FjwDbMDOjjAxaCwMEjQDJ5SAx6JuR4oMrhZ0SwNu8WWbGh8Y4SkQ8Zb5cNC4aS2QFImT380W603TJkumRio2V/91MhsZJmTnQ03/TyohLFlLVMW4nR1M1mI5v/zQsQJE5EmKAHPeAA0lbIcxBh6jKbxuhqUKRJOS4qGAcwtwuTolQuRcnalQ1Qsu611/BTqGxoKtZa/1ruta19oT7WLb/xaNoRB34lDYldK/4iVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVQ=="
 ></audio>
@@ -1473,6 +1486,19 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <div class="modal-actions">
       <button class="modal-btn modal-btn-nao" onclick="fecharTamanhoInicioModal()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="confirmarTamanhoInicioEIniciar()">Iniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mapa de estudo: segurar o dedo num capítulo abre este pop-up para já começar a estudar. -->
+<div id="mapa-estudar-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
+  <div class="modal-box" style="max-width:420px">
+    <div class="config-title">Estudar isso?</div>
+    <p id="mapa-estudar-ref" style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4"></p>
+    <div class="filter-row periodo-row" id="mapa-estudar-tipos" style="margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-nao" onclick="fecharEstudarMapa()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" onclick="confirmarEstudarMapa()">Estudar</button>
     </div>
   </div>
 </div>
@@ -4981,7 +5007,7 @@ function renderAprovado(){
 
 
     <div class="card-inicio">
-      ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45',{direita:timerModulo?`<span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span>`:''})}
+      ${sectionTitle('Timer de estudo','relogio','#E6F1FB','#202A45',{direita:`<span style="display:inline-flex;gap:10px;align-items:center">${botaoChuva()}${timerModulo?`<span class="info-icone" onclick="abrirTimerFullscreen(true,${timerAcumuladoSeg>0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="flex-shrink:0"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg> tela cheia</span>`:''}</span>`})}
       <div style="text-align:center;font-size:var(--fs-i);font-weight:700;color:#202A45;margin:0 0 30px 0;font-variant-numeric:tabular-nums" id="timer-card-tempo-wrap"><span id="timer-card-tempo">${tempoFormatado}</span>
       </div>
       <div class="timer-campos">
@@ -5047,6 +5073,53 @@ function renderAprovado(){
     </div>
   `;
 }
+
+// SOM DE CHUVA — liga e desliga quando quiser (card do timer e tela cheia). O play() precisa vir
+// direto do toque (regra do iOS), por isso nada de await antes dele.
+let chuvaLigada=false;
+const ICONE_CHUVA=t=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="${t}" height="${t}" style="flex-shrink:0"><path d="M20 16.6A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>`;
+function botaoChuva(){
+  return `<span class="info-icone chuva-btn${chuvaLigada?' ligada':''}" onclick="alternarChuva(event)">${ICONE_CHUVA(14)} ${chuvaLigada?'chuva ligada':'chuva'}</span>`;
+}
+function atualizarBotoesChuva(){
+  document.querySelectorAll('.chuva-btn').forEach(b=>{
+    b.classList.toggle('ligada',chuvaLigada);
+    if(b.classList.contains('info-icone')) b.innerHTML=`${ICONE_CHUVA(14)} ${chuvaLigada?'chuva ligada':'chuva'}`;
+  });
+}
+function alternarChuva(ev){
+  if(ev) ev.stopPropagation();
+  const a=document.getElementById('chuva-audio');
+  if(!a) return;
+  if(a.paused){
+    a.loop=true;
+    const p=a.play();
+    chuvaLigada=true;
+    if(p&&p.catch) p.catch(()=>{
+      chuvaLigada=false; atualizarBotoesChuva();
+      mostrarAviso('A chuva não tocou','Não deu para tocar o som agora. Confira a conexão e tente de novo.');
+    });
+    try{
+      if('mediaSession' in navigator){
+        navigator.mediaSession.metadata=new MediaMetadata({title:'Chuva',artist:'PSCPP Tracker'});
+        navigator.mediaSession.setActionHandler('play',()=>{ a.play(); });
+        navigator.mediaSession.setActionHandler('pause',()=>{ a.pause(); });
+      }
+    }catch(e){}
+  }else{
+    a.pause();
+    chuvaLigada=false;
+  }
+  atualizarBotoesChuva();
+}
+// Se outro app (Spotify, ligação) interromper, ou a chuva voltar pelo Central de Controle, o botão acompanha.
+function ligarEventosChuva(){
+  const a=document.getElementById('chuva-audio');
+  if(!a) return;
+  a.addEventListener('pause',()=>{ chuvaLigada=false; atualizarBotoesChuva(); });
+  a.addEventListener('play',()=>{ chuvaLigada=true; atualizarBotoesChuva(); });
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',ligarEventosChuva); else ligarEventosChuva();
 
 function usarModuloNoTimer(modulo){
   timerModulo=modulo;
@@ -5152,6 +5225,7 @@ function renderTimerFullscreenConteudo(){
 
   return `
     <button class="tf-fechar" onclick="fecharTimerFullscreen()">✕</button>
+    <button class="tf-chuva-btn chuva-btn${chuvaLigada?' ligada':''}" onclick="alternarChuva(event)" aria-label="Som de chuva">${ICONE_CHUVA(20)}</button>
     <button class="tf-ajustes-btn" onclick="abrirAjusteApito(event)" aria-label="Ajustes de som">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
@@ -8147,9 +8221,10 @@ function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
   const podeRenomear=(no.tipo==='pasta'||no.tipo==='pub'||no.tipo==='cap')&&!no.unico&&!no.grupoFixo;
   const podeMover=irmaos>1&&!no.unico;
   const attrs=`data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai)}" data-tipo="${no.tipo}" data-nome="${escapeHtml(no.id)}" data-mod="${escapeHtml(mod||'')}" data-pub="${escapeHtml(pub||'')}"`;
-  return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" ${attrs}${temFilhos?' onclick="alternarMapa(this)"':''}>
+  const toqueLongo=no.tipo==='cap'?' onpointerdown="pressionarMapa(event,this)" oncontextmenu="return false"':'';
+  return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" ${attrs}${temFilhos?' onclick="alternarMapa(this)"':''}${toqueLongo}>
     <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(no.nome)}</span></div>
-    <div class="mapa-num">${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
+    <div class="mapa-num${no.tipo==='cap'?' mapa-chars-editavel':''}"${no.tipo==='cap'?' onclick="event.stopPropagation();editarTamanhoMapa(this)"':''}>${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
     <div class="mapa-num">${no.lidoTxt}</div>
     <div class="mapa-num mapa-col-extra">${mapaHoras(no.minutos)}</div>
     <div class="mapa-num mapa-col-extra${pct!=null&&pct<65?' mapa-baixo':''}">${pct==null?'—':pct+'%'}</div>
@@ -8276,6 +8351,79 @@ async function salvarOrdemMapa(linhas){
     mostrarAviso('Ordem não salva','Não deu para gravar a nova ordem agora. Tente de novo com conexão.');
     await loadData(['app_config','bibliografia']);
   }
+}
+
+// SEGURAR PARA ESTUDAR: segurar o dedo ~0,5 s num capítulo do Mapa abre "Estudar isso?". Ao
+// confirmar, o timer da aba Aprovado já vem preenchido (módulo, publicação, capítulo, tipo) e segue
+// o mesmo caminho do botão Iniciar — em Leitura, pergunta o tamanho e depois inicia.
+let mapaUltimoToqueLongo=0, mapaEstudarAlvo=null, mapaEstudarTipo='Leitura';
+function pressionarMapa(ev,linha){
+  if(mapaEditando) return;
+  if(ev.target.closest('.mapa-acao')) return;
+  const x0=ev.clientX, y0=ev.clientY;
+  const cancelar=()=>{ clearTimeout(t); window.removeEventListener('pointerup',cancelar); window.removeEventListener('pointercancel',cancelar); window.removeEventListener('pointermove',mexeu); };
+  const mexeu=e=>{ if(Math.abs(e.clientX-x0)>10||Math.abs(e.clientY-y0)>10) cancelar(); };
+  const t=setTimeout(()=>{
+    cancelar();
+    mapaUltimoToqueLongo=Date.now();
+    abrirEstudarMapa(linha);
+  },500);
+  window.addEventListener('pointerup',cancelar);
+  window.addEventListener('pointercancel',cancelar);
+  window.addEventListener('pointermove',mexeu);
+}
+function abrirEstudarMapa(linha){
+  const {mod,pub,nome}=linha.dataset;
+  if(timerRodando||timerAcumuladoSeg>0||desvioPilha){
+    mostrarAviso('Já tem um estudo em andamento','Termine ou cancele o estudo atual no timer antes de começar outro.');
+    return;
+  }
+  mapaEstudarAlvo={mod,pub,cap:nome};
+  mapaEstudarTipo='Leitura';
+  document.getElementById('mapa-estudar-ref').textContent=`${mod} › ${nomePub(pub)} › ${linha.querySelector('.mapa-t').textContent}`;
+  desenharTiposEstudarMapa();
+  document.getElementById('mapa-estudar-modal').style.display='flex';
+}
+function desenharTiposEstudarMapa(){
+  document.getElementById('mapa-estudar-tipos').innerHTML=['Leitura','Exercício','Revisão']
+    .map(t=>`<button class="filter-btn${mapaEstudarTipo===t?' active':''}" onclick="mapaEstudarTipo='${t}';desenharTiposEstudarMapa()">${t}</button>`).join('');
+}
+function fecharEstudarMapa(){ document.getElementById('mapa-estudar-modal').style.display='none'; }
+function confirmarEstudarMapa(){
+  const a=mapaEstudarAlvo; if(!a) return;
+  fecharEstudarMapa();
+  timerTipo=mapaEstudarTipo;
+  timerSimuladoNome=''; timerSimuladoGeral=false; timerSimuladoCorrigeDepois=false;
+  timerModulo=a.mod; timerPublicacao=a.pub; timerCapitulo=a.cap||'';
+  abaAprovado='nova';
+  showTab('aprovado');
+  const c=document.getElementById('content'); if(c) c.scrollTop=0;
+  cliqueIniciarTimer();
+}
+
+// TAMANHO: toque nos caracteres de um capítulo para corrigir o tamanho (mesma tabela que o timer usa).
+// Na publicação, na pasta e no módulo o número é soma — muda sozinho quando o capítulo muda.
+function editarTamanhoMapa(celula){
+  if(Date.now()-mapaUltimoToqueLongo<800) return;   // o toque longo acabou de abrir o "Estudar isso?"
+  const linha=celula.closest('.mapa-linha');
+  const {mod,pub,nome}=linha.dataset;
+  const atual=tamanhoCapAtual(mod,pub,nome);
+  const nomeCap=linha.querySelector('.mapa-t').textContent;
+  abrirTextoModal({titulo:'Tamanho do capítulo',sub:`${nomePub(pub)} – ${nomeCap}`,valor:atual?String(atual):'',
+    placeholder:'Caracteres do resumo',tipo:'number'},async texto=>{
+    const n=parseInt(texto,10);
+    if(!n||n<1){ mostrarAviso('Número inválido','Informe a quantidade de caracteres do resumo.'); return; }
+    try{
+      const {error}=await sbDados.from('tamanho_capitulos').upsert({modulo:mod,publicacao:pub,capitulo:nome||'',
+        caracteres_totais:n,atualizado_em:new Date().toISOString()},{onConflict:'modulo,publicacao,capitulo'});
+      if(error) throw error;
+      tamanhoCapitulos[chaveTamanhoCap(mod,pub,nome)]={caracteresTotais:n};
+      redesenharMapa();
+    }catch(e){
+      console.error('Mapa: tamanho não salvo',e);
+      mostrarAviso('Tamanho não salvo','Não deu para gravar agora. Tente de novo com conexão.');
+    }
+  });
 }
 
 // RENOMEAR: pasta, publicação ou capítulo. Publicação e capítulo levam junto todos os registros
