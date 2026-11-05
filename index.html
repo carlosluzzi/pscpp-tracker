@@ -1415,10 +1415,10 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      libs como unmute-ios-audio). Conteúdo real, gerado com ffmpeg — nunca silenciado, por
      content-type ser tratado como mídia, não efeito. -->
 <!-- Som de chuva (4 Nov 2026): 12 min gerados sob medida, com o fim emendado no começo, então em
-     loop soa contínuo. Arquivo separado (chuva.m4a, ao lado do index.html) para o app continuar leve;
+     loop soa contínuo. Arquivo separado (audios/chuva.m4a, na raiz do repo) para o app continuar leve;
      só baixa quando o Carlos liga a chuva. É áudio de verdade: enquanto toca, ocupa o lugar do
      Spotify/música de outro app no iPad (o iOS não mistura áudio de site com outro app). -->
-<audio id="chuva-audio" src="chuva.m4a" loop preload="none" playsinline webkit-playsinline style="display:none"></audio>
+<audio id="chuva-audio" src="audios/chuva.m4a" loop preload="none" playsinline webkit-playsinline style="display:none"></audio>
 <audio id="apito-kick" playsinline webkit-playsinline preload="auto" style="display:none"
   src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAACAAAA/oAR0dHR0dHR0dHR0dHYmJiYmJiYmJiYmJifHx8fHx8fHx8fHx8fJaWlpaWlpaWlpaWlrGxsbGxsbGxsbGxsbHLy8vLy8vLy8vLy8vl5eXl5eXl5eXl5eXl////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQC1AAAAAAAAAP64yT+/gAAAAAAAAAAAAAAAAD/80DEABRIjoAXWDAAP9y4RuNxuNxuNxunp6SMRiGH8jFJSRhy4vACchZwwCMQC1i1A+A4DAYWTTBwEAQBB0uf5R05y79IY4DfpDHLv7un+oBn+7py4fBAENP+XB8PqoIIASxEBAGBAP/zQsQJFunSsb+NoAOgAAADiEa8J8J74T0ANPkcAwSCzIvQBJ4lMWcBlHgc4NmC0YMVe8mSKkVMv8UEIWIaOaMr/5kXi8iXS6l//l4vGJdLqReLyP//5dLpkXi8CkgqLa2wALqohO///v/zQMQJFJiGLjXeyAD5/8//9I4uMjkYBAAZgJAPmAGB0YL4ghkUmFGVD8EcPheZk8CgmBkAcYGIMh9KoSDfeAQTFrR5r97fdvR9i9X//fp///3xb//9aopo+6xyyLxVuKHgVAGTADgG//NCxBEVAqYUAA/EjKMCXg9DSHgQwwDEAzMAGACi2ag61GnigA8VgBP6fkaS305f69tf/m2pZ/91Xn/16Hf252t1/3/N1dLNXG6ElOnT6Yz/W3ZMnCJjtFpBAAAFOgZrwYGPI3GuKAlh//NAxBkXCe4QAKfExICKAdmAHACBgAIACkWpYy8UALisAN6n3vv5dPr29Wa31WY3/RvRGJq90vdeR9Ih6GjL+Yz7SV71TkV3Jx4rpsvtTVbVqwCqxCf+/7/P/n//plmAEgA5gA4AWCD/80LEFxbAhiV1X9AAA6MBjACzAPgGYwLQF6MIyB1jBGUQoy4AGnMBiBfDBUAMowHQAoMk8ORKFqAXELizfr912n/19np+1TMr/9X8ZQR//+j/lrD0MW0/4HTDLdSb/eeWA0SXYcqBp8T/80DEGBpxqoABmKgA4FjwDbMDOjjAxaCwMEjQDJ5SAx6JuR4oMrhZ0SwNu8WWbGh8Y4SkQ8Zb5cNC4aS2QFImT380W603TJkumRio2V/91MhsZJmTnQ03/TyohLFlLVMW4nR1M1mI5v/zQsQJE5EmKAHPeAA0lbIcxBh6jKbxuhqUKRJOS4qGAcwtwuTolQuRcnalQ1Qsu611/BTqGxoKtZa/1ruta19oT7WLb/xaNoRB34lDYldK/4iVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVQ=="
 ></audio>
@@ -9401,7 +9401,7 @@ const logosCursos={
 // espaço exato ANTES da imagem carregar. Sem isso, o navegador só sabe a largura real depois de
 // baixar a imagem, causando um salto de layout bem na hora que ela chega — se isso coincidir com
 // o momento em que a pessoa começa a rolar a tela, trava o primeiro gesto de scroll.
-const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025,'FSA Quest':5.05,'Pilotquest':4.903};
+const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025,'FSA Quest':5.27,'Pilotquest':4.903};
 // Meta diária do Banco Prático. Estava junto do card de calendário que foi removido — só a
 // posição no arquivo era acidental, a função não tinha relação com aquele card.
 function editarMetaDiaria(){
