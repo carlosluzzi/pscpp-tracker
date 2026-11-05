@@ -2682,6 +2682,27 @@ async function garantirQuestoesPendentes(){
   return true;
 }
 const CARREGADORES_SOB_DEMANDA=['questoes_pendentes'];
+// PRÉ-CARGA EM SEGUNDO PLANO (5 Nov 2026): a Início tem prioridade — carrega só o que ela precisa
+// e desenha. Logo em seguida, com a tela já em uso, o app puxa por trás o que as outras abas vão
+// pedir: as questões pendentes (Cadernos pendentes) e os textos das atividades mais recentes
+// (detalhe/Questões). Assim trocar de aba não mostra "Carregando…"; o que não couber aqui
+// continua vindo sob demanda. Nunca roda antes da Início estar na tela.
+let preCargaAgendada=false;
+function agendarPreCargaSegundoPlano(){
+  if(preCargaAgendada) return;
+  preCargaAgendada=true;
+  const rodar=async()=>{
+    try{ await garantirQuestoesPendentes(); }catch(e){}
+    try{
+      const recentes=[...atividades].sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).slice(0,20).map(a=>a.nome);
+      const pendentes=atividadesPendentes.filter(a=>a.status!=='Completo').map(a=>a.nome);
+      await garantirTextosQuestoes([...new Set([...pendentes,...recentes])]);
+    }catch(e){}
+    if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true);
+  };
+  const quandoOcioso=window.requestIdleCallback?cb=>requestIdleCallback(cb,{timeout:4000}):cb=>setTimeout(cb,1500);
+  setTimeout(()=>quandoOcioso(rodar),800);
+}
 
 // ---------- retrato local: abrir já com a tela de ontem ----------
 // Depois de cada carga completa bem-sucedida, os dados (já enxutos, ~2 MB) ficam guardados no
@@ -3436,6 +3457,7 @@ async function loadDataInterno(tabelas){
     if(completo){ ultimaCargaCompletaEm=Date.now(); setTimeout(()=>verificarFilaFlash(true),0); setTimeout(salvarRetrato,1500); }
     setSyncStatus('ok');
     renderTab(tabAtual,true);
+    if(completo){ preCargaAgendada=false; agendarPreCargaSegundoPlano(); }
     finalizarSplash();
   }catch(e){
     setSyncStatus('error');
