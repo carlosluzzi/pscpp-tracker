@@ -2397,6 +2397,12 @@ async function entrar(){
 // esconde a tela de login, mostra a splash, e começa a carregar os dados do app.
 async function posLogin(){
   document.getElementById('view-login').classList.add('hidden');
+  // Retrato local primeiro: a tela aparece na hora; a carga de verdade redesenha ao chegar.
+  if(await aplicarRetrato()){
+    try{ renderTab(tabAtual,false); }catch(e){ console.warn('Retrato local:',e); }
+    setSyncStatus('loading');
+    finalizarSplash();
+  }
   loadData();
   // trava de segurança: não importa o que dê errado no carregamento (banco travado, erro
   // silencioso, o que for), a splash nunca fica presa na tela pra sempre — some sozinha
@@ -2636,6 +2642,90 @@ function setSyncStatus(state){
 // numa tarde. No iPad isso vira memória inflando a cada toque, e o Safari responde pintando
 // ladrilhos cinza até matar a página. Agora uma ação recarrega só a tabela que ela mexeu.
 let loadDataEmAndamento=null,loadDataEmAndamentoCompleto=false;
+// ---------- textos das questões sob demanda ----------
+const COLUNAS_QUESTOES_LEVES='id,numero_questao,id_atividade,status,modulo_pscpp,publicacao,capitulo,assunto_principal,tags_de_assunto,sua_resposta,gabarito,formato,resposta_esperada,revisoes_realizadas,acertou_na_revisao,tipo_questao,ultima_revisao,notas_pessoais,alternativas_duvida,motivo_duvida,favorita,excluida,total_de_erros,total_de_acertos';
+const textosQuestoes=new Map();            // id da questão -> {motivo, afirmacao, correcao}
+const textosAtividadesCarregadas=new Set(); // id_atividade cujos textos já vieram
+const textosEmCurso=new Map();              // id_atividade -> Promise, pra não pedir duas vezes
+function textosProntos(idsAtividade){ return idsAtividade.every(id=>!id||textosAtividadesCarregadas.has(id)); }
+// Busca os textos das questões dessas atividades (uma consulta filtrada, paginada) e aplica nos
+// objetos já em memória. Devolve true se trouxe algo novo — quem chamou redesenha.
+async function garantirTextosQuestoes(idsAtividade){
+  const faltam=[...new Set(idsAtividade)].filter(id=>id&&!textosAtividadesCarregadas.has(id));
+  if(!faltam.length) return false;
+  const esperar=[];
+  const novos=faltam.filter(id=>{ if(textosEmCurso.has(id)){ esperar.push(textosEmCurso.get(id)); return false; } return true; });
+  if(novos.length){
+    const p=(async()=>{
+      for(let i=0;i<novos.length;i+=25){
+        const lote=novos.slice(i,i+25);
+        const {data,error}=await buscarTudo('banco_questoes','id,questao_completa,afirmacao,correcao',q=>q.in('id_atividade',lote));
+        if(error) throw error;
+        (data||[]).forEach(l=>textosQuestoes.set(l.id,{motivo:l.questao_completa||null,afirmacao:l.afirmacao||null,correcao:l.correcao||null}));
+        lote.forEach(id=>textosAtividadesCarregadas.add(id));
+      }
+    })().finally(()=>novos.forEach(id=>textosEmCurso.delete(id)));
+    novos.forEach(id=>textosEmCurso.set(id,p));
+    esperar.push(p);
+  }
+  try{ await Promise.all(esperar); }catch(e){ console.error('Textos das questões:',e); return false; }
+  const aplicar=q=>{ const t=textosQuestoes.get(q.id); if(t){ q.motivo=t.motivo; q.afirmacao=t.afirmacao; q.correcao=t.correcao; } };
+  questoes.forEach(aplicar); questoesExcluidas.forEach(q=>{ const t=textosQuestoes.get(q.id); if(t) q.motivo=t.motivo||''; });
+  return true;
+}
+// ---------- questões pendentes sob demanda ----------
+let questoesPendentesCarregadas=false, questoesPendentesEmCurso=null;
+async function garantirQuestoesPendentes(){
+  if(questoesPendentesCarregadas) return false;
+  if(!questoesPendentesEmCurso) questoesPendentesEmCurso=loadData(['questoes_pendentes']).finally(()=>{ questoesPendentesEmCurso=null; });
+  await questoesPendentesEmCurso;
+  return true;
+}
+const CARREGADORES_SOB_DEMANDA=['questoes_pendentes'];
+
+// ---------- retrato local: abrir já com a tela de ontem ----------
+// Depois de cada carga completa bem-sucedida, os dados (já enxutos, ~2 MB) ficam guardados no
+// aparelho (IndexedDB). Na abertura seguinte a tela é desenhada na hora com esse retrato,
+// enquanto a carga nova roda por trás e redesenha quando chega. O indicador "Sincronizando…"
+// continua mostrando que ainda está atualizando. Qualquer falha aqui é ignorada: o retrato é
+// conveniência, nunca condição pro app funcionar.
+const RETRATO_VERSAO=1;
+// As globais são `let` (não vivem em window): lidas e gravadas por nome via Function.
+const lerGlobal=n=>Function('return '+n)();
+const gravarGlobal=(n,v)=>Function('v',n+'=v')(v);
+const RETRATO_GLOBAIS=['atividades','questoes','questoesExcluidas','calendarioEventos','notasEstudo','complementares','bancoPratico','focoEstudado','apelidos','filaBancoPratico','sessoesEstudo','cicloEstudosConfig','metasEstudo','bibliografia','revisoesEspacadas','atividadesPendentes','anotacoesAlternativas','tamanhoCapitulos','classAlternativas','planoEstudo','notasAssunto','saudacaoSubtexto','filaFlash','filaFlashMapa'];
+let retratoAplicado=false;
+function abrirRetratoDB(){
+  return new Promise((res,rej)=>{
+    if(!window.indexedDB) return rej(new Error('sem IndexedDB'));
+    const req=indexedDB.open('pscpp_tracker',1);
+    req.onupgradeneeded=()=>{ req.result.createObjectStore('retrato'); };
+    req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+  });
+}
+async function salvarRetrato(){
+  try{
+    const dados={};
+    RETRATO_GLOBAIS.forEach(n=>{ dados[n]=lerGlobal(n); });
+    const pacote={versao:RETRATO_VERSAO,salvoEm:Date.now(),dados:JSON.parse(JSON.stringify(dados))};
+    const db=await abrirRetratoDB();
+    await new Promise((res,rej)=>{ const tx=db.transaction('retrato','readwrite'); tx.objectStore('retrato').put(pacote,'dados'); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+    db.close();
+  }catch(e){ console.warn('Retrato local não salvo:',e); }
+}
+async function aplicarRetrato(){
+  try{
+    const db=await abrirRetratoDB();
+    const pacote=await new Promise((res,rej)=>{ const r=db.transaction('retrato').objectStore('retrato').get('dados'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+    db.close();
+    if(!pacote||pacote.versao!==RETRATO_VERSAO||!pacote.dados) return false;
+    RETRATO_GLOBAIS.forEach(n=>{ if(n in pacote.dados) gravarGlobal(n,pacote.dados[n]); });
+    posProcessarDados();
+    retratoAplicado=true;
+    return true;
+  }catch(e){ return false; }
+}
+
 async function loadData(tabelas){
   const completo=!Array.isArray(tabelas);
   // Carga completa já rodando: qualquer pedido (completo ou parcial) só espera ela — ela vai
@@ -2929,15 +3019,20 @@ const CARREGADORES={
       finalizadoEm:p.finalizado_em||null,
     })).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   },
+  // Carga ENXUTA (5 Nov 2026): os textos longos (enunciado, afirmação do flash, correção) são
+  // ~5 MB dos ~8 MB da tabela e a Início nunca usa. Vêm depois, por atividade, na hora em que
+  // uma tela precisa deles (garantirTextosQuestoes). O que já veio fica em textosQuestoes e é
+  // reaplicado em cada recarga, pra não baixar duas vezes.
   banco_questoes: async()=>{
-    const {data:qRaw,error}=await buscarTudo('banco_questoes'); lancarSe(error);
+    const {data:qRaw,error}=await buscarTudo('banco_questoes',COLUNAS_QUESTOES_LEVES); lancarSe(error);
+    const txt=id=>textosQuestoes.get(id)||{};
     // Questões excluídas somem de todos os cálculos e telas. Filtrar aqui, na origem, em vez de
     // em cada lugar que usa "questoes" — assim nenhum cálculo futuro esquece de considerar.
     // A linha continua no banco, então dá para reverter.
     questoesExcluidas=qRaw.filter(p=>p.excluida).map(p=>({
       id:p.id, questao:p.numero_questao, idAtividade:p.id_atividade,
       modulo:p.modulo_pscpp||'', publicacao:p.publicacao||'', capitulo:p.capitulo||'',
-      status:p.status||null, motivo:p.questao_completa||'',
+      status:p.status||null, motivo:txt(p.id).motivo||'',
     }));
     questoes=qRaw.filter(p=>!p.excluida).map(p=>({
       id:p.id,
@@ -2951,13 +3046,13 @@ const CARREGADORES={
       tags:p.tags_de_assunto||[],
       suaResposta:p.sua_resposta||null,
       gabarito:p.gabarito||null,
-      motivo:p.questao_completa||null,
+      motivo:txt(p.id).motivo||null,
       // Campos do Flash (Verdadeiro/Falso), vindos do Pilotquest. Nas questões de múltipla
       // escolha ficam todos vazios — formato continua no valor padrão 'multipla_escolha'.
       formato:p.formato||'multipla_escolha',
-      afirmacao:p.afirmacao||null,
+      afirmacao:txt(p.id).afirmacao||null,
       respostaEsperada:p.resposta_esperada||null,
-      correcao:p.correcao||null,
+      correcao:txt(p.id).correcao||null,
       revisoesRealizadas:p.revisoes_realizadas||0,
       acertouRevisao:p.acertou_na_revisao||null,
       tipoQuestao:p.tipo_questao||null,
@@ -2970,6 +3065,9 @@ const CARREGADORES={
       totalErros:p.total_de_erros||0,
       totalAcertos:p.total_de_acertos||0,
     }));
+    // Atividade que ganhou questão nova (ex.: flash sincronizado agora) sem texto em cache volta
+    // pra fila: na próxima abertura do detalhe os textos são buscados de novo.
+    qRaw.forEach(p=>{ if(p.id_atividade&&textosAtividadesCarregadas.has(p.id_atividade)&&!textosQuestoes.has(p.id)) textosAtividadesCarregadas.delete(p.id_atividade); });
   },
   calendario_eventos: async()=>{
     const {data:calEventos,error}=await buscarTudo('calendario_eventos','*'); lancarSe(error);
@@ -3122,8 +3220,11 @@ const CARREGADORES={
       iniciadoEm:p.iniciado_em||null,finalizadoEm:p.finalizado_em||null,
     }));
   },
+  // Sob demanda (5 Nov 2026): 1.280 questões/1,4 MB que só a aba Questões (cadernos pendentes)
+  // e a tela de resolução usam. Não entra na carga completa — ver garantirQuestoesPendentes.
   questoes_pendentes: async()=>{
     const {data:questPendRes,error}=await buscarTudo('questoes_pendentes'); lancarSe(error);
+    questoesPendentesCarregadas=true;
     questoesPendentes=questPendRes.map(p=>({
       id:p.id,atividadePendenteId:p.atividade_pendente_id,numeroQuestao:p.numero_questao,
       peso:p.peso,modulo:p.modulo_pscpp,publicacao:p.publicacao,capitulo:p.capitulo,pagina:p.pagina,
@@ -3304,7 +3405,7 @@ async function loadDataInterno(tabelas){
       // ar, isso nunca deve impedir o resto do app de carregar.
       try{ await sincronizarPilotquest(); }catch(e){ console.error('Erro ao sincronizar Pilotquest:',e); }
     }
-    const nomes=completo?Object.keys(CARREGADORES):tabelas.filter(t=>CARREGADORES[t]);
+    const nomes=completo?Object.keys(CARREGADORES).filter(n=>!CARREGADORES_SOB_DEMANDA.includes(n)):tabelas.filter(t=>CARREGADORES[t]);
     const desconhecidas=completo?[]:tabelas.filter(t=>!CARREGADORES[t]);
     if(desconhecidas.length) console.warn('loadData: tabela sem carregador, ignorada:',desconhecidas);
     await Promise.all(nomes.map(n=>CARREGADORES[n]()));
@@ -3317,7 +3418,7 @@ async function loadDataInterno(tabelas){
     // de renderCardBancoPratico() dentro de renderInicio() — o resto (tabela, config, funções
     // de marcar feito, meta diária) continua todo intacto, só dormente.
     // await verificarFilaBancoPratico();
-    if(completo){ ultimaCargaCompletaEm=Date.now(); setTimeout(()=>verificarFilaFlash(true),0); }
+    if(completo){ ultimaCargaCompletaEm=Date.now(); setTimeout(()=>verificarFilaFlash(true),0); setTimeout(salvarRetrato,1500); }
     setSyncStatus('ok');
     renderTab(tabAtual,true);
     finalizarSplash();
@@ -3378,7 +3479,13 @@ function renderTab(tab,preservarScroll){
   document.getElementById('header-slot').innerHTML=renderHeaderZone();
   document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
   renderSubAbas(tab);
-  if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
+  if(atividadeAtual){
+    if(!textosProntos([atividadeAtual.nome])){
+      const nome=atividadeAtual.nome;
+      garantirTextosQuestoes([nome]).then(mudou=>{ if(mudou&&atividadeAtual&&atividadeAtual.nome===nome) renderTab(tabAtual,true); });
+    }
+    c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;
+  }
   encerrarRevisarSeSaiu(tab);
   if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); verificarFilaFlash(false); carregarRevisar(false); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
@@ -3550,6 +3657,7 @@ const RAIO_DETECCAO_ZONA=16; // pixels de tolerância ao redor de cada zona, em 
 async function abrirMarcacaoPendente(atividadePendenteId){
   const ap=atividadesPendentes.find(a=>a.id===atividadePendenteId);
   if(!ap) return;
+  await garantirQuestoesPendentes();
   resolucaoAtividadeId=atividadePendenteId;
   const tipoAbrevTitulo=rotuloTipoAtiv(ap);
   const logoMaiorTitulo=ap.curso==='Catavento'||ap.curso==='Curso Prático';
@@ -4184,16 +4292,22 @@ function mostrarAviso(titulo,texto){
 // dado. Isso já cortou uma contagem real (1.325 linhas no banco, 1.000 no app). Esta função
 // busca em blocos até acabar, e vale para qualquer tabela que possa passar de mil linhas.
 const LIMITE_PAGINA_SUPABASE=1000;
-async function buscarTudo(tabela,colunas='*'){
-  let todos=[],inicio=0;
-  for(;;){
-    const {data,error}=await sbDados.from(tabela).select(colunas)
-      .range(inicio, inicio+LIMITE_PAGINA_SUPABASE-1);
-    if(error) return {data:todos,error};
-    todos=todos.concat(data||[]);
-    if(!data||data.length<LIMITE_PAGINA_SUPABASE) break;   // veio página incompleta: acabou
-    inicio+=LIMITE_PAGINA_SUPABASE;
-  }
+// Páginas em PARALELO (5 Nov 2026): antes vinham uma atrás da outra — a banco_questoes, com
+// 15 mil linhas, eram 16 idas e voltas em série. Agora pergunta quantas linhas há (head) e
+// dispara todas as páginas de uma vez. A ordem por id é o que torna as páginas estáveis entre
+// si; sem ela o Postgres não garante a mesma ordem em consultas separadas. Repetidos por
+// inserção entre o count e as páginas são descartados pelo id.
+async function buscarTudo(tabela,colunas='*',montar){
+  const base=()=>{ let q=sbDados.from(tabela); return montar?montar(q):q; };
+  const {count,error:eCount}=await base().select('id',{count:'exact',head:true});
+  if(eCount) return {data:[],error:eCount};
+  const paginas=Math.max(1,Math.ceil((count||0)/LIMITE_PAGINA_SUPABASE));
+  const res=await Promise.all(Array.from({length:paginas},(_,i)=>
+    base().select(colunas).order('id').range(i*LIMITE_PAGINA_SUPABASE,(i+1)*LIMITE_PAGINA_SUPABASE-1)));
+  const comErro=res.find(r=>r.error);
+  if(comErro) return {data:[],error:comErro.error};
+  const vistos=new Set(), todos=[];
+  res.forEach(r=>(r.data||[]).forEach(l=>{ if(l.id==null||!vistos.has(l.id)){ if(l.id!=null) vistos.add(l.id); todos.push(l); } }));
   return {data:todos,error:null};
 }
 
@@ -10037,8 +10151,8 @@ function renderDetalhe(a){
         </div>`}
         ${tags?`<div class="tr">${tags}</div>`:''}
         ${e.formato==='verdadeiro_falso'
-          ?`<div class="enunciado-box">${escapeHtml(e.afirmacao||'')}</div>${(e.status==='Errei'&&e.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(e.correcao)}</div>`:''}`
-          :(e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:'')}
+          ?`<div class="enunciado-box">${escapeHtml(e.afirmacao||(textosProntos([e.idAtividade])?'':'Carregando…'))}</div>${(e.status==='Errei'&&e.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(e.correcao)}</div>`:''}`
+          :(e.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(e.motivo,e)}</div>`:(!textosProntos([e.idAtividade])?'<div class="enunciado-box" style="color:#999">Carregando enunciado…</div>':''))}
       </div>
     </div>`;
   }).join('');
@@ -10312,8 +10426,9 @@ function togglePub(pubId){
   d.classList.toggle('open',!open);
   if(c) c.classList.toggle('open',!open);
 }
-function abrirVerQuestaoCompleta(questaoId){
+async function abrirVerQuestaoCompleta(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
+  if(q&&!textosProntos([q.idAtividade])) await garantirTextosQuestoes([q.idAtividade]);
   // Múltipla escolha precisa do enunciado formatado (motivo); o Flash não usa esse campo — a
   // afirmação mora em outro lugar — então o guard não pode barrar as duas por igual.
   const ehFlash=q&&q.formato==='verdadeiro_falso';
@@ -11137,8 +11252,14 @@ function renderQuestoes(){
   lista=[...lista].sort((x,y)=>(parseInt(x.questao,10)||0)-(parseInt(y.questao,10)||0));
 
   const algumFiltroAtivo=filtStatus!==null||filtQCurso!=='todos'||filtQTipo!=='todos'||filtQAtividade!=='todos'||filtQQuestao!=='todos'||filtModulo!=='todos';
+  // Textos das questões listadas vêm sob demanda: pede e redesenha quando chegarem.
+  if(algumFiltroAtivo){
+    const idsAtiv=[...new Set(lista.map(q=>q.idAtividade).filter(Boolean))];
+    if(!textosProntos(idsAtiv)) garantirTextosQuestoes(idsAtiv).then(mudou=>{ if(mudou&&tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); });
+  }
 
   const pendentesAtivas=atividadesPendentes.filter(ap=>ap.status!=='Completo');
+  if(pendentesAtivas.length&&!questoesPendentesCarregadas) garantirQuestoesPendentes().then(()=>{ if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); });
   const ORDEM_CURSOS=['Curso H','Curso Prático','MPX','Catavento'];
   const gruposPorCurso=ORDEM_CURSOS.map(curso=>({
     curso,
@@ -11232,7 +11353,9 @@ function renderQuestoes(){
     </div>`;
   }
 
-  const cardPendentesHtml=pendentesAtivas.length?`
+  const cardPendentesHtml=!pendentesAtivas.length?'':!questoesPendentesCarregadas?`
+    ${sectionTitle('Cadernos pendentes','lista','#E6F1FB','#202A45')}
+    <div class="card-inicio"><div class="flash-vazio">Carregando…</div></div>`:`
     ${sectionTitle('Cadernos pendentes','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
     ${gruposPorCurso.map(g=>{
@@ -11251,7 +11374,7 @@ function renderQuestoes(){
         ${semCursoIdentificado.map(renderItemCaderno).join('')}
       </div>
     `:''}
-  </div>`:'';
+  </div>`;
 
   return `
     ${cardPendentesHtml}
@@ -11299,8 +11422,8 @@ function renderQuestoes(){
           </div>`}
           ${tags?`<div class="tr">${tags}</div>`:''}
           ${q.formato==='verdadeiro_falso'
-            ?`<div class="enunciado-box">${escapeHtml(q.afirmacao||'')}</div>${(q.status==='Errei'&&q.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(q.correcao)}</div>`:''}`
-            :(q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:'')}
+            ?`<div class="enunciado-box">${escapeHtml(q.afirmacao||(textosProntos([q.idAtividade])?'':'Carregando…'))}</div>${(q.status==='Errei'&&q.correcao)?`<div class="vq-nota" style="background:#EAF3DE;color:#27500A">${formatCorrecaoVF(q.correcao)}</div>`:''}`
+            :(q.motivo?`<div class="enunciado-box">${formatQuestaoCompleta(q.motivo,q)}</div>`:(!textosProntos([q.idAtividade])?'<div class="enunciado-box" style="color:#999">Carregando enunciado…</div>':''))}
         </div>
       </div>`;
     }).join('')}`:'<div class="empty">Nenhuma questão encontrada.</div>'}
