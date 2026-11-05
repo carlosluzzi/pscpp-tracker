@@ -5264,6 +5264,17 @@ let chuvaLigada=false;
 // diferentes), igual aos ajustes do apito.
 let chuvaVolume=parseFloat(localStorage.getItem('chuvaVolume')||'0.6');
 let chuvaCtx=null, chuvaGanho=null;
+// Ligar/desligar INSTANTÂNEO (5 Nov 2026): pausar o <audio> e dar play de novo custa uns
+// centenas de ms no iOS (o app perde e retoma a sessão de áudio). Então "desligar" só zera o
+// ganho — o arquivo continua rodando mudo — e "ligar" devolve o volume na hora. Se ficar
+// desligada por 2 minutos, aí sim pausa de verdade (pra não gastar bateria à toa).
+let chuvaPausaId=null, chuvaPreCarregada=false;
+function preCarregarChuva(){
+  const a=document.getElementById('chuva-audio');
+  if(!a||chuvaPreCarregada) return;
+  chuvaPreCarregada=true;
+  try{ a.preload='auto'; a.load(); }catch(e){}
+}
 function prepararGanhoChuva(a){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
@@ -5281,9 +5292,10 @@ function prepararGanhoChuva(a){
 function setChuvaVolume(v){
   chuvaVolume=parseFloat(v);
   localStorage.setItem('chuvaVolume',String(chuvaVolume));
+  if(!chuvaLigada){ const el=document.getElementById('chuva-vol-valor'); if(el) el.textContent=Math.round(chuvaVolume*100)+'%'; return; }
   const el=document.getElementById('chuva-vol-valor');
   if(el) el.textContent=Math.round(chuvaVolume*100)+'%';
-  if(chuvaGanho) chuvaGanho.gain.value=chuvaVolume;
+  if(chuvaGanho){ try{ chuvaGanho.gain.cancelScheduledValues(chuvaCtx.currentTime); }catch(e){} chuvaGanho.gain.value=chuvaVolume; }
 }
 const ICONE_CHUVA=t=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="${t}" height="${t}" style="flex-shrink:0"><path d="M20 16.6A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>`;
 function botaoChuva(){
@@ -5299,6 +5311,21 @@ function alternarChuva(ev){
   if(ev) ev.stopPropagation();
   const a=document.getElementById('chuva-audio');
   if(!a) return;
+  if(chuvaPausaId){ clearTimeout(chuvaPausaId); chuvaPausaId=null; }
+  if(!a.paused&&chuvaGanho){
+    // já está rodando: liga/desliga só pelo ganho — instantâneo
+    if(chuvaLigada){
+      chuvaGanho.gain.setTargetAtTime(0,chuvaCtx.currentTime,0.02);
+      chuvaLigada=false;
+      chuvaPausaId=setTimeout(()=>{ chuvaPausaId=null; if(!chuvaLigada) a.pause(); },120000);
+    }else{
+      if(chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
+      chuvaGanho.gain.setTargetAtTime(chuvaVolume,chuvaCtx.currentTime,0.02);
+      chuvaLigada=true;
+    }
+    atualizarBotoesChuva();
+    return;
+  }
   if(a.paused){
     a.loop=true;
     prepararGanhoChuva(a);   // dentro do mesmo gesto do toque, antes do play()
@@ -6359,6 +6386,7 @@ async function confirmarTamanhoInicioEIniciar(){
 }
 
 function abrirTimerFullscreen(pulandoValidacao,naoRetomarSePausado){
+  preCarregarChuva();   // começa a baixar/bufferizar a chuva antes do primeiro toque no botão
 
 
   // A validação de campos obrigatórios só faz sentido pra COMEÇAR uma sessão nova — ao restaurar
