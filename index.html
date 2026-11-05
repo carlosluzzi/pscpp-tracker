@@ -1186,8 +1186,6 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .mapa-linha.mapa-arrastando{background:#E6F1FB!important;box-shadow:0 2px 10px rgba(0,0,0,.12);position:relative;z-index:2}
 /* Flash de hoje — mesma grade/linha do Mapa, só com 3 colunas */
 .flash-cab,.flash-linha{grid-template-columns:minmax(0,1fr) 72px 96px}
-.flash-linha.flash-amanha .mapa-t,.flash-linha.flash-amanha .mapa-num{color:#bbb}
-.flash-tag{font-size:var(--fs-a);color:#bbb;margin-left:8px;flex-shrink:0}
 .flash-feitas{font-size:var(--fs-a);color:#aaa}
 .flash-vazio{padding:14px 10px;font-size:var(--fs-c);color:#888}
 @media(max-width:767px){
@@ -8188,7 +8186,7 @@ async function salvarSaudacaoSubtexto(novo){
 // capitulo=N, nome=X; o que não seguir o padrão vem da tabela fila_flash_mapa_trechos.
 // ============================================================================
 const FLASH_COTA_PCT={1:0.20,2:0.15,3:0.10};
-const FLASH_PISO=15, FLASH_TETO=60, FLASH_TETO_DIA=100;
+const FLASH_PISO=15, FLASH_TETO=60;   // sem teto diário (decisão de 5 Nov 2026): o volume do dia é a soma das cotas
 const FLASH_ESPERA_DIAS={2:7,3:30};
 let filaFlash=[], filaFlashMapa=[];
 let flashFeitas={};            // id da tarefa -> respostas contadas desde criado_em (preenchido por verificarFilaFlash)
@@ -8338,27 +8336,20 @@ function rotuloTrechoFlash(f){
   const cap=f.capitulo?(/^\d+$/.test(f.capitulo)?formatarCapituloExibicao(info,f.capitulo):f.capitulo):'';
   return nomePub(f.publicacao)+(cap?' – '+cap:'');
 }
-// Tarefas de hoje em ordem de prioridade, com o teto diário aplicado: rodada 1 antes da 2 antes
-// da 3; dentro da rodada, a mais antiga primeiro. O que passar de 100 cards fica como "amanhã".
+// Tarefas de hoje em ordem de prioridade: rodada 1 antes da 2 antes da 3; dentro da rodada, a
+// mais antiga primeiro. Todas aparecem — a única limitação de volume é a cota de cada tarefa.
 function tarefasFlashHoje(){
   const hoje=chaveDia(new Date());
-  const abertas=(filaFlash||[]).filter(f=>!f.concluidoEm&&f.dataPrevista<=hoje)
-    .sort((a,b)=>a.rodada-b.rodada||(a.criadoEm||'').localeCompare(b.criadoEm||''));
-  let soma=0;
-  return abertas.map(f=>{
-    const feitas=flashFeitas[f.id]||0;
-    const faltam=Math.max(0,f.cota-feitas);
-    const amanha=soma>0&&soma+faltam>FLASH_TETO_DIA;
-    if(!amanha) soma+=faltam;
-    return {...f,feitas,faltam,amanha};
-  });
+  return (filaFlash||[]).filter(f=>!f.concluidoEm&&f.dataPrevista<=hoje)
+    .sort((a,b)=>a.rodada-b.rodada||(a.criadoEm||'').localeCompare(b.criadoEm||''))
+    .map(f=>{ const feitas=flashFeitas[f.id]||0; return {...f,feitas,faltam:Math.max(0,f.cota-feitas)}; });
 }
 function renderCardFlashHoje(){
   const tarefas=tarefasFlashHoje();
-  const total=tarefas.filter(t=>!t.amanha).reduce((a,t)=>a+t.faltam,0);
+  const total=tarefas.reduce((a,t)=>a+t.faltam,0);
   const direita=`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${total} card${total===1?'':'s'}</span>`;
-  const linhas=tarefas.length?tarefas.map((t,i)=>`<div class="mapa-linha flash-linha${i%2===1?' mapa-par':''}${t.amanha?' flash-amanha':''}">
-      <div class="mapa-nome mapa-n1"><span class="mapa-seta" style="visibility:hidden">▶</span>${MAPA_DOC}<span class="mapa-t">${escapeHtml(rotuloTrechoFlash(t))}</span>${t.amanha?'<span class="flash-tag">amanhã</span>':''}</div>
+  const linhas=tarefas.length?tarefas.map((t,i)=>`<div class="mapa-linha flash-linha${i%2===1?' mapa-par':''}">
+      <div class="mapa-nome mapa-n1"><span class="mapa-seta" style="visibility:hidden">▶</span>${MAPA_DOC}<span class="mapa-t">${escapeHtml(rotuloTrechoFlash(t))}</span></div>
       <div class="mapa-num">${t.rodada}ª</div>
       <div class="mapa-num">${t.faltam}${t.feitas?`<span class="flash-feitas"> de ${t.cota}</span>`:''}</div>
     </div>`).join('')
