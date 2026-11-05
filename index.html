@@ -3371,7 +3371,22 @@ const CARREGADORES={
 
 // Derivações que dependem de mais de uma tabela — rodam depois de qualquer carga, completa ou
 // parcial (são baratas: só percorrem o que já está em memória).
+// CURSOS OCULTOS (5 Nov 2026): o Catavento continua sendo carregado e atualizado no banco, mas
+// some de todas as telas — atividades, questões, cadernos pendentes, calendário, filtros. O filtro
+// é feito aqui, na origem, pra nenhuma tela esquecer. Sessões de estudo (horas) NÃO são filtradas:
+// tempo estudado é tempo estudado. Pra reexibir, basta tirar da lista.
+const CURSOS_OCULTOS=new Set(['Catavento']);
+const cursoVisivel=c=>!CURSOS_OCULTOS.has(c);
+function ocultarCursos(){
+  const nomesOcultos=new Set(atividades.filter(a=>!cursoVisivel(a.curso)).map(a=>a.nome));
+  atividades=atividades.filter(a=>cursoVisivel(a.curso));
+  questoes=questoes.filter(q=>!nomesOcultos.has(q.idAtividade));
+  questoesExcluidas=questoesExcluidas.filter(q=>!nomesOcultos.has(q.idAtividade));
+  atividadesPendentes=atividadesPendentes.filter(a=>cursoVisivel(a.curso));
+  calendarioEventos=calendarioEventos.filter(e=>cursoVisivel(e.curso));
+}
 function posProcessarDados(){
+  ocultarCursos();
   // Recalcula os totais de cada atividade a partir das questões que sobraram. O registro em
   // "atividades" foi gravado no processamento e não sabe de exclusões feitas depois — sem
   // isso, o aproveitamento continuaria contando questões que não valem mais.
@@ -3660,7 +3675,7 @@ async function abrirMarcacaoPendente(atividadePendenteId){
   await garantirQuestoesPendentes();
   resolucaoAtividadeId=atividadePendenteId;
   const tipoAbrevTitulo=rotuloTipoAtiv(ap);
-  const logoMaiorTitulo=ap.curso==='Catavento'||ap.curso==='Curso Prático';
+  const logoMaiorTitulo=cursoIconeRedondo(ap.curso);
   const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:${logoMaiorTitulo?18:16}px;width:auto;object-fit:contain;aspect-ratio:${proporcaoLogosCursos[ap.curso]||4.4}">`:'';
   document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tipoAbrevTitulo}${ap.nome?' '+ap.nome:''}</span>`;
   document.getElementById('marcacao-fullscreen').classList.remove('hidden');
@@ -5398,7 +5413,7 @@ function renderTimerFullscreenConteudo(){
     : null;
   const cabecalhoCaderno = cadernoTimer ? `
       ${logosCursos[cadernoTimer.curso]?`<img src="${logosCursos[cadernoTimer.curso]}" alt="${cadernoTimer.curso}"
-        style="height:${(cadernoTimer.curso==='Catavento'||cadernoTimer.curso==='Curso Prático')?20:18}px;
+        style="height:${cursoIconeRedondo(cadernoTimer.curso)?20:18}px;
         aspect-ratio:${proporcaoLogosCursos[cadernoTimer.curso]};display:block;margin:0 auto 10px;
         filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo">${cadernoTimer.curso}</div>`}
@@ -6507,7 +6522,7 @@ function renderCadernoTimerFullscreenConteudo(){
     <button class="tf-fechar" onclick="fecharCadernoTimerFullscreen()">✕</button>
     <div>
       ${ap&&logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}"
-        style="height:${(ap.curso==='Catavento'||ap.curso==='Curso Prático')?20:18}px;
+        style="height:${cursoIconeRedondo(ap.curso)?20:18}px;
         aspect-ratio:${proporcaoLogosCursos[ap.curso]};display:block;margin:0 auto 10px;
         filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>`}
@@ -7793,7 +7808,7 @@ function ativCard(a,clicavel=true){
       <span class="ativ-title">${tipoAbrev}${a.nome?' '+a.nome:''}</span>
       ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
     </div>
-    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
+    ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${cursoIconeRedondo(a.curso)?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
     <div class="ativ-metrics">
       <div class="ativ-metric"><div class="ativ-metric-val">${a.pontuacao?fmtPontos(a.pontuacao):'–'}</div><div class="ativ-metric-lbl">pontos</div></div>
       <div class="ativ-metric"><div class="ativ-metric-val" style="color:#854F0B">${a.aproveitamento?fmtPct(a.aproveitamento)+'%':'–'}</div><div class="ativ-metric-lbl">aproveitamento</div></div>
@@ -8104,7 +8119,7 @@ function renderCalendarioMes(){
     const evCurso=ev.find(e=>e.fonte==='curso'&&iconesCursos[e.tipo]);
     const iconeCurso=evCurso
       ? `<img src="${iconesCursos[evCurso.tipo]}" alt="${evCurso.tipo}"
-           class="cal-cel-icone${(evCurso.tipo==='Catavento'||evCurso.tipo==='Curso Prático')?' icone-redondo':''}"
+           class="cal-cel-icone${cursoIconeRedondo(evCurso.tipo)?' icone-redondo':''}"
            style="aspect-ratio:${proporcaoIcones[evCurso.tipo]||1}" loading="lazy">`
       : '';
     return_cel=`<div class="cal-cel${ehHoje?' cal-hoje':''}${passou?' cal-passou':''}${calendarioDiaSel===dia?' cal-sel':''}"
@@ -8156,7 +8171,7 @@ function renderDetalheDia(){
         <div class="cal-item-corpo">
           ${e.fonte==='curso'&&logosCursos[e.tipo]
             ? `<img src="${logosCursos[e.tipo]}" alt="${e.tipo}"
-                 class="cal-item-logo${(e.tipo==='Catavento'||e.tipo==='Curso Prático')?' logo-maior':''}"
+                 class="cal-item-logo${cursoIconeRedondo(e.tipo)?' logo-maior':''}"
                  style="aspect-ratio:${proporcaoLogosCursos[e.tipo]||4.4}" loading="lazy">`
             : `<span class="cal-item-tag cal-ponto-${e.fonte}">${e.tipo}</span>`}
           <span class="cal-item-txt">${escapeHtml(e.texto)}${e.minutos?' · '+e.minutos+'min':''}</span>
@@ -9344,7 +9359,10 @@ async function marcarFocoEstudado(chave){
 
 // PRÓXIMOS SIMULADOS / EXERCÍCIOS
 const mesesAbrev=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-const tipoLabelCurso={'Curso H':'SIMULADO','Curso Prático':'SIMULADO','MPX':'CADERNO','Catavento':'CADERNO'};
+const tipoLabelCurso={'Curso H':'SIMULADO','Curso Prático':'SIMULADO','MPX':'CADERNO','Catavento':'CADERNO','FSA Quest':'CADERNO'};
+// Cursos com ícone redondo (os outros são logos largas) — decide o tamanho/forma em vários lugares.
+const CURSOS_ICONE_REDONDO=new Set(['Catavento','Curso Prático','FSA Quest']);
+const cursoIconeRedondo=c=>CURSOS_ICONE_REDONDO.has(c);
 // Turma Especial de Exercícios: é um TIPO dentro do Curso H, não um curso novo. Fica aqui numa
 // constante porque o texto tem que bater caractere por caractere com o que o script grava em
 // atividades_pendentes.tipo e com a opção do select.
@@ -9365,23 +9383,25 @@ const iconesCursos={
   'Curso Prático':'assets/banco-pratico-icon.png',
   'MPX':'assets/icone-mpx.png',
   'Catavento':'assets/icone-catavento.png',
+  'FSA Quest':'assets/icone-fsa-quest.png',
 };
 // Proporção largura/altura, medida nos arquivos. Sem isso a imagem ocupa zero espaço até
 // carregar e empurra o layout na primeira rolagem.
-const proporcaoIcones={'Curso H':0.868,'Curso Prático':1,'MPX':2.874,'Catavento':1.018};
+const proporcaoIcones={'Curso H':0.868,'Curso Prático':1,'MPX':2.874,'Catavento':1.018,'FSA Quest':1};
 
 const logosCursos={
   'Curso H':'assets/logo-curso-h.png',
   'Curso Prático':'assets/logo-curso-pratico.png',
   'MPX':'assets/logo-mpx.png',
   'Catavento':'assets/logo-catavento.png',
+  'FSA Quest':'assets/logo-fsa-quest.png',
   'Pilotquest':'assets/pilotquest-logo.png',
 };
 // Proporção real (largura/altura) de cada logo — usada com aspect-ratio no CSS pra reservar o
 // espaço exato ANTES da imagem carregar. Sem isso, o navegador só sabe a largura real depois de
 // baixar a imagem, causando um salto de layout bem na hora que ela chega — se isso coincidir com
 // o momento em que a pessoa começa a rolar a tela, trava o primeiro gesto de scroll.
-const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025,'Pilotquest':4.903};
+const proporcaoLogosCursos={'Curso H':4.425,'Curso Prático':9.333,'MPX':4.125,'Catavento':6.025,'FSA Quest':5.05,'Pilotquest':4.903};
 // Meta diária do Banco Prático. Estava junto do card de calendário que foi removido — só a
 // posição no arquivo era acidental, a função não tinha relação com aquele card.
 function editarMetaDiaria(){
@@ -10160,7 +10180,7 @@ function renderDetalhe(a){
   const tipoAbrevDet=rotuloTipoAtiv(a);
   return `
     <div class="detalhe-linha-topo">
-      ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${(a.curso==='Catavento'||a.curso==='Curso Prático')?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
+      ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${cursoIconeRedondo(a.curso)?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:'<span></span>'}
       <button class="btn-revisar-caderno" onclick="revisarCaderno('${a.id}')">Revisar caderno</button>
     </div>
     <div style="height:10px"></div>
@@ -11215,6 +11235,50 @@ function badgesQuestao(q){
   </div>`;
 }
 
+// CADERNOS QUE O CALENDÁRIO DIZ QUE JÁ ACONTECERAM MAS NÃO FORAM ENVIADOS (5 Nov 2026)
+// Cruza calendario_eventos (data ≤ hoje) com atividades feitas + cadernos pendentes. O que não
+// casar vira uma linha "esperando upload" no grupo do curso, pra lembrar de pôr o PDF na pasta.
+// Chave por curso: Curso Prático = número ("217 (Super Simulado)" → 217); Curso H = "02 SET"
+// contra o começo do nome ("02 SET 2026"), tanto os 01 quanto os 02; MPX = primeira palavra do
+// tema ("Economia - Economia Marítima" → economia) contra o nome/arquivo enviado — e só a ÚLTIMA
+// aula já passada conta (decisão do Carlos: as anteriores ele não vai mais fazer). Evento futuro
+// não aparece — só depois da data.
+function chaveEventoCurso(curso,texto){
+  const t=String(texto||'');
+  if(curso==='Curso Prático') return (t.match(/\d+/)||[''])[0];
+  if(curso==='Curso H') return normalizarBusca(t).trim().split(/\s+/).slice(0,2).join(' ');
+  if(curso==='MPX') return normalizarBusca(t.split(/\s[-–—]\s/)[0]).trim().split(/\s+/)[0]||'';
+  return normalizarBusca(t).trim();
+}
+function eventosEsperandoUpload(){
+  const hoje=chaveDia(new Date());
+  const enviados=new Set();
+  atividades.forEach(a=>enviados.add(a.curso+'|'+chaveEventoCurso(a.curso,a.nome)));
+  atividadesPendentes.forEach(a=>{
+    if(!a.curso) return;
+    enviados.add(a.curso+'|'+chaveEventoCurso(a.curso,a.nome));
+    if(a.nomeArquivoOriginal) enviados.add(a.curso+'|'+chaveEventoCurso(a.curso,a.nomeArquivoOriginal.replace(/\.pdf$/i,'')));
+  });
+  let passados=(calendarioEventos||[]).filter(e=>e.data&&e.data<=hoje&&e.curso&&tipoLabelCurso[e.curso]);
+  const ultimoMpx=passados.filter(e=>e.curso==='MPX').sort((a,b)=>b.data.localeCompare(a.data))[0];
+  passados=passados.filter(e=>e.curso!=='MPX'||e===ultimoMpx);
+  return passados.map(e=>{
+    const chave=chaveEventoCurso(e.curso,e.curso==='MPX'?e.tema:e.numero);
+    if(!chave||enviados.has(e.curso+'|'+chave)) return null;
+    const rotulo=e.curso==='MPX'?(String(e.tema||'').split(/\s[-–—]\s/)[0].trim()):(e.curso==='Curso Prático'?chave:String(e.numero||''));
+    return {curso:e.curso,chave,rotulo,data:e.data,id:e.id};
+  }).filter(Boolean).sort((a,b)=>a.data.localeCompare(b.data));
+}
+function renderItemEsperandoUpload(ev){
+  const dataObj=new Date(ev.data+'T00:00:00');
+  const quando=`${dataObj.getDate()} de ${mesesExtenso[dataObj.getMonth()]}`;
+  return `<div class="cadernos-item-leve" style="border-left:3px solid #ccc;padding-left:8px">
+    <div class="prox-left">
+      <span class="prox-nome" style="color:#444441">${tipoLabelCurso[ev.curso]||'CADERNO'} ${escapeHtml(ev.rotulo)}</span>
+      <span class="prox-modalidade" style="color:#888">esperando upload · ${quando}</span>
+    </div>
+  </div>`;
+}
 function questoesComCurso(){
   return questoes.map(q=>{
     const ativ=atividades.find(a=>a.nome===q.idAtividade);
@@ -11260,12 +11324,14 @@ function renderQuestoes(){
 
   const pendentesAtivas=atividadesPendentes.filter(ap=>ap.status!=='Completo');
   if(pendentesAtivas.length&&!questoesPendentesCarregadas) garantirQuestoesPendentes().then(()=>{ if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); });
-  const ORDEM_CURSOS=['Curso H','Curso Prático','MPX','Catavento'];
+  const esperando=eventosEsperandoUpload();
+  const ORDEM_CURSOS=['Curso H','Curso Prático','MPX','FSA Quest','Catavento'];
   const gruposPorCurso=ORDEM_CURSOS.map(curso=>({
     curso,
     atividades:pendentesAtivas.filter(ap=>ap.curso===curso)
       .sort((a,b)=>(a.nome||'').localeCompare(b.nome||'',undefined,{numeric:true,sensitivity:'base'})),
-  })).filter(g=>g.atividades.length);
+    esperando:esperando.filter(e=>e.curso===curso),
+  })).filter(g=>g.atividades.length||g.esperando.length);
   // atividades sem curso identificado (ex: Aguardando Confirmação) ficam num grupo à parte, no fim
   const semCursoIdentificado=pendentesAtivas.filter(ap=>!ORDEM_CURSOS.includes(ap.curso));
 
@@ -11353,19 +11419,20 @@ function renderQuestoes(){
     </div>`;
   }
 
-  const cardPendentesHtml=!pendentesAtivas.length?'':!questoesPendentesCarregadas?`
+  const cardPendentesHtml=!(pendentesAtivas.length||esperando.length)?'':(pendentesAtivas.length&&!questoesPendentesCarregadas)?`
     ${sectionTitle('Cadernos pendentes','lista','#E6F1FB','#202A45')}
     <div class="card-inicio"><div class="flash-vazio">Carregando…</div></div>`:`
     ${sectionTitle('Cadernos pendentes','lista','#E6F1FB','#202A45')}
     <div class="card-inicio">
     ${gruposPorCurso.map(g=>{
-      const logoMaiorGrupo=g.curso==='Catavento'||g.curso==='Curso Prático';
+      const logoMaiorGrupo=cursoIconeRedondo(g.curso);
       return `
       <div class="cadernos-grupo-curso">
         <div class="cadernos-grupo-header">
           ${logosCursos[g.curso]?`<img src="${logosCursos[g.curso]}" alt="${g.curso}" class="${logoMaiorGrupo?'prox-logo-curso-18':'prox-logo-curso'}" style="aspect-ratio:${proporcaoLogosCursos[g.curso]||4.4}">`:`<span>${g.curso}</span>`}
         </div>
         ${g.atividades.map(renderItemCaderno).join('')}
+        ${g.esperando.map(renderItemEsperandoUpload).join('')}
       </div>
     `;}).join('')}
     ${semCursoIdentificado.length?`
