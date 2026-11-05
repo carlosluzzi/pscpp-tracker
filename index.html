@@ -1184,6 +1184,12 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .mapa-pegador{touch-action:none;cursor:grab}
 .mapa-sem-acao{visibility:hidden}
 .mapa-linha.mapa-arrastando{background:#E6F1FB!important;box-shadow:0 2px 10px rgba(0,0,0,.12);position:relative;z-index:2}
+/* Flash de hoje — mesma grade/linha do Mapa, só com 3 colunas */
+.flash-cab,.flash-linha{grid-template-columns:minmax(0,1fr) 72px 96px}
+.flash-linha.flash-amanha .mapa-t,.flash-linha.flash-amanha .mapa-num{color:#bbb}
+.flash-tag{font-size:var(--fs-a);color:#bbb;margin-left:8px;flex-shrink:0}
+.flash-feitas{font-size:var(--fs-a);color:#aaa}
+.flash-vazio{padding:14px 10px;font-size:var(--fs-c);color:#888}
 @media(max-width:767px){
   .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) 84px 72px}
   .mapa-linha>div,.mapa-cab>div{padding:0 6px}
@@ -2994,6 +3000,16 @@ const CARREGADORES={
       if(orig&&custom) apelidos[orig]=custom;
     });
   },
+  fila_flash: async()=>{
+    const {data,error}=await sbDados.from('fila_flash').select('*'); lancarSe(error);
+    filaFlash=(data||[]).map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao,capitulo:p.capitulo||'',rodada:p.rodada,
+      cota:p.cota,totalCards:p.total_cards,dataPrevista:p.data_prevista,criadoEm:p.criado_em,
+      respondidosBaseline:p.respondidos_baseline||0,concluidoEm:p.concluido_em||null}));
+  },
+  fila_flash_mapa_trechos: async()=>{
+    const {data,error}=await sbDados.from('fila_flash_mapa_trechos').select('*');
+    filaFlashMapa=error?[]:(data||[]).map(p=>({publicacao:p.publicacao,capituloTracker:p.capitulo_tracker,filtroId:p.filtro_id}));
+  },
   fila_banco_pratico: async()=>{
     const {data:filaRes,error}=await sbDados.from('fila_banco_pratico').select('*'); lancarSe(error);
     filaBancoPratico=filaRes.map(p=>({
@@ -3135,9 +3151,10 @@ const CARREGADORES={
   bibliografia: async()=>{
     await carregarAjustesBibliografia();
     try{
-      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
+      const {data:bibRes,error:eBib}=await sbAuth.from('bibliografia').select('id,autor,titulo,modulo_pscpp,nome_exibicao,capitulo_unico,capitulos_validos,rotulo_capitulo');
       if(eBib) throw eBib;
       bibliografia=bibRes.map(p=>({
+        pqIds:[p.id],          // id(s) no Pilotquest — usado pela Fila de flash pra achar os cards
         modulo:p.modulo_pscpp,
         nome:p.nome_exibicao||p.titulo,
         capituloUnico:p.capitulo_unico||false,
@@ -3175,7 +3192,8 @@ const CARREGADORES={
       bibliografia.forEach(b=>{
         const chave=b.modulo+'|'+b.nome;
         const existente=porObra.get(chave);
-        if(!existente){ porObra.set(chave,{...b,capitulosValidos:[...b.capitulosValidos]}); return; }
+        if(!existente){ porObra.set(chave,{...b,capitulosValidos:[...b.capitulosValidos],pqIds:[...(b.pqIds||[])]}); return; }
+        existente.pqIds=[...new Set([...(existente.pqIds||[]),...(b.pqIds||[])])];
         existente.capitulosValidos=[...new Set([...existente.capitulosValidos,...b.capitulosValidos].map(String))]
           .sort((x,y)=>x.localeCompare(y,'pt',{numeric:true}));
         existente.capituloUnico=existente.capituloUnico&&b.capituloUnico;
@@ -3267,7 +3285,7 @@ async function loadDataInterno(tabelas){
     // de renderCardBancoPratico() dentro de renderInicio() — o resto (tabela, config, funções
     // de marcar feito, meta diária) continua todo intacto, só dormente.
     // await verificarFilaBancoPratico();
-    if(completo) ultimaCargaCompletaEm=Date.now();
+    if(completo){ ultimaCargaCompletaEm=Date.now(); setTimeout(()=>verificarFilaFlash(true),0); }
     setSyncStatus('ok');
     renderTab(tabAtual,true);
     finalizarSplash();
@@ -3329,7 +3347,7 @@ function renderTab(tab,preservarScroll){
   document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
   renderSubAbas(tab);
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
-  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); }
+  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); verificarFilaFlash(false); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
   else if(tab==='aprovado') c.innerHTML=renderAprovado();
@@ -5078,6 +5096,33 @@ function renderAprovado(){
 // SOM DE CHUVA — liga e desliga quando quiser (card do timer e tela cheia). O play() precisa vir
 // direto do toque (regra do iOS), por isso nada de await antes dele.
 let chuvaLigada=false;
+// Volume próprio da chuva (independente do volume do iPad, que é um só pro apito e pra chuva).
+// No iOS a página não controla audio.volume — então o <audio> passa por um nó de ganho da Web
+// Audio API, e o slider mexe nesse ganho. Guardado por aparelho (fone × caixa pedem níveis
+// diferentes), igual aos ajustes do apito.
+let chuvaVolume=parseFloat(localStorage.getItem('chuvaVolume')||'0.6');
+let chuvaCtx=null, chuvaGanho=null;
+function prepararGanhoChuva(a){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!chuvaCtx){
+      chuvaCtx=new AC();
+      const fonte=chuvaCtx.createMediaElementSource(a);   // só pode ser criado UMA vez por elemento
+      chuvaGanho=chuvaCtx.createGain();
+      fonte.connect(chuvaGanho); chuvaGanho.connect(chuvaCtx.destination);
+    }
+    chuvaGanho.gain.value=chuvaVolume;
+    if(chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
+  }catch(e){}
+}
+function setChuvaVolume(v){
+  chuvaVolume=parseFloat(v);
+  localStorage.setItem('chuvaVolume',String(chuvaVolume));
+  const el=document.getElementById('chuva-vol-valor');
+  if(el) el.textContent=Math.round(chuvaVolume*100)+'%';
+  if(chuvaGanho) chuvaGanho.gain.value=chuvaVolume;
+}
 const ICONE_CHUVA=t=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="${t}" height="${t}" style="flex-shrink:0"><path d="M20 16.6A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>`;
 function botaoChuva(){
   return `<span class="info-icone chuva-btn${chuvaLigada?' ligada':''}" onclick="alternarChuva(event)">${ICONE_CHUVA(14)} ${chuvaLigada?'chuva ligada':'chuva'}</span>`;
@@ -5094,6 +5139,7 @@ function alternarChuva(ev){
   if(!a) return;
   if(a.paused){
     a.loop=true;
+    prepararGanhoChuva(a);   // dentro do mesmo gesto do toque, antes do play()
     const p=a.play();
     chuvaLigada=true;
     if(p&&p.catch) p.catch(()=>{
@@ -5262,6 +5308,13 @@ function renderTimerFullscreenConteudo(){
       </div>
       <input type="range" class="ritmo-slider" min="0" max="1" step="0.05" value="${apitoVolume}"
         oninput="setApitoVolume(this.value)">
+
+      <div class="tf-ajustes-topo" style="margin-top:12px">
+        <span>Volume da chuva</span>
+        <span id="chuva-vol-valor">${Math.round(chuvaVolume*100)}%</span>
+      </div>
+      <input type="range" class="ritmo-slider" min="0" max="1" step="0.05" value="${chuvaVolume}"
+        oninput="setChuvaVolume(this.value)">
     </div>
     <div>
       ${cabecalhoSimulado?cabecalhoSimulado:cadernoTimer?cabecalhoCaderno:`
@@ -7197,9 +7250,11 @@ async function confirmarSalvarTimer(){
     }else{
       await agendarRevisaoSeLeitura(timerModulo,timerPublicacao,timerTipo,timerCapitulo);
     }
+    const trechoLido={modulo:timerModulo,publicacao:timerPublicacao,tipo:timerTipo,capitulo:timerCapitulo};
     fecharConfirmarSalvarTimer();
     if(ehDesvio) restaurarDoDesvio(); else zerarTimer();
     await loadData(['sessoes_estudo','tamanho_capitulos','revisoes_espacadas']);
+    verificarConclusaoLeituraFlash(trechoLido.modulo,trechoLido.publicacao,trechoLido.tipo,trechoLido.capitulo);
   }catch(e){
     // Em vez de só avisar e deixar o Carlos tentar de novo (e perder tudo se fechar o app), a
     // sessão entra na fila e é enviada sozinha quando a conexão voltar. O cronômetro é zerado
@@ -7294,6 +7349,7 @@ async function salvarRegistroManual(){
     await agendarRevisaoSeLeitura(modulo,publicacao,tipo,numCapitulo);
     fecharRegistroManual();
     await loadData(['sessoes_estudo','revisoes_espacadas']);
+    verificarConclusaoLeituraFlash(modulo,publicacao,tipo,numCapitulo);
   }catch(e){
     // Guarda e reenvia sozinho, em vez de só avisar e perder o registro se o app fechar.
     enfileirar('sessoes_estudo','insert',dadosSessao,`sessão de ${tipo} de ${duracao} min`);
@@ -8115,12 +8171,218 @@ async function salvarSaudacaoSubtexto(novo){
   }
 }
 
+// ============================================================================
+// FILA DE FLASH PÓS-LEITURA (5 Nov 2026)
+//
+// Quando uma leitura é CONCLUÍDA (soma de caracteres_lidos das sessões de Leitura do trecho ≥
+// tamanho_capitulos.caracteres_totais), nasce uma tarefa "fazer N flashs desse trecho" no
+// Pilotquest. Três rodadas: 20% dos cards no dia seguinte, 15% sete dias depois de concluir a
+// primeira, 10% trinta dias depois de concluir a segunda. Piso 15, teto 60, nunca mais do que
+// existe. A tarefa some sozinha quando as respostas minhas a cards do trecho, dadas DEPOIS da
+// criação da tarefa (log_respostas_vf.respondida_em ≥ criado_em), chegam à cota.
+//
+// Os cards vêm do Pilotquest pelo cliente logado (sbAuth): a RLS de log_respostas_vf já limita
+// ao próprio usuário; questoes_vf é filtrada por autor_id = usuário logado.
+// Trecho = capítulo inteiro → questoes_vf.capitulo. Trecho = Part → filtro do Pilotquest
+// (filtros_capitulo_vf + questoes_vf_filtros): rótulo "Chapter N – X" resolve sozinho para
+// capitulo=N, nome=X; o que não seguir o padrão vem da tabela fila_flash_mapa_trechos.
+// ============================================================================
+const FLASH_COTA_PCT={1:0.20,2:0.15,3:0.10};
+const FLASH_PISO=15, FLASH_TETO=60, FLASH_TETO_DIA=100;
+const FLASH_ESPERA_DIAS={2:7,3:30};
+let filaFlash=[], filaFlashMapa=[];
+let flashFeitas={};            // id da tarefa -> respostas contadas desde criado_em (preenchido por verificarFilaFlash)
+let flashVerificando=false, flashUltimaVerificacao=0;
+let pqUsuarioId=null;
+
+function cotaFlash(rodada,totalCards){
+  if(!totalCards) return 0;
+  const bruta=Math.ceil(totalCards*(FLASH_COTA_PCT[rodada]||0));
+  return Math.min(totalCards, Math.min(FLASH_TETO, Math.max(FLASH_PISO,bruta)));
+}
+async function pqUsuario(){
+  if(pqUsuarioId) return pqUsuarioId;
+  try{ const {data}=await sbAuth.auth.getUser(); pqUsuarioId=data&&data.user?data.user.id:null; }catch(e){ pqUsuarioId=null; }
+  return pqUsuarioId;
+}
+// Paginação no Pilotquest (mesmo limite silencioso de 1000 linhas do PostgREST).
+async function buscarTudoPQ(montar){
+  let todos=[],inicio=0;
+  for(;;){
+    const {data,error}=await montar().range(inicio,inicio+LIMITE_PAGINA_SUPABASE-1);
+    if(error) throw error;
+    todos=todos.concat(data||[]);
+    if(!data||data.length<LIMITE_PAGINA_SUPABASE) break;
+    inicio+=LIMITE_PAGINA_SUPABASE;
+  }
+  return todos;
+}
+function pqIdsDaPublicacao(modulo,publicacao){
+  const b=bibliografia.find(x=>x.modulo===modulo&&x.nome===publicacao)||bibliografia.find(x=>x.nome===publicacao);
+  return (b&&b.pqIds)||[];
+}
+// Ids (no Pilotquest) dos MEUS cards do trecho. [] quando o trecho não tem cards ou não foi
+// possível resolver — nesse caso nenhuma tarefa é criada (não há o que fazer).
+async function cardsDoTrechoFlash(modulo,publicacao,capitulo){
+  const uid=await pqUsuario();
+  const bibIds=pqIdsDaPublicacao(modulo,publicacao);
+  if(!uid||!bibIds.length) return [];
+  const cap=String(capitulo||'');
+  // 1) Part: mapeamento explícito ou padrão "Chapter N – X"
+  let filtroId=null;
+  const mapa=filaFlashMapa.find(m=>m.publicacao===publicacao&&m.capituloTracker===cap);
+  if(mapa) filtroId=mapa.filtroId;
+  let capPQ=cap;
+  if(!filtroId){
+    const m=cap.match(/^Chapter\s+(\S+)\s+[–—-]\s+(.+)$/i);
+    if(m){
+      const {data}=await sbAuth.from('filtros_capitulo_vf').select('id,capitulo').in('bibliografia_id',bibIds).eq('capitulo',m[1]).eq('nome',m[2].trim()).limit(1);
+      if(data&&data.length){ filtroId=data[0].id; capPQ=data[0].capitulo; }
+    }
+  }
+  if(filtroId){
+    const {data:f}=await sbAuth.from('filtros_capitulo_vf').select('capitulo').eq('id',filtroId).maybeSingle();
+    if(f&&f.capitulo) capPQ=f.capitulo;
+    const ligadas=await buscarTudoPQ(()=>sbAuth.from('questoes_vf_filtros').select('questao_vf_id').eq('filtro_id',filtroId));
+    const setFiltro=new Set(ligadas.map(l=>l.questao_vf_id));
+    // Meus cards do capítulo, cruzados em memória com o filtro — evita mandar centenas de ids na URL.
+    const meus=await buscarTudoPQ(()=>{ let q=sbAuth.from('questoes_vf').select('id').in('bibliografia_id',bibIds).eq('autor_id',uid); return capPQ?q.eq('capitulo',capPQ):q; });
+    return meus.map(q=>q.id).filter(id=>setFiltro.has(id));
+  }
+  // 2) Capítulo inteiro
+  const meus=await buscarTudoPQ(()=>{ let q=sbAuth.from('questoes_vf').select('id').in('bibliografia_id',bibIds).eq('autor_id',uid); return cap?q.eq('capitulo',cap):q; });
+  return meus.map(q=>q.id);
+}
+async function respostasMinhasDesde(desdeIso){
+  return buscarTudoPQ(()=>{ let q=sbAuth.from('log_respostas_vf').select('questao_vf_id,respondida_em'); return desdeIso?q.gte('respondida_em',desdeIso):q; });
+}
+function leituraConcluidaFlash(modulo,publicacao,capitulo){
+  const cap=String(capitulo||'');
+  const t=tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,cap)];
+  if(!t||!t.caracteresTotais) return false;
+  const soma=(sessoesEstudo||[]).filter(s=>s.tipo==='Leitura'&&s.modulo===modulo&&(s.publicacao||'')===publicacao&&String(s.capitulo||'')===cap&&s.caracteresLidos>0)
+    .reduce((a,s)=>a+s.caracteresLidos,0);
+  return soma>=t.caracteresTotais;
+}
+async function inserirTarefaFlash({modulo,publicacao,capitulo,rodada,dataPrevista,ids}){
+  const total=ids.length;
+  if(!total) return null;
+  let baseline=0;
+  try{
+    const set=new Set(ids);
+    const logs=await respostasMinhasDesde(null);
+    baseline=logs.filter(l=>set.has(l.questao_vf_id)).length;
+  }catch(e){}
+  const linha={modulo,publicacao,capitulo:String(capitulo||''),rodada,cota:cotaFlash(rodada,total),total_cards:total,
+    data_prevista:dataPrevista,respondidos_baseline:baseline};
+  const {error}=await sbDados.from('fila_flash').insert(linha);
+  if(error){ console.error('fila_flash insert:',error); return null; }
+  return linha;
+}
+// Chamado depois de salvar uma sessão de Leitura (cronômetro ou registro manual), já com
+// sessoesEstudo recarregado. Cria a rodada 1 se a leitura acabou de ficar concluída e o trecho
+// ainda não tem tarefa aberta de nenhuma rodada.
+async function verificarConclusaoLeituraFlash(modulo,publicacao,tipo,capitulo){
+  if(tipo!=='Leitura'||!modulo||!publicacao) return;
+  const cap=String(capitulo||'');
+  try{
+    if(!leituraConcluidaFlash(modulo,publicacao,cap)) return;
+    if((filaFlash||[]).some(f=>!f.concluidoEm&&f.modulo===modulo&&f.publicacao===publicacao&&f.capitulo===cap)) return;
+    const ids=await cardsDoTrechoFlash(modulo,publicacao,cap);
+    if(!ids.length) return;
+    const amanha=new Date(); amanha.setDate(amanha.getDate()+1);
+    const criada=await inserirTarefaFlash({modulo,publicacao,capitulo:cap,rodada:1,dataPrevista:chaveDia(amanha),ids});
+    if(criada) await loadData(['fila_flash']);
+  }catch(e){ console.error('Fila de flash (conclusão de leitura):',e); }
+}
+// Conta as respostas de cada tarefa aberta e fecha as que bateram a cota, abrindo a próxima rodada.
+// Roda a cada carga completa e ao abrir a Início (no máximo uma vez por minuto).
+async function verificarFilaFlash(forcar){
+  if(flashVerificando||!sbAuth) return;
+  const abertas=(filaFlash||[]).filter(f=>!f.concluidoEm);
+  if(!abertas.length) return;
+  if(!forcar&&Date.now()-flashUltimaVerificacao<60000) return;
+  flashVerificando=true;
+  try{
+    const desde=abertas.map(f=>f.criadoEm).sort()[0];
+    const logs=await respostasMinhasDesde(desde);
+    let mudou=false;
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    for(const f of abertas){
+      const ids=await cardsDoTrechoFlash(f.modulo,f.publicacao,f.capitulo);
+      const set=new Set(ids);
+      const desdeMs=new Date(f.criadoEm).getTime();
+      const feitas=logs.filter(l=>set.has(l.questao_vf_id)&&new Date(l.respondida_em).getTime()>=desdeMs).length;
+      flashFeitas[f.id]=feitas;
+      if(feitas>=f.cota){
+        const agora=new Date();
+        const {error}=await sbDados.from('fila_flash').update({concluido_em:agora.toISOString()}).eq('id',f.id).is('concluido_em',null);
+        if(error) continue;
+        mudou=true;
+        if(f.rodada<3){
+          const prox=f.rodada+1;
+          const d=new Date(agora); d.setDate(d.getDate()+FLASH_ESPERA_DIAS[prox]);
+          const jaTem=(filaFlash||[]).some(x=>!x.concluidoEm&&x.rodada===prox&&x.modulo===f.modulo&&x.publicacao===f.publicacao&&x.capitulo===f.capitulo);
+          if(!jaTem) await inserirTarefaFlash({modulo:f.modulo,publicacao:f.publicacao,capitulo:f.capitulo,rodada:prox,dataPrevista:chaveDia(d),ids});
+        }
+      }
+    }
+    flashUltimaVerificacao=Date.now();
+    if(mudou) await loadData(['fila_flash']);
+    else redesenharFlashHoje();
+  }catch(e){ console.error('Fila de flash (verificação):',e); }
+  finally{ flashVerificando=false; }
+}
+function rotuloTrechoFlash(f){
+  const info=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
+  const cap=f.capitulo?(/^\d+$/.test(f.capitulo)?formatarCapituloExibicao(info,f.capitulo):f.capitulo):'';
+  return nomePub(f.publicacao)+(cap?' – '+cap:'');
+}
+// Tarefas de hoje em ordem de prioridade, com o teto diário aplicado: rodada 1 antes da 2 antes
+// da 3; dentro da rodada, a mais antiga primeiro. O que passar de 100 cards fica como "amanhã".
+function tarefasFlashHoje(){
+  const hoje=chaveDia(new Date());
+  const abertas=(filaFlash||[]).filter(f=>!f.concluidoEm&&f.dataPrevista<=hoje)
+    .sort((a,b)=>a.rodada-b.rodada||(a.criadoEm||'').localeCompare(b.criadoEm||''));
+  let soma=0;
+  return abertas.map(f=>{
+    const feitas=flashFeitas[f.id]||0;
+    const faltam=Math.max(0,f.cota-feitas);
+    const amanha=soma>0&&soma+faltam>FLASH_TETO_DIA;
+    if(!amanha) soma+=faltam;
+    return {...f,feitas,faltam,amanha};
+  });
+}
+function renderCardFlashHoje(){
+  const tarefas=tarefasFlashHoje();
+  const total=tarefas.filter(t=>!t.amanha).reduce((a,t)=>a+t.faltam,0);
+  const direita=`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${total} card${total===1?'':'s'}</span>`;
+  const linhas=tarefas.length?tarefas.map((t,i)=>`<div class="mapa-linha flash-linha${i%2===1?' mapa-par':''}${t.amanha?' flash-amanha':''}">
+      <div class="mapa-nome mapa-n1"><span class="mapa-seta" style="visibility:hidden">▶</span>${MAPA_DOC}<span class="mapa-t">${escapeHtml(rotuloTrechoFlash(t))}</span>${t.amanha?'<span class="flash-tag">amanhã</span>':''}</div>
+      <div class="mapa-num">${t.rodada}ª</div>
+      <div class="mapa-num">${t.faltam}${t.feitas?`<span class="flash-feitas"> de ${t.cota}</span>`:''}</div>
+    </div>`).join('')
+    :'<div class="flash-vazio">Nenhum flash pendente.</div>';
+  return `<div class="card-inicio" id="flash-hoje-card">
+    ${sectionTitle('Flash de hoje','relogio','#E6F1FB','#202A45',{direita})}
+    <div class="mapa-lista">
+      <div class="mapa-cab flash-cab"><div>Trecho</div><div>Rodada</div><div>Faltam</div></div>
+      ${linhas}
+    </div>
+  </div>`;
+}
+function redesenharFlashHoje(){
+  const el=document.getElementById('flash-hoje-card');
+  if(el) el.outerHTML=renderCardFlashHoje();
+}
+
 function renderInicio(){
   return `
     ${renderCardSaudacao()}
     ${renderResumoTopo()}
     ${renderCardPlanejamento()}
     ${renderCardMapa()}
+    ${renderCardFlashHoje()}
     ${renderCardComplementares()}
     ${renderCardNotas()}
   `;
