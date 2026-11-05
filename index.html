@@ -1187,9 +1187,37 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 /* Flash de hoje — mesma grade/linha do Mapa, só com 3 colunas */
 .flash-cab,.flash-linha{grid-template-columns:minmax(0,1fr) 72px 96px}
 .flash-feitas{font-size:var(--fs-a);color:#aaa}
+.flash-atualizar{width:24px;height:24px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#555;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.flash-atualizar svg{width:14px;height:14px}
+.flash-atualizar.girando svg{animation:ptr-girar 0.8s linear infinite}
 .flash-vazio{padding:14px 10px;font-size:var(--fs-c);color:#888}
+/* Flashs para revisar */
+.rev-cab,.rev-linha{grid-template-columns:minmax(0,1fr) auto 72px}
+.rev-min{font-size:var(--fs-a);color:#888;margin-left:6px;white-space:nowrap}
+.rev-acoes{display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.rev-btn-tudo{font-size:var(--fs-b);font-weight:600;color:#202A45;background:#E6F1FB;border:1px solid #BFD9F2;border-radius:7px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.rev-cap{padding:7px 10px 3px 32px;font-size:var(--fs-b);font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.3px;background:#fafafa;border-top:0.5px solid #eee}
+.rev-card{border-top:0.5px solid #eee;background:#fff}
+.rev-card-topo{display:grid;grid-template-columns:28px minmax(0,1fr) 40px;gap:10px;align-items:start;padding:9px 10px 9px 32px;cursor:pointer}
+.rev-vf{width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:var(--fs-c);font-weight:700;margin-top:1px}
+.rev-v{background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97}
+.rev-f{background:#FCEBEB;color:#A32D2D;border:0.5px solid #F7C1C1}
+.rev-corpo{min-width:0}
+.rev-texto{font-size:var(--fs-d);color:#111;line-height:1.4;white-space:normal}
+.rev-trecho{margin-top:5px;font-size:var(--fs-c);color:#444;line-height:1.4;white-space:normal}
+.rev-trecho-rot{font-weight:600;color:#333}
+.rev-obs{margin-top:5px;font-size:var(--fs-c);color:#633806;font-style:italic;white-space:normal}
+.rev-data{margin-top:4px;font-size:var(--fs-a);color:#aaa}
+.rev-exp{margin-top:7px;padding:8px 10px;background:#F7F7F5;border-radius:7px;font-size:var(--fs-c);color:#333;line-height:1.45;white-space:normal}
+.rev-btn-ok{width:34px;height:34px;border-radius:8px;border:1px solid #C0DD97;background:#EAF3DE;color:#3B6D11;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;margin-top:0}
+.rev-btn-ok svg{width:18px;height:18px}
+.revisar-atualizar{width:24px;height:24px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#555;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.revisar-atualizar svg{width:14px;height:14px}
+.revisar-atualizar.girando svg{animation:ptr-girar 0.8s linear infinite}
 @media(max-width:767px){
   .mapa-cab,.mapa-linha{grid-template-columns:minmax(0,1fr) 84px 72px}
+  .rev-cab,.rev-linha{grid-template-columns:minmax(0,1fr) auto 56px}
+  .rev-card-topo{padding-left:18px}.rev-cap{padding-left:18px}
   .mapa-linha>div,.mapa-cab>div{padding:0 6px}
   .mapa-cab>div:first-child{padding-left:35px}
   .mapa-linha>.mapa-n1{padding-left:6px}.mapa-linha>.mapa-n2{padding-left:18px}.mapa-linha>.mapa-n3{padding-left:30px}.mapa-linha>.mapa-n4{padding-left:42px}
@@ -2998,14 +3026,19 @@ const CARREGADORES={
       if(orig&&custom) apelidos[orig]=custom;
     });
   },
+  // Fila de flash mora no banco do Pilotquest desde 05/11/2026 (pra ele oferecer "Começar" lá
+  // dentro). Mesmo login (sbAuth); a RLS já limita ao próprio usuário. Sem login: fila vazia.
   fila_flash: async()=>{
-    const {data,error}=await sbDados.from('fila_flash').select('*'); lancarSe(error);
+    const uid=sbAuth?await pqUsuario():null;
+    if(!uid){ filaFlash=[]; return; }
+    const {data,error}=await sbAuth.from('fila_flash').select('*').eq('usuario_id',uid); lancarSe(error);
     filaFlash=(data||[]).map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao,capitulo:p.capitulo||'',rodada:p.rodada,
       cota:p.cota,totalCards:p.total_cards,dataPrevista:p.data_prevista,criadoEm:p.criado_em,
       respondidosBaseline:p.respondidos_baseline||0,concluidoEm:p.concluido_em||null}));
   },
   fila_flash_mapa_trechos: async()=>{
-    const {data,error}=await sbDados.from('fila_flash_mapa_trechos').select('*');
+    if(!sbAuth){ filaFlashMapa=[]; return; }
+    const {data,error}=await sbAuth.from('fila_flash_mapa_trechos').select('*');
     filaFlashMapa=error?[]:(data||[]).map(p=>({publicacao:p.publicacao,capituloTracker:p.capitulo_tracker,filtroId:p.filtro_id}));
   },
   fila_banco_pratico: async()=>{
@@ -3345,7 +3378,8 @@ function renderTab(tab,preservarScroll){
   document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
   renderSubAbas(tab);
   if(atividadeAtual){c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;}
-  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); verificarFilaFlash(false); }
+  encerrarRevisarSeSaiu(tab);
+  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); verificarFilaFlash(false); carregarRevisar(false); }
   else if(tab==='atividades') c.innerHTML=renderAtividades();
   else if(tab==='questoes') c.innerHTML=renderQuestoes();
   else if(tab==='aprovado') c.innerHTML=renderAprovado();
@@ -8251,6 +8285,13 @@ async function cardsDoTrechoFlash(modulo,publicacao,capitulo){
   const meus=await buscarTudoPQ(()=>{ let q=sbAuth.from('questoes_vf').select('id').in('bibliografia_id',bibIds).eq('autor_id',uid); return cap?q.eq('capitulo',cap):q; });
   return meus.map(q=>q.id);
 }
+// A partir de quando as respostas contam pra uma tarefa: rodada 1 desde que nasceu; rodadas 2 e 3
+// só a partir das 00:00 da data prevista — senão o que foi respondido logo depois de concluir a
+// rodada anterior já quitaria a seguinte e o espaçamento de 7/30 dias não aconteceria.
+function inicioContagemFlash(f){
+  if(f.rodada===1||!f.dataPrevista) return new Date(f.criadoEm);
+  return new Date(f.dataPrevista+'T00:00:00');
+}
 async function respostasMinhasDesde(desdeIso){
   return buscarTudoPQ(()=>{ let q=sbAuth.from('log_respostas_vf').select('questao_vf_id,respondida_em'); return desdeIso?q.gte('respondida_em',desdeIso):q; });
 }
@@ -8271,9 +8312,11 @@ async function inserirTarefaFlash({modulo,publicacao,capitulo,rodada,dataPrevist
     const logs=await respostasMinhasDesde(null);
     baseline=logs.filter(l=>set.has(l.questao_vf_id)).length;
   }catch(e){}
-  const linha={modulo,publicacao,capitulo:String(capitulo||''),rodada,cota:cotaFlash(rodada,total),total_cards:total,
+  const uid=await pqUsuario();
+  if(!uid) return null;
+  const linha={usuario_id:uid,modulo,publicacao,capitulo:String(capitulo||''),rodada,cota:cotaFlash(rodada,total),total_cards:total,
     data_prevista:dataPrevista,respondidos_baseline:baseline};
-  const {error}=await sbDados.from('fila_flash').insert(linha);
+  const {error}=await sbAuth.from('fila_flash').insert(linha);
   if(error){ console.error('fila_flash insert:',error); return null; }
   return linha;
 }
@@ -8299,22 +8342,23 @@ async function verificarFilaFlash(forcar){
   if(flashVerificando||!sbAuth) return;
   const abertas=(filaFlash||[]).filter(f=>!f.concluidoEm);
   if(!abertas.length) return;
-  if(!forcar&&Date.now()-flashUltimaVerificacao<60000) return;
+  if(!forcar&&Date.now()-flashUltimaVerificacao<15000) return;
   flashVerificando=true;
+  document.querySelectorAll('.flash-atualizar').forEach(b=>b.classList.add('girando'));
   try{
-    const desde=abertas.map(f=>f.criadoEm).sort()[0];
+    const desde=abertas.map(f=>inicioContagemFlash(f).toISOString()).sort()[0];
     const logs=await respostasMinhasDesde(desde);
     let mudou=false;
     const hoje=new Date(); hoje.setHours(0,0,0,0);
     for(const f of abertas){
       const ids=await cardsDoTrechoFlash(f.modulo,f.publicacao,f.capitulo);
       const set=new Set(ids);
-      const desdeMs=new Date(f.criadoEm).getTime();
+      const desdeMs=inicioContagemFlash(f).getTime();
       const feitas=logs.filter(l=>set.has(l.questao_vf_id)&&new Date(l.respondida_em).getTime()>=desdeMs).length;
       flashFeitas[f.id]=feitas;
       if(feitas>=f.cota){
         const agora=new Date();
-        const {error}=await sbDados.from('fila_flash').update({concluido_em:agora.toISOString()}).eq('id',f.id).is('concluido_em',null);
+        const {error}=await sbAuth.from('fila_flash').update({concluido_em:agora.toISOString()}).eq('id',f.id).eq('usuario_id',pqUsuarioId).is('concluido_em',null);
         if(error) continue;
         mudou=true;
         if(f.rodada<3){
@@ -8329,8 +8373,15 @@ async function verificarFilaFlash(forcar){
     if(mudou) await loadData(['fila_flash']);
     else redesenharFlashHoje();
   }catch(e){ console.error('Fila de flash (verificação):',e); }
-  finally{ flashVerificando=false; }
+  finally{ flashVerificando=false; document.querySelectorAll('.flash-atualizar').forEach(b=>b.classList.remove('girando')); }
 }
+// Voltar do Pilotquest pro Tracker (troca de app no iPad) não redesenha a Início — sem isto, a
+// contagem só mudava ao trocar de aba ou recarregar. Caso real: 5 Nov 2026, Mooring Part 2 feita
+// em três blocos e a linha ficou em "15" até bater os 20.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&tabAtual==='inicio'&&!atividadeAtual){ verificarFilaFlash(true); carregarRevisar(true); retomarTimerRevisar(); }
+  else if(document.visibilityState==='hidden'&&revisarTimer) gravarSessaoRevisar();
+});
 function rotuloTrechoFlash(f){
   const info=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
   const cap=f.capitulo?(/^\d+$/.test(f.capitulo)?formatarCapituloExibicao(info,f.capitulo):f.capitulo):'';
@@ -8347,11 +8398,11 @@ function tarefasFlashHoje(){
 function renderCardFlashHoje(){
   const tarefas=tarefasFlashHoje();
   const total=tarefas.reduce((a,t)=>a+t.faltam,0);
-  const direita=`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${total} card${total===1?'':'s'}</span>`;
+  const direita=`<span style="display:inline-flex;align-items:center;gap:10px"><span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${total} card${total===1?'':'s'}</span><button class="flash-atualizar${flashVerificando?' girando':''}" onclick="event.stopPropagation();verificarFilaFlash(true)" aria-label="Atualizar contagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></span>`;
   const linhas=tarefas.length?tarefas.map((t,i)=>`<div class="mapa-linha flash-linha${i%2===1?' mapa-par':''}">
       <div class="mapa-nome mapa-n1"><span class="mapa-seta" style="visibility:hidden">▶</span>${MAPA_DOC}<span class="mapa-t">${escapeHtml(rotuloTrechoFlash(t))}</span></div>
       <div class="mapa-num">${t.rodada}ª</div>
-      <div class="mapa-num">${t.faltam}${t.feitas?`<span class="flash-feitas"> de ${t.cota}</span>`:''}</div>
+      <div class="mapa-num">${t.faltam}<span class="flash-feitas"> de ${t.cota}</span></div>
     </div>`).join('')
     :'<div class="flash-vazio">Nenhum flash pendente.</div>';
   return `<div class="card-inicio" id="flash-hoje-card">
@@ -8367,6 +8418,266 @@ function redesenharFlashHoje(){
   if(el) el.outerHTML=renderCardFlashHoje();
 }
 
+// ============================================================================
+// FLASHS PARA REVISAR (5 Nov 2026)
+//
+// Cards V/F que o Carlos marcou com "Revisar" no Pilotquest (tabela questoes_vf_revisar, lá).
+// O Tracker lê os pendentes (resolvido_em nulo; a RLS já limita ao próprio usuário), mostra em
+// pastas por publicação → capítulo/Part, e marca "Estudado" gravando resolvido_em direto lá.
+// Nada disso é copiado pro Tracker. A ÚNICA gravação no Tracker é o tempo: enquanto uma pasta
+// está aberta roda um cronômetro, e ao fechar a pasta / marcar o último card / sair da Início
+// nasce uma sessão em sessoes_estudo (tipo Revisão, origem 'Flashs para revisar'), dividida
+// por capítulo proporcionalmente aos cards marcados — entra em horas por módulo, histórico e
+// metas semanais como qualquer sessão.
+// ============================================================================
+const ORIGEM_REVISAR='Flashs para revisar';
+let revisarPendentes=[], revisarCarregando=false, revisarCarregou=false, revisarErro='';
+let revisarAbertas=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem('pscpp_revisar_abertas')||'[]')); }catch(e){ return new Set(); } })();
+let revisarExpandidos=new Set();
+// Cronômetro da pasta aberta: uma por vez. marcados = capítulo -> nº de cards estudados nela.
+let revisarTimer=null, revisarTimerTickId=null;
+
+let revisarUltimaCarga=0;
+async function carregarRevisar(forcar=true){
+  if(revisarCarregando||!sbAuth) return;
+  if(!forcar&&Date.now()-revisarUltimaCarga<15000) return;
+  revisarUltimaCarga=Date.now();
+  revisarCarregando=true; revisarErro='';
+  document.querySelectorAll('.revisar-atualizar').forEach(b=>b.classList.add('girando'));
+  try{
+    const pend=await buscarTudoPQ(()=>sbAuth.from('questoes_vf_revisar').select('id,questao_vf_id,marcado_em,observacao').is('resolvido_em',null).order('marcado_em'));
+    const ids=[...new Set(pend.map(p=>p.questao_vf_id))];
+    const cards=new Map(), filtroDoCard=new Map(), nomeFiltro=new Map();
+    for(let i=0;i<ids.length;i+=100){
+      const lote=ids.slice(i,i+100);
+      const [{data:qs},{data:qf}]=await Promise.all([
+        sbAuth.from('questoes_vf').select('id,texto,resposta,explicacao,capitulo,bibliografia_id,trechos_fonte').in('id',lote),
+        sbAuth.from('questoes_vf_filtros').select('questao_vf_id,filtro_id').in('questao_vf_id',lote),
+      ]);
+      (qs||[]).forEach(q=>cards.set(q.id,q));
+      (qf||[]).forEach(f=>{ if(!filtroDoCard.has(f.questao_vf_id)) filtroDoCard.set(f.questao_vf_id,f.filtro_id); });
+    }
+    const fIds=[...new Set([...filtroDoCard.values()])];
+    for(let i=0;i<fIds.length;i+=100){
+      const {data}=await sbAuth.from('filtros_capitulo_vf').select('id,nome').in('id',fIds.slice(i,i+100));
+      (data||[]).forEach(f=>nomeFiltro.set(f.id,f.nome));
+    }
+    // Publicação/módulo pelo mesmo mapeamento do Flash de hoje (pqIds da bibliografia do Tracker);
+    // o que o Tracker não conhece (bibliografia oculta) cai no título do próprio Pilotquest.
+    const porPqId=new Map();
+    bibliografia.forEach(b=>(b.pqIds||[]).forEach(id=>{ if(!porPqId.has(id)) porPqId.set(id,b); }));
+    const semNome=[...new Set([...cards.values()].map(q=>q.bibliografia_id).filter(id=>id&&!porPqId.has(id)))];
+    const fallback=new Map();
+    if(semNome.length){
+      const {data}=await sbAuth.from('bibliografia').select('id,titulo,nome_exibicao,modulo_pscpp').in('id',semNome);
+      (data||[]).forEach(b=>fallback.set(b.id,{nome:b.nome_exibicao||b.titulo,modulo:b.modulo_pscpp||''}));
+    }
+    revisarPendentes=pend.map(p=>{
+      const q=cards.get(p.questao_vf_id); if(!q) return null;
+      const b=porPqId.get(q.bibliografia_id)||fallback.get(q.bibliografia_id)||{nome:'(sem publicação)',modulo:''};
+      const fid=filtroDoCard.get(q.id);
+      return {id:p.id,qid:q.id,texto:q.texto||'',resposta:q.resposta,explicacao:q.explicacao||'',trecho:(q.trechos_fonte||'').trim(),
+        capitulo:q.capitulo||'',part:fid?(nomeFiltro.get(fid)||''):'',publicacao:b.nome,modulo:b.modulo||'',
+        marcadoEm:p.marcado_em,observacao:(p.observacao||'').trim()};
+    }).filter(Boolean);
+    revisarCarregou=true;
+  }catch(e){ console.error('Flashs para revisar:',e); revisarErro='Não deu para ler o Pilotquest agora.'; }
+  finally{
+    revisarCarregando=false;
+    document.querySelectorAll('.revisar-atualizar').forEach(b=>b.classList.remove('girando'));
+    redesenharRevisar();
+  }
+}
+function chavePastaRevisar(c){ return c.modulo+'|'+c.publicacao; }
+function pastasRevisar(){
+  const m=new Map();
+  revisarPendentes.forEach(c=>{
+    const k=chavePastaRevisar(c);
+    if(!m.has(k)) m.set(k,{chave:k,modulo:c.modulo,publicacao:c.publicacao,cards:[]});
+    m.get(k).cards.push(c);
+  });
+  return [...m.values()].sort((a,b)=>a.modulo.localeCompare(b.modulo,'pt')||a.publicacao.localeCompare(b.publicacao,'pt'));
+}
+function rotuloCapituloRevisar(c){
+  const info=bibliografia.find(b=>b.nome===c.publicacao&&b.modulo===c.modulo);
+  const cap=c.capitulo?(/^\d+$/.test(c.capitulo)?formatarCapituloExibicao(info,c.capitulo):c.capitulo):(info&&info.capituloUnico?rotuloCapituloUnico(info):'Sem capítulo');
+  return cap+(c.part?' · '+c.part:'');
+}
+function fmtDataRevisar(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function minutosRevisar(){ return revisarTimer?Math.floor((Date.now()-revisarTimer.inicio)/60000):0; }
+
+// ---------- cronômetro da pasta ----------
+function iniciarTimerRevisar(chave){
+  if(revisarTimer&&revisarTimer.chave===chave) return;
+  if(revisarTimer) gravarSessaoRevisar();   // só uma pasta por vez
+  revisarTimer={chave,inicio:Date.now(),marcados:{}};
+  if(!revisarTimerTickId) revisarTimerTickId=setInterval(()=>{
+    if(!revisarTimer){ clearInterval(revisarTimerTickId); revisarTimerTickId=null; return; }
+    const el=document.querySelector(`.rev-pasta[data-chave="${CSS.escape(revisarTimer.chave)}"] .rev-min`);
+    if(el) el.textContent=minutosRevisar()?minutosRevisar()+' min':'';
+  },30000);
+}
+// Grava a sessão da pasta aberta (se houver tempo) e zera o cronômetro. Dispara ao fechar a pasta,
+// ao marcar o último card dela, ao sair da Início e ao fechar/ocultar o app.
+function gravarSessaoRevisar(){
+  const t=revisarTimer; revisarTimer=null;
+  if(!t) return;
+  const minutos=Math.round((Date.now()-t.inicio)/60000);
+  if(minutos<1) return;
+  const [modulo,publicacao]=t.chave.split('|');
+  // Divisão por capítulo proporcional aos cards marcados; sem nenhum marcado, pelos cards que
+  // estavam na pasta (o que ele estava lendo).
+  let pesos=Object.entries(t.marcados).filter(([,n])=>n>0);
+  if(!pesos.length){
+    const cont={};
+    revisarPendentes.filter(c=>chavePastaRevisar(c)===t.chave).forEach(c=>{ cont[c.capitulo]=(cont[c.capitulo]||0)+1; });
+    pesos=Object.entries(cont);
+  }
+  if(!pesos.length) pesos=[['',1]];
+  const total=pesos.reduce((a,[,n])=>a+n,0);
+  // maior resto: as partes somam exatamente `minutos`
+  let partes=pesos.map(([cap,n])=>({cap,exato:minutos*n/total}));
+  partes.forEach(p=>{ p.min=Math.floor(p.exato); p.resto=p.exato-p.min; });
+  let sobra=minutos-partes.reduce((a,p)=>a+p.min,0);
+  partes.sort((a,b)=>b.resto-a.resto).slice(0,sobra).forEach(p=>p.min++);
+  const agora=new Date();
+  const linhas=partes.filter(p=>p.min>0).map(p=>({
+    modulo:modulo||null,publicacao,capitulo:p.cap||null,tipo:'Revisão',duracao_minutos:p.min,
+    data:chaveDia(agora),origem:ORIGEM_REVISAR,
+    iniciado_em:new Date(t.inicio).toISOString(),finalizado_em:agora.toISOString(),
+  }));
+  if(!linhas.length) return;
+  sbDados.from('sessoes_estudo').insert(linhas).then(({error})=>{
+    if(error){ console.error('Sessão de revisão:',error); return; }
+    loadData(['sessoes_estudo']);
+  });
+}
+// Sair da Início (outra aba, detalhe de atividade) fecha a pasta aberta e grava o tempo.
+function encerrarRevisarSeSaiu(tab){
+  if(revisarTimer&&!(tab==='inicio'&&!atividadeAtual)){
+    revisarAbertas.delete(revisarTimer.chave);
+    try{ localStorage.setItem('pscpp_revisar_abertas',JSON.stringify([...revisarAbertas])); }catch(e){}
+    gravarSessaoRevisar();
+  }
+}
+window.addEventListener('pagehide',()=>{ if(revisarTimer) gravarSessaoRevisar(); });
+// Voltou ao app com uma pasta ainda aberta: o cronômetro recomeça do zero (o tempo fora não conta).
+function retomarTimerRevisar(){
+  if(revisarTimer) return;
+  const aberta=[...revisarAbertas].find(k=>revisarPendentes.some(c=>chavePastaRevisar(c)===k));
+  if(aberta) iniciarTimerRevisar(aberta);
+}
+
+// ---------- ações ----------
+function alternarPastaRevisar(chave){
+  const abrir=!revisarAbertas.has(chave);
+  if(abrir){ revisarAbertas.add(chave); iniciarTimerRevisar(chave); }
+  else { revisarAbertas.delete(chave); if(revisarTimer&&revisarTimer.chave===chave) gravarSessaoRevisar(); }
+  try{ localStorage.setItem('pscpp_revisar_abertas',JSON.stringify([...revisarAbertas])); }catch(e){}
+  redesenharRevisar();
+}
+function alternarExplicacaoRevisar(id){
+  if(revisarExpandidos.has(id)) revisarExpandidos.delete(id); else revisarExpandidos.add(id);
+  const el=document.getElementById('rev-exp-'+id);
+  if(el) el.classList.toggle('hidden',!revisarExpandidos.has(id));
+}
+async function marcarEstudadoRevisar(id){
+  const c=revisarPendentes.find(x=>x.id===id);
+  if(!c) return;
+  const chave=chavePastaRevisar(c);
+  if(!revisarTimer||revisarTimer.chave!==chave) iniciarTimerRevisar(chave);
+  revisarTimer.marcados[c.capitulo]=(revisarTimer.marcados[c.capitulo]||0)+1;
+  // some na hora; se o Pilotquest recusar, volta e avisa
+  revisarPendentes=revisarPendentes.filter(x=>x.id!==id);
+  const pastaEsvaziou=!revisarPendentes.some(x=>chavePastaRevisar(x)===chave);
+  redesenharRevisar();
+  const {error}=await sbAuth.from('questoes_vf_revisar').update({resolvido_em:new Date().toISOString()}).eq('id',id);
+  if(error){
+    revisarPendentes.push(c); redesenharRevisar();
+    mostrarAviso('Não deu para marcar','O Pilotquest não aceitou agora. Tente de novo em instantes.');
+    return;
+  }
+  if(pastaEsvaziou){ revisarAbertas.delete(chave); gravarSessaoRevisar(); redesenharRevisar(); }
+}
+function pedirEstudarTudoRevisar(chave){
+  const pasta=pastasRevisar().find(p=>p.chave===chave);
+  if(!pasta) return;
+  abrirConfirmacao(chave,pasta.publicacao,'revisarTudo',
+    pasta.cards.length===1?`Marcar o único flash de <strong>${escapeHtml(nomePub(pasta.publicacao))}</strong> como estudado?`:`Marcar os ${pasta.cards.length} flashs de <strong>${escapeHtml(nomePub(pasta.publicacao))}</strong> como estudados?`);
+}
+async function estudarTudoRevisar(chave){
+  const cards=revisarPendentes.filter(c=>chavePastaRevisar(c)===chave);
+  if(!cards.length) return;
+  if(!revisarTimer||revisarTimer.chave!==chave) iniciarTimerRevisar(chave);
+  cards.forEach(c=>{ revisarTimer.marcados[c.capitulo]=(revisarTimer.marcados[c.capitulo]||0)+1; });
+  revisarPendentes=revisarPendentes.filter(c=>chavePastaRevisar(c)!==chave);
+  redesenharRevisar();
+  const {error}=await sbAuth.from('questoes_vf_revisar').update({resolvido_em:new Date().toISOString()}).in('id',cards.map(c=>c.id));
+  if(error){
+    revisarPendentes.push(...cards); redesenharRevisar();
+    mostrarAviso('Não deu para marcar','O Pilotquest não aceitou agora. Tente de novo em instantes.');
+    return;
+  }
+  revisarAbertas.delete(chave);
+  try{ localStorage.setItem('pscpp_revisar_abertas',JSON.stringify([...revisarAbertas])); }catch(e){}
+  gravarSessaoRevisar();
+  redesenharRevisar();
+}
+
+// ---------- tela ----------
+function renderCardRevisar(){
+  const pastas=pastasRevisar();
+  const total=revisarPendentes.length;
+  const direita=`<span style="display:inline-flex;align-items:center;gap:10px"><span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${total} flash${total===1?'':'s'}</span><button class="revisar-atualizar${revisarCarregando?' girando':''}" onclick="event.stopPropagation();carregarRevisar()" aria-label="Atualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></span>`;
+  let corpo;
+  if(!revisarCarregou&&revisarCarregando) corpo='<div class="flash-vazio">Carregando…</div>';
+  else if(revisarErro&&!total) corpo=`<div class="flash-vazio">${revisarErro}</div>`;
+  else if(!total) corpo='<div class="flash-vazio">Nenhum flash marcado para revisar.</div>';
+  else corpo=pastas.map((p,i)=>{
+    const aberta=revisarAbertas.has(p.chave);
+    const min=(revisarTimer&&revisarTimer.chave===p.chave)?minutosRevisar():0;
+    const porCap=new Map();
+    p.cards.forEach(c=>{ const k=rotuloCapituloRevisar(c); if(!porCap.has(k)) porCap.set(k,[]); porCap.get(k).push(c); });
+    const caps=[...porCap.keys()].sort((a,b)=>a.localeCompare(b,'pt',{numeric:true}));
+    return `<div class="rev-pasta" data-chave="${escapeHtml(p.chave)}">
+      <div class="mapa-linha rev-linha mapa-clicavel${aberta?' mapa-aberta':''}${i%2===1?' mapa-par':''}" onclick="alternarPastaRevisar(this.closest('.rev-pasta').dataset.chave)">
+        <div class="mapa-nome mapa-n1"><span class="mapa-seta">▶</span>${MAPA_PASTA}<span class="mapa-t">${escapeHtml(nomePub(p.publicacao))}</span><span class="rev-min">${min?min+' min':''}</span></div>
+        <div class="rev-acoes">${aberta?`<button class="rev-btn-tudo" onclick="event.stopPropagation();pedirEstudarTudoRevisar(this.closest('.rev-pasta').dataset.chave)">Estudar tudo</button>`:''}</div>
+        <div class="mapa-num">${p.cards.length}</div>
+      </div>
+      ${aberta?caps.map(k=>`<div class="rev-cap">${escapeHtml(k)}</div>${porCap.get(k).map(c=>`
+        <div class="rev-card" id="rev-${c.id}">
+          <div class="rev-card-topo" onclick="alternarExplicacaoRevisar('${c.id}')">
+            <span class="rev-vf ${c.resposta?'rev-v':'rev-f'}">${c.resposta?'V':'F'}</span>
+            <div class="rev-corpo">
+              <div class="rev-texto">${escapeHtml(c.texto)}</div>
+              ${c.trecho?`<div class="rev-trecho"><span class="rev-trecho-rot">No livro:</span> ${escapeHtml(c.trecho)}</div>`:''}
+              ${c.observacao?`<div class="rev-obs">${escapeHtml(c.observacao)}</div>`:''}
+              <div class="rev-data">marcado em ${fmtDataRevisar(c.marcadoEm)}</div>
+              <div class="rev-exp${revisarExpandidos.has(c.id)?'':' hidden'}" id="rev-exp-${c.id}">${c.explicacao?escapeHtml(c.explicacao):'<span style="color:#aaa">Sem explicação cadastrada.</span>'}</div>
+            </div>
+            <button class="rev-btn-ok" onclick="event.stopPropagation();marcarEstudadoRevisar('${c.id}')" aria-label="Estudado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+          </div>
+        </div>`).join('')}`).join(''):''}
+    </div>`;
+  }).join('');
+  return `<div class="card-inicio" id="revisar-card">
+    ${sectionTitle('Flashs para revisar','etiqueta','#E6F1FB','#202A45',{direita})}
+    <div class="mapa-lista">
+      <div class="mapa-cab rev-cab"><div>Publicação</div><div></div><div>Cards</div></div>
+      ${corpo}
+    </div>
+  </div>`;
+}
+function redesenharRevisar(){
+  const el=document.getElementById('revisar-card');
+  if(el) el.outerHTML=renderCardRevisar();
+}
+
 function renderInicio(){
   return `
     ${renderCardSaudacao()}
@@ -8374,6 +8685,7 @@ function renderInicio(){
     ${renderCardPlanejamento()}
     ${renderCardMapa()}
     ${renderCardFlashHoje()}
+    ${renderCardRevisar()}
     ${renderCardComplementares()}
     ${renderCardNotas()}
   `;
@@ -9235,6 +9547,7 @@ function confirmarFeitoSim(){
   else if(tipo==='pararRecorrencia') pararRecorrencia(id);
   else if(tipo==='revisao') concluirRevisao(id);
   else if(tipo==='excluirQuestao') excluirQuestaoDoBanco(id);
+  else if(tipo==='revisarTudo') estudarTudoRevisar(id);
 }
 
 async function marcarEventoFeito(eventoId){
