@@ -1423,7 +1423,6 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      loop soa contínuo. Arquivo separado (audios/chuva.m4a, na raiz do repo) para o app continuar leve;
      só baixa quando o Carlos liga a chuva. É áudio de verdade: enquanto toca, ocupa o lugar do
      Spotify/música de outro app no iPad (o iOS não mistura áudio de site com outro app). -->
-<audio id="chuva-audio" src="audios/chuva.m4a" loop preload="none" playsinline webkit-playsinline style="display:none"></audio>
 <audio id="apito-kick" playsinline webkit-playsinline preload="auto" style="display:none"
   src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//NwwAAAAAAAAAAAAEluZm8AAAAPAAAACAAAA/oAR0dHR0dHR0dHR0dHYmJiYmJiYmJiYmJifHx8fHx8fHx8fHx8fJaWlpaWlpaWlpaWlrGxsbGxsbGxsbGxsbHLy8vLy8vLy8vLy8vl5eXl5eXl5eXl5eXl////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQC1AAAAAAAAAP64yT+/gAAAAAAAAAAAAAAAAD/80DEABRIjoAXWDAAP9y4RuNxuNxuNxunp6SMRiGH8jFJSRhy4vACchZwwCMQC1i1A+A4DAYWTTBwEAQBB0uf5R05y79IY4DfpDHLv7un+oBn+7py4fBAENP+XB8PqoIIASxEBAGBAP/zQsQJFunSsb+NoAOgAAADiEa8J8J74T0ANPkcAwSCzIvQBJ4lMWcBlHgc4NmC0YMVe8mSKkVMv8UEIWIaOaMr/5kXi8iXS6l//l4vGJdLqReLyP//5dLpkXi8CkgqLa2wALqohO///v/zQMQJFJiGLjXeyAD5/8//9I4uMjkYBAAZgJAPmAGB0YL4ghkUmFGVD8EcPheZk8CgmBkAcYGIMh9KoSDfeAQTFrR5r97fdvR9i9X//fp///3xb//9aopo+6xyyLxVuKHgVAGTADgG//NCxBEVAqYUAA/EjKMCXg9DSHgQwwDEAzMAGACi2ag61GnigA8VgBP6fkaS305f69tf/m2pZ/91Xn/16Hf252t1/3/N1dLNXG6ElOnT6Yz/W3ZMnCJjtFpBAAAFOgZrwYGPI3GuKAlh//NAxBkXCe4QAKfExICKAdmAHACBgAIACkWpYy8UALisAN6n3vv5dPr29Wa31WY3/RvRGJq90vdeR9Ih6GjL+Yz7SV71TkV3Jx4rpsvtTVbVqwCqxCf+/7/P/n//plmAEgA5gA4AWCD/80LEFxbAhiV1X9AAA6MBjACzAPgGYwLQF6MIyB1jBGUQoy4AGnMBiBfDBUAMowHQAoMk8ORKFqAXELizfr912n/19np+1TMr/9X8ZQR//+j/lrD0MW0/4HTDLdSb/eeWA0SXYcqBp8T/80DEGBpxqoABmKgA4FjwDbMDOjjAxaCwMEjQDJ5SAx6JuR4oMrhZ0SwNu8WWbGh8Y4SkQ8Zb5cNC4aS2QFImT380W603TJkumRio2V/91MhsZJmTnQ03/TyohLFlLVMW4nR1M1mI5v/zQsQJE5EmKAHPeAA0lbIcxBh6jKbxuhqUKRJOS4qGAcwtwuTolQuRcnalQ1Qsu611/BTqGxoKtZa/1ruta19oT7WLb/xaNoRB34lDYldK/4iVTEFNRTMuMTAwVVVVVVVVVVVVVVVVVQ=="
 ></audio>
@@ -5375,44 +5374,97 @@ function renderAprovado(){
 // direto do toque (regra do iOS), por isso nada de await antes dele.
 let chuvaLigada=false;
 // Volume próprio da chuva (independente do volume do iPad, que é um só pro apito e pra chuva).
-// No iOS a página não controla audio.volume — então o <audio> passa por um nó de ganho da Web
-// Audio API, e o slider mexe nesse ganho. Guardado por aparelho (fone × caixa pedem níveis
-// diferentes), igual aos ajustes do apito.
+// Guardado por aparelho (fone × caixa pedem níveis diferentes), igual aos ajustes do apito.
 let chuvaVolume=parseFloat(localStorage.getItem('chuvaVolume')||'0.6');
-let chuvaCtx=null, chuvaGanho=null;
-// Ligar/desligar INSTANTÂNEO (5 Nov 2026): pausar o <audio> e dar play de novo custa uns
-// centenas de ms no iOS (o app perde e retoma a sessão de áudio). Então "desligar" só zera o
-// ganho — o arquivo continua rodando mudo — e "ligar" devolve o volume na hora. Se ficar
-// desligada por 2 minutos, aí sim pausa de verdade (pra não gastar bateria à toa).
-let chuvaPausaId=null, chuvaPreCarregada=false;
-function preCarregarChuva(){
-  const a=document.getElementById('chuva-audio');
-  if(!a||chuvaPreCarregada) return;
-  chuvaPreCarregada=true;
-  try{ a.preload='auto'; a.load(); }catch(e){}
+// CHUVA PELA WEB AUDIO API, SEM <audio> (6 Nov 2026): o <audio> passando por
+// createMediaElementSource soluçava no iOS — um pico de silêncio a cada poucos segundos sempre que
+// o vídeo de manter a tela acesa rodava junto. Agora o loop (audios/chuva-loop.m4a, 65 s mono com
+// emenda em crossfade, 390 KB) é decodificado em memória e tocado por um AudioBufferSourceNode:
+// sem elemento de mídia, sem seek, loop sem emenda audível, ganho nativo (o slider mexe direto
+// nele). Ligar/desligar é só o ganho — instantâneo; desligada por 2 min, a fonte é parada.
+// Limite conhecido: Web Audio para quando o app sai de primeiro plano (na tela cheia, com a tela
+// acesa, isso não acontece).
+let chuvaCtx=null, chuvaGanho=null, chuvaBuffer=null, chuvaFonte=null, chuvaCarregando=null, chuvaPausaId=null;
+function garantirCtxChuva(){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return null;
+  if(!chuvaCtx){
+    chuvaCtx=new AC();
+    chuvaGanho=chuvaCtx.createGain();
+    chuvaGanho.gain.value=0;
+    chuvaGanho.connect(chuvaCtx.destination);
+  }
+  if(chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
+  return chuvaCtx;
 }
-function prepararGanhoChuva(a){
-  try{
-    const AC=window.AudioContext||window.webkitAudioContext;
-    if(!AC) return;
-    if(!chuvaCtx){
-      chuvaCtx=new AC();
-      const fonte=chuvaCtx.createMediaElementSource(a);   // só pode ser criado UMA vez por elemento
-      chuvaGanho=chuvaCtx.createGain();
-      fonte.connect(chuvaGanho); chuvaGanho.connect(chuvaCtx.destination);
-    }
-    chuvaGanho.gain.value=chuvaVolume;
-    if(chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
-  }catch(e){}
+function carregarBufferChuva(){
+  if(chuvaBuffer) return Promise.resolve(chuvaBuffer);
+  if(chuvaCarregando) return chuvaCarregando;
+  chuvaCarregando=(async()=>{
+    const ctx=garantirCtxChuva();
+    if(!ctx) throw new Error('sem Web Audio');
+    const r=await fetch('audios/chuva-loop.m4a');
+    if(!r.ok) throw new Error('chuva-loop.m4a '+r.status);
+    const bruto=await r.arrayBuffer();
+    chuvaBuffer=await new Promise((res,rej)=>{ const p=ctx.decodeAudioData(bruto,res,rej); if(p&&p.then) p.then(res,rej); });
+    return chuvaBuffer;
+  })().finally(()=>{ chuvaCarregando=null; });
+  return chuvaCarregando;
+}
+// Chamado ao abrir a tela cheia (dentro do gesto): cria o contexto e já decodifica o loop, pra
+// que o primeiro toque no botão da chuva toque na hora.
+function preCarregarChuva(){
+  try{ garantirCtxChuva(); carregarBufferChuva().catch(()=>{}); }catch(e){}
+}
+function iniciarFonteChuva(){
+  if(chuvaFonte||!chuvaBuffer) return;
+  const src=chuvaCtx.createBufferSource();
+  src.buffer=chuvaBuffer; src.loop=true;
+  src.connect(chuvaGanho); src.start();
+  chuvaFonte=src;
+}
+function pararFonteChuva(){
+  if(!chuvaFonte) return;
+  try{ chuvaFonte.stop(); }catch(e){}
+  try{ chuvaFonte.disconnect(); }catch(e){}
+  chuvaFonte=null;
 }
 function setChuvaVolume(v){
   chuvaVolume=parseFloat(v);
   localStorage.setItem('chuvaVolume',String(chuvaVolume));
-  if(!chuvaLigada){ const el=document.getElementById('chuva-vol-valor'); if(el) el.textContent=Math.round(chuvaVolume*100)+'%'; return; }
   const el=document.getElementById('chuva-vol-valor');
   if(el) el.textContent=Math.round(chuvaVolume*100)+'%';
-  if(chuvaGanho){ try{ chuvaGanho.gain.cancelScheduledValues(chuvaCtx.currentTime); }catch(e){} chuvaGanho.gain.value=chuvaVolume; }
+  if(chuvaLigada&&chuvaGanho){ try{ chuvaGanho.gain.cancelScheduledValues(chuvaCtx.currentTime); }catch(e){} chuvaGanho.gain.value=chuvaVolume; }
 }
+async function alternarChuva(ev){
+  if(ev) ev.stopPropagation();
+  if(chuvaPausaId){ clearTimeout(chuvaPausaId); chuvaPausaId=null; }
+  if(chuvaLigada){
+    // desliga: só o ganho (instantâneo); a fonte é parada de verdade depois de 2 min quieta
+    if(chuvaGanho) chuvaGanho.gain.setTargetAtTime(0,chuvaCtx.currentTime,0.02);
+    chuvaLigada=false;
+    chuvaPausaId=setTimeout(()=>{ chuvaPausaId=null; if(!chuvaLigada) pararFonteChuva(); },120000);
+    atualizarBotoesChuva();
+    return;
+  }
+  const ctx=garantirCtxChuva();   // dentro do gesto do toque — é o que o iOS exige
+  if(!ctx){ mostrarAviso('A chuva não tocou','Este navegador não tem Web Audio.'); return; }
+  chuvaLigada=true; atualizarBotoesChuva();
+  try{
+    if(!chuvaBuffer) await carregarBufferChuva();
+    if(!chuvaLigada) return;   // desligou enquanto baixava
+    iniciarFonteChuva();
+    chuvaGanho.gain.setTargetAtTime(chuvaVolume,chuvaCtx.currentTime,0.02);
+  }catch(e){
+    chuvaLigada=false; atualizarBotoesChuva();
+    mostrarAviso('A chuva não tocou','Não deu para carregar o som agora. Confira a conexão e tente de novo.');
+  }
+}
+// Voltando pra frente (troca de app, bloqueio), o contexto pode ter ficado suspenso: retoma no
+// próximo toque. Se a chuva estava ligada, continua de onde estava.
+['touchend','click'].forEach(tipo=>document.addEventListener(tipo,()=>{
+  if(chuvaCtx&&chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
+},{passive:true}));
 const ICONE_CHUVA=t=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="${t}" height="${t}" style="flex-shrink:0"><path d="M20 16.6A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>`;
 function botaoChuva(){
   return `<span class="info-icone chuva-btn${chuvaLigada?' ligada':''}" onclick="alternarChuva(event)">${ICONE_CHUVA(14)} ${chuvaLigada?'chuva ligada':'chuva'}</span>`;
@@ -5423,55 +5475,6 @@ function atualizarBotoesChuva(){
     if(b.classList.contains('info-icone')) b.innerHTML=`${ICONE_CHUVA(14)} ${chuvaLigada?'chuva ligada':'chuva'}`;
   });
 }
-function alternarChuva(ev){
-  if(ev) ev.stopPropagation();
-  const a=document.getElementById('chuva-audio');
-  if(!a) return;
-  if(chuvaPausaId){ clearTimeout(chuvaPausaId); chuvaPausaId=null; }
-  if(!a.paused&&chuvaGanho){
-    // já está rodando: liga/desliga só pelo ganho — instantâneo
-    if(chuvaLigada){
-      chuvaGanho.gain.setTargetAtTime(0,chuvaCtx.currentTime,0.02);
-      chuvaLigada=false;
-      chuvaPausaId=setTimeout(()=>{ chuvaPausaId=null; if(!chuvaLigada) a.pause(); },120000);
-    }else{
-      if(chuvaCtx.state==='suspended') chuvaCtx.resume().catch(()=>{});
-      chuvaGanho.gain.setTargetAtTime(chuvaVolume,chuvaCtx.currentTime,0.02);
-      chuvaLigada=true;
-    }
-    atualizarBotoesChuva();
-    return;
-  }
-  if(a.paused){
-    a.loop=true;
-    prepararGanhoChuva(a);   // dentro do mesmo gesto do toque, antes do play()
-    const p=a.play();
-    chuvaLigada=true;
-    if(p&&p.catch) p.catch(()=>{
-      chuvaLigada=false; atualizarBotoesChuva();
-      mostrarAviso('A chuva não tocou','Não deu para tocar o som agora. Confira a conexão e tente de novo.');
-    });
-    try{
-      if('mediaSession' in navigator){
-        navigator.mediaSession.metadata=new MediaMetadata({title:'Chuva',artist:'PSCPP Tracker'});
-        navigator.mediaSession.setActionHandler('play',()=>{ a.play(); });
-        navigator.mediaSession.setActionHandler('pause',()=>{ a.pause(); });
-      }
-    }catch(e){}
-  }else{
-    a.pause();
-    chuvaLigada=false;
-  }
-  atualizarBotoesChuva();
-}
-// Se outro app (Spotify, ligação) interromper, ou a chuva voltar pelo Central de Controle, o botão acompanha.
-function ligarEventosChuva(){
-  const a=document.getElementById('chuva-audio');
-  if(!a) return;
-  a.addEventListener('pause',()=>{ chuvaLigada=false; atualizarBotoesChuva(); });
-  a.addEventListener('play',()=>{ chuvaLigada=true; atualizarBotoesChuva(); });
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',ligarEventosChuva); else ligarEventosChuva();
 
 function usarModuloNoTimer(modulo){
   timerModulo=modulo;
