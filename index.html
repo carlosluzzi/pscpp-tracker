@@ -1263,6 +1263,7 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 /* Deixa quebrar em até duas linhas em vez de cortar com reticências: com módulo, publicação e
    capítulo no mesmo texto, cortar escondia justamente o capítulo — que é o que torna a revisão
    acionável. */
+.prox-nome-renomeavel{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .prox-nome{font-size:var(--fs-d);font-weight:600;color:#111;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .prox-modalidade{display:inline-block;font-size:var(--fs-a);color:#888}
@@ -3699,7 +3700,7 @@ async function abrirMarcacaoPendente(atividadePendenteId){
   const tipoAbrevTitulo=rotuloTipoAtiv(ap);
   const logoMaiorTitulo=cursoIconeRedondo(ap.curso);
   const logoTitulo=logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}" style="height:${logoMaiorTitulo?18:16}px;width:auto;object-fit:contain;aspect-ratio:${proporcaoLogosCursos[ap.curso]||4.4}">`:'';
-  document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tipoAbrevTitulo}${ap.nome?' '+ap.nome:''}</span>`;
+  document.getElementById('marcacao-titulo').innerHTML=`${logoTitulo}<span>${tituloAtiv(ap)}</span>`;
   document.getElementById('marcacao-fullscreen').classList.remove('hidden');
   renderizarListaMarcacao();
 }
@@ -3974,12 +3975,64 @@ async function solicitarReextracao(questaoId){
     const q=questoesPendentes.find(qq=>qq.id===questaoId);
     if(q) q.reextracaoSolicitada=true;
     renderizarListaMarcacao();
-    alert('Solicitado. Da próxima vez que você rodar o Claude Code na pasta dos PDFs, essa questão específica será reextraída.');
+    mostrarAviso('Reextração pedida','O importer refaz essa questão em até 10 minutos. Puxe pra atualizar depois.');
   }catch(e){
     mostrarAviso('Não deu para solicitar reextração','Tente de novo em instantes. Nada foi perdido.');
   }
 }
 
+// Reextrai de uma vez tudo que veio mal num caderno (incompletas, sem módulo/publicação/
+// capítulo). O importer (serviço no Mac) olha essas marcas a cada 10 minutos — e logo ao
+// reiniciar — e reescreve cada questão com o parser atual. Não mexe nas respostas já marcadas.
+// RENOMEAR CADERNO PENDENTE segurando o nome (6 Nov 2026): 600 ms com o dedo em cima do nome
+// abre o modal de texto; soltar antes ou arrastar cancela. Só pendentes — as questões ligam a
+// eles por id, então o nome pode mudar à vontade. O clique normal do card continua abrindo
+// a resolução.
+let pressaoNomeId=null, pressaoNomeDisparou=false;
+function _iniciarPressaoNome(ev){
+  const alvo=ev.target.closest&&ev.target.closest('.prox-nome-renomeavel');
+  if(!alvo) return;
+  pressaoNomeDisparou=false;
+  clearTimeout(pressaoNomeId);
+  pressaoNomeId=setTimeout(()=>{ pressaoNomeDisparou=true; abrirRenomearCaderno(alvo.dataset.ap); },600);
+}
+function _cancelarPressaoNome(){ clearTimeout(pressaoNomeId); pressaoNomeId=null; }
+document.addEventListener('touchstart',_iniciarPressaoNome,{passive:true});
+document.addEventListener('mousedown',_iniciarPressaoNome);
+['touchend','touchmove','touchcancel','mouseup','mouseleave','scroll'].forEach(t=>document.addEventListener(t,_cancelarPressaoNome,{passive:true,capture:true}));
+// Se o long-press disparou, o clique que vem em seguida no card não pode abrir a resolução.
+document.addEventListener('click',ev=>{ if(pressaoNomeDisparou&&ev.target.closest&&ev.target.closest('.prox-nome-renomeavel')){ ev.stopPropagation(); ev.preventDefault(); pressaoNomeDisparou=false; } },true);
+document.addEventListener('contextmenu',ev=>{ if(ev.target.closest&&ev.target.closest('.prox-nome-renomeavel')) ev.preventDefault(); });
+function abrirRenomearCaderno(atividadeId){
+  const ap=atividadesPendentes.find(a=>a.id===atividadeId);
+  if(!ap) return;
+  abrirTextoModal({titulo:'Renomear caderno',sub:ap.curso||'',valor:ap.nome||'',placeholder:'Nome do caderno'},async texto=>{
+    const novo=(texto||'').trim();
+    if(!novo||novo===ap.nome) return;
+    try{
+      const {error}=await sbDados.from('atividades_pendentes').update({nome:novo}).eq('id',ap.id);
+      if(error) throw error;
+      ap.nome=novo;
+      renderTab(tabAtual,true);
+    }catch(e){
+      mostrarAviso('Nome não salvo','Não deu para gravar o nome novo agora. Tente de novo com conexão.');
+    }
+  });
+}
+async function solicitarReextracaoCaderno(atividadeId){
+  const alvo=questoesPendentes.filter(q=>q.atividadePendenteId===atividadeId&&q.gabarito!=='Anulada'
+    &&(q.statusExtracao==='incompleta'||!q.modulo||!q.publicacao||!q.capitulo)&&!q.reextracaoSolicitada);
+  if(!alvo.length){ mostrarAviso('Nada para reextrair','Todas as questões deste caderno já estão completas ou já têm reextração pedida.'); return; }
+  try{
+    const {error}=await sbDados.from('questoes_pendentes').update({reextracao_solicitada:true}).in('id',alvo.map(q=>q.id));
+    if(error) throw error;
+    alvo.forEach(q=>{ q.reextracaoSolicitada=true; });
+    renderTab(tabAtual,true);
+    mostrarAviso('Reextração pedida',`${alvo.length} questão${alvo.length>1?'ões':''} marcada${alvo.length>1?'s':''}. O importer refaz em até 10 minutos (ou na hora, se você reiniciar o serviço). Puxe pra atualizar depois.`);
+  }catch(e){
+    mostrarAviso('Não deu para pedir reextração','Tente de novo em instantes. Nada foi perdido.');
+  }
+}
 async function solicitarReextracaoAtividade(atividadeId){
   try{
     const {error}=await sbDados.from('atividades_pendentes').update({reextracao_solicitada:true}).eq('id',atividadeId);
@@ -3987,7 +4040,7 @@ async function solicitarReextracaoAtividade(atividadeId){
     const ap=atividadesPendentes.find(a=>a.id===atividadeId);
     if(ap) ap.reextracaoSolicitada=true;
     renderTab(tabAtual,true);
-    alert('Solicitado. Se você já corrigiu o arquivo (ex: reexportou o PDF corrompido), o script vai tentar reabrir e extrair de novo na próxima vez que rodar.');
+    mostrarAviso('Reextração pedida','Se o arquivo já foi corrigido na pasta, o importer tenta de novo em até 10 minutos.');
   }catch(e){
     mostrarAviso('Não deu para solicitar reextração','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -5467,7 +5520,7 @@ function renderTimerFullscreenConteudo(){
         filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo">${cadernoTimer.curso}</div>`}
       <div class="tf-ref-wrap">
-        <div class="tf-ref">${rotuloTipoAtiv(cadernoTimer)} ${cadernoTimer.nome}</div>
+        <div class="tf-ref">${tituloAtiv(cadernoTimer)}</div>
         ${cadernoTimer.data?`<div class="tf-ref">${fmtData(cadernoTimer.data)}</div>`:''}
       </div>` : '';
 
@@ -6558,7 +6611,7 @@ function fecharCadernoTimerFullscreen(){
     const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
     const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
     const tipoAbrevFlut=ap?rotuloTipoAtiv(ap):'';
-    mostrarTimerFlutuante(ap?ap.curso:'',formatarTempoTimer(restante),ap?`${tipoAbrevFlut}${ap.nome?' '+ap.nome:''}`:'Caderno');
+    mostrarTimerFlutuante(ap?ap.curso:'',formatarTempoTimer(restante),ap?tituloAtiv(ap):'Caderno');
   }
   renderTab(tabAtual,true);
 }
@@ -6576,7 +6629,7 @@ function renderCadernoTimerFullscreenConteudo(){
         aspect-ratio:${proporcaoLogosCursos[ap.curso]};display:block;margin:0 auto 10px;
         filter:brightness(0) invert(1);opacity:.9">`
         :`<div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>`}
-      <div class="tf-modulo">${tipoAbrev}${ap&&ap.nome?' '+ap.nome:''}</div>
+      <div class="tf-modulo">${tituloAtiv(ap)}</div>
       <div class="tf-ref-wrap"></div>
       <div class="tf-tempo" style="${restante===0?'color:#A32D2D':''}">${formatarTempoTimer(restante)}</div>
       <div class="tf-tipo">${restante===0?'tempo máximo esgotado – pode continuar até finalizar':'tempo restante pra responder'}</div>
@@ -7855,7 +7908,7 @@ function ativCard(a,clicavel=true){
   const tipoAbrev=rotuloTipoAtiv(a);
   return `<div class="ativ-card" ${onclick}>
     <div class="ativ-top">
-      <span class="ativ-title">${tipoAbrev}${a.nome?' '+a.nome:''}</span>
+      <span class="ativ-title">${tituloAtiv(a)}</span>
       ${a.data?`<span style="font-size:var(--fs-c);color:#888;flex-shrink:0">${fmtData(a.data)}</span>`:''}
     </div>
     ${a.curso&&logosCursos[a.curso]?`<img src="${logosCursos[a.curso]}" alt="${a.curso}" class="ativ-logo-curso" style="height:${cursoIconeRedondo(a.curso)?18:16}px;aspect-ratio:${proporcaoLogosCursos[a.curso]}">`:''}
@@ -9420,6 +9473,16 @@ const TIPO_TEE='Turma Especial de Exercícios';
 // O rótulo curto do badge era decidido só pelo CURSO (tipoLabelCurso), então qualquer atividade
 // de Curso H aparecia como "SIMULADO" — inclusive um caderno da TEE, que não é simulado. Agora o
 // tipo tem prioridade quando é a TEE; fora isso a regra antiga continua idêntica.
+// Título de uma atividade pra exibição: "SIMULADO 221", "TEE 23 2026", mas nos cursos de
+// caderno (MPX, FSA Quest, Catavento) só o nome — "Meteorologia", "Direito Processual
+// Marítimo" — sem a palavra CADERNO na frente (pedido do Carlos, 6 Nov 2026).
+function tituloAtiv(o){
+  if(!o) return '';
+  const r=rotuloTipoAtiv(o);
+  const nome=o.nome||'';
+  if(!r||r==='CADERNO') return nome;
+  return nome?`${r} ${nome}`:r;
+}
 function rotuloTipoAtiv(o){
   if(!o) return '';
   if(o.tipo===TIPO_TEE) return 'TEE';
@@ -10235,7 +10298,7 @@ function renderDetalhe(a){
     </div>
     <div style="height:10px"></div>
     <div class="ativ-top" style="margin-top:0">
-      <span class="ativ-title">${tipoAbrevDet}${a.nome?' '+a.nome:''}</span>
+      <span class="ativ-title">${tituloAtiv(a)}</span>
       ${a.data?`<span class="detalhe-data">${fmtData(a.data)}</span>`:''}
     </div>
     ${a.tempoGastoMinutos?`<div style="font-size:var(--fs-c);color:#5F5E5A;margin-top:6px">⏱ ${Math.floor(a.tempoGastoMinutos/60)}h${String(a.tempoGastoMinutos%60).padStart(2,'0')}min pra responder${janelaSessao(a)?` · ${janelaSessao(a)}`:''}</div>`:''}
@@ -10301,7 +10364,7 @@ function renderTiposCards(qs){
           const ativ=(atividades||[]).find(a=>a.nome===q.idAtividade);
           const rotuloTipo=ativ?rotuloTipoAtiv(ativ):'';
           const rotuloCap=rotuloTipo?rotuloTipo.charAt(0)+rotuloTipo.slice(1).toLowerCase():'';
-          const cabecalho=[ativ?ativ.curso:'', rotuloCap?rotuloCap+' '+q.idAtividade:q.idAtividade]
+          const cabecalho=[ativ?ativ.curso:'', (rotuloCap&&rotuloCap!=='Caderno')?rotuloCap+' '+q.idAtividade:q.idAtividade]
             .filter(Boolean).join(' · ');
           const numQ='Questão '+String(q.questao).padStart(2,'0');
           // Na LISTA o contexto é necessário — são erros de vários cadernos misturados, e sem
@@ -11324,7 +11387,7 @@ function renderItemEsperandoUpload(ev){
   const quando=`${dataObj.getDate()} de ${mesesExtenso[dataObj.getMonth()]}`;
   return `<div class="cadernos-item-leve" style="border-left:3px solid #ccc;padding-left:8px">
     <div class="prox-left">
-      <span class="prox-nome" style="color:#444441">${tipoLabelCurso[ev.curso]||'CADERNO'} ${escapeHtml(ev.rotulo)}</span>
+      <span class="prox-nome" style="color:#444441">${(tipoLabelCurso[ev.curso]&&tipoLabelCurso[ev.curso]!=='CADERNO')?tipoLabelCurso[ev.curso]+' ':''}${escapeHtml(ev.rotulo)}</span>
       <span class="prox-modalidade" style="color:#888">esperando upload · ${quando}</span>
     </div>
   </div>`;
@@ -11451,7 +11514,7 @@ function renderQuestoes(){
     const tipoAbrev=rotuloTipoAtiv(ap);
     return `<div class="cadernos-item-leve" onclick="abrirMarcacaoPendente('${ap.id}')">
       <div class="prox-left">
-        <span class="prox-nome">${tipoAbrev}${ap.nome?' '+ap.nome:''}</span>
+        <span class="prox-nome prox-nome-renomeavel" data-ap="${ap.id}">${tituloAtiv(ap)}</span>
         ${modoCard==='detectado'?`<span class="prox-modalidade" style="color:#0C447C">Detectado</span>`:''}
         ${modoCard==='manual'?`<span class="prox-modalidade" style="color:#854F0B">Manual</span>`:''}
         ${semExcelCorrelacao?`<span class="prox-modalidade" style="color:#A32D2D;font-weight:600">⚠ Falta o Excel de correlação</span>`:''}
@@ -11462,7 +11525,12 @@ function renderQuestoes(){
           if(semModulo) partes.push(`${semModulo} sem módulo`);
           if(semPublicacao) partes.push(`${semPublicacao} sem publicação`);
           if(semCapitulo) partes.push(`${semCapitulo} sem capítulo`);
-          return partes.length?`<span class="prox-modalidade" style="color:#5F5E5A">${partes.join(' · ')}</span>`:'';
+          if(!partes.length&&!incompletas) return '';
+          const jaPedida=qsDessa.some(q=>q.reextracaoSolicitada);
+          const texto=partes.join(' · ');
+          return `<span class="prox-modalidade" style="color:#5F5E5A">${texto}${texto?' · ':''}${jaPedida
+            ?'<span style="color:#854F0B">reextração pedida — o importer refaz em até 10 min</span>'
+            :`<span style="color:#0C447C;text-decoration:underline;cursor:pointer" onclick="event.stopPropagation();solicitarReextracaoCaderno('${ap.id}')">reextrair</span>`}</span>`;
         })()}
       </div>
       <button class="prox-confirm-btn cadernos-btn-largura" style="flex-shrink:0" onclick="event.stopPropagation();abrirCadernoTimerFullscreen('${ap.id}')">${cadernoTimerAtivo===ap.id?'Voltar ao cronômetro':ap.tempoGastoSegundos?'Refazer caderno':'Iniciar caderno'}</button>
