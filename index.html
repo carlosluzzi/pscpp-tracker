@@ -1403,12 +1403,12 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      tela cheia estiver aberta, o app conta como "tocando áudio" pro iPadOS — música de outro app
      pausa. Decisão consciente do Carlos. -->
 <!-- 6 Nov 2026: o vídeo deixou de ser o clipe de 2 s embutido em base64 e passou a ser
-     assets/wakelock.mp4 (5 min, 31 KB, mesma trilha de silêncio). Motivo: rebobinar a cada ~1,2 s
+     audios/wakelock.mp4 (5 min, 31 KB, mesma trilha de silêncio). Motivo: rebobinar a cada ~1,2 s
      dava um "soluço" no áudio do iOS — a chuva (que roda pelo mesmo motor de som) tinha um pico de
      silêncio a cada poucos segundos. Com 5 min, o rebobinar acontece uma vez a cada 5 min. -->
 <video id="wakelock-video" playsinline webkit-playsinline preload="auto" title="tela acesa"
   ontimeupdate="rebobinarVideoWakeLock(this)"
-  src="assets/wakelock.mp4"
+  src="audios/wakelock.mp4"
 ></video>
 
 <!-- Áudio real (não gerado por osciladores), 150ms, bem baixo — "destrava" o resto do Web
