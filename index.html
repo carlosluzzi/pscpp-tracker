@@ -2651,22 +2651,33 @@ const textosEmCurso=new Map();              // id_atividade -> Promise, pra não
 function textosProntos(idsAtividade){ return idsAtividade.every(id=>!id||textosAtividadesCarregadas.has(id)); }
 // Busca os textos das questões dessas atividades (uma consulta filtrada, paginada) e aplica nos
 // objetos já em memória. Devolve true se trouxe algo novo — quem chamou redesenha.
-async function garantirTextosQuestoes(idsAtividade){
+// Uma leva de textos: uma única consulta filtrada (sem a ida de contagem do buscarTudo — aqui o
+// que importa é latência), paginada só se passar de 1000 linhas.
+async function baixarTextosQuestoes(lote){
+  let inicio=0;
+  for(;;){
+    const {data,error}=await sbDados.from('banco_questoes').select('id,questao_completa,afirmacao,correcao')
+      .in('id_atividade',lote).order('id').range(inicio,inicio+LIMITE_PAGINA_SUPABASE-1);
+    if(error) throw error;
+    (data||[]).forEach(l=>textosQuestoes.set(l.id,{motivo:l.questao_completa||null,afirmacao:l.afirmacao||null,correcao:l.correcao||null}));
+    if(!data||data.length<LIMITE_PAGINA_SUPABASE) break;
+    inicio+=LIMITE_PAGINA_SUPABASE;
+  }
+  lote.forEach(id=>textosAtividadesCarregadas.add(id));
+}
+// prioridade=true: é o Carlos abrindo uma tela AGORA — faz a própria consulta na hora, pequena,
+// sem esperar a leva de pré-carga que pode estar no meio do caminho (era isso que deixava o
+// "Carregando enunciado…" preso por um tempão).
+async function garantirTextosQuestoes(idsAtividade,prioridade=false){
   const faltam=[...new Set(idsAtividade)].filter(id=>id&&!textosAtividadesCarregadas.has(id));
   if(!faltam.length) return false;
   const esperar=[];
-  const novos=faltam.filter(id=>{ if(textosEmCurso.has(id)){ esperar.push(textosEmCurso.get(id)); return false; } return true; });
+  const novos=prioridade?faltam:faltam.filter(id=>{ if(textosEmCurso.has(id)){ esperar.push(textosEmCurso.get(id)); return false; } return true; });
   if(novos.length){
     const p=(async()=>{
-      for(let i=0;i<novos.length;i+=25){
-        const lote=novos.slice(i,i+25);
-        const {data,error}=await buscarTudo('banco_questoes','id,questao_completa,afirmacao,correcao',q=>q.in('id_atividade',lote));
-        if(error) throw error;
-        (data||[]).forEach(l=>textosQuestoes.set(l.id,{motivo:l.questao_completa||null,afirmacao:l.afirmacao||null,correcao:l.correcao||null}));
-        lote.forEach(id=>textosAtividadesCarregadas.add(id));
-      }
-    })().finally(()=>novos.forEach(id=>textosEmCurso.delete(id)));
-    novos.forEach(id=>textosEmCurso.set(id,p));
+      for(let i=0;i<novos.length;i+=25) await baixarTextosQuestoes(novos.slice(i,i+25));
+    })().finally(()=>novos.forEach(id=>{ if(textosEmCurso.get(id)===p) textosEmCurso.delete(id); }));
+    novos.forEach(id=>{ if(prioridade||!textosEmCurso.has(id)) textosEmCurso.set(id,p); });
     esperar.push(p);
   }
   try{ await Promise.all(esperar); }catch(e){ console.error('Textos das questões:',e); return false; }
@@ -2693,14 +2704,25 @@ function agendarPreCargaSegundoPlano(){
   if(preCargaAgendada) return;
   preCargaAgendada=true;
   const rodar=async()=>{
-    try{ await garantirQuestoesPendentes(); }catch(e){}
-    try{
-      const recentes=[...atividades].sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).slice(0,20).map(a=>a.nome);
-      const pendentes=atividadesPendentes.filter(a=>a.status!=='Completo').map(a=>a.nome);
-      await garantirTextosQuestoes([...new Set([...pendentes,...recentes])]);
-    }catch(e){}
-    if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true);
+    // Todas as atividades, as mais recentes primeiro, em levas de 4 com uma folga entre elas —
+    // assim nenhuma leva segura a tela, e em pouco tempo tudo está em memória pra abrir na hora.
+    const ordem=[...new Set([...atividadesPendentes.filter(a=>a.status!=='Completo').map(a=>a.nome),
+      ...[...atividades].sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))).map(a=>a.nome)])].filter(Boolean);
+    for(let i=0;i<ordem.length;i+=4){
+      const lote=ordem.slice(i,i+4).filter(n=>!textosAtividadesCarregadas.has(n));
+      if(!lote.length) continue;
+      if(document.visibilityState==='hidden') break;
+      try{ await garantirTextosQuestoes(lote); }catch(e){ break; }
+      if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true);
+      await new Promise(r=>setTimeout(r,150));
+    }
   };
+  // Cadernos pendentes é a PRIMEIRA coisa depois da Início: começa já, sem esperar ociosidade
+  // (Carlos: "toda hora aparece carregando"). Os textos vêm depois, quando o aparelho folgar.
+  // Sempre recarrega (não só "garante"): o retrato local pode ter trazido uma cópia de ontem.
+  // setTimeout 0: a carga completa ainda está "em andamento" neste instante e o loadData parcial
+  // seria engolido por ela (ver loadData) — um tique depois ela já fechou.
+  setTimeout(()=>{ loadData(['questoes_pendentes']).then(()=>{ if(tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); }).catch(()=>{}); },0);
   const quandoOcioso=window.requestIdleCallback?cb=>requestIdleCallback(cb,{timeout:4000}):cb=>setTimeout(cb,1500);
   setTimeout(()=>quandoOcioso(rodar),800);
 }
@@ -2711,11 +2733,11 @@ function agendarPreCargaSegundoPlano(){
 // enquanto a carga nova roda por trás e redesenha quando chega. O indicador "Sincronizando…"
 // continua mostrando que ainda está atualizando. Qualquer falha aqui é ignorada: o retrato é
 // conveniência, nunca condição pro app funcionar.
-const RETRATO_VERSAO=1;
+const RETRATO_VERSAO=2;
 // As globais são `let` (não vivem em window): lidas e gravadas por nome via Function.
 const lerGlobal=n=>Function('return '+n)();
 const gravarGlobal=(n,v)=>Function('v',n+'=v')(v);
-const RETRATO_GLOBAIS=['atividades','questoes','questoesExcluidas','calendarioEventos','notasEstudo','complementares','bancoPratico','focoEstudado','apelidos','filaBancoPratico','sessoesEstudo','cicloEstudosConfig','metasEstudo','bibliografia','revisoesEspacadas','atividadesPendentes','anotacoesAlternativas','tamanhoCapitulos','classAlternativas','planoEstudo','notasAssunto','saudacaoSubtexto','filaFlash','filaFlashMapa'];
+const RETRATO_GLOBAIS=['questoesPendentes','atividades','questoes','questoesExcluidas','calendarioEventos','notasEstudo','complementares','bancoPratico','focoEstudado','apelidos','filaBancoPratico','sessoesEstudo','cicloEstudosConfig','metasEstudo','bibliografia','revisoesEspacadas','atividadesPendentes','anotacoesAlternativas','tamanhoCapitulos','classAlternativas','planoEstudo','notasAssunto','saudacaoSubtexto','filaFlash','filaFlashMapa'];
 let retratoAplicado=false;
 function abrirRetratoDB(){
   return new Promise((res,rej)=>{
@@ -2742,6 +2764,7 @@ async function aplicarRetrato(){
     db.close();
     if(!pacote||pacote.versao!==RETRATO_VERSAO||!pacote.dados) return false;
     RETRATO_GLOBAIS.forEach(n=>{ if(n in pacote.dados) gravarGlobal(n,pacote.dados[n]); });
+    if(Array.isArray(pacote.dados.questoesPendentes)&&pacote.dados.questoesPendentes.length) questoesPendentesCarregadas=true;
     posProcessarDados();
     retratoAplicado=true;
     return true;
@@ -3520,7 +3543,7 @@ function renderTab(tab,preservarScroll){
   if(atividadeAtual){
     if(!textosProntos([atividadeAtual.nome])){
       const nome=atividadeAtual.nome;
-      garantirTextosQuestoes([nome]).then(mudou=>{ if(mudou&&atividadeAtual&&atividadeAtual.nome===nome) renderTab(tabAtual,true); });
+      garantirTextosQuestoes([nome],true).then(mudou=>{ if(mudou&&atividadeAtual&&atividadeAtual.nome===nome) renderTab(tabAtual,true); });
     }
     c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;
   }
@@ -4006,9 +4029,12 @@ document.addEventListener('contextmenu',ev=>{ if(ev.target.closest&&ev.target.cl
 function abrirRenomearCaderno(atividadeId){
   const ap=atividadesPendentes.find(a=>a.id===atividadeId);
   if(!ap) return;
-  abrirTextoModal({titulo:'Renomear caderno',sub:ap.curso||'',valor:ap.nome||'',placeholder:'Nome do caderno'},async texto=>{
-    const novo=(texto||'').trim();
-    if(!novo||novo===ap.nome) return;
+  abrirTextoModal({titulo:'Renomear caderno',sub:ap.curso||'',valor:nomeExibAtiv(ap.nome),placeholder:'Nome do caderno'},async texto=>{
+    let novo=(texto||'').trim();
+    if(!novo||novo===nomeExibAtiv(ap.nome)) return;
+    // outro caderno do mesmo curso já usa esse nome: ganha o marcador invisível " #n"
+    const usados=new Set(atividadesPendentes.filter(a=>a.id!==ap.id&&a.curso===ap.curso).map(a=>a.nome).concat(atividades.filter(a=>a.curso===ap.curso).map(a=>a.nome)));
+    if(usados.has(novo)){ let k=2; while(usados.has(`${novo} #${k}`)) k++; novo=`${novo} #${k}`; }
     try{
       const {error}=await sbDados.from('atividades_pendentes').update({nome:novo}).eq('id',ap.id);
       if(error) throw error;
@@ -4028,7 +4054,7 @@ async function solicitarReextracaoCaderno(atividadeId){
     if(error) throw error;
     alvo.forEach(q=>{ q.reextracaoSolicitada=true; });
     renderTab(tabAtual,true);
-    mostrarAviso('Reextração pedida',`${alvo.length} questão${alvo.length>1?'ões':''} marcada${alvo.length>1?'s':''}. O importer refaz em até 10 minutos (ou na hora, se você reiniciar o serviço). Puxe pra atualizar depois.`);
+    mostrarAviso('Reextração pedida',`${alvo.length===1?'1 questão marcada':alvo.length+' questões marcadas'}. O importer refaz em até 10 minutos. Puxe pra atualizar depois.`);
   }catch(e){
     mostrarAviso('Não deu para pedir reextração','Tente de novo em instantes. Nada foi perdido.');
   }
@@ -4090,6 +4116,17 @@ async function finalizarCadernoPendente(){
     const semResposta=qs.filter(q=>q.gabarito!=='Anulada'&&!q.suaResposta).map(q=>q.numeroQuestao);
     if(semResposta.length){
       alert(`Ainda falta${semResposta.length>1?'m':''} ${semResposta.length} questão${semResposta.length>1?'ões':''} sem resposta: ${semResposta.join(', ')}.\n\nToque em "Escolher" e informe a letra que você marcou, ou marque no PDF Expert e salve o arquivo.`);
+      return;
+    }
+  }
+
+  // Questão que veio incompleta da extração não finaliza (6 Nov 2026): o texto está quebrado e a
+  // resposta detectada pode ter sido lida na posição errada (Meteorologia Q21). Primeiro
+  // "reextrair" no card, depois finalizar.
+  {
+    const incompletas=qs.filter(q=>q.statusExtracao==='incompleta'&&q.gabarito!=='Anulada').map(q=>q.numeroQuestao);
+    if(incompletas.length){
+      mostrarAviso('Caderno com extração incompleta',`${incompletas.length===1?'A questão':'As questões'} ${incompletas.join(', ')} ${incompletas.length===1?'veio':'vieram'} incompleta${incompletas.length===1?'':'s'} da leitura do PDF. Toque em "reextrair" no card do caderno, espere o importer refazer e finalize depois.`);
       return;
     }
   }
@@ -6815,7 +6852,7 @@ function fecharTimerFlutuante(){
       const ap=atividadesPendentes.find(a=>a.id===cadernoTimerAtivo);
       const decorrido=Math.floor((Date.now()-cadernoTimerInicio)/1000);
       const restante=Math.max(0,CADERNO_TIMER_MAXIMO_SEG-decorrido);
-      mostrarTimerFlutuante(ap?ap.curso:'Caderno',formatarTempoTimer(restante),ap?ap.nome:'');
+      mostrarTimerFlutuante(ap?ap.curso:'Caderno',formatarTempoTimer(restante),ap?nomeExibAtiv(ap.nome):'');
     } else {
       const seg=timerRodando?timerAcumuladoSeg+Math.floor((Date.now()-timerInicio)/1000):timerAcumuladoSeg;
       mostrarTimerFlutuante(nomeCurtoWidget(timerModulo||timerTipo),formatarTempoTimer(seg),timerPublicacao||'');
@@ -7222,7 +7259,7 @@ function verificarSessaoRecuperavel(){
   }else if(snap.tipo==='caderno'){
     const ap=atividadesPendentes.find(a=>a.id===snap.cadernoTimerAtivo);
     const minutosDecorridos=Math.round((Date.now()-snap.cadernoTimerInicio)/1000/60);
-    document.getElementById('sessao-recuperavel-texto').textContent=`Existe um cronômetro em andamento do Caderno${ap&&ap.nome?' '+ap.nome:''}${ap&&ap.curso?' do '+ap.curso:''}, com ${minutosDecorridos} min decorridos – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
+    document.getElementById('sessao-recuperavel-texto').textContent=`Existe um cronômetro em andamento do Caderno${ap&&ap.nome?' '+nomeExibAtiv(ap.nome):''}${ap&&ap.curso?' do '+ap.curso:''}, com ${minutosDecorridos} min decorridos – parece que o app fechou ou recarregou no meio. Quer continuar de onde parou?`;
   }else{
     return;
   }
@@ -9476,10 +9513,14 @@ const TIPO_TEE='Turma Especial de Exercícios';
 // Título de uma atividade pra exibição: "SIMULADO 221", "TEE 23 2026", mas nos cursos de
 // caderno (MPX, FSA Quest, Catavento) só o nome — "Meteorologia", "Direito Processual
 // Marítimo" — sem a palavra CADERNO na frente (pedido do Carlos, 6 Nov 2026).
+// Cadernos com o MESMO nome (três cadernos de "Theory and Practices of Marine Pilotage", por
+// exemplo) existem no banco com um marcador " #2", " #3" no fim — é só pra não colidir, porque o
+// app liga questão a atividade pelo nome. Na tela o marcador nunca aparece (Carlos, 6 Nov 2026).
+function nomeExibAtiv(nome){ return String(nome||'').replace(/\s#\d+$/,''); }
 function tituloAtiv(o){
   if(!o) return '';
   const r=rotuloTipoAtiv(o);
-  const nome=o.nome||'';
+  const nome=nomeExibAtiv(o.nome);
   if(!r||r==='CADERNO') return nome;
   return nome?`${r} ${nome}`:r;
 }
@@ -10561,7 +10602,7 @@ function togglePub(pubId){
 }
 async function abrirVerQuestaoCompleta(questaoId){
   const q=questoes.find(qq=>qq.id===questaoId);
-  if(q&&!textosProntos([q.idAtividade])) await garantirTextosQuestoes([q.idAtividade]);
+  if(q&&!textosProntos([q.idAtividade])) await garantirTextosQuestoes([q.idAtividade],true);
   // Múltipla escolha precisa do enunciado formatado (motivo); o Flash não usa esse campo — a
   // afirmação mora em outro lugar — então o guard não pode barrar as duas por igual.
   const ehFlash=q&&q.formato==='verdadeiro_falso';
@@ -11363,6 +11404,15 @@ function chaveEventoCurso(curso,texto){
   if(curso==='MPX') return normalizarBusca(t.split(/\s[-–—]\s/)[0]).trim().split(/\s+/)[0]||'';
   return normalizarBusca(t).trim();
 }
+// Marco por curso (Carlos, 6 Nov 2026): antes disso ele não vai fazer — matéria antiga — e não
+// quer cobrança. Curso H só a partir de 01/08/2026; Curso Prático só do 214 em diante.
+const ESPERANDO_UPLOAD_MINIMO={'Curso H':'2026-08-01','Curso Prático':214};
+function eventoCobravel(e){
+  const min=ESPERANDO_UPLOAD_MINIMO[e.curso];
+  if(min==null) return true;
+  if(e.curso==='Curso Prático'){ const n=parseInt((String(e.numero||'').match(/\d+/)||['0'])[0],10); return n>=min; }
+  return (e.data||'')>=min;
+}
 function eventosEsperandoUpload(){
   const hoje=chaveDia(new Date());
   const enviados=new Set();
@@ -11372,7 +11422,7 @@ function eventosEsperandoUpload(){
     enviados.add(a.curso+'|'+chaveEventoCurso(a.curso,a.nome));
     if(a.nomeArquivoOriginal) enviados.add(a.curso+'|'+chaveEventoCurso(a.curso,a.nomeArquivoOriginal.replace(/\.pdf$/i,'')));
   });
-  let passados=(calendarioEventos||[]).filter(e=>e.data&&e.data<=hoje&&e.curso&&tipoLabelCurso[e.curso]);
+  let passados=(calendarioEventos||[]).filter(e=>e.data&&e.data<=hoje&&e.curso&&tipoLabelCurso[e.curso]&&eventoCobravel(e));
   const ultimoMpx=passados.filter(e=>e.curso==='MPX').sort((a,b)=>b.data.localeCompare(a.data))[0];
   passados=passados.filter(e=>e.curso!=='MPX'||e===ultimoMpx);
   return passados.map(e=>{
@@ -11432,7 +11482,7 @@ function renderQuestoes(){
   // Textos das questões listadas vêm sob demanda: pede e redesenha quando chegarem.
   if(algumFiltroAtivo){
     const idsAtiv=[...new Set(lista.map(q=>q.idAtividade).filter(Boolean))];
-    if(!textosProntos(idsAtiv)) garantirTextosQuestoes(idsAtiv).then(mudou=>{ if(mudou&&tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); });
+    if(!textosProntos(idsAtiv)) garantirTextosQuestoes(idsAtiv,true).then(mudou=>{ if(mudou&&tabAtual==='questoes'&&!atividadeAtual) renderTab('questoes',true); });
   }
 
   const pendentesAtivas=atividadesPendentes.filter(ap=>ap.status!=='Completo');
@@ -11453,7 +11503,7 @@ function renderQuestoes(){
       const tipoAbrevFalha=rotuloTipoAtiv(ap);
       return `<div class="cadernos-item-leve problema">
         <div class="prox-left">
-          <span class="prox-nome" style="color:#A32D2D">${tipoAbrevFalha}${ap.nome?' '+ap.nome:''}</span>
+          <span class="prox-nome" style="color:#A32D2D">${tituloAtiv(ap)}</span>
           <span class="prox-modalidade" style="color:#A32D2D">⚠ Falha ao ler ${(ap.arquivoComFalha||ap.nomeArquivoOriginal)?'o arquivo '+(ap.arquivoComFalha||ap.nomeArquivoOriginal):'este arquivo'}</span>
           ${ap.motivoFalha?`<span class="prox-modalidade" style="color:#A32D2D;opacity:.8">${ap.motivoFalha}</span>`:''}
         </div>
