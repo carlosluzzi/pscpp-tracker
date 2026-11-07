@@ -8631,6 +8631,15 @@ async function verificarFilaFlash(forcar){
     for(const f of abertas){
       const ids=await cardsDoTrechoFlash(f.modulo,f.publicacao,f.capitulo);
       const set=new Set(ids);
+      // Cota e total recalculados a cada verificação (7 Nov 2026): cards são excluídos/criados o
+      // tempo todo no Pilotquest, e a cota congelada na criação ficava errada (NORMAM-701 caiu de
+      // 290 pra 165 cards e a tarefa seguia pedindo 58). Mesma regra de sempre: % por rodada,
+      // piso 15, teto 60. Grava no Pilotquest quando mudar, pra tela e banco baterem.
+      if(ids.length&&(ids.length!==f.totalCards||cotaFlash(f.rodada,ids.length)!==f.cota)){
+        const novaCota=cotaFlash(f.rodada,ids.length);
+        const {error:eAj}=await sbAuth.from('fila_flash').update({cota:novaCota,total_cards:ids.length}).eq('id',f.id).eq('usuario_id',pqUsuarioId);
+        if(!eAj){ f.cota=novaCota; f.totalCards=ids.length; }
+      }
       const desdeMs=inicioContagemFlash(f).getTime();
       const feitas=logs.filter(l=>set.has(l.questao_vf_id)&&new Date(l.respondida_em).getTime()>=desdeMs).length;
       flashFeitas[f.id]=feitas;
