@@ -4155,6 +4155,22 @@ async function finalizarCadernoPendente(){
 function fecharNomeAtividadeModal(){
   document.getElementById('nome-atividade-modal').style.display='none';
 }
+// Primeiro id_atividade livre para um nome: o próprio nome se ninguém usa; senão "nome #2",
+// "nome #3"… (o maior marcador existente + 1).
+async function idAtividadeLivre(nomeBase){
+  const [{data:igual,error:e1},{data:marcados,error:e2}]=await Promise.all([
+    sbDados.from('atividades').select('id_atividade').eq('id_atividade',nomeBase).limit(1),
+    sbDados.from('atividades').select('id_atividade').like('id_atividade',nomeBase+' #%'),
+  ]);
+  if(e1) throw e1; if(e2) throw e2;
+  if(!(igual||[]).length) return nomeBase;
+  let maior=1;
+  (marcados||[]).forEach(r=>{
+    const m=String(r.id_atividade).slice(nomeBase.length).match(/^ #(\d+)$/);
+    if(m) maior=Math.max(maior,parseInt(m[1],10));
+  });
+  return nomeBase+' #'+(maior+1);
+}
 let confirmandoNomeAtividade=false;
 async function confirmarNomeAtividade(){
   if(confirmandoNomeAtividade) return; // trava contra clique duplo, mesmo que o modal ainda não tenha sumido da tela
@@ -4211,8 +4227,13 @@ async function confirmarNomeAtividade(){
   });
 
   try{
+    // Nome repetido é permitido (vários cadernos "Meteorologia" do FSA Quest, por exemplo). O app
+    // liga questão a atividade pelo nome, então o banco guarda o 2º como "Meteorologia #2", o 3º
+    // como "#3"… — o marcador nunca aparece na tela (nomeExibAtiv). Pedido do Carlos, 8 Nov 2026.
+    const nomeBase=nomeAtividade.trim();
+    const idAtiv=await idAtividadeLivre(nomeBase);
     const {error:eAtiv}=await sbDados.from('atividades').insert({
-      id_atividade:nomeAtividade.trim(),
+      id_atividade:idAtiv,
       data:ap.dataAtividade||chaveDia(new Date()),
       tipo:ap.tipo,
       curso:ap.curso,
@@ -4233,7 +4254,7 @@ async function confirmarNomeAtividade(){
 
     const linhasQuestoes=resultados.map(({q,statusFinal})=>({
       numero_questao:q.numeroQuestao,
-      id_atividade:nomeAtividade.trim(),
+      id_atividade:idAtiv,
       status:statusFinal,
       modulo_pscpp:q.modulo,
       publicacao:q.publicacao,
@@ -4247,7 +4268,7 @@ async function confirmarNomeAtividade(){
       // desfaz o insert em 'atividades' que já tinha dado certo, pra não deixar lixo órfão
       // se essa etapa falhar — sem isso, uma tentativa nova esbarra em "chave duplicada"
       // no id_atividade, mesmo sem nenhuma questão ter sido salva de verdade.
-      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
       throw eQuest;
     }
 
@@ -4265,7 +4286,7 @@ async function confirmarNomeAtividade(){
         duracao_minutos: minutosGastos,
         data: ap.dataAtividade||chaveDia(new Date()),
         modulo: modulos.length===1 ? modulos[0] : null,
-        publicacao: nomeAtividade.trim(),
+        publicacao: nomeBase,
         origem: ap.curso||null,
       });
       if(eSessao) console.error('Não foi possível registrar a sessão de estudo:',eSessao);
@@ -4274,8 +4295,8 @@ async function confirmarNomeAtividade(){
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
     if(eStatus){
       // mesma lógica: desfaz os dois inserts anteriores, que já tinham dado certo
-      await sbDados.from('banco_questoes').delete().eq('id_atividade',nomeAtividade.trim());
-      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('banco_questoes').delete().eq('id_atividade',idAtiv);
+      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
       throw eStatus;
     }
 
@@ -9146,6 +9167,14 @@ function alternarMapa(linha){
   if(abrir) mapaAbertos.add(k); else mapaAbertos.delete(k);
   linha.classList.toggle('mapa-aberta',abrir);
   const lista=linha.closest('.mapa-lista');
+  // Fechar uma pasta fecha tudo que está dentro dela (Carlos, 7 Nov 2026): ao reabrir, os
+  // níveis de dentro aparecem recolhidos de novo. As chaves são hierárquicas ("Módulo|Livro|…"),
+  // então "dentro" = toda chave que começa com a desta pasta.
+  if(!abrir){
+    const prefixo=k+'|';
+    [...mapaAbertos].filter(x=>x.startsWith(prefixo)).forEach(x=>mapaAbertos.delete(x));
+    lista.querySelectorAll('.mapa-linha.mapa-aberta').forEach(l=>{ if((l.dataset.k||'').startsWith(prefixo)) l.classList.remove('mapa-aberta'); });
+  }
   const mostrarFilhos=(pai,mostrar)=>{
     lista.querySelectorAll('.mapa-linha').forEach(l=>{
       if(l.dataset.pai!==pai) return;
