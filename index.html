@@ -5769,7 +5769,8 @@ function timerCamposObrigatoriosCompletos(){
   if(timerOrigem&&timerPublicacao) return true;
   if(!timerModulo||!timerPublicacao) return false;
   const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  // Revisão: capítulo é opcional — dá pra revisar a matéria inteira sem escolher um (Carlos, 10 Nov 2026).
+  const exigeCapitulo=timerTipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!timerCapitulo) return false;
   return true;
 }
@@ -7666,7 +7667,8 @@ async function salvarRegistroManual(){
   const data=document.getElementById('registro-manual-data').value;
   if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
   if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
-  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  // Revisão: capítulo é opcional, igual ao cronômetro (Carlos, 10 Nov 2026).
+  const exigeCapitulo=tipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe ${pubInfo.rotuloCapitulo==='Publicação'?'a':'o'} ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
