@@ -3411,6 +3411,8 @@ const CARREGADORES={
         const aj=ajustesBib.porNome.get(b.nome);
         if(!aj) return;
         if(aj.oculta){ b._ocultaTracker=true; return; }
+        // Módulo do Tracker diferente do Pilotquest (ex.: NORMAM-601/602 em Navegação, 10 Nov 2026).
+        if(aj.modulo) b.modulo=aj.modulo;
         if(Array.isArray(aj.capitulos)&&aj.capitulos.length){ b.capitulosValidos=[...aj.capitulos]; b.capituloUnico=false; }
         const div=aj.capitulos_divididos;
         if(div&&typeof div==='object') b.capitulosValidos=b.capitulosValidos.flatMap(c=>div[String(c)]||[c]);
