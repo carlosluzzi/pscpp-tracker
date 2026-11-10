@@ -1191,6 +1191,7 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .flash-atualizar{width:24px;height:24px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#555;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .flash-atualizar svg{width:14px;height:14px}
 .flash-atualizar.girando svg{animation:ptr-girar 0.8s linear infinite}
+.flash-mais{margin-left:8px;vertical-align:middle}
 .flash-vazio{padding:14px 10px;font-size:var(--fs-c);color:#888}
 /* Flashs para revisar */
 .rev-cab,.rev-linha{grid-template-columns:minmax(0,1fr) auto 72px}
@@ -2151,6 +2152,25 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarRegistroManual()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adicionar trecho à fila de flash à mão (Carlos, 10 Nov 2026): para quando estudou só uma parte
+     e quer os flashs mesmo assim. Entra como rodada 1 com data de hoje e segue o ciclo normal. -->
+<div class="modal-overlay" id="flash-add-modal" style="display:none" onclick="if(event.target===this)fecharAdicionarFlash()">
+  <div class="modal-box">
+    <div class="config-title">Adicionar à fila de flash</div>
+    <select class="filter-select" id="flash-add-modulo" onchange="atualizarPublicacoesFlashAdd()"></select>
+    <select class="filter-select" id="flash-add-publicacao" onchange="atualizarCapitulosFlashAdd()">
+      <option value="">Publicação</option>
+    </select>
+    <select class="filter-select" id="flash-add-capitulo">
+      <option value="">Capítulo</option>
+    </select>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn modal-btn-nao" onclick="fecharAdicionarFlash()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" id="flash-add-btn" onclick="adicionarFlashManual()">Adicionar</button>
     </div>
   </div>
 </div>
@@ -8716,12 +8736,71 @@ function renderCardFlashHoje(){
     </div>`).join('')
     :'<div class="flash-vazio">Nenhum flash pendente.</div>';
   return `<div class="card-inicio" id="flash-hoje-card">
-    ${sectionTitle('Flash de hoje','relogio','#E6F1FB','#202A45',{direita})}
+    ${sectionTitle(`Flash de hoje<button class="flash-atualizar flash-mais" onclick="event.stopPropagation();abrirAdicionarFlash()" aria-label="Adicionar à fila de flash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`,'relogio','#E6F1FB','#202A45',{direita})}
     <div class="mapa-lista">
       <div class="mapa-cab flash-cab"><div>Trecho</div><div>Rodada</div><div>Faltam</div></div>
       ${linhas}
     </div>
   </div>`;
+}
+// ADICIONAR À FILA À MÃO (10 Nov 2026): a fila só nasce sozinha quando a leitura do trecho fica
+// concluída. Aqui o Carlos põe o trecho na fila mesmo tendo lido só uma parte: entra como rodada 1,
+// com data de HOJE, e daí segue igual a qualquer outra (cota por %, 2ª rodada 7 dias após concluir
+// a 1ª, 3ª rodada 30 dias após a 2ª). Sem quantidade: a cota é a de sempre.
+function abrirAdicionarFlash(){
+  document.getElementById('flash-add-modulo').innerHTML='<option value="">Selecione o módulo</option>'+[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
+  atualizarPublicacoesFlashAdd();
+  document.getElementById('flash-add-btn').disabled=false;
+  document.getElementById('flash-add-modal').style.display='flex';
+}
+function fecharAdicionarFlash(){ document.getElementById('flash-add-modal').style.display='none'; }
+function atualizarPublicacoesFlashAdd(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const opcoes=modulo?publicacoesParaEstudo(modulo):[];
+  document.getElementById('flash-add-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomePub(p))}</option>`).join('');
+  atualizarCapitulosFlashAdd();
+}
+function atualizarCapitulosFlashAdd(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const publicacao=document.getElementById('flash-add-publicacao').value;
+  const sel=document.getElementById('flash-add-capitulo');
+  const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  sel.classList.remove('select-como-texto');
+  if(!publicacao||!info){ sel.innerHTML='<option value="">Capítulo</option>'; sel.disabled=true; return; }
+  if(info.capituloUnico){ sel.innerHTML=`<option value="">${rotuloCapituloUnico(info)}</option>`; sel.disabled=true; sel.classList.add('select-como-texto'); return; }
+  const caps=info.capitulosValidos||[];
+  if(!caps.length){ sel.innerHTML=`<option value="">${info.rotuloCapitulo} (ainda não cadastrado)</option>`; sel.disabled=true; return; }
+  if(caps.length===1){ sel.innerHTML=`<option value="${escapeHtml(caps[0])}">${textoOpcaoCapitulo(info.rotuloCapitulo,caps[0])}</option>`; sel.disabled=true; return; }
+  sel.disabled=false;
+  sel.innerHTML=`<option value="">${info.rotuloCapitulo}</option>`+caps.map(c=>`<option value="${escapeHtml(c)}">${textoOpcaoCapitulo(info.rotuloCapitulo,c)}</option>`).join('');
+}
+async function adicionarFlashManual(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const publicacao=document.getElementById('flash-add-publicacao').value;
+  const capSel=document.getElementById('flash-add-capitulo');
+  const cap=String(capSel.value||'');
+  const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo.'); return; }
+  if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação.'); return; }
+  if(!capSel.disabled&&!cap){ mostrarAviso('Falta o capítulo',`Escolha ${info&&info.rotuloCapitulo==='Publicação'?'a':'o'} ${(info?info.rotuloCapitulo:'Capítulo').toLowerCase()}.`); return; }
+  if((filaFlash||[]).some(f=>!f.concluidoEm&&f.modulo===modulo&&f.publicacao===publicacao&&f.capitulo===cap)){
+    mostrarAviso('Já está na fila','Esse trecho já tem uma rodada de flash em aberto.'); return;
+  }
+  const btn=document.getElementById('flash-add-btn');
+  btn.disabled=true;
+  try{
+    const ids=await cardsDoTrechoFlash(modulo,publicacao,cap);
+    if(!ids.length){ btn.disabled=false; mostrarAviso('Sem cards','Esse trecho ainda não tem cards seus no Pilotquest.'); return; }
+    const criada=await inserirTarefaFlash({modulo,publicacao,capitulo:cap,rodada:1,dataPrevista:chaveDia(new Date()),ids});
+    if(!criada){ btn.disabled=false; mostrarAviso('Não deu para adicionar','Tente de novo em instantes.'); return; }
+    fecharAdicionarFlash();
+    await loadData(['fila_flash']);
+    verificarFilaFlash(true);
+  }catch(e){
+    console.error('Fila de flash (adicionar à mão):',e);
+    btn.disabled=false;
+    mostrarAviso('Não deu para adicionar','Tente de novo em instantes.');
+  }
 }
 function redesenharFlashHoje(){
   const el=document.getElementById('flash-hoje-card');
