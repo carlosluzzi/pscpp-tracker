@@ -6,13 +6,13 @@
 <!-- A barra de status usa sempre a cor padrão do sistema, em qualquer tela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<!-- "default" (barra de status sólida) em vez de "black-translucent": com black-translucent o
-     conteúdo do PWA passa POR BAIXO da barra de status, e isso entra em conflito direto com o
-     viewport-fit=cover que a tela cheia do cronômetro liga/desliga. As duas coisas disputam a
-     mesma área e o iOS se perde: innerHeight passa a reportar 812 numa tela de 874 (62px a menos,
-     exatamente o safe-area-inset-top), o que desloca a área de toque dos botões e deixa faixa
-     sobrando embaixo depois de girar. Medido no dispositivo real via Web Inspector. -->
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- "black-translucent": barra de status transparente, o fundo do app sobe até o topo (sem o
+     degradê que o iPadOS novo desenha abaixo da barra sólida em telas escuras). Todos os
+     cabeçalhos e telas cheias já reservam env(safe-area-inset-top). Histórico: a versão antiga
+     usava "default" porque, na época, a tela cheia do cronômetro ligava/desligava viewport-fit=cover
+     e o iOS se perdia (innerHeight 812 numa tela de 874, toque deslocado). Esse liga/desliga não
+     existe mais. Se voltar a deslocar botões ou sobrar faixa ao girar, trocar de volta pra "default". -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
@@ -4155,22 +4155,6 @@ async function finalizarCadernoPendente(){
 function fecharNomeAtividadeModal(){
   document.getElementById('nome-atividade-modal').style.display='none';
 }
-// Primeiro id_atividade livre para um nome: o próprio nome se ninguém usa; senão "nome #2",
-// "nome #3"… (o maior marcador existente + 1).
-async function idAtividadeLivre(nomeBase){
-  const [{data:igual,error:e1},{data:marcados,error:e2}]=await Promise.all([
-    sbDados.from('atividades').select('id_atividade').eq('id_atividade',nomeBase).limit(1),
-    sbDados.from('atividades').select('id_atividade').like('id_atividade',nomeBase+' #%'),
-  ]);
-  if(e1) throw e1; if(e2) throw e2;
-  if(!(igual||[]).length) return nomeBase;
-  let maior=1;
-  (marcados||[]).forEach(r=>{
-    const m=String(r.id_atividade).slice(nomeBase.length).match(/^ #(\d+)$/);
-    if(m) maior=Math.max(maior,parseInt(m[1],10));
-  });
-  return nomeBase+' #'+(maior+1);
-}
 let confirmandoNomeAtividade=false;
 async function confirmarNomeAtividade(){
   if(confirmandoNomeAtividade) return; // trava contra clique duplo, mesmo que o modal ainda não tenha sumido da tela
@@ -4227,13 +4211,8 @@ async function confirmarNomeAtividade(){
   });
 
   try{
-    // Nome repetido é permitido (vários cadernos "Meteorologia" do FSA Quest, por exemplo). O app
-    // liga questão a atividade pelo nome, então o banco guarda o 2º como "Meteorologia #2", o 3º
-    // como "#3"… — o marcador nunca aparece na tela (nomeExibAtiv). Pedido do Carlos, 8 Nov 2026.
-    const nomeBase=nomeAtividade.trim();
-    const idAtiv=await idAtividadeLivre(nomeBase);
     const {error:eAtiv}=await sbDados.from('atividades').insert({
-      id_atividade:idAtiv,
+      id_atividade:nomeAtividade.trim(),
       data:ap.dataAtividade||chaveDia(new Date()),
       tipo:ap.tipo,
       curso:ap.curso,
@@ -4254,7 +4233,7 @@ async function confirmarNomeAtividade(){
 
     const linhasQuestoes=resultados.map(({q,statusFinal})=>({
       numero_questao:q.numeroQuestao,
-      id_atividade:idAtiv,
+      id_atividade:nomeAtividade.trim(),
       status:statusFinal,
       modulo_pscpp:q.modulo,
       publicacao:q.publicacao,
@@ -4268,7 +4247,7 @@ async function confirmarNomeAtividade(){
       // desfaz o insert em 'atividades' que já tinha dado certo, pra não deixar lixo órfão
       // se essa etapa falhar — sem isso, uma tentativa nova esbarra em "chave duplicada"
       // no id_atividade, mesmo sem nenhuma questão ter sido salva de verdade.
-      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
+      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
       throw eQuest;
     }
 
@@ -4286,7 +4265,7 @@ async function confirmarNomeAtividade(){
         duracao_minutos: minutosGastos,
         data: ap.dataAtividade||chaveDia(new Date()),
         modulo: modulos.length===1 ? modulos[0] : null,
-        publicacao: nomeBase,
+        publicacao: nomeAtividade.trim(),
         origem: ap.curso||null,
       });
       if(eSessao) console.error('Não foi possível registrar a sessão de estudo:',eSessao);
@@ -4295,8 +4274,8 @@ async function confirmarNomeAtividade(){
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
     if(eStatus){
       // mesma lógica: desfaz os dois inserts anteriores, que já tinham dado certo
-      await sbDados.from('banco_questoes').delete().eq('id_atividade',idAtiv);
-      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
+      await sbDados.from('banco_questoes').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
       throw eStatus;
     }
 
@@ -5769,8 +5748,7 @@ function timerCamposObrigatoriosCompletos(){
   if(timerOrigem&&timerPublicacao) return true;
   if(!timerModulo||!timerPublicacao) return false;
   const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  // Revisão: capítulo é opcional — dá pra revisar a matéria inteira sem escolher um (Carlos, 10 Nov 2026).
-  const exigeCapitulo=timerTipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!timerCapitulo) return false;
   return true;
 }
@@ -7667,8 +7645,7 @@ async function salvarRegistroManual(){
   const data=document.getElementById('registro-manual-data').value;
   if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
   if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
-  // Revisão: capítulo é opcional, igual ao cronômetro (Carlos, 10 Nov 2026).
-  const exigeCapitulo=tipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe ${pubInfo.rotuloCapitulo==='Publicação'?'a':'o'} ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
