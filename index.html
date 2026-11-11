@@ -1053,6 +1053,14 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .chuva-btn.ligada{color:#2F6FB3!important}
 .tf-chuva-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);left:60px;color:#6B7280;background:none;border:none;cursor:pointer;padding:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
 .tf-chuva-btn.ligada{color:#8CCBF6!important}
+/* (11/11) chuva na tela cheia acompanha a cor da tela: no vermelho (intervalo / descanso
+   vencido) e no âmbar (refeição) o cinza-azulado desligado e o azul-claro ligado ficavam fora
+   do tom. Desligado = mesmo nível dos outros controles auxiliares daquela cor; ligado = branco,
+   que é o que se destaca de verdade nos dois fundos */
+body.em-intervalo .tf-chuva-btn,body.descanso-acabou .tf-chuva-btn{color:#E0A8A2!important}
+body.em-refeicao .tf-chuva-btn{color:#E8CE86!important}
+body.em-intervalo .tf-chuva-btn.ligada,body.descanso-acabou .tf-chuva-btn.ligada,
+body.em-refeicao .tf-chuva-btn.ligada{color:#FFFFFF!important}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
 
 .banco-combine-toggle:hover{color:#111;border-color:#999}
@@ -5713,6 +5721,14 @@ function renderTimerFullscreenConteudo(){
         :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(10)">10 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>
+        <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`
+        // (11/11) com o intervalo correndo os botões continuam, agora SOMANDO ao que falta:
+        // faltam 3 min, toca "+5" e passa a faltar 8. A tela redesenha a cada segundo, então o
+        // toque vale já no pointerdown - com onclick, um toque que caísse bem na troca do
+        // segundo se perdia
+        :pausaPrazoFim?`<button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,5)">+5 min</button>
+        <button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,10)">+10 min</button>
+        <button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,15)">+15 min</button>
         <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`:''}
       </div>
       ${(!desvioPilha&&!refeicaoInicio&&!pausaPrazoFim&&!descansoAcabou)
@@ -6086,6 +6102,16 @@ function esticarDescanso(minutos){
   pausaPrazoFim=Date.now()+minutos*60*1000;
   if(!pausaPrazoIntervalId) pausaPrazoIntervalId=setInterval(tickPausaPrazo,1000);
   prepararAudioApito();
+  atualizarTelaTimer();
+  atualizarIlhaEstado();
+}
+
+// Somar ao intervalo que já está correndo: o tempo novo entra em cima do que FALTA (faltam 3,
+// +5 -> faltam 8), sem recomeçar a contagem
+function somarAoIntervalo(ev,minutos){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(!pausaPrazoFim) return;
+  pausaPrazoFim+=minutos*60*1000;
   atualizarTelaTimer();
   atualizarIlhaEstado();
 }
