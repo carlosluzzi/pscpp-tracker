@@ -5649,6 +5649,9 @@ function renderTimerFullscreenConteudo(){
   // Simulado na tela cheia: mostra o nome que o Carlos deu e se é geral ou de uma matéria. Sem
   // isso a tela cheia de um simulado geral ficaria sem cabeçalho nenhum, já que ele não tem
   // módulo, publicação nem capítulo para exibir.
+  const cabecalhoRevisaoGeral = (timerTipo==='Revisão'&&!timerPublicacao&&!cadernoTimer&&!desvioPilha) ? `
+      <div class="tf-modulo">${REVISAO_GERAL}</div>
+      <div class="tf-ref-wrap">${timerModulo?`<div class="tf-ref">${timerModulo}</div>`:''}</div>` : '';
   const cabecalhoSimulado = timerTipo==='Simulado' ? `
       <div class="tf-modulo">${timerCorrecaoSessaoId?'Corrigindo':'Simulado'}</div>
       <div class="tf-ref-wrap">
@@ -5703,7 +5706,7 @@ function renderTimerFullscreenConteudo(){
         oninput="setChuvaVolume(this.value)">
     </div>
     <div>
-      ${cabecalhoSimulado?cabecalhoSimulado:cadernoTimer?cabecalhoCaderno:`
+      ${cabecalhoSimulado?cabecalhoSimulado:cabecalhoRevisaoGeral?cabecalhoRevisaoGeral:cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
       ${(()=>{
         // Publicação de capítulo único com descrição própria (o grupo Pilot Transfer, por
@@ -5820,12 +5823,16 @@ function formatarCapituloExibicao(pubInfo,identificador){
   return `${rotulo} ${identificador}`;
 }
 
+const REVISAO_GERAL='Revisão geral';
 function timerCamposObrigatoriosCompletos(){
   // Correção de simulado já salvo: o que está sendo medido vem do registro, não da tela.
   if(timerCorrecaoSessaoId) return true;
   // Simulado: basta o nome e, quando não é geral, a matéria. Publicação e capítulo não existem
   // aqui — exigir a bibliografia completa impediria justamente o caso de uso.
   if(timerTipo==='Simulado') return !!(timerSimuladoNome||'').trim()&&(timerSimuladoGeral||!!timerModulo);
+  // Revisão geral (Carlos, 12 Nov 2026): Revisão pode começar sem escolher nada. Sem publicação,
+  // a sessão é gravada como "Revisão geral" (com o módulo, se tiver sido escolhido).
+  if(timerTipo==='Revisão'&&!timerPublicacao) return true;
   // No desvio basta saber o que se está consultando: pode ser algo fora do edital, sem módulo
   // nem capítulo. Exigir a bibliografia completa aqui impediria justamente o caso de uso.
   if(desvioPilha&&timerPublicacao) return true;
@@ -7625,7 +7632,7 @@ async function confirmarSalvarTimer(){
   const notaErros=ehSimulado?document.getElementById('timer-simulado-erros').value:'';
   const linhaSessao={
     modulo:(ehSimulado&&timerSimuladoGeral)?null:(timerModulo||null),
-    publicacao:ehSimulado?null:(timerPublicacao||null),
+    publicacao:ehSimulado?null:(timerPublicacao||(timerTipo==='Revisão'&&!timerOrigem&&!ehDesvio?REVISAO_GERAL:null)),
     capitulo:ehSimulado?null:(timerCapitulo||null),
     nome_simulado:ehSimulado?((timerSimuladoNome||'').trim()||null):null,
     com_correcao_separada:ehSimulado?!!timerSimuladoCorrigeDepois:false,
@@ -7740,15 +7747,17 @@ async function salvarRegistroManual(){
   const caracteresInput=document.getElementById('registro-manual-caracteres').value;
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   const data=document.getElementById('registro-manual-data').value;
-  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
-  if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
+  // Revisão sem publicação = Revisão geral (igual ao cronômetro).
+  const revisaoGeral=tipo==='Revisão'&&!publicacao;
+  if(!modulo&&!revisaoGeral){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+  if(!publicacao&&!revisaoGeral){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
   // Revisão: capítulo é opcional, igual ao cronômetro (Carlos, 10 Nov 2026).
   const exigeCapitulo=tipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe ${pubInfo.rotuloCapitulo==='Publicação'?'a':'o'} ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   const dadosSessao={
-    modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,
+    modulo:modulo||null,publicacao:publicacao||(revisaoGeral?REVISAO_GERAL:null),capitulo:numCapitulo||null,
     tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
   };
   try{
@@ -8885,7 +8894,7 @@ function renderCardFilaEstudo(){
     </div>`;
   }).join(''):'<div class="flash-vazio">Nada na fila.</div>';
   return `<div class="card-inicio" id="fila-estudo-card">
-    ${sectionTitle('A estudar'+mais,'livro','#E6F1FB','#202A45',{direita:`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${itens.length} ${itens.length===1?'item':'itens'}</span>`})}
+    ${sectionTitle('Fila de estudo'+mais,'livro','#E6F1FB','#202A45',{direita:`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${itens.length} ${itens.length===1?'item':'itens'}</span>`})}
     <div class="mapa-lista">
       <div class="mapa-cab estudo-cab"><div>Matéria</div><div>Caracteres</div><div></div></div>
       ${linhas}
@@ -11726,7 +11735,7 @@ function renderItemEsperandoUpload(ev){
   return `<div class="cadernos-item-leve" style="border-left:3px solid #ccc;padding-left:8px">
     <div class="prox-left">
       <span class="prox-nome" style="color:#444441">${(tipoLabelCurso[ev.curso]&&tipoLabelCurso[ev.curso]!=='CADERNO')?tipoLabelCurso[ev.curso]+' ':''}${escapeHtml(ev.rotulo)}</span>
-      <span class="prox-modalidade" style="color:#888">esperando upload · ${quando}</span>
+      <span class="prox-modalidade" style="color:#888">Esperando upload · ${quando}</span>
     </div>
   </div>`;
 }
