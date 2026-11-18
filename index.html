@@ -9835,6 +9835,9 @@ function tituloAtiv(o){
 function rotuloTipoAtiv(o){
   if(!o) return '';
   if(o.tipo===TIPO_TEE) return 'TEE';
+  // Caderno de Exercícios de um curso que normalmente faz simulado (ex.: "Navegação 2", dos
+  // Exercícios Práticos do Curso Prático) aparece só com o nome, sem "SIMULADO" (18 Nov 2026).
+  if(o.tipo==='Caderno de Exercícios') return 'CADERNO';
   return tipoLabelCurso[o.curso]||(o.tipo==='Caderno de Exercícios'?'CADERNO':o.tipo==='Simulado'?'SIMULADO':(o.tipo||'').toUpperCase());
 }
 // Ícone compacto de cada curso — só a marca, sem o nome escrito. Usado onde não cabe a logo
