@@ -1420,9 +1420,14 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      audios/wakelock.mp4 (5 min, 31 KB, mesma trilha de silêncio). Motivo: rebobinar a cada ~1,2 s
      dava um "soluço" no áudio do iOS — a chuva (que roda pelo mesmo motor de som) tinha um pico de
      silêncio a cada poucos segundos. Com 5 min, o rebobinar acontece uma vez a cada 5 min. -->
+<!-- 18 Nov 2026: o src NÃO fica no HTML — é colocado por tocarVideoWakeLock ao abrir a tela cheia
+     e removido por liberarWakeLock ao sair. Com src fixo, o elemento (mesmo pausado) mantinha a
+     sessão de mídia do iOS e o cartão "tela acesa" ficava no Centro de Controle fora da tela cheia.
+     ATENÇÃO: nesse mesmo dia apareceu um degradê abaixo da barra de status e esta mudança era uma
+     das duas suspeitas (a outra: status-bar-style "default"). Se o degradê voltar com a barra em
+     black-translucent, desfazer ESTA mudança (voltar o src fixo e o pause simples). -->
 <video id="wakelock-video" playsinline webkit-playsinline preload="auto" title="tela acesa"
   ontimeupdate="rebobinarVideoWakeLock(this)"
-  src="audios/wakelock.mp4"
 ></video>
 
 <!-- Áudio real (não gerado por osciladores), 150ms, bem baixo — "destrava" o resto do Web
@@ -6410,6 +6415,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 let wakeLockAtivo=null;
+const WAKELOCK_VIDEO_SRC='audios/wakelock.mp4';
 // Cada pedido de trava carrega um número de geração próprio. É isso, não uma flag
 // compartilhada, que decide se um evento de liberação é "esperado" — porque uma flag
 // resetada por uma linha síncrona corre atrás de uma Promise que ainda não terminou: o
@@ -6450,6 +6456,9 @@ function tocarVideoWakeLock(){
     // próprio navegador pode ter ligado muted. volume é só-leitura no iOS, mas não faz mal.
     if(v.muted) v.muted=false;
     try{ v.volume=1; }catch(e){}
+    // Fora da tela cheia o vídeo fica DESCARREGADO (ver liberarWakeLock) — recoloca o src aqui,
+    // ainda dentro do gesto, antes do play(). 31 KB: carrega e toca na hora.
+    if(!v.getAttribute('src')) v.setAttribute('src',WAKELOCK_VIDEO_SRC);
     if(v.paused||v.ended){
       const p=v.play();
       if(p&&p.then) p.then(()=>atualizarIndicadorWakeLock()).catch(()=>atualizarIndicadorWakeLock());
@@ -6533,7 +6542,14 @@ function liberarWakeLock(){
     wakeLockAtivo=null;
   }
   const v=document.getElementById('wakelock-video');
-  if(v&&!v.paused) v.pause();
+  if(v){
+    // Pausar não basta: um vídeo pausado continua dono da sessão de mídia do iOS, e o cartão
+    // "tela acesa" ficava no Centro de Controle fora da tela cheia (18 Nov 2026). Descarregar o
+    // elemento (sem src + load()) encerra a sessão; tocarVideoWakeLock recoloca o src depois.
+    if(!v.paused) v.pause();
+    if(v.getAttribute('src')){ v.removeAttribute('src'); try{ v.load(); }catch(e){} }
+  }
+  try{ if('mediaSession' in navigator) navigator.mediaSession.playbackState='none'; }catch(e){}
   wakeLockEstado='nenhuma';
 }
 // O sistema libera o wake lock sozinho quando o app vai pro background (troca de app, tela
