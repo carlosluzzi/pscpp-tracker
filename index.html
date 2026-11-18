@@ -1056,6 +1056,14 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .chuva-btn.ligada{color:#2F6FB3!important}
 .tf-chuva-btn{position:absolute;top:calc(env(safe-area-inset-top, 0px) + 20px);left:60px;color:#6B7280;background:none;border:none;cursor:pointer;padding:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
 .tf-chuva-btn.ligada{color:#8CCBF6!important}
+/* (11/11) chuva na tela cheia acompanha a cor da tela: no vermelho (intervalo / descanso
+   vencido) e no âmbar (refeição) o cinza-azulado desligado e o azul-claro ligado ficavam fora
+   do tom. Desligado = mesmo nível dos outros controles auxiliares daquela cor; ligado = branco,
+   que é o que se destaca de verdade nos dois fundos */
+body.em-intervalo .tf-chuva-btn,body.descanso-acabou .tf-chuva-btn{color:#E0A8A2!important}
+body.em-refeicao .tf-chuva-btn{color:#E8CE86!important}
+body.em-intervalo .tf-chuva-btn.ligada,body.descanso-acabou .tf-chuva-btn.ligada,
+body.em-refeicao .tf-chuva-btn.ligada{color:#FFFFFF!important}
 .info-icone{cursor:pointer;font-size:var(--fs-c);color:#888;display:inline-flex;align-items:center;gap:4px;line-height:1;padding:6px 4px;text-transform:none;letter-spacing:normal;font-weight:400}
 
 .banco-combine-toggle:hover{color:#111;border-color:#999}
@@ -1194,6 +1202,12 @@ body.timer-fullscreen-ativo #wakelock-video{left:50%;top:auto;bottom:calc(env(sa
 .flash-atualizar{width:24px;height:24px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#555;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .flash-atualizar svg{width:14px;height:14px}
 .flash-atualizar.girando svg{animation:ptr-girar 0.8s linear infinite}
+.flash-mais{margin-left:8px;vertical-align:middle}
+/* A estudar — mesma grade/linha do Mapa: nome | caracteres | remover */
+.estudo-cab,.estudo-linha{grid-template-columns:minmax(0,1fr) 96px 44px}
+.estudo-linha{cursor:pointer}
+.estudo-remover{display:flex;align-items:center;justify-content:center;height:40px;color:#999;cursor:pointer;padding:0!important}
+.estudo-remover svg{width:16px;height:16px}
 .flash-vazio{padding:14px 10px;font-size:var(--fs-c);color:#888}
 /* Flashs para revisar */
 .rev-cab,.rev-linha{grid-template-columns:minmax(0,1fr) auto 72px}
@@ -1536,7 +1550,7 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
 <!-- Mapa de estudo: segurar o dedo num capítulo abre este pop-up para já começar a estudar. -->
 <div id="mapa-estudar-modal" style="display:none;position:fixed;inset:0;z-index:1000001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
   <div class="modal-box" style="max-width:420px">
-    <div class="config-title">Estudar isso?</div>
+    <div class="config-title">Estudar</div>
     <p id="mapa-estudar-ref" style="margin:0 0 14px;font-size:var(--fs-c);color:#5F5E5A;line-height:1.4"></p>
     <div class="filter-row periodo-row" id="mapa-estudar-tipos" style="margin-bottom:16px"></div>
     <div class="modal-actions">
@@ -2156,6 +2170,43 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-btn modal-btn-nao" onclick="fecharRegistroManual()">Cancelar</button>
       <button class="modal-btn modal-btn-sim" onclick="salvarRegistroManual()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adicionar trecho à fila de flash à mão (Carlos, 10 Nov 2026): para quando estudou só uma parte
+     e quer os flashs mesmo assim. Entra como rodada 1 com data de hoje e segue o ciclo normal. -->
+<!-- Fila "A estudar" (Carlos, 12 Nov 2026): matérias postas à mão para estudar depois. -->
+<div class="modal-overlay" id="estudo-add-modal" style="display:none" onclick="if(event.target===this)fecharAdicionarEstudo()">
+  <div class="modal-box">
+    <div class="config-title">Adicionar à fila de estudo</div>
+    <select class="filter-select" id="estudo-add-modulo" onchange="atualizarPublicacoesEstudoAdd()"></select>
+    <select class="filter-select" id="estudo-add-publicacao" onchange="atualizarCapitulosEstudoAdd()">
+      <option value="">Publicação</option>
+    </select>
+    <select class="filter-select" id="estudo-add-capitulo">
+      <option value="">Capítulo</option>
+    </select>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn modal-btn-nao" onclick="fecharAdicionarEstudo()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" id="estudo-add-btn" onclick="adicionarEstudo()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="flash-add-modal" style="display:none" onclick="if(event.target===this)fecharAdicionarFlash()">
+  <div class="modal-box">
+    <div class="config-title">Adicionar à fila de flash</div>
+    <select class="filter-select" id="flash-add-modulo" onchange="atualizarPublicacoesFlashAdd()"></select>
+    <select class="filter-select" id="flash-add-publicacao" onchange="atualizarCapitulosFlashAdd()">
+      <option value="">Publicação</option>
+    </select>
+    <select class="filter-select" id="flash-add-capitulo">
+      <option value="">Capítulo</option>
+    </select>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn modal-btn-nao" onclick="fecharAdicionarFlash()">Cancelar</button>
+      <button class="modal-btn modal-btn-sim" id="flash-add-btn" onclick="adicionarFlashManual()">Adicionar</button>
     </div>
   </div>
 </div>
@@ -3180,6 +3231,10 @@ const CARREGADORES={
   },
   // Fila de flash mora no banco do Pilotquest desde 05/11/2026 (pra ele oferecer "Começar" lá
   // dentro). Mesmo login (sbAuth); a RLS já limita ao próprio usuário. Sem login: fila vazia.
+  fila_estudo: async()=>{
+    const {data,error}=await sbDados.from('fila_estudo').select('*').order('criado_em'); lancarSe(error);
+    filaEstudo=(data||[]).map(p=>({id:p.id,modulo:p.modulo,publicacao:p.publicacao,capitulo:p.capitulo||'',criadoEm:p.criado_em}));
+  },
   fila_flash: async()=>{
     const uid=sbAuth?await pqUsuario():null;
     if(!uid){ filaFlash=[]; return; }
@@ -3396,6 +3451,8 @@ const CARREGADORES={
         const aj=ajustesBib.porNome.get(b.nome);
         if(!aj) return;
         if(aj.oculta){ b._ocultaTracker=true; return; }
+        // Módulo do Tracker diferente do Pilotquest (ex.: NORMAM-601/602 em Navegação, 10 Nov 2026).
+        if(aj.modulo) b.modulo=aj.modulo;
         if(Array.isArray(aj.capitulos)&&aj.capitulos.length){ b.capitulosValidos=[...aj.capitulos]; b.capituloUnico=false; }
         const div=aj.capitulos_divididos;
         if(div&&typeof div==='object') b.capitulosValidos=b.capitulosValidos.flatMap(c=>div[String(c)]||[c]);
@@ -4160,6 +4217,22 @@ async function finalizarCadernoPendente(){
 function fecharNomeAtividadeModal(){
   document.getElementById('nome-atividade-modal').style.display='none';
 }
+// Primeiro id_atividade livre para um nome: o próprio nome se ninguém usa; senão "nome #2",
+// "nome #3"… (o maior marcador existente + 1).
+async function idAtividadeLivre(nomeBase){
+  const [{data:igual,error:e1},{data:marcados,error:e2}]=await Promise.all([
+    sbDados.from('atividades').select('id_atividade').eq('id_atividade',nomeBase).limit(1),
+    sbDados.from('atividades').select('id_atividade').like('id_atividade',nomeBase+' #%'),
+  ]);
+  if(e1) throw e1; if(e2) throw e2;
+  if(!(igual||[]).length) return nomeBase;
+  let maior=1;
+  (marcados||[]).forEach(r=>{
+    const m=String(r.id_atividade).slice(nomeBase.length).match(/^ #(\d+)$/);
+    if(m) maior=Math.max(maior,parseInt(m[1],10));
+  });
+  return nomeBase+' #'+(maior+1);
+}
 let confirmandoNomeAtividade=false;
 async function confirmarNomeAtividade(){
   if(confirmandoNomeAtividade) return; // trava contra clique duplo, mesmo que o modal ainda não tenha sumido da tela
@@ -4216,8 +4289,13 @@ async function confirmarNomeAtividade(){
   });
 
   try{
+    // Nome repetido é permitido (vários cadernos "Meteorologia" do FSA Quest, por exemplo). O app
+    // liga questão a atividade pelo nome, então o banco guarda o 2º como "Meteorologia #2", o 3º
+    // como "#3"… — o marcador nunca aparece na tela (nomeExibAtiv). Pedido do Carlos, 8 Nov 2026.
+    const nomeBase=nomeAtividade.trim();
+    const idAtiv=await idAtividadeLivre(nomeBase);
     const {error:eAtiv}=await sbDados.from('atividades').insert({
-      id_atividade:nomeAtividade.trim(),
+      id_atividade:idAtiv,
       data:ap.dataAtividade||chaveDia(new Date()),
       tipo:ap.tipo,
       curso:ap.curso,
@@ -4238,7 +4316,7 @@ async function confirmarNomeAtividade(){
 
     const linhasQuestoes=resultados.map(({q,statusFinal})=>({
       numero_questao:q.numeroQuestao,
-      id_atividade:nomeAtividade.trim(),
+      id_atividade:idAtiv,
       status:statusFinal,
       modulo_pscpp:q.modulo,
       publicacao:q.publicacao,
@@ -4252,7 +4330,7 @@ async function confirmarNomeAtividade(){
       // desfaz o insert em 'atividades' que já tinha dado certo, pra não deixar lixo órfão
       // se essa etapa falhar — sem isso, uma tentativa nova esbarra em "chave duplicada"
       // no id_atividade, mesmo sem nenhuma questão ter sido salva de verdade.
-      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
       throw eQuest;
     }
 
@@ -4270,7 +4348,7 @@ async function confirmarNomeAtividade(){
         duracao_minutos: minutosGastos,
         data: ap.dataAtividade||chaveDia(new Date()),
         modulo: modulos.length===1 ? modulos[0] : null,
-        publicacao: nomeAtividade.trim(),
+        publicacao: nomeBase,
         origem: ap.curso||null,
       });
       if(eSessao) console.error('Não foi possível registrar a sessão de estudo:',eSessao);
@@ -4279,8 +4357,8 @@ async function confirmarNomeAtividade(){
     const {error:eStatus}=await sbDados.from('atividades_pendentes').update({status:'Completo'}).eq('id',resolucaoAtividadeId);
     if(eStatus){
       // mesma lógica: desfaz os dois inserts anteriores, que já tinham dado certo
-      await sbDados.from('banco_questoes').delete().eq('id_atividade',nomeAtividade.trim());
-      await sbDados.from('atividades').delete().eq('id_atividade',nomeAtividade.trim());
+      await sbDados.from('banco_questoes').delete().eq('id_atividade',idAtiv);
+      await sbDados.from('atividades').delete().eq('id_atividade',idAtiv);
       throw eStatus;
     }
 
@@ -5566,7 +5644,7 @@ function renderTimerFullscreenConteudo(){
       ${logosCursos[cadernoTimer.curso]?`<img src="${logosCursos[cadernoTimer.curso]}" alt="${cadernoTimer.curso}"
         style="height:${cursoIconeRedondo(cadernoTimer.curso)?20:18}px;
         aspect-ratio:${proporcaoLogosCursos[cadernoTimer.curso]};display:block;margin:0 auto 10px;
-        filter:brightness(0) invert(1);opacity:.9">`
+        filter:${filtroLogoEscuro(cadernoTimer.curso)};opacity:.9">`
         :`<div class="tf-modulo">${cadernoTimer.curso}</div>`}
       <div class="tf-ref-wrap">
         <div class="tf-ref">${tituloAtiv(cadernoTimer)}</div>
@@ -5576,6 +5654,9 @@ function renderTimerFullscreenConteudo(){
   // Simulado na tela cheia: mostra o nome que o Carlos deu e se é geral ou de uma matéria. Sem
   // isso a tela cheia de um simulado geral ficaria sem cabeçalho nenhum, já que ele não tem
   // módulo, publicação nem capítulo para exibir.
+  const cabecalhoRevisaoGeral = (timerTipo==='Revisão'&&!timerPublicacao&&!cadernoTimer&&!desvioPilha) ? `
+      <div class="tf-modulo">${REVISAO_GERAL}</div>
+      <div class="tf-ref-wrap">${timerModulo?`<div class="tf-ref">${timerModulo}</div>`:''}</div>` : '';
   const cabecalhoSimulado = timerTipo==='Simulado' ? `
       <div class="tf-modulo">${timerCorrecaoSessaoId?'Corrigindo':'Simulado'}</div>
       <div class="tf-ref-wrap">
@@ -5630,7 +5711,7 @@ function renderTimerFullscreenConteudo(){
         oninput="setChuvaVolume(this.value)">
     </div>
     <div>
-      ${cabecalhoSimulado?cabecalhoSimulado:cadernoTimer?cabecalhoCaderno:`
+      ${cabecalhoSimulado?cabecalhoSimulado:cabecalhoRevisaoGeral?cabecalhoRevisaoGeral:cadernoTimer?cabecalhoCaderno:`
       ${timerModulo?`<div class="tf-modulo">${timerModulo}</div>`:''}
       ${(()=>{
         // Publicação de capítulo único com descrição própria (o grupo Pilot Transfer, por
@@ -5675,6 +5756,14 @@ function renderTimerFullscreenConteudo(){
         :(!timerRodando&&!pausaPrazoFim&&!refeicaoInicio)?`<button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(5)">5 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(10)">10 min</button>
         <button class="tf-pausa-btn" onclick="iniciarPausaComPrazo(15)">15 min</button>
+        <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`
+        // (11/11) com o intervalo correndo os botões continuam, agora SOMANDO ao que falta:
+        // faltam 3 min, toca "+5" e passa a faltar 8. A tela redesenha a cada segundo, então o
+        // toque vale já no pointerdown - com onclick, um toque que caísse bem na troca do
+        // segundo se perdia
+        :pausaPrazoFim?`<button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,5)">+5 min</button>
+        <button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,10)">+10 min</button>
+        <button class="tf-pausa-btn" onpointerdown="somarAoIntervalo(event,15)">+15 min</button>
         <button class="tf-pausa-btn tf-pausa-refeicao" onclick="iniciarRefeicao()">Refeição</button>`:''}
       </div>
       ${(!desvioPilha&&!refeicaoInicio&&!pausaPrazoFim&&!descansoAcabou)
@@ -5739,12 +5828,16 @@ function formatarCapituloExibicao(pubInfo,identificador){
   return `${rotulo} ${identificador}`;
 }
 
+const REVISAO_GERAL='Revisão geral';
 function timerCamposObrigatoriosCompletos(){
   // Correção de simulado já salvo: o que está sendo medido vem do registro, não da tela.
   if(timerCorrecaoSessaoId) return true;
   // Simulado: basta o nome e, quando não é geral, a matéria. Publicação e capítulo não existem
   // aqui — exigir a bibliografia completa impediria justamente o caso de uso.
   if(timerTipo==='Simulado') return !!(timerSimuladoNome||'').trim()&&(timerSimuladoGeral||!!timerModulo);
+  // Revisão geral (Carlos, 12 Nov 2026): Revisão pode começar sem escolher nada. Sem publicação,
+  // a sessão é gravada como "Revisão geral" (com o módulo, se tiver sido escolhido).
+  if(timerTipo==='Revisão'&&!timerPublicacao) return true;
   // No desvio basta saber o que se está consultando: pode ser algo fora do edital, sem módulo
   // nem capítulo. Exigir a bibliografia completa aqui impediria justamente o caso de uso.
   if(desvioPilha&&timerPublicacao) return true;
@@ -5753,7 +5846,8 @@ function timerCamposObrigatoriosCompletos(){
   if(timerOrigem&&timerPublicacao) return true;
   if(!timerModulo||!timerPublicacao) return false;
   const pubInfo=bibliografia.find(b=>b.nome===timerPublicacao&&b.modulo===timerModulo);
-  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  // Revisão: capítulo é opcional — dá pra revisar a matéria inteira sem escolher um (Carlos, 10 Nov 2026).
+  const exigeCapitulo=timerTipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!timerCapitulo) return false;
   return true;
 }
@@ -6047,6 +6141,16 @@ function esticarDescanso(minutos){
   pausaPrazoFim=Date.now()+minutos*60*1000;
   if(!pausaPrazoIntervalId) pausaPrazoIntervalId=setInterval(tickPausaPrazo,1000);
   prepararAudioApito();
+  atualizarTelaTimer();
+  atualizarIlhaEstado();
+}
+
+// Somar ao intervalo que já está correndo: o tempo novo entra em cima do que FALTA (faltam 3,
+// +5 -> faltam 8), sem recomeçar a contagem
+function somarAoIntervalo(ev,minutos){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(!pausaPrazoFim) return;
+  pausaPrazoFim+=minutos*60*1000;
   atualizarTelaTimer();
   atualizarIlhaEstado();
 }
@@ -6689,7 +6793,7 @@ function renderCadernoTimerFullscreenConteudo(){
       ${ap&&logosCursos[ap.curso]?`<img src="${logosCursos[ap.curso]}" alt="${ap.curso}"
         style="height:${cursoIconeRedondo(ap.curso)?20:18}px;
         aspect-ratio:${proporcaoLogosCursos[ap.curso]};display:block;margin:0 auto 10px;
-        filter:brightness(0) invert(1);opacity:.9">`
+        filter:${filtroLogoEscuro(ap.curso)};opacity:.9">`
         :`<div class="tf-modulo" style="opacity:0.6;font-size:var(--fs-b)">${ap?ap.curso:''}</div>`}
       <div class="tf-modulo">${tituloAtiv(ap)}</div>
       <div class="tf-ref-wrap"></div>
@@ -7545,7 +7649,7 @@ async function confirmarSalvarTimer(){
   const notaErros=ehSimulado?document.getElementById('timer-simulado-erros').value:'';
   const linhaSessao={
     modulo:(ehSimulado&&timerSimuladoGeral)?null:(timerModulo||null),
-    publicacao:ehSimulado?null:(timerPublicacao||null),
+    publicacao:ehSimulado?null:(timerPublicacao||(timerTipo==='Revisão'&&!timerOrigem&&!ehDesvio?REVISAO_GERAL:null)),
     capitulo:ehSimulado?null:(timerCapitulo||null),
     nome_simulado:ehSimulado?((timerSimuladoNome||'').trim()||null):null,
     com_correcao_separada:ehSimulado?!!timerSimuladoCorrigeDepois:false,
@@ -7660,14 +7764,17 @@ async function salvarRegistroManual(){
   const caracteresInput=document.getElementById('registro-manual-caracteres').value;
   const caracteresLidos=caracteresInput?parseInt(caracteresInput,10):null;
   const data=document.getElementById('registro-manual-data').value;
-  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
-  if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
-  const exigeCapitulo=pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
+  // Revisão sem publicação = Revisão geral (igual ao cronômetro).
+  const revisaoGeral=tipo==='Revisão'&&!publicacao;
+  if(!modulo&&!revisaoGeral){ mostrarAviso('Falta o módulo','Escolha o módulo estudado.'); return; }
+  if(!publicacao&&!revisaoGeral){ mostrarAviso('Falta a publicação','Escolha a publicação estudada.'); return; }
+  // Revisão: capítulo é opcional, igual ao cronômetro (Carlos, 10 Nov 2026).
+  const exigeCapitulo=tipo!=='Revisão'&&pubInfo&&!pubInfo.capituloUnico&&pubInfo.capitulosValidos&&pubInfo.capitulosValidos.length;
   if(exigeCapitulo&&!numCapitulo){ alert(`Escolhe ${pubInfo.rotuloCapitulo==='Publicação'?'a':'o'} ${pubInfo.rotuloCapitulo.toLowerCase()}.`); return; }
   if(!duracao||duracao<1){ mostrarAviso('Falta a duração','Informe quantos minutos você estudou.'); return; }
   if(!data){ alert('Preenche a data.'); return; }
   const dadosSessao={
-    modulo:modulo||null,publicacao:publicacao||null,capitulo:numCapitulo||null,
+    modulo:modulo||null,publicacao:publicacao||(revisaoGeral?REVISAO_GERAL:null),capitulo:numCapitulo||null,
     tipo,duracao_minutos:duracao,data,caracteres_lidos:caracteresLidos,
   };
   try{
@@ -8517,7 +8624,7 @@ async function salvarSaudacaoSubtexto(novo){
 const FLASH_COTA_PCT={1:0.20,2:0.15,3:0.10};
 const FLASH_PISO=15, FLASH_TETO=60;   // sem teto diário (decisão de 5 Nov 2026): o volume do dia é a soma das cotas
 const FLASH_ESPERA_DIAS={2:7,3:30};
-let filaFlash=[], filaFlashMapa=[];
+let filaFlash=[], filaFlashMapa=[], filaEstudo=[];
 let flashFeitas={};            // id da tarefa -> respostas contadas desde criado_em (preenchido por verificarFilaFlash)
 let flashVerificando=false, flashUltimaVerificacao=0;
 let pqUsuarioId=null;
@@ -8710,12 +8817,165 @@ function renderCardFlashHoje(){
     </div>`).join('')
     :'<div class="flash-vazio">Nenhum flash pendente.</div>';
   return `<div class="card-inicio" id="flash-hoje-card">
-    ${sectionTitle('Flash de hoje','relogio','#E6F1FB','#202A45',{direita})}
+    ${sectionTitle(`Flash de hoje<button class="flash-atualizar flash-mais" onclick="event.stopPropagation();abrirAdicionarFlash()" aria-label="Adicionar à fila de flash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`,'relogio','#E6F1FB','#202A45',{direita})}
     <div class="mapa-lista">
       <div class="mapa-cab flash-cab"><div>Trecho</div><div>Rodada</div><div>Faltam</div></div>
       ${linhas}
     </div>
   </div>`;
+}
+// ADICIONAR À FILA À MÃO (10 Nov 2026): a fila só nasce sozinha quando a leitura do trecho fica
+// concluída. Aqui o Carlos põe o trecho na fila mesmo tendo lido só uma parte: entra como rodada 1,
+// com data de HOJE, e daí segue igual a qualquer outra (cota por %, 2ª rodada 7 dias após concluir
+// a 1ª, 3ª rodada 30 dias após a 2ª). Sem quantidade: a cota é a de sempre.
+function abrirAdicionarFlash(){
+  document.getElementById('flash-add-modulo').innerHTML='<option value="">Selecione o módulo</option>'+[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
+  atualizarPublicacoesFlashAdd();
+  document.getElementById('flash-add-btn').disabled=false;
+  document.getElementById('flash-add-modal').style.display='flex';
+}
+function fecharAdicionarFlash(){ document.getElementById('flash-add-modal').style.display='none'; }
+function atualizarPublicacoesFlashAdd(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const opcoes=modulo?publicacoesParaEstudo(modulo):[];
+  document.getElementById('flash-add-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomePub(p))}</option>`).join('');
+  atualizarCapitulosFlashAdd();
+}
+function atualizarCapitulosFlashAdd(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const publicacao=document.getElementById('flash-add-publicacao').value;
+  const sel=document.getElementById('flash-add-capitulo');
+  const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  sel.classList.remove('select-como-texto');
+  if(!publicacao||!info){ sel.innerHTML='<option value="">Capítulo</option>'; sel.disabled=true; return; }
+  if(info.capituloUnico){ sel.innerHTML=`<option value="">${rotuloCapituloUnico(info)}</option>`; sel.disabled=true; sel.classList.add('select-como-texto'); return; }
+  const caps=info.capitulosValidos||[];
+  if(!caps.length){ sel.innerHTML=`<option value="">${info.rotuloCapitulo} (ainda não cadastrado)</option>`; sel.disabled=true; return; }
+  if(caps.length===1){ sel.innerHTML=`<option value="${escapeHtml(caps[0])}">${textoOpcaoCapitulo(info.rotuloCapitulo,caps[0])}</option>`; sel.disabled=true; return; }
+  sel.disabled=false;
+  sel.innerHTML=`<option value="">${info.rotuloCapitulo}</option>`+caps.map(c=>`<option value="${escapeHtml(c)}">${textoOpcaoCapitulo(info.rotuloCapitulo,c)}</option>`).join('');
+}
+async function adicionarFlashManual(){
+  const modulo=document.getElementById('flash-add-modulo').value;
+  const publicacao=document.getElementById('flash-add-publicacao').value;
+  const capSel=document.getElementById('flash-add-capitulo');
+  const cap=String(capSel.value||'');
+  const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo.'); return; }
+  if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação.'); return; }
+  if(!capSel.disabled&&!cap){ mostrarAviso('Falta o capítulo',`Escolha ${info&&info.rotuloCapitulo==='Publicação'?'a':'o'} ${(info?info.rotuloCapitulo:'Capítulo').toLowerCase()}.`); return; }
+  if((filaFlash||[]).some(f=>!f.concluidoEm&&f.modulo===modulo&&f.publicacao===publicacao&&f.capitulo===cap)){
+    mostrarAviso('Já está na fila','Esse trecho já tem uma rodada de flash em aberto.'); return;
+  }
+  const btn=document.getElementById('flash-add-btn');
+  btn.disabled=true;
+  try{
+    const ids=await cardsDoTrechoFlash(modulo,publicacao,cap);
+    if(!ids.length){ btn.disabled=false; mostrarAviso('Sem cards','Esse trecho ainda não tem cards seus no Pilotquest.'); return; }
+    const criada=await inserirTarefaFlash({modulo,publicacao,capitulo:cap,rodada:1,dataPrevista:chaveDia(new Date()),ids});
+    if(!criada){ btn.disabled=false; mostrarAviso('Não deu para adicionar','Tente de novo em instantes.'); return; }
+    fecharAdicionarFlash();
+    await loadData(['fila_flash']);
+    verificarFilaFlash(true);
+  }catch(e){
+    console.error('Fila de flash (adicionar à mão):',e);
+    btn.disabled=false;
+    mostrarAviso('Não deu para adicionar','Tente de novo em instantes.');
+  }
+}
+// ============================================================================
+// A ESTUDAR (12 Nov 2026): fila de matérias que o Carlos põe à mão — módulo, publicação e,
+// se quiser, o capítulo. Mesma grade do Mapa e do Flash de hoje. Tocar na linha abre o mesmo
+// "Estudar" do Mapa (já preenche o timer); o X tira da fila. Fica em fila_estudo (Tracker).
+// ============================================================================
+const ICONE_X_ESTUDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+function rotuloFilaEstudo(f){
+  const info=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
+  const cap=f.capitulo?formatarCapituloExibicao(info,f.capitulo):'';
+  return nomePub(f.publicacao)+(cap?' – '+cap:'');
+}
+function renderCardFilaEstudo(){
+  const itens=filaEstudo||[];
+  const mais=`<button class="flash-atualizar flash-mais" onclick="event.stopPropagation();abrirAdicionarEstudo()" aria-label="Adicionar à fila de estudo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
+  const linhas=itens.length?itens.map((f,i)=>{
+    // Publicação inteira com capítulos: soma dos capítulos (os escondidos já saíram da lista).
+    const info=bibliografia.find(b=>b.nome===f.publicacao&&b.modulo===f.modulo);
+    const caps=info&&!info.capituloUnico?(info.capitulosValidos||[]).filter(c=>c!==CAPITULO_TODOS):[];
+    const chars=(!f.capitulo&&caps.length)
+      ?caps.reduce((t,c)=>t+(tamanhoCapAtual(f.modulo,f.publicacao,c)||0),0)
+      :tamanhoCapAtual(f.modulo,f.publicacao,f.capitulo);
+    return `<div class="mapa-linha estudo-linha${i%2===1?' mapa-par':''}" data-mod="${escapeHtml(f.modulo)}" data-pub="${escapeHtml(f.publicacao)}" data-cap="${escapeHtml(f.capitulo)}" data-tipo="${f.capitulo?'cap':'pub'}" data-caprot="${escapeHtml(f.capitulo?formatarCapituloExibicao(bibliografia.find(x=>x.nome===f.publicacao&&x.modulo===f.modulo),f.capitulo):'')}" onclick="abrirEstudarMapa(this)">
+      <div class="mapa-nome mapa-n1"><span class="mapa-seta" style="visibility:hidden">▶</span>${MAPA_DOC}<span class="mapa-t">${escapeHtml(rotuloFilaEstudo(f))}</span></div>
+      <div class="mapa-num">${chars?chars.toLocaleString('pt-BR'):'—'}</div>
+      <div class="estudo-remover" onclick="event.stopPropagation();removerEstudo('${f.id}')" aria-label="Tirar da fila">${ICONE_X_ESTUDO}</div>
+    </div>`;
+  }).join(''):'<div class="flash-vazio">Nada na fila.</div>';
+  return `<div class="card-inicio" id="fila-estudo-card">
+    ${sectionTitle('Fila de estudo'+mais,'livro','#E6F1FB','#202A45',{direita:`<span style="font-size:var(--fs-c);color:#888;font-weight:500;text-transform:none;letter-spacing:0">${itens.length} ${itens.length===1?'item':'itens'}</span>`})}
+    <div class="mapa-lista">
+      <div class="mapa-cab estudo-cab"><div>Matéria</div><div>Caracteres</div><div></div></div>
+      ${linhas}
+    </div>
+  </div>`;
+}
+function redesenharFilaEstudo(){
+  const el=document.getElementById('fila-estudo-card');
+  if(el) el.outerHTML=renderCardFilaEstudo();
+}
+function abrirAdicionarEstudo(){
+  document.getElementById('estudo-add-modulo').innerHTML='<option value="">Selecione o módulo</option>'+[...modulosPscpp].sort((a,b)=>a.localeCompare(b,'pt')).map(m=>`<option value="${m}">${m}</option>`).join('');
+  atualizarPublicacoesEstudoAdd();
+  document.getElementById('estudo-add-btn').disabled=false;
+  document.getElementById('estudo-add-modal').style.display='flex';
+}
+function fecharAdicionarEstudo(){ document.getElementById('estudo-add-modal').style.display='none'; }
+function atualizarPublicacoesEstudoAdd(){
+  const modulo=document.getElementById('estudo-add-modulo').value;
+  const opcoes=modulo?publicacoesParaEstudo(modulo):[];
+  document.getElementById('estudo-add-publicacao').innerHTML='<option value="">Publicação</option>'+opcoes.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomePub(p))}</option>`).join('');
+  atualizarCapitulosEstudoAdd();
+}
+// Capítulo é opcional: "Publicação inteira" (vazio) é sempre uma opção.
+function atualizarCapitulosEstudoAdd(){
+  const modulo=document.getElementById('estudo-add-modulo').value;
+  const publicacao=document.getElementById('estudo-add-publicacao').value;
+  const sel=document.getElementById('estudo-add-capitulo');
+  const info=bibliografia.find(b=>b.nome===publicacao&&b.modulo===modulo);
+  sel.classList.remove('select-como-texto');
+  if(!publicacao||!info){ sel.innerHTML='<option value="">Capítulo</option>'; sel.disabled=true; return; }
+  const caps=(info.capitulosValidos||[]).filter(c=>c!==CAPITULO_TODOS);
+  if(info.capituloUnico||!caps.length){ sel.innerHTML=`<option value="">${info.capituloUnico?rotuloCapituloUnico(info):'Publicação inteira'}</option>`; sel.disabled=true; sel.classList.add('select-como-texto'); return; }
+  sel.disabled=false;
+  sel.innerHTML='<option value="">Publicação inteira</option>'+caps.map(c=>`<option value="${escapeHtml(c)}">${textoOpcaoCapitulo(info.rotuloCapitulo,c)}</option>`).join('');
+}
+async function adicionarEstudo(){
+  const modulo=document.getElementById('estudo-add-modulo').value;
+  const publicacao=document.getElementById('estudo-add-publicacao').value;
+  const capitulo=String(document.getElementById('estudo-add-capitulo').value||'');
+  if(!modulo){ mostrarAviso('Falta o módulo','Escolha o módulo.'); return; }
+  if(!publicacao){ mostrarAviso('Falta a publicação','Escolha a publicação.'); return; }
+  if((filaEstudo||[]).some(f=>f.modulo===modulo&&f.publicacao===publicacao&&f.capitulo===capitulo)){
+    mostrarAviso('Já está na fila','Essa matéria já está na fila de estudo.'); return;
+  }
+  const btn=document.getElementById('estudo-add-btn');
+  btn.disabled=true;
+  try{
+    const {error}=await sbDados.from('fila_estudo').insert({modulo,publicacao,capitulo});
+    if(error) throw error;
+    fecharAdicionarEstudo();
+    await loadData(['fila_estudo']);
+  }catch(e){
+    console.error('Fila de estudo (adicionar):',e);
+    btn.disabled=false;
+    mostrarAviso('Não deu para adicionar','Tente de novo em instantes.');
+  }
+}
+async function removerEstudo(id){
+  const antes=filaEstudo;
+  filaEstudo=(filaEstudo||[]).filter(f=>f.id!==id);
+  redesenharFilaEstudo();
+  const {error}=await sbDados.from('fila_estudo').delete().eq('id',id);
+  if(error){ filaEstudo=antes; redesenharFilaEstudo(); mostrarAviso('Não deu para tirar','Tente de novo em instantes.'); }
 }
 function redesenharFlashHoje(){
   const el=document.getElementById('flash-hoje-card');
@@ -8989,6 +9249,7 @@ function renderInicio(){
     ${renderCardPlanejamento()}
     ${renderCardMapa()}
     ${renderCardFlashHoje()}
+    ${renderCardFilaEstudo()}
     ${renderCardRevisar()}
     ${renderCardComplementares()}
     ${renderCardNotas()}
@@ -9113,7 +9374,8 @@ function mapaLinha(no,{k,pai,nivel,visivel,mod,pub,irmaos}){
   const attrs=`data-k="${escapeHtml(k)}" data-pai="${escapeHtml(pai)}" data-tipo="${no.tipo}" data-nome="${escapeHtml(no.id)}" data-mod="${escapeHtml(mod||'')}" data-pub="${escapeHtml(pub||'')}" data-cap="${escapeHtml(no.tipo==='cap'?no.id:(no.folha?no.filhos[0].id:''))}"`;
   // Linha que representa um capítulo: o próprio capítulo, ou a publicação mostrada como arquivo
   const ehCapitulo=no.tipo==='cap'||!!no.folha;
-  const toqueLongo=ehCapitulo?' onpointerdown="pressionarMapa(event,this)" oncontextmenu="return false"':'';
+  // Toque simples num capítulo abre o "Estudar" (antes era segurar 0,5 s — Carlos, 10 Nov 2026).
+  const toqueLongo=ehCapitulo?' onclick="tocarCapituloMapa(event,this)"':'';
   return `<div class="mapa-linha${aberta?' mapa-aberta':''}${par?' mapa-par':''}${visivel?'':' mapa-oculta'}${temFilhos?' mapa-clicavel':''}" ${attrs}${temFilhos?' onclick="alternarMapa(this)"':''}${toqueLongo}>
     <div class="mapa-nome mapa-n${nivel}"><span class="mapa-seta"${temFilhos?'':' style="visibility:hidden"'}>▶</span>${temFilhos?MAPA_PASTA:MAPA_DOC}<span class="mapa-t">${escapeHtml(no.nome)}</span></div>
     <div class="mapa-num${ehCapitulo?' mapa-chars-editavel':''}"${ehCapitulo?' onclick="event.stopPropagation();editarTamanhoMapa(this)"':''}>${no.chars?no.chars.toLocaleString('pt-BR'):'—'}</div>
@@ -9274,6 +9536,11 @@ function pressionarMapa(ev,linha){
   window.addEventListener('pointercancel',cancelar);
   window.addEventListener('pointermove',mexeu);
 }
+function tocarCapituloMapa(ev,linha){
+  if(mapaEditando) return;
+  if(ev.target.closest('.mapa-acao,.mapa-chars-editavel')) return;
+  abrirEstudarMapa(linha);
+}
 function abrirEstudarMapa(linha){
   const {mod,pub,tipo}=linha.dataset, nome=linha.dataset.cap||'';
   if(timerRodando||timerAcumuladoSeg>0||desvioPilha){
@@ -9282,7 +9549,7 @@ function abrirEstudarMapa(linha){
   }
   mapaEstudarAlvo={mod,pub,cap:nome};
   mapaEstudarTipo='Leitura';
-  document.getElementById('mapa-estudar-ref').textContent=`${mod} › ${nomePub(pub)}${tipo==='cap'?' › '+linha.querySelector('.mapa-t').textContent:''}`;
+  document.getElementById('mapa-estudar-ref').textContent=`${mod} › ${nomePub(pub)}${tipo==='cap'?' › '+(linha.dataset.caprot||linha.querySelector('.mapa-t').textContent):''}`;
   desenharTiposEstudarMapa();
   document.getElementById('mapa-estudar-modal').style.display='flex';
 }
@@ -9585,6 +9852,11 @@ const iconesCursos={
 // carregar e empurra o layout na primeira rolagem.
 const proporcaoIcones={'Curso H':0.868,'Curso Prático':1,'MPX':2.874,'Catavento':1.018,'FSA Quest':1};
 
+// Logo na tela cheia (fundo escuro): o padrão vira silhueta branca (brightness(0) invert(1)). Logo
+// com forma preenchida perde o desenho assim — o círculo do FSA Quest virava uma bola branca.
+// Para essas, só inverte as cores: o círculo fica branco com as ondas escuras e o texto branco.
+const LOGOS_SO_INVERTER=new Set(['FSA Quest']);
+function filtroLogoEscuro(curso){ return LOGOS_SO_INVERTER.has(curso)?'invert(1)':'brightness(0) invert(1)'; }
 const logosCursos={
   'Curso H':'assets/logo-curso-h.png',
   'Curso Prático':'assets/logo-curso-pratico.png',
@@ -11480,7 +11752,7 @@ function renderItemEsperandoUpload(ev){
   return `<div class="cadernos-item-leve" style="border-left:3px solid #ccc;padding-left:8px">
     <div class="prox-left">
       <span class="prox-nome" style="color:#444441">${(tipoLabelCurso[ev.curso]&&tipoLabelCurso[ev.curso]!=='CADERNO')?tipoLabelCurso[ev.curso]+' ':''}${escapeHtml(ev.rotulo)}</span>
-      <span class="prox-modalidade" style="color:#888">esperando upload · ${quando}</span>
+      <span class="prox-modalidade" style="color:#888">Esperando upload · ${quando}</span>
     </div>
   </div>`;
 }
