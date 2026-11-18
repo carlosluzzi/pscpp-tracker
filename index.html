@@ -6,16 +6,13 @@
 <!-- A barra de status usa sempre a cor padrão do sistema, em qualquer tela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<!-- "default" (barra de status sólida) em vez de "black-translucent": com black-translucent o
-     conteúdo do PWA passa POR BAIXO da barra de status, e isso entra em conflito direto com o
-     viewport-fit=cover que a tela cheia do cronômetro liga/desliga. As duas coisas disputam a
-     mesma área e o iOS se perde: innerHeight passa a reportar 812 numa tela de 874 (62px a menos,
-     exatamente o safe-area-inset-top), o que desloca a área de toque dos botões e deixa faixa
-     sobrando embaixo depois de girar. Medido no dispositivo real via Web Inspector.
-     Nov/2026: o iPadOS novo desenha um degradê abaixo da barra em telas escuras (timer). Testado
-     "black-translucent" com app reinstalado — o degradê continua, é camada do sistema. Decidido
-     manter "default" e conviver com o degradê. -->
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- "black-translucent": barra de status transparente, o fundo do app sobe até o topo. Com
+     "default" o iPadOS 26+ pinta a barra clara e desenha um degradê logo abaixo dela nas telas
+     escuras (cronômetro em tela cheia). Histórico: em 10 Nov 2026 o teste com black-translucent
+     pareceu não resolver e voltou-se pra "default"; em 18 Nov o Carlos confirmou que a versão
+     publicada sem o degradê era a que NÃO tinha "default". Todos os cabeçalhos e telas cheias
+     reservam env(safe-area-inset-top). NÃO voltar pra "default" sem ele pedir. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
