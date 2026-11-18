@@ -6,12 +6,12 @@
 <!-- A barra de status usa sempre a cor padrão do sistema, em qualquer tela. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<!-- "black-translucent": barra de status transparente, o fundo do app sobe até o topo. Com
-     "default" o iPadOS 26+ pinta a barra clara e desenha um degradê logo abaixo dela nas telas
-     escuras (cronômetro em tela cheia). Histórico: em 10 Nov 2026 o teste com black-translucent
-     pareceu não resolver e voltou-se pra "default"; em 18 Nov o Carlos confirmou que a versão
-     publicada sem o degradê era a que NÃO tinha "default". Todos os cabeçalhos e telas cheias
-     reservam env(safe-area-inset-top). NÃO voltar pra "default" sem ele pedir. -->
+<!-- "black-translucent": barra de status transparente, o fundo do app sobe até o topo (sem o
+     degradê que o iPadOS novo desenha abaixo da barra sólida em telas escuras). Todos os
+     cabeçalhos e telas cheias já reservam env(safe-area-inset-top). Histórico: a versão antiga
+     usava "default" porque, na época, a tela cheia do cronômetro ligava/desligava viewport-fit=cover
+     e o iOS se perdia (innerHeight 812 numa tela de 874, toque deslocado). Esse liga/desliga não
+     existe mais. Se voltar a deslocar botões ou sobrar faixa ao girar, trocar de volta pra "default". -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PSCPP Tracker</title>
 <link rel="manifest" href="manifest.json">
@@ -1420,11 +1420,9 @@ body.em-refeicao #cancelar-timer-modal .modal-btn-sim{background:#8A6B10}
      audios/wakelock.mp4 (5 min, 31 KB, mesma trilha de silêncio). Motivo: rebobinar a cada ~1,2 s
      dava um "soluço" no áudio do iOS — a chuva (que roda pelo mesmo motor de som) tinha um pico de
      silêncio a cada poucos segundos. Com 5 min, o rebobinar acontece uma vez a cada 5 min. -->
-<!-- 18 Nov 2026: o src NÃO fica no HTML — é colocado por tocarVideoWakeLock ao abrir a tela cheia
-     e removido por liberarWakeLock ao sair. Com src fixo, o elemento (mesmo pausado) mantinha a
-     sessão de mídia do iOS e o cartão "tela acesa" ficava no Centro de Controle fora da tela cheia. -->
 <video id="wakelock-video" playsinline webkit-playsinline preload="auto" title="tela acesa"
   ontimeupdate="rebobinarVideoWakeLock(this)"
+  src="audios/wakelock.mp4"
 ></video>
 
 <!-- Áudio real (não gerado por osciladores), 150ms, bem baixo — "destrava" o resto do Web
@@ -6412,7 +6410,6 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 let wakeLockAtivo=null;
-const WAKELOCK_VIDEO_SRC='audios/wakelock.mp4';
 // Cada pedido de trava carrega um número de geração próprio. É isso, não uma flag
 // compartilhada, que decide se um evento de liberação é "esperado" — porque uma flag
 // resetada por uma linha síncrona corre atrás de uma Promise que ainda não terminou: o
@@ -6453,9 +6450,6 @@ function tocarVideoWakeLock(){
     // próprio navegador pode ter ligado muted. volume é só-leitura no iOS, mas não faz mal.
     if(v.muted) v.muted=false;
     try{ v.volume=1; }catch(e){}
-    // Fora da tela cheia o vídeo fica DESCARREGADO (ver liberarWakeLock) — recoloca o src aqui,
-    // ainda dentro do gesto, antes do play(). 31 KB: carrega e toca na hora.
-    if(!v.getAttribute('src')) v.setAttribute('src',WAKELOCK_VIDEO_SRC);
     if(v.paused||v.ended){
       const p=v.play();
       if(p&&p.then) p.then(()=>atualizarIndicadorWakeLock()).catch(()=>atualizarIndicadorWakeLock());
@@ -6539,15 +6533,7 @@ function liberarWakeLock(){
     wakeLockAtivo=null;
   }
   const v=document.getElementById('wakelock-video');
-  if(v){
-    // Pausar não basta: um vídeo pausado continua dono da sessão de mídia do iOS, e o cartão
-    // "tela acesa" (com botão de play) ficava no Centro de Controle e na tela bloqueada mesmo com
-    // a tela cheia fechada (18 Nov 2026). Descarregar o elemento (sem src + load()) encerra a
-    // sessão e o cartão some; tocarVideoWakeLock recoloca o src ao abrir a tela cheia de novo.
-    if(!v.paused) v.pause();
-    if(v.getAttribute('src')){ v.removeAttribute('src'); try{ v.load(); }catch(e){} }
-  }
-  try{ if('mediaSession' in navigator) navigator.mediaSession.playbackState='none'; }catch(e){}
+  if(v&&!v.paused) v.pause();
   wakeLockEstado='nenhuma';
 }
 // O sistema libera o wake lock sozinho quando o app vai pro background (troca de app, tela
