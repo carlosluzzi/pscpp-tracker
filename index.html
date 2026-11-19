@@ -3590,6 +3590,29 @@ function renderSubAbas(tab){
   slot.innerHTML='';
 }
 
+// Troca o HTML de um bloco reaproveitando as <img> que já estavam na tela. Cada redesenho com
+// innerHTML recria as imagens do zero e o Safari pinta um quadro vazio até decodificar de novo —
+// ao atualizar, a carga redesenha 3-4 vezes seguidas e as logos ficavam piscando. Aqui a imagem
+// nova é trocada pela antiga de mesmo src (já decodificada), só com os atributos atualizados.
+function trocarHTMLPreservandoImagens(el,html){
+  const antigas=new Map();
+  el.querySelectorAll('img').forEach(img=>{
+    if(!img.complete||!img.naturalWidth) return;
+    const k=img.getAttribute('src'); if(!k) return;
+    if(!antigas.has(k)) antigas.set(k,[]);
+    antigas.get(k).push(img);
+  });
+  el.innerHTML=html;
+  if(!antigas.size) return;
+  el.querySelectorAll('img').forEach(nova=>{
+    const lista=antigas.get(nova.getAttribute('src'));
+    if(!lista||!lista.length) return;
+    const velha=lista.shift();
+    for(const at of [...velha.attributes]) if(!nova.hasAttribute(at.name)) velha.removeAttribute(at.name);
+    for(const at of [...nova.attributes]) if(velha.getAttribute(at.name)!==at.value) velha.setAttribute(at.name,at.value);
+    nova.replaceWith(velha);
+  });
+}
 function renderTab(tab,preservarScroll){
   const c=document.getElementById('content');
   const scrollAnterior=preservarScroll?c.scrollTop:0;
@@ -3602,7 +3625,7 @@ function renderTab(tab,preservarScroll){
   document.querySelector('.app').classList.toggle('tem-sub-abas',temSubAbas);
   // Quando existe a faixa de voltar, é ela que projeta a sombra do scroll, não o cabeçalho.
   document.querySelector('.app').classList.toggle('tem-voltar',!!atividadeAtual);
-  document.getElementById('header-slot').innerHTML=renderHeaderZone();
+  trocarHTMLPreservandoImagens(document.getElementById('header-slot'),renderHeaderZone());
   document.getElementById('voltar-slot').innerHTML=renderVoltarSlot();
   renderSubAbas(tab);
   if(atividadeAtual){
@@ -3610,13 +3633,13 @@ function renderTab(tab,preservarScroll){
       const nome=atividadeAtual.nome;
       garantirTextosQuestoes([nome],true).then(mudou=>{ if(mudou&&atividadeAtual&&atividadeAtual.nome===nome) renderTab(tabAtual,true); });
     }
-    c.innerHTML=renderDetalhe(atividadeAtual);c.scrollTop=scrollAnterior;return;
+    trocarHTMLPreservandoImagens(c,renderDetalhe(atividadeAtual));c.scrollTop=scrollAnterior;return;
   }
   encerrarRevisarSeSaiu(tab);
-  if(tab==='inicio'){ c.innerHTML=renderInicio(); ajustarLabelsCalendario(); verificarFilaFlash(false); carregarRevisar(false); }
-  else if(tab==='atividades') c.innerHTML=renderAtividades();
-  else if(tab==='questoes') c.innerHTML=renderQuestoes();
-  else if(tab==='aprovado') c.innerHTML=renderAprovado();
+  if(tab==='inicio'){ trocarHTMLPreservandoImagens(c,renderInicio()); ajustarLabelsCalendario(); verificarFilaFlash(false); carregarRevisar(false); }
+  else if(tab==='atividades') trocarHTMLPreservandoImagens(c,renderAtividades());
+  else if(tab==='questoes') trocarHTMLPreservandoImagens(c,renderQuestoes());
+  else if(tab==='aprovado') trocarHTMLPreservandoImagens(c,renderAprovado());
   c.scrollTop=scrollAnterior;
 }
 
