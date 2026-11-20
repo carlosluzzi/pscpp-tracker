@@ -8723,7 +8723,18 @@ function leituraConcluidaFlash(modulo,publicacao,capitulo){
   const cap=String(capitulo||'');
   const t=tamanhoCapitulos[chaveTamanhoCap(modulo,publicacao,cap)];
   if(!t||!t.caracteresTotais) return false;
-  const soma=(sessoesEstudo||[]).filter(s=>s.tipo==='Leitura'&&s.modulo===modulo&&(s.publicacao||'')===publicacao&&String(s.capitulo||'')===cap&&s.caracteresLidos>0)
+  // 20/11/2026 (pedido do Carlos): só contam as leituras feitas DEPOIS que o último ciclo de flash
+  // deste trecho fechou. Antes a soma pegava todas as sessões de qualquer data; como a marcação
+  // "capítulo inteiro" antiga continuava valendo, depois das três rodadas qualquer leitura parcial
+  // reabria a fila. Agora uma releitura só abre ciclo novo quando o capítulo for lido inteiro de novo.
+  let corte=0;
+  (filaFlash||[]).forEach(f=>{
+    if(f.concluidoEm&&f.modulo===modulo&&f.publicacao===publicacao&&f.capitulo===cap){
+      const x=new Date(f.concluidoEm).getTime(); if(x>corte) corte=x;
+    }
+  });
+  const quandoFoi=s=>new Date(s.finalizadoEm||s.criadoEm||((s.data||'')+'T23:59:59')).getTime();
+  const soma=(sessoesEstudo||[]).filter(s=>s.tipo==='Leitura'&&s.modulo===modulo&&(s.publicacao||'')===publicacao&&String(s.capitulo||'')===cap&&s.caracteresLidos>0&&(!corte||quandoFoi(s)>corte))
     .reduce((a,s)=>a+s.caracteresLidos,0);
   return soma>=t.caracteresTotais;
 }
